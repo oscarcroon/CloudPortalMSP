@@ -9,7 +9,7 @@
       to="/"
       class="mb-10 flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-200"
     >
-      <img :src="currentLogo" alt="Cloud Portal" class="h-8 w-auto" />
+      <img :src="currentLogo" alt="Cloud Portal" class="h-16 w-auto" />
       Cloud Portal
     </NuxtLink>
     <main
@@ -21,13 +21,13 @@
 </template>
 
 <script setup lang="ts">
+import { useColorMode } from '#imports'
 import { computed } from 'vue'
 import logoLight from '~/assets/images/coreit-logo.svg'
 import logoDark from '~/assets/images/coreit-logo-neg.svg'
 import ThemeToggle from '~/components/layout/ThemeToggle.vue'
-import { useThemeStore } from '~/stores/theme'
 
-const themeStore = useThemeStore()
-const currentLogo = computed(() => (themeStore.isDark ? logoDark : logoLight))
+const colorMode = useColorMode()
+const currentLogo = computed(() => (colorMode.value === 'dark' ? logoDark : logoLight))
 </script>
 

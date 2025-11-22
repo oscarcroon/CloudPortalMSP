@@ -18,7 +18,7 @@
           v-model="email"
           type="email"
           required
-          class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-white/10 dark:text-white dark:placeholder:text-slate-400"
+          class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-slate-50 dark:border-white/10 dark:bg-white/10 dark:text-white dark:placeholder:text-slate-400 dark:disabled:bg-slate-900/30 dark:disabled:text-slate-500 dark:disabled:border-white/5"
           placeholder="you@example.com"
           :disabled="step === 'password'"
         />
@@ -45,11 +45,11 @@
         </button>
       </div>
 
-      <p v-if="providers.restrictSso" class="rounded-lg bg-amber-500/20 px-3 py-2 text-sm text-amber-200">
+      <p v-if="providers.restrictSso" class="rounded-lg bg-amber-500/20 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
         Minst en organisation kräver SSO. Aktivera Cloudflare Access eller välj en annan org.
       </p>
 
-      <p v-if="errorMessage" class="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-200">
+      <p v-if="errorMessage" class="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-900 dark:text-red-200">
         {{ errorMessage }}
       </p>
 
@@ -106,9 +106,20 @@ const handleEmailSubmit = async () => {
     })
     providers.value.restrictSso = Boolean(response.requiresSso)
     step.value = 'password'
-  } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Kunde inte verifiera e-postadressen.'
+  } catch (unknownError) {
+    const fetchError = unknownError as FetchError | undefined
+    const status =
+      fetchError?.statusCode ?? fetchError?.status ?? fetchError?.response?.status ?? null
+    
+    if (status === 400 || status === 422) {
+      errorMessage.value = 'Ogiltig e-postadress. Kontrollera att e-postadressen är korrekt formaterad.'
+    } else if (status === 500 || status >= 500) {
+      errorMessage.value = 'E-postadressen verkar vara ogiltig eller så kunde servern inte verifiera den. Kontrollera stavningen och försök igen.'
+    } else if (status === 404) {
+      errorMessage.value = 'E-postadressen kunde inte hittas. Kontrollera att den är korrekt.'
+    } else {
+      errorMessage.value = 'Kunde inte verifiera e-postadressen. Kontrollera att den är korrekt formaterad och försök igen.'
+    }
   }
 }
 

@@ -5,26 +5,20 @@ const backendProxyBase = backendApiBase
 export default defineNuxtConfig({
   srcDir: 'src/',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode'],
   css: ['~/assets/css/tailwind.css'],
-  app: {
-    head: {
-      script: [
-        {
-          key: 'theme-preload',
-          innerHTML:
-            "(function(){try{var k='color-theme-preference';var p=localStorage.getItem(k);if(!p||p==='system'){p=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(p==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();",
-          tagPosition: 'head'
-        }
-      ],
-      dangerouslyDisableSanitizers: ['script']
-    }
-  },
   postcss: {
     plugins: {
       tailwindcss: {},
       autoprefixer: {}
     }
+  },
+  colorMode: {
+    classSuffix: '',
+    storageKey: 'color-theme-preference',
+    preference: 'system',
+    fallback: 'light',
+    storage: 'cookie'
   },
   tailwindcss: {
     viewer: false

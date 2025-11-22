@@ -10,11 +10,11 @@
       type="button"
       class="flex items-center rounded-full px-2.5 py-1 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       :class="
-        option.value === themeStore.preference
+        option.value === colorMode.preference
           ? 'bg-brand text-white shadow-sm dark:bg-brand/90'
           : 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
       "
-      :aria-pressed="option.value === themeStore.preference"
+      :aria-pressed="option.value === colorMode.preference"
       :aria-label="option.label"
       :title="option.label"
       @click="selectPreference(option.value)"
@@ -26,10 +26,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useThemeStore, type ThemePreference } from '~/stores/theme'
+import { useColorMode } from '#imports'
 
-const themeStore = useThemeStore()
+type ThemePreference = 'system' | 'light' | 'dark'
+
+const colorMode = useColorMode<ThemePreference>()
 
 const options: Array<{ value: ThemePreference; label: string; icon: string }> = [
   { value: 'system', label: 'System', icon: '◑' },
@@ -38,11 +39,7 @@ const options: Array<{ value: ThemePreference; label: string; icon: string }> = 
 ]
 
 function selectPreference(value: ThemePreference) {
-  themeStore.setPreference(value)
+  colorMode.preference = value
 }
-
-onMounted(() => {
-  themeStore.init()
-})
 </script>
 
