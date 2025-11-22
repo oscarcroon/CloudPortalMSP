@@ -8,6 +8,13 @@
       </p>
     </header>
 
+    <div
+      v-if="deletedSlug"
+      class="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300"
+    >
+      Organisationen "{{ deletedSlug }}" raderades permanent.
+    </div>
+
     <div class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
       <form class="flex flex-1 flex-col gap-2 sm:flex-row" @submit.prevent="applySearch">
         <input
@@ -117,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useAsyncData, useRouter } from '#imports'
+import { computed, ref, useFetch, useRoute, useRouter } from '#imports'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import type { AdminOrganizationSummary } from '~/types/admin'
 
@@ -127,16 +134,21 @@ definePageMeta({
 })
 
 const router = useRouter()
+const route = useRoute()
 const searchInput = ref('')
 const appliedQuery = ref('')
+const deletedSlug = ref(typeof route.query.deleted === 'string' ? route.query.deleted : '')
 
-const { data, pending, refresh, error } = await useAsyncData(
-  'admin-organizations-list',
-  () =>
-    $fetch<{ organizations: AdminOrganizationSummary[] }>('/api/admin/organizations', {
-      query: appliedQuery.value ? { q: appliedQuery.value } : undefined
-    }),
+if (deletedSlug.value) {
+  const updatedQuery = { ...route.query }
+  delete updatedQuery.deleted
+  router.replace({ query: updatedQuery })
+}
+
+const { data, pending, refresh, error } = await useFetch<{ organizations: AdminOrganizationSummary[] }>(
+  '/api/admin/organizations',
   {
+    query: () => (appliedQuery.value ? { q: appliedQuery.value } : {}),
     watch: [appliedQuery]
   }
 )

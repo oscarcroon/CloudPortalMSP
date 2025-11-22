@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { createError, defineEventHandler } from 'h3'
-import type { DrizzleDb } from '../../../../../../utils/db'
+import { createError, defineEventHandler, readBody } from 'h3'
+import { z } from 'zod'
 import { getDb } from '../../../../../../utils/db'
 import { requireSuperAdmin } from '../../../../../../utils/rbac'
 import {
@@ -8,15 +8,18 @@ import {
   parseOrgParam,
   requireOrganizationByIdentifier
 } from '../../../utils'
-import {
-  organizationMemberships,
-  users
-} from '../../../../../../database/schema'
+import { organizationMemberships } from '../../../../../../database/schema'
+import { fetchMemberPayload } from '../helpers'
+
+export const statusSchema = z.object({
+  status: z.enum(['active', 'suspended'])
+})
 
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const memberParam = parseOrgParam(event, 'memberId')
+  const { status } = statusSchema.parse(await readBody(event))
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
 
@@ -34,47 +37,27 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Medlemmen kunde inte hittas.' })
   }
 
-  if (membership.role === 'owner' && membership.status === 'active') {
+  if (!['active', 'suspended'].includes(membership.status)) {
+    throw createError({
+      statusCode: 400,
+      message: 'Status kan endast ändras för aktiva eller avstängda medlemmar.'
+    })
+  }
+
+  if (membership.status === status) {
+    return fetchMemberPayload(db, membership.id)
+  }
+
+  if (membership.role === 'owner' && status === 'suspended' && membership.status === 'active') {
     await assertOwnerWillRemain(db, organization.id, membership.id)
   }
 
   await db
     .update(organizationMemberships)
-    .set({ status: 'suspended' })
+    .set({ status })
     .where(eq(organizationMemberships.id, membership.id))
 
   return fetchMemberPayload(db, membership.id)
 })
 
-const fetchMemberPayload = async (db: DrizzleDb, membershipId: string) => {
-  const [member] = await db
-    .select({
-      membershipId: organizationMemberships.id,
-      userId: users.id,
-      email: users.email,
-      fullName: users.fullName,
-      role: organizationMemberships.role,
-      status: organizationMemberships.status,
-      addedAt: organizationMemberships.createdAt
-    })
-    .from(organizationMemberships)
-    .innerJoin(users, eq(users.id, organizationMemberships.userId))
-    .where(eq(organizationMemberships.id, membershipId))
-
-  if (!member) {
-    throw createError({ statusCode: 404, message: 'Medlemmen kunde inte hittas.' })
-  }
-
-  return {
-    member: {
-      membershipId: member.membershipId,
-      userId: member.userId,
-      email: member.email,
-      fullName: member.fullName,
-      role: member.role,
-      status: member.status,
-      addedAt: member.addedAt
-    }
-  }
-}
 

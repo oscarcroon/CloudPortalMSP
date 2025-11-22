@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, useAsyncData, useRoute, watch } from '#imports'
+import { computed, reactive, ref, useFetch, useRoute, watch } from '#imports'
 import type { AdminOrganizationDetail, AdminUpdateAuthSettingsPayload } from '~/types/admin'
 
 definePageMeta({
@@ -116,8 +116,8 @@ const parseIdpConfig = (value: unknown) => {
   }
 }
 
-const { data, pending, refresh, error } = await useAsyncData(
-  () => $fetch<AdminOrganizationDetail>(`/api/admin/organizations/${slug.value}`),
+const { data, pending, refresh, error } = await useFetch<AdminOrganizationDetail>(
+  `/api/admin/organizations/${slug.value}`,
   {
     watch: [slug]
   }

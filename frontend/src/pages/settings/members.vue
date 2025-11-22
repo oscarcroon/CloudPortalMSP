@@ -50,6 +50,10 @@
         {{ errorMessage }}
       </div>
 
+      <div v-if="successMessage" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/5 dark:text-emerald-200">
+        {{ successMessage }}
+      </div>
+
       <div class="rounded-2xl border border-slate-200 bg-white shadow-card dark:border-white/10 dark:bg-[#0c1524]">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
           <div class="flex items-center justify-between">
@@ -161,6 +165,7 @@ const members = ref<OrganizationMember[]>([])
 const organisationName = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
+const successMessage = ref('')
 const roleLoadingId = ref('')
 const removalLoadingId = ref('')
 const showInviteModal = ref(false)
@@ -225,8 +230,14 @@ const handleRoleChange = async (member: OrganizationMember, roleValue: string) =
   const previousRole = member.role
   member.role = nextRole
   roleLoadingId.value = member.id
+  errorMessage.value = ''
+  successMessage.value = ''
   try {
     await membersApi.updateMemberRole(member.id, nextRole)
+    successMessage.value = `Rollen för ${member.email} uppdaterades till ${nextRole}.`
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
   } catch (error) {
     member.role = previousRole
     errorMessage.value =
@@ -241,6 +252,8 @@ const removeMember = async (member: OrganizationMember) => {
     return
   }
   removalLoadingId.value = member.id
+  errorMessage.value = ''
+  successMessage.value = ''
   try {
     await membersApi.removeMember(member.id)
     members.value = members.value.filter((item) => item.id !== member.id)

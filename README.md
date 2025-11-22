@@ -92,6 +92,11 @@ Kommandot läser databasen via Drizzle, letar efter den första användaren med 
 - When running `npm run seed`, the script reads `SEED_SUPERADMIN_EMAIL`, `SEED_SUPERADMIN_PASSWORD` and `SEED_SUPERADMIN_NAME` to create the first superadmin user (all defaults are defined in `env.example`).  
 - Sign in with the seeded credentials and open **Admin → Organisationer** to create production organizations and assign owner accounts. Passwords can be generated automatically per organization insert if omitted.
 
+### Administrera medlemmar och organisationer
+
+- På sidan **Admin → Organisationer → [slug] → Medlemmar** går det nu att inaktivera/aktivera konton via PATCH `/api/admin/organizations/:orgId/members/:memberId/status` och radera dem permanent med DELETE `/remove`. Inaktiverade användare kan inte logga in förrän de aktiveras igen, men deras historik ligger kvar.
+- Hela organisationer kan tas bort från **Admin → Organisationer → [slug] → Overview**. Danger zone-sektionen kräver att sluggen skrivs in exakt samt att en checkbox markeras; servern dubbelkontrollerar `confirmSlug` och `acknowledgeImpact` innan `organizations`-raden raderas (kaskad). Efter radering skickas admin tillbaka till listan med en bekräftelsebanner.
+
 ## Next Steps
 
 - Replace mock data in `backend/src/data/mockData.ts` with real connector calls (Cloudflare, Incus, ESXi, WordPress).

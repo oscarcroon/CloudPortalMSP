@@ -104,12 +104,75 @@
           </div>
         </div>
       </form>
+
+      <section class="rounded-xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-500/40 dark:bg-[#1a0f14]">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-red-700 dark:text-red-200">Danger zone</h2>
+            <p class="text-sm text-red-600 dark:text-red-300">
+              Radering tar bort all data kopplad till organisationen, inklusive medlemskap i denna organisation, DNS-poster och containerprojekt. Medlemmarnas användarkonton och medlemskap i andra organisationer påverkas inte. Detta kan inte ångras.
+            </p>
+          </div>
+          <button
+            class="rounded-lg border border-red-400 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-500 dark:text-red-200 dark:hover:bg-red-500/10"
+            :disabled="!organization"
+            @click="openDeleteModal"
+          >
+            Ta bort organisation
+          </button>
+        </div>
+      </section>
     </template>
   </section>
+
+  <div
+    v-if="showDeleteModal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8"
+    @click.self="closeDeleteModal"
+  >
+    <form
+      class="w-full max-w-lg space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#0f172a]"
+      @submit.prevent="submitDelete"
+    >
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Ta bort organisation</h3>
+      <p class="text-sm text-slate-600 dark:text-slate-400">
+        Bekräfta åtgärden genom att skriva in organisationens slug (<strong>{{ organization?.slug }}</strong>) och markera att du förstår konsekvenserna. Medlemmarnas användarkonton och medlemskap i andra organisationer påverkas inte.
+      </p>
+      <div>
+        <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Bekräfta slug</label>
+        <input
+          v-model="deleteForm.confirmSlug"
+          type="text"
+          required
+          class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 dark:border-white/10 dark:bg-black/20 dark:text-white"
+          :placeholder="organization?.slug ?? ''"
+        />
+      </div>
+      <label class="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200">
+        <input v-model="deleteForm.acknowledgeImpact" type="checkbox" class="mt-1 rounded border-slate-300 dark:border-white/20" />
+        <span>Jag förstår att organisationen och all kopplad data (medlemskap i denna organisation, DNS-poster, containerprojekt m.m.) raderas permanent. Medlemmarnas användarkonton och medlemskap i andra organisationer påverkas inte.</span>
+      </label>
+      <div v-if="deleteError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
+        {{ deleteError }}
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200" @click="closeDeleteModal">
+          Avbryt
+        </button>
+        <button
+          type="submit"
+          class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-60"
+          :disabled="deleteDisabled || deleteLoading"
+        >
+          {{ deleteLoading ? 'Raderar...' : 'Ta bort permanent' }}
+        </button>
+      </div>
+    </form>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, useAsyncData, useRoute, useRouter, watch } from '#imports'
+import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#imports'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { rbacRoles } from '~/constants/rbac'
 import type { AdminOrganizationDetail, AdminUpdateOrganizationPayload } from '~/types/admin'
@@ -127,9 +190,16 @@ const slug = computed(() => route.params.slug as string)
 const saving = ref(false)
 const errorMessage = ref('')
 const showCreatedBanner = ref(route.query.created === '1')
+const showDeleteModal = ref(false)
+const deleteLoading = ref(false)
+const deleteError = ref('')
+const deleteForm = reactive({
+  confirmSlug: '',
+  acknowledgeImpact: false
+})
 
-const { data, pending, refresh, error } = await useAsyncData(
-  () => $fetch<AdminOrganizationDetail>(`/api/admin/organizations/${slug.value}`),
+const { data, pending, refresh, error } = await useFetch<AdminOrganizationDetail>(
+  `/api/admin/organizations/${slug.value}`,
   {
     watch: [slug]
   }
@@ -137,6 +207,12 @@ const { data, pending, refresh, error } = await useAsyncData(
 
 const organization = computed(() => data.value?.organization)
 const stats = computed(() => data.value?.stats ?? { memberCount: 0, activeMembers: 0, pendingInvites: 0 })
+const deleteDisabled = computed(() => {
+  if (!organization.value) return true
+  return (
+    deleteForm.confirmSlug.trim() !== organization.value.slug || deleteForm.acknowledgeImpact === false
+  )
+})
 
 const form = reactive({
   name: '',
@@ -197,6 +273,38 @@ const handleSave = async () => {
     errorMessage.value = err instanceof Error ? err.message : 'Kunde inte spara ändringarna.'
   } finally {
     saving.value = false
+  }
+}
+
+const openDeleteModal = () => {
+  deleteForm.confirmSlug = ''
+  deleteForm.acknowledgeImpact = false
+  deleteError.value = ''
+  showDeleteModal.value = true
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+}
+
+const submitDelete = async () => {
+  if (!organization.value) return
+  deleteError.value = ''
+  deleteLoading.value = true
+  try {
+    await $fetch(`/api/admin/organizations/${slug.value}/delete`, {
+      method: 'POST',
+      body: {
+        confirmSlug: deleteForm.confirmSlug.trim(),
+        acknowledgeImpact: deleteForm.acknowledgeImpact
+      }
+    })
+    closeDeleteModal()
+    router.replace({ path: '/admin/organizations', query: { deleted: organization.value.slug } })
+  } catch (err) {
+    deleteError.value = err instanceof Error ? err.message : 'Kunde inte radera organisationen.'
+  } finally {
+    deleteLoading.value = false
   }
 }
 </script>
