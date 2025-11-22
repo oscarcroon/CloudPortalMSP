@@ -4,7 +4,8 @@ import { useAuth } from './useAuth'
 import type {
   InviteMemberPayload,
   OrganizationMembersResponse,
-  OrganizationMemberRole
+  OrganizationMemberRole,
+  OrganizationMemberStatus
 } from '~/types/members'
 
 export const useOrganizationMembers = () => {
@@ -42,6 +43,14 @@ export const useOrganizationMembers = () => {
     })
   }
 
+  const updateMemberStatus = async (memberId: string, status: OrganizationMemberStatus) => {
+    const organisationId = assertOrganisationId()
+    return api(`/organisations/${organisationId}/members/${memberId}`, {
+      method: 'PATCH',
+      body: { status }
+    })
+  }
+
   const removeMember = async (memberId: string) => {
     const organisationId = assertOrganisationId()
     return api(`/organisations/${organisationId}/members/${memberId}`, {
@@ -54,6 +63,7 @@ export const useOrganizationMembers = () => {
     fetchMembers,
     inviteMember,
     updateMemberRole,
+    updateMemberStatus,
     removeMember
   }
 }

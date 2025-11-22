@@ -19,6 +19,7 @@ export interface AuthUser {
   status: string
   defaultOrgId?: string | null
   isSuperAdmin: boolean
+  forcePasswordReset: boolean
 }
 
 export interface AuthPayload {

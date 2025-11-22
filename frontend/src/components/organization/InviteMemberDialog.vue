@@ -42,6 +42,23 @@
           </select>
         </div>
 
+        <label
+          v-if="canDirectAdd"
+          class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 dark:border-white/10 dark:text-slate-300"
+        >
+          <input
+            v-model="form.directAdd"
+            type="checkbox"
+            class="mt-1 rounded border-slate-300 dark:border-white/20"
+          />
+          <span>
+            Aktivera direkt utan e-postlänk
+            <span class="mt-0.5 block text-[11px] text-slate-500 dark:text-slate-400">
+              Endast tillgängligt när SSO krävs.
+            </span>
+          </span>
+        </label>
+
         <div v-if="error" class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
           {{ error }}
         </div>
@@ -76,6 +93,7 @@ const props = defineProps<{
   loading?: boolean
   error?: string
   roles: OrganizationMemberRole[]
+  canDirectAdd?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -85,7 +103,8 @@ const emit = defineEmits<{
 
 const form = reactive<InviteMemberPayload>({
   email: '',
-  role: props.roles[0] ?? 'member'
+  role: props.roles[0] ?? 'member',
+  directAdd: false
 })
 
 watch(
@@ -94,6 +113,7 @@ watch(
     if (isOpen) {
       form.email = ''
       form.role = props.roles[0] ?? 'member'
+      form.directAdd = false
     }
   }
 )
@@ -107,10 +127,23 @@ watch(
   }
 )
 
+watch(
+  () => props.canDirectAdd,
+  (allowed) => {
+    if (!allowed) {
+      form.directAdd = false
+    }
+  }
+)
+
 const emitClose = () => emit('close')
 
 const handleSubmit = () => {
-  emit('submit', { email: form.email.trim(), role: form.role })
+  emit('submit', {
+    email: form.email.trim(),
+    role: form.role,
+    directAdd: props.canDirectAdd ? form.directAdd : false
+  })
 }
 </script>
 

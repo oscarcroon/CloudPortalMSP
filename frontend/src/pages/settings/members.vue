@@ -116,13 +116,31 @@
                   {{ formatDate(member.updatedAt) }}
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <button
-                    class="text-xs font-semibold text-red-500 transition hover:text-red-400 disabled:opacity-40"
-                    :disabled="!canManageUsers || member.status !== 'active' || removalLoadingId === member.id"
-                    @click="removeMember(member)"
-                  >
-                    Ta bort
-                  </button>
+                  <div class="flex flex-wrap justify-end gap-2 text-xs">
+                    <button
+                      v-if="member.status === 'active'"
+                      class="rounded border border-amber-200 px-3 py-1 text-amber-700 transition hover:border-amber-300 hover:text-amber-600 disabled:opacity-40 dark:border-amber-500/30 dark:text-amber-200"
+                      :disabled="!canManageUsers || statusLoadingId === member.id"
+                      @click="disableMember(member)"
+                    >
+                      {{ statusLoadingId === member.id ? 'Inaktiverar...' : 'Inaktivera' }}
+                    </button>
+                    <button
+                      v-if="member.status === 'inactive'"
+                      class="rounded border border-emerald-200 px-3 py-1 text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-600 disabled:opacity-40 dark:border-emerald-500/30 dark:text-emerald-200"
+                      :disabled="!canManageUsers || statusLoadingId === member.id"
+                      @click="enableMember(member)"
+                    >
+                      {{ statusLoadingId === member.id ? 'Aktiverar...' : 'Aktivera' }}
+                    </button>
+                    <button
+                      class="rounded border border-red-200 px-3 py-1 font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
+                      :disabled="!canManageUsers || removalLoadingId === member.id || statusLoadingId === member.id"
+                      @click="removeMember(member)"
+                    >
+                      {{ removalLoadingId === member.id ? 'Tar bort...' : 'Ta bort permanent' }}
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -135,6 +153,7 @@
   <InviteMemberDialog
     :open="showInviteModal"
     :roles="inviteRoleOptions"
+    :can-direct-add="organisationRequireSso"
     :loading="inviteLoading"
     :error="inviteError"
     @close="closeInviteModal"
@@ -154,19 +173,23 @@ import type {
   OrganizationMemberRole,
   OrganizationMemberStatus
 } from '~/types/members'
+import { rbacRoles } from '~/constants/rbac'
+import type { RbacRole } from '~/constants/rbac'
 
-const roleOptions: OrganizationMemberRole[] = ['owner', 'admin', 'member']
-const inviteRoleOptions: OrganizationMemberRole[] = ['admin', 'member']
+const roleOptions: RbacRole[] = rbacRoles
+const inviteRoleOptions: RbacRole[] = rbacRoles
 
 const membersApi = useOrganizationMembers()
 const permission = usePermission()
 
 const members = ref<OrganizationMember[]>([])
 const organisationName = ref('')
+const organisationRequireSso = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const roleLoadingId = ref('')
+const statusLoadingId = ref('')
 const removalLoadingId = ref('')
 const showInviteModal = ref(false)
 const inviteLoading = ref(false)
@@ -197,6 +220,7 @@ const statusLabel = (status: OrganizationMemberStatus) => {
 const statusVariant = (status: OrganizationMemberStatus) => {
   if (status === 'active') return 'success'
   if (status === 'invited') return 'warning'
+  if (status === 'inactive') return 'danger'
   return 'info'
 }
 
@@ -204,6 +228,7 @@ const loadMembers = async () => {
   if (!currentOrgId.value) {
     members.value = []
     organisationName.value = ''
+    organisationRequireSso.value = false
     return
   }
   loading.value = true
@@ -212,6 +237,7 @@ const loadMembers = async () => {
     const response = await membersApi.fetchMembers()
     members.value = response.members
     organisationName.value = response.organisation.name
+    organisationRequireSso.value = Boolean(response.organisation.requireSso)
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : 'Kunde inte hämta medlemmar just nu.'
@@ -248,7 +274,7 @@ const handleRoleChange = async (member: OrganizationMember, roleValue: string) =
 }
 
 const removeMember = async (member: OrganizationMember) => {
-  if (!confirm(`Ta bort ${member.email} från organisationen?`)) {
+  if (!confirm(`Ta bort ${member.email} permanent? Personen måste bjudas in igen för att återfå åtkomst.`)) {
     return
   }
   removalLoadingId.value = member.id
@@ -264,6 +290,45 @@ const removeMember = async (member: OrganizationMember) => {
     removalLoadingId.value = ''
   }
 }
+
+const setMemberStatus = async (
+  member: OrganizationMember,
+  nextStatus: OrganizationMemberStatus,
+  confirmMessage?: string
+) => {
+  if (member.status === nextStatus) return
+  if (confirmMessage && !confirm(confirmMessage)) {
+    return
+  }
+  statusLoadingId.value = member.id
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await membersApi.updateMemberStatus(member.id, nextStatus)
+    member.status = nextStatus
+    successMessage.value =
+      nextStatus === 'active'
+        ? `${member.email} aktiverades.`
+        : `${member.email} inaktiverades.`
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Kunde inte uppdatera status.'
+  } finally {
+    statusLoadingId.value = ''
+  }
+}
+
+const disableMember = (member: OrganizationMember) =>
+  setMemberStatus(
+    member,
+    'inactive',
+    `Inaktivera ${member.email}? Personen kan inte logga in förrän kontot aktiveras igen.`
+  )
+
+const enableMember = (member: OrganizationMember) => setMemberStatus(member, 'active')
 
 const openInviteModal = () => {
   if (!canInviteMembers.value) return

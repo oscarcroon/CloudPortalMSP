@@ -104,6 +104,11 @@ export interface AdminOrganizationInvite {
 }
 
 export interface AdminOrganizationMembersResponse {
+  organization: {
+    id: string
+    name: string
+    requireSso: boolean
+  }
   members: AdminOrganizationMember[]
   invites: AdminOrganizationInvite[]
 }
@@ -111,6 +116,7 @@ export interface AdminOrganizationMembersResponse {
 export interface AdminInviteMemberPayload {
   email: string
   role?: RbacRole
+  directAdd?: boolean
 }
 
 export interface AdminInviteMemberResponse {
@@ -132,5 +138,48 @@ export interface AdminUpdateAuthSettingsPayload {
   idpType?: OrganizationIdpType
   allowLocalLoginForOwners?: boolean
   idpConfig?: Record<string, unknown> | null
+}
+
+export type AdminUserStatus = 'active' | 'disabled'
+
+export interface AdminUserSummary {
+  id: string
+  email: string
+  fullName?: string | null
+  status: AdminUserStatus
+  isSuperAdmin: boolean
+  forcePasswordReset: boolean
+  lastLoginAt?: number | null
+  createdAt: number
+  organizationCount: number
+  activeOrganizations: number
+}
+
+export interface AdminUsersResponse {
+  users: AdminUserSummary[]
+}
+
+export interface AdminUserDetail {
+  user: {
+    id: string
+    email: string
+    fullName?: string | null
+    status: AdminUserStatus
+    isSuperAdmin: boolean
+    forcePasswordReset: boolean
+    lastLoginAt?: number | null
+    createdAt: number
+    updatedAt: number
+  }
+  organizations: Array<{
+    id: string
+    name: string
+    role: RbacRole
+    membershipStatus: OrganizationMemberStatus
+  }>
+}
+
+export interface AdminUpdateUserStatusPayload {
+  status: AdminUserStatus
 }
 

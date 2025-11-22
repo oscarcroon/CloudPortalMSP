@@ -18,6 +18,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Invalid credentials' })
   }
 
+  if (user.status !== 'active') {
+    throw createError({ statusCode: 403, message: 'Kontot är inaktiverat.' })
+  }
+
   const ssoRequired = await userRequiresSso(user.id)
   if (ssoRequired && !body.allowPasswordFallback) {
     throw createError({ statusCode: 403, message: 'Organisation requires SSO' })

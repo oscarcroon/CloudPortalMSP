@@ -35,13 +35,21 @@
           required
           class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-white/10 dark:text-white dark:placeholder:text-slate-400"
         />
-        <button
-          type="button"
-          class="text-sm text-slate-500 underline-offset-4 transition hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-white"
-          @click="resetToEmailStep"
-        >
-          Byt e-postadress
-        </button>
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <button
+            type="button"
+            class="text-slate-500 underline-offset-4 transition hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-white"
+            @click="resetToEmailStep"
+          >
+            Byt e-postadress
+          </button>
+          <NuxtLink
+            to="/forgot-password"
+            class="text-slate-500 underline-offset-4 transition hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-white"
+          >
+            Glömt lösenord?
+          </NuxtLink>
+        </div>
       </div>
 
       <p v-if="providers.restrictSso" class="rounded-lg bg-amber-500/20 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">

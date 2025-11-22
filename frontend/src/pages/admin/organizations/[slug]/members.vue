@@ -187,6 +187,22 @@
             <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
           </select>
         </div>
+        <label
+          v-if="allowDirectActivation"
+          class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300"
+        >
+          <input
+            v-model="inviteForm.directAdd"
+            type="checkbox"
+            class="mt-1 rounded border-slate-300 dark:border-white/20"
+          />
+          <span>
+            Aktivera kontot direkt
+            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
+              Endast tillgängligt när organisationen kräver SSO.
+            </span>
+          </span>
+        </label>
         <div v-if="inviteError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
           {{ inviteError }}
         </div>
@@ -208,7 +224,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, useFetch, useRoute } from '#imports'
+import { computed, reactive, ref, useFetch, useRoute, watch } from '#imports'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { defaultRole, rbacRoles } from '~/constants/rbac'
 import type {
@@ -238,7 +254,8 @@ const deleteLoadingId = ref('')
 
 const inviteForm = reactive({
   email: '',
-  role: defaultRole
+  role: defaultRole,
+  directAdd: false
 })
 
 const { data, pending, refresh, error } = await useFetch<AdminOrganizationMembersResponse>(
@@ -252,8 +269,10 @@ if (error.value) {
   errorMessage.value = error.value.message
 }
 
+const organizationMeta = computed(() => data.value?.organization)
 const members = computed(() => data.value?.members ?? [])
 const invites = computed(() => data.value?.invites ?? [])
+const allowDirectActivation = computed(() => Boolean(organizationMeta.value?.requireSso))
 
 const formatDate = (value: number) =>
   new Date(value).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })
@@ -261,6 +280,7 @@ const formatDate = (value: number) =>
 const openInviteModal = () => {
   inviteForm.email = ''
   inviteForm.role = defaultRole
+  inviteForm.directAdd = false
   inviteError.value = ''
   showInvite.value = true
 }
@@ -275,7 +295,8 @@ const submitInvite = async () => {
   inviteSubmitting.value = true
   const payload: AdminInviteMemberPayload = {
     email: inviteForm.email.trim(),
-    role: inviteForm.role
+    role: inviteForm.role,
+    directAdd: allowDirectActivation.value ? inviteForm.directAdd : undefined
   }
   try {
     await $fetch(`/api/admin/organizations/${slug.value}/members/invite`, {
@@ -290,6 +311,12 @@ const submitInvite = async () => {
     inviteSubmitting.value = false
   }
 }
+
+watch(allowDirectActivation, (allowed) => {
+  if (!allowed) {
+    inviteForm.directAdd = false
+  }
+})
 
 const handleRoleChange = async (member: AdminOrganizationMember, roleValue: string) => {
   if (roleValue === member.role) return

@@ -56,6 +56,8 @@ export const users = sqliteTable(
     defaultOrgId: text('default_org_id'),
     enforcedOrgId: text('enforced_org_id'),
     forcePasswordReset: integer('force_password_reset', { mode: 'boolean' }).notNull().default(0),
+    passwordResetTokenHash: text('password_reset_token_hash'),
+    passwordResetExpiresAt: integer('password_reset_expires_at', { mode: 'timestamp_ms' }),
     metadata: text('metadata', { length: 2048 }),
     ...timestampColumns(),
     deletedAt: softDeleteColumn()

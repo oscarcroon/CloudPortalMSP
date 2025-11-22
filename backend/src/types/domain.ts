@@ -9,9 +9,10 @@ export interface Organisation {
   name: string
   role: OrganisationRole
   branding?: OrganisationBranding
+  requireSso?: boolean
 }
 
-export type OrganisationMemberRole = 'owner' | 'admin' | 'member'
+export type OrganisationMemberRole = 'owner' | 'admin' | 'member' | 'operator' | 'viewer'
 
 export type OrganisationMemberStatus = 'active' | 'invited' | 'inactive'
 

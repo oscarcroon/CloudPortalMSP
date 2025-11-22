@@ -19,7 +19,8 @@ import {
 
 const inviteSchema = z.object({
   email: z.string().email(),
-  role: z.enum(rbacRoles).optional()
+  role: z.enum(rbacRoles).optional(),
+  directAdd: z.boolean().optional()
 })
 
 const INVITE_VALIDITY_MS = 1000 * 60 * 60 * 24 * 14
@@ -31,14 +32,23 @@ export default defineEventHandler(async (event) => {
   const normalizedEmail = normalizeEmail(payload.email)
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  const allowDirectAdd = Boolean(organization.requireSso)
   const isSqlite =
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
+  if (payload.directAdd && !allowDirectAdd) {
+    throw createError({
+      statusCode: 400,
+      message: 'Direktaktivering kräver att organisationen har SSO.'
+    })
+  }
 
   const result = isSqlite
     ? db.transaction((tx) => {
         const existingUser =
           tx.select().from(users).where(eq(users.email, normalizedEmail)).get() ?? null
         const targetRole = payload.role ?? organization.defaultRole
+        const shouldDirectAdd = Boolean(payload.directAdd && allowDirectAdd)
+
 
         if (existingUser) {
           const membership =
@@ -85,6 +95,32 @@ export default defineEventHandler(async (event) => {
           return { type: 'member', membershipId }
         }
 
+        if (shouldDirectAdd) {
+          const userId = createId()
+          tx.insert(users)
+            .values({
+              id: userId,
+              email: normalizedEmail,
+              status: 'active',
+              fullName: null,
+              passwordHash: null,
+              defaultOrgId: organization.id
+            })
+            .run()
+
+          const membershipId = createId()
+          tx.insert(organizationMemberships)
+            .values({
+              id: membershipId,
+              organizationId: organization.id,
+              userId,
+              role: targetRole,
+              status: 'active'
+            })
+            .run()
+          return { type: 'member', membershipId }
+        }
+
         const token = createInviteToken()
         const expiresAt = Date.now() + INVITE_VALIDITY_MS
         const inviteId = createId()
@@ -110,6 +146,7 @@ export default defineEventHandler(async (event) => {
     : await db.transaction(async (tx) => {
         const [existingUser] = await tx.select().from(users).where(eq(users.email, normalizedEmail))
         const targetRole = payload.role ?? organization.defaultRole
+        const shouldDirectAdd = Boolean(payload.directAdd && allowDirectAdd)
 
         if (existingUser) {
           const [membership] = await tx
@@ -146,6 +183,28 @@ export default defineEventHandler(async (event) => {
             id: membershipId,
             organizationId: organization.id,
             userId: existingUser.id,
+            role: targetRole,
+            status: 'active'
+          })
+          return { type: 'member', membershipId }
+        }
+
+        if (shouldDirectAdd) {
+          const userId = createId()
+          await tx.insert(users).values({
+            id: userId,
+            email: normalizedEmail,
+            status: 'active',
+            fullName: null,
+            passwordHash: null,
+            defaultOrgId: organization.id
+          })
+
+          const membershipId = createId()
+          await tx.insert(organizationMemberships).values({
+            id: membershipId,
+            organizationId: organization.id,
+            userId,
             role: targetRole,
             status: 'active'
           })

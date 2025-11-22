@@ -46,6 +46,11 @@ export default defineEventHandler(async (event) => {
     .where(eq(organizationInvitations.organizationId, organization.id))
 
   return {
+    organization: {
+      id: organization.id,
+      name: organization.name,
+      requireSso: Boolean(organization.requireSso)
+    },
     members: memberRows.map((row) => ({
       membershipId: row.membershipId,
       userId: row.userId,

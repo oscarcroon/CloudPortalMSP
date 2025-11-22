@@ -1,4 +1,6 @@
-export type OrganizationMemberRole = 'owner' | 'admin' | 'member'
+import type { RbacRole } from '~/constants/rbac'
+
+export type OrganizationMemberRole = RbacRole
 
 export type OrganizationMemberStatus = 'active' | 'invited' | 'inactive'
 
@@ -20,6 +22,7 @@ export interface OrganizationMembersResponse {
     id: string
     name: string
     role?: string
+    requireSso?: boolean
   }
   members: OrganizationMember[]
 }
@@ -27,6 +30,7 @@ export interface OrganizationMembersResponse {
 export interface InviteMemberPayload {
   email: string
   role: OrganizationMemberRole
+  directAdd?: boolean
 }
 
 export type InvitationStatus = 'pending' | 'accepted' | 'cancelled' | 'expired'

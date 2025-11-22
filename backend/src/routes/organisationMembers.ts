@@ -62,9 +62,10 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
   if (!organisation) {
     return
   }
-  const { email, role } = req.body as Partial<{
+  const { email, role, directAdd } = req.body as Partial<{
     email: string
     role: OrganisationMemberRole
+    directAdd: boolean
   }>
   if (!email || !role) {
     res.status(400).json({ message: 'Email and role are required.' })
@@ -72,7 +73,14 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
   }
 
   if (!isAssignableRole(role)) {
-    res.status(400).json({ message: 'Role must be admin or member for invitations.' })
+    res.status(400).json({ message: 'Unsupported role supplied.' })
+    return
+  }
+
+  const allowDirectAdd = Boolean(organisation.requireSso)
+  const shouldDirectAdd = Boolean(directAdd && allowDirectAdd)
+  if (directAdd && !allowDirectAdd) {
+    res.status(400).json({ message: 'Direktaktivering kräver att SSO är på för organisationen.' })
     return
   }
 
@@ -119,6 +127,28 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
         status: 'active'
       })
     }
+    const members = await fetchMembers(organisationId)
+    res.status(201).json({ organisation, members })
+    return
+  }
+
+  if (shouldDirectAdd) {
+    const newUserId = `user-${randomUUID()}`
+    await db.insert(usersTable).values({
+      id: newUserId,
+      email: normalizedEmail,
+      fullName: null,
+      status: 'active'
+    })
+
+    await db.insert(organisationMembershipsTable).values({
+      id: `m-${randomUUID()}`,
+      organizationId: organisationId,
+      userId: newUserId,
+      role,
+      status: 'active'
+    })
+
     const members = await fetchMembers(organisationId)
     res.status(201).json({ organisation, members })
     return
@@ -233,42 +263,46 @@ async function assertOrganisationScope(req: Request, res: Response, id: string) 
     res.status(403).json({ message: 'Operation limited to the active organisation.' })
     return null
   }
-  const orgFromContext = req.userContext?.organisations.find((org) => org.id === id)
-  if (orgFromContext) {
-    return {
-      id: orgFromContext.id,
-      name: orgFromContext.name,
-      role: orgFromContext.role,
-      branding: orgFromContext.branding
-    } satisfies Organisation
-  }
-  const organisation = await db
+
+  const organisationRow = await db
     .select({
       id: organisationsTable.id,
       name: organisationsTable.name,
-      role: organisationsTable.defaultRole
+      defaultRole: organisationsTable.defaultRole,
+      requireSso: organisationsTable.requireSso
     })
     .from(organisationsTable)
     .where(eq(organisationsTable.id, id))
     .get()
 
-  if (!organisation) {
+  if (!organisationRow) {
     res.status(404).json({ message: 'Organisation not found.' })
     return null
   }
+
+  const orgFromContext = req.userContext?.organisations.find((org) => org.id === id)
+
   return {
-    id: organisation.id,
-    name: organisation.name,
-    role: organisation.role as OrganisationMemberRole
+    id: organisationRow.id,
+    name: orgFromContext?.name ?? organisationRow.name,
+    role: (orgFromContext?.role ?? organisationRow.defaultRole) as OrganisationMemberRole,
+    branding: orgFromContext?.branding,
+    requireSso: Boolean(organisationRow.requireSso)
   }
 }
 
 function isAssignableRole(role: OrganisationMemberRole) {
-  return role === 'admin' || role === 'member'
+  return (
+    role === 'owner' ||
+    role === 'admin' ||
+    role === 'member' ||
+    role === 'operator' ||
+    role === 'viewer'
+  )
 }
 
 function isValidMemberRole(role: OrganisationMemberRole) {
-  return role === 'owner' || role === 'admin' || role === 'member'
+  return isAssignableRole(role)
 }
 
 function isValidMemberStatus(status: OrganisationMemberStatus): status is OrganisationMemberStatus {

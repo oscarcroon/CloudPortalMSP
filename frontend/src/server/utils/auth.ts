@@ -82,6 +82,10 @@ export const buildAuthState = async (
     throw createError({ statusCode: 404, message: 'User not found' })
   }
 
+  if (user.status !== 'active') {
+    throw createError({ statusCode: 403, message: 'Kontot är inaktiverat.' })
+  }
+
   const rows = await fetchMembershipRows(userId)
   const orgRoles: Record<string, RbacRole> = presetRoles ? { ...presetRoles } : {}
 
@@ -105,7 +109,8 @@ export const buildAuthState = async (
       fullName: user.fullName,
       status: user.status,
       defaultOrgId: user.defaultOrgId,
-      isSuperAdmin: Boolean(user.isSuperAdmin)
+      isSuperAdmin: Boolean(user.isSuperAdmin),
+      forcePasswordReset: Boolean(user.forcePasswordReset)
     },
     organizations: organizationPayload,
     orgRoles,

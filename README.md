@@ -97,6 +97,14 @@ Kommandot läser databasen via Drizzle, letar efter den första användaren med 
 - På sidan **Admin → Organisationer → [slug] → Medlemmar** går det nu att inaktivera/aktivera konton via PATCH `/api/admin/organizations/:orgId/members/:memberId/status` och radera dem permanent med DELETE `/remove`. Inaktiverade användare kan inte logga in förrän de aktiveras igen, men deras historik ligger kvar.
 - Hela organisationer kan tas bort från **Admin → Organisationer → [slug] → Overview**. Danger zone-sektionen kräver att sluggen skrivs in exakt samt att en checkbox markeras; servern dubbelkontrollerar `confirmSlug` och `acknowledgeImpact` innan `organizations`-raden raderas (kaskad). Efter radering skickas admin tillbaka till listan med en bekräftelsebanner.
 
+### Återställning av lösenord och profil
+
+- Slutanvändare kan begära en återställningslänk på `/forgot-password`. En textfil i `uploads/outbox` simulerar mejlet och innehåller länken till `/reset-password?token=...`.
+- När länken används sparas ett nytt lösenord och användaren loggas in direkt. Token lagras hashad i databasen och gäller i 30 minuter.
+- När användaren klickar på sitt konto i topbaren öppnas `/profile` som visar kontouppgifter, medlemskap och ett formulär för att byta lösenord efter att man har loggat in.
+- Admin kan fortfarande flagga `forcePasswordReset` (t.ex. via seeds eller API); användaren ser då en banner på profilsidan tills ett nytt lösenord sparats.
+- Superadmins har dessutom en global vy under **Admin → Användare** där de kan söka, inaktivera/aktivera eller ta bort konton samt trigga lösenordsmejl. API:erna exponeras under `/api/admin/users/**`.
+
 ## Next Steps
 
 - Replace mock data in `backend/src/data/mockData.ts` with real connector calls (Cloudflare, Incus, ESXi, WordPress).
