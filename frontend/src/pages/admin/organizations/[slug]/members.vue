@@ -24,6 +24,8 @@
       </div>
     </header>
 
+    <OrganizationTabs :slug="slug" active="members" />
+
     <div v-if="errorMessage" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-300">
       {{ errorMessage }}
     </div>
@@ -225,6 +227,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, useFetch, useRoute, watch } from '#imports'
+import OrganizationTabs from '~/components/admin/OrganizationTabs.vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { defaultRole, rbacRoles } from '~/constants/rbac'
 import type {

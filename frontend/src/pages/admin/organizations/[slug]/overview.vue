@@ -8,6 +8,8 @@
       <p class="text-sm text-slate-600 dark:text-slate-400">Översikt och grundinställningar.</p>
     </header>
 
+    <OrganizationTabs :slug="slug" active="overview" />
+
     <div v-if="showCreatedBanner" class="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-300">
       Organisationen skapades. Hantera medlemmar under
       <NuxtLink to="/settings/members" class="font-semibold underline hover:no-underline">Inställningar → Medlemmar</NuxtLink>
@@ -184,6 +186,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#imports'
+import OrganizationTabs from '~/components/admin/OrganizationTabs.vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { rbacRoles } from '~/constants/rbac'
 import type { AdminOrganizationDetail, AdminUpdateOrganizationPayload } from '~/types/admin'

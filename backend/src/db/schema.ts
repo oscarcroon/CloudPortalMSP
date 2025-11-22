@@ -86,6 +86,38 @@ export const organisationInvitationsTable = sqliteTable(
   })
 )
 
+export const emailProviderProfilesTable = sqliteTable(
+  'email_provider_profiles',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(createId),
+    targetType: text('target_type').notNull(),
+    targetKey: text('target_key').notNull(),
+    organizationId: text('organization_id').references(() => organisationsTable.id, {
+      onDelete: 'cascade'
+    }),
+    providerType: text('provider_type').notNull(),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
+    fromName: text('from_name'),
+    fromEmail: text('from_email'),
+    replyToEmail: text('reply_to_email'),
+    brandingConfig: text('branding_config', { length: 4096 }),
+    encryptedConfig: text('encrypted_config', { length: 8192 }),
+    encryptionIv: text('encryption_iv'),
+    encryptionAuthTag: text('encryption_auth_tag'),
+    configVersion: integer('config_version').notNull().default(1),
+    lastTestedAt: integer('last_tested_at', { mode: 'timestamp_ms' }),
+    lastTestStatus: text('last_test_status'),
+    lastTestError: text('last_test_error'),
+    ...timestampColumns()
+  },
+  (table) => ({
+    targetKeyIdx: uniqueIndex('email_provider_target_key_idx').on(table.targetKey),
+    orgUnique: uniqueIndex('email_provider_org_unique').on(table.organizationId)
+  })
+)
+
 export type OrganisationMembershipStatus = 'active' | 'invited' | 'suspended'
 
 

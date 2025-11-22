@@ -204,7 +204,7 @@
             </div>
           </div>
 
-          <div v-else class="grid gap-4 md:grid-cols-2">
+          <div v-else-if="form.idpProvider === 'entra'" class="grid gap-4 md:grid-cols-2">
             <div>
               <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Tenant ID</label>
               <input
@@ -248,6 +248,66 @@
                 placeholder="openid email profile offline_access"
               />
             </div>
+          </div>
+          <div v-else-if="form.idpProvider === 'saml'" class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Entry Point (SSO URL)</label>
+              <input
+                v-model="form.saml.entryPoint"
+                type="text"
+                class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-[#0f172a] dark:text-white"
+                placeholder="https://idp.example.com/saml/login"
+              />
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Issuer (Entity ID)</label>
+              <input
+                v-model="form.saml.issuer"
+                type="text"
+                class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-[#0f172a] dark:text-white"
+                placeholder="https://idp.example.com/metadata"
+              />
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Audience (valfri)</label>
+              <input
+                v-model="form.saml.audience"
+                type="text"
+                class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-[#0f172a] dark:text-white"
+                placeholder="https://customer-portal.example.com"
+              />
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Publikt certifikat</label>
+              <textarea
+                v-model="form.saml.certificate"
+                rows="5"
+                class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-[#0f172a] dark:text-white"
+                placeholder="-----BEGIN CERTIFICATE-----"
+              />
+            </div>
+            <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
+              <input
+                v-model="form.saml.signRequest"
+                type="checkbox"
+                class="rounded border-slate-300 dark:border-white/20"
+              />
+              <div>
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Signera AuthnRequest</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Rekommenderas: IdP förväntar sig signerade requests.</p>
+              </div>
+            </label>
+            <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
+              <input
+                v-model="form.saml.wantAssertionsSigned"
+                type="checkbox"
+                class="rounded border-slate-300 dark:border-white/20"
+              />
+              <div>
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Kräv signerade assertioner</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Säkerställer att IdP signerar svaren.</p>
+              </div>
+            </label>
           </div>
         </div>
       </div>
@@ -313,14 +373,15 @@ const saving = ref(false)
 const providerOptions = [
   { value: 'none', label: 'Ingen IdP', icon: 'mdi:cancel' },
   { value: 'openid', label: 'OpenID Connect', icon: 'simple-icons:openid' },
-  { value: 'entra', label: 'Microsoft Entra ID', icon: 'simple-icons:microsoftazure' }
+  { value: 'entra', label: 'Microsoft Entra ID', icon: 'simple-icons:microsoftazure' },
+  { value: 'saml', label: 'SAML 2.0', icon: 'mdi:shield-lock' }
 ] as const
 
 const form = reactive({
   requireSso: false,
   allowSelfSignup: false,
   allowLocalLoginForOwners: true,
-  idpProvider: 'none' as 'none' | 'openid' | 'entra',
+  idpProvider: 'none' as 'none' | 'openid' | 'entra' | 'saml',
   openid: {
     issuer: '',
     metadataUrl: '',
@@ -335,6 +396,14 @@ const form = reactive({
     clientSecret: '',
     redirectUri: '',
     scopes: ''
+  },
+  saml: {
+    entryPoint: '',
+    issuer: '',
+    certificate: '',
+    audience: '',
+    signRequest: true,
+    wantAssertionsSigned: true
   }
 })
 
@@ -402,6 +471,20 @@ const providerGuides = computed(() => {
       ],
       summary:
         'Baserad på Cloudflares Entra ID-guide – stegen ovan pekar uttryckligen ut vilka värden som ska klistras in i denna portal.'
+    },
+    {
+      provider: 'saml',
+      title: 'SAML 2.0 (Azure AD, Okta m.fl.)',
+      docUrl: 'https://developers.cloudflare.com/cloudflare-one/identity/idp-integration/saml/',
+      steps: [
+        'Skapa en ny SAML-app i din IdP och ange ACS/Callback URL till redirect-URL:en ovan.',
+        'Kopiera Issuer/Entity ID, Entry Point (SSO URL) och publik X.509-certifikat från IdP:n.',
+        'Konfigurera samma värden i Cloudflare One → Identity providers (SAML) och aktivera integrationen.',
+        'Ange eventuella Audience/Entity ID som förväntas av IdP:n och välj om AuthnRequests ska signeras.',
+        'Testa inloggningen via Cloudflare innan du kräver SSO här i portalen.'
+      ],
+      summary:
+        'Standard-SAML-flöde: portalen fungerar som SP och behöver IdP:ns entrypoint, issuer och certifikat för att verifiera assertioner.'
     }
   ]
 })
@@ -432,6 +515,16 @@ const populateForm = () => {
         (authSettings.idpConfig.redirectUri as string) ?? redirectUriHint.value
       form.entra.scopes = (authSettings.idpConfig.scopes as string) ?? ''
     }
+  } else if (authSettings.idpType === 'saml' && authSettings.idpConfig) {
+    form.idpProvider = 'saml'
+    form.saml.entryPoint = (authSettings.idpConfig.entryPoint as string) ?? ''
+    form.saml.issuer = (authSettings.idpConfig.issuer as string) ?? ''
+    form.saml.certificate = (authSettings.idpConfig.certificate as string) ?? ''
+    form.saml.audience = (authSettings.idpConfig.audience as string) ?? ''
+    form.saml.signRequest =
+      (authSettings.idpConfig.signRequest as boolean | undefined) ?? true
+    form.saml.wantAssertionsSigned =
+      (authSettings.idpConfig.wantAssertionsSigned as boolean | undefined) ?? true
   } else {
     form.idpProvider = 'none'
   }
@@ -441,6 +534,9 @@ const populateForm = () => {
   }
   if (!form.entra.redirectUri) {
     form.entra.redirectUri = redirectUriHint.value
+  }
+  if (!form.saml.entryPoint) {
+    form.saml.entryPoint = ''
   }
 }
 
@@ -480,6 +576,9 @@ const providerConfigured = computed(() => {
         form.entra.redirectUri
     )
   }
+  if (form.idpProvider === 'saml') {
+    return Boolean(form.saml.entryPoint && form.saml.issuer && form.saml.certificate)
+  }
   return false
 })
 
@@ -500,6 +599,19 @@ const buildPayload = (): OrganizationAuthUpdatePayload => {
   if (form.idpProvider === 'none') {
     payload.idpType = 'none'
     payload.idpConfig = null
+    return payload
+  }
+
+  if (form.idpProvider === 'saml') {
+    payload.idpType = 'saml'
+    payload.idpConfig = {
+      entryPoint: form.saml.entryPoint,
+      issuer: form.saml.issuer,
+      certificate: form.saml.certificate,
+      audience: form.saml.audience || undefined,
+      signRequest: form.saml.signRequest,
+      wantAssertionsSigned: form.saml.wantAssertionsSigned
+    }
     return payload
   }
 

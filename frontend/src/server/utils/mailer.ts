@@ -1,13 +1,10 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const repoRoot = path.resolve(currentDir, '..', '..', '..', '..')
-const uploadsRoot = path.join(repoRoot, 'uploads')
-const outboxDir = path.join(uploadsRoot, 'outbox')
-
-fs.mkdirSync(outboxDir, { recursive: true })
+import {
+  buildPasswordResetEmail,
+  sendTemplatedEmail,
+  writeOutboxPreview
+} from '@coreit/email-kit'
+import { getGlobalEmailProviderProfile } from './emailProvider'
+import { outboxDir } from './outbox'
 
 const DEFAULT_PORTAL_URL = 'http://localhost:3000'
 
@@ -29,27 +26,34 @@ export const sendPasswordResetEmail = async (input: {
   expiresAt: number
 }) => {
   const resetUrl = `${buildPortalUrl('/reset-password')}?token=${encodeURIComponent(input.token)}`
-  const subject = 'Återställ lösenord'
-  const lines = [
-    `To: ${input.to}`,
-    `Subject: ${subject}`,
-    '',
-    'Hej,',
-    '',
-    'Vi fick en begäran om att återställa ditt lösenord till Cloud Portal.',
-    `Länken nedan är giltig fram till ${new Date(input.expiresAt).toLocaleString('sv-SE')}.`,
-    '',
+  const expiresLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
+  const provider = await getGlobalEmailProviderProfile()
+  const content = buildPasswordResetEmail({
     resetUrl,
-    '',
-    'Om du inte har begärt detta kan du ignorera mejlet.',
-    'Ditt lösenord förändras bara om du följer länken ovan och väljer ett nytt.'
-  ]
+    expiresAt: expiresLabel,
+    branding: provider?.branding
+  })
 
-  const payload = `${lines.join('\n')}\n`
-  const filename = path.join(outboxDir, `password-reset-${input.token}.txt`)
-  await fs.promises.writeFile(filename, payload, 'utf8')
-  console.info(`[mail] Password reset email for ${input.to} stored at ${filename}`)
-  return { resetUrl, filename }
+  if (provider) {
+    const delivery = await sendTemplatedEmail({
+      profile: provider,
+      to: [{ email: input.to }],
+      content,
+      dryRunOutboxDir: outboxDir
+    })
+    return { resetUrl, delivery }
+  }
+
+  const storedAt = await writeOutboxPreview(
+    {
+      to: [{ email: input.to }],
+      subject: content.subject,
+      html: content.html,
+      text: content.text,
+      meta: { reason: 'missing-global-provider' }
+    },
+    outboxDir
+  )
+  console.info(`[mail] Password reset email for ${input.to} stored at ${storedAt}`)
+  return { resetUrl, storedAt }
 }
-
-

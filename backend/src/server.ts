@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url'
 import { tenantContext } from './middleware/context.js'
 import { containersRouter } from './routes/containers.js'
 import { dnsRouter } from './routes/dns.js'
+import { emailRouter } from './routes/emailProviders.js'
 import { invitationsRouter } from './routes/invitations.js'
+import { organisationEmailProviderRouter } from './routes/organisationEmailProviders.js'
 import { organisationMembersRouter } from './routes/organisationMembers.js'
 import { organisationsRouter } from './routes/organisations.js'
 import { vmRouter } from './routes/vms.js'
@@ -38,7 +40,9 @@ app.use('/api/dns', dnsRouter)
 app.use('/api/containers', containersRouter)
 app.use('/api/vms', vmRouter)
 app.use('/api/wordpress', wordpressRouter)
+app.use('/api/email', emailRouter)
 app.use('/api/organisations', organisationsRouter)
+app.use('/api/organisations', organisationEmailProviderRouter)
 app.use('/api/organisations', organisationMembersRouter)
 app.use('/api/invitations', invitationsRouter)
 

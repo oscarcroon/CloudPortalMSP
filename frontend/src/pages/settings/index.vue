@@ -78,6 +78,28 @@
         </ul>
       </div>
 
+      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">E-postoverride</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Ställ in organisationens egen SMTP- eller Graph-provider, inklusive branding och testutskick.
+            </p>
+          </div>
+          <NuxtLink
+            to="/settings/email"
+            class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200"
+          >
+            Öppna
+          </NuxtLink>
+        </div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <li>• Aktivera override för utskick inom organisationen</li>
+          <li>• Konfigurera SMTP med eller utan auth, eller Microsoft Graph</li>
+          <li>• Anpassa logotyp, färger och testkör direkt från formuläret</li>
+        </ul>
+      </div>
+
       <div class="space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-start justify-between gap-4">
           <div>

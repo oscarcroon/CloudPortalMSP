@@ -1,52 +1,61 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import {
+  buildInvitationEmail,
+  sendTemplatedEmail,
+  writeOutboxPreview
+} from '@coreit/email-kit'
 import type { OrganisationMemberRole } from '../types/domain.js'
-
-const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const uploadsRoot = path.resolve(currentDir, '..', '..', 'uploads')
-const outboxDir = path.join(uploadsRoot, 'outbox')
-fs.mkdirSync(outboxDir, { recursive: true })
+import { getEffectiveEmailProviderProfile } from '../services/emailProviders.js'
+import { outboxDir } from './outbox.js'
 
 const DEFAULT_PORTAL_URL = 'http://localhost:3000'
 
 const acceptBaseUrl = (process.env.INVITE_ACCEPT_BASE_URL || DEFAULT_PORTAL_URL).replace(/\/$/, '')
 
-export async function sendInvitationEmail({
-  to,
-  role,
-  organisationName,
-  invitedBy,
-  expiresAt,
-  token
-}: {
+interface InvitationEmailInput {
   to: string
   role: OrganisationMemberRole
+  organisationId: string
   organisationName: string
   invitedBy: string
-  expiresAt: string
+  expiresAt: number
   token: string
-}) {
-  const link = `${acceptBaseUrl}/invite/accept?token=${encodeURIComponent(token)}`
-  const subject = `Invitation to ${organisationName}`
-  const lines = [
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    '',
-    `Hi,`,
-    '',
-    `${invitedBy} invited you to join ${organisationName} as ${role}.`,
-    `Follow the link below to accept the invitation before ${expiresAt}.`,
-    '',
-    link,
-    '',
-    `If you did not expect this invitation you can ignore this email.`
-  ]
-  const payload = `${lines.join('\n')}\n`
-  const filename = path.join(outboxDir, `invite-${token}.txt`)
-  await fs.promises.writeFile(filename, payload, 'utf8')
-  console.info(`[mail] Invitation for ${to} stored at ${filename}`)
-  return { link, filename }
 }
 
+export async function sendInvitationEmail(input: InvitationEmailInput) {
+  const link = `${acceptBaseUrl}/invite/accept?token=${encodeURIComponent(input.token)}`
+  const provider = await getEffectiveEmailProviderProfile(input.organisationId)
+  const expiresAtLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
+  const content = buildInvitationEmail({
+    organisationName: input.organisationName,
+    invitedBy: input.invitedBy,
+    role: input.role,
+    expiresAt: expiresAtLabel,
+    acceptUrl: link,
+    branding: provider?.branding
+  })
 
+  if (provider) {
+    const delivery = await sendTemplatedEmail({
+      profile: provider,
+      to: [{ email: input.to }],
+      content,
+      dryRunOutboxDir: outboxDir
+    })
+    return { link, delivery }
+  }
+
+  const storedAt = await writeOutboxPreview(
+    {
+      to: [{ email: input.to }],
+      subject: content.subject,
+      html: content.html,
+      text: content.text,
+      meta: {
+        reason: 'missing-provider',
+        organisationId: input.organisationId
+      }
+    },
+    outboxDir
+  )
+  return { link, storedAt }
+}

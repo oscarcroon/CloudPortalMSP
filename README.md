@@ -105,6 +105,21 @@ Kommandot läser databasen via Drizzle, letar efter den första användaren med 
 - Admin kan fortfarande flagga `forcePasswordReset` (t.ex. via seeds eller API); användaren ser då en banner på profilsidan tills ett nytt lösenord sparats.
 - Superadmins har dessutom en global vy under **Admin → Användare** där de kan söka, inaktivera/aktivera eller ta bort konton samt trigga lösenordsmejl. API:erna exponeras under `/api/admin/users/**`.
 
+### E-postprovider & branding
+
+- Lägg till `EMAIL_CRYPTO_KEY` i `.env` (32 byte i base64/hex) och `INVITE_ACCEPT_BASE_URL` om portalen ligger på annan domän. Samma nyckel används av både Express-backenden och Nuxt-servern för att kryptera leverantörs-secrets.
+- Globala inställningar hittas under **Admin → Global e-post** (`/admin/settings/email`). Här kan du:
+  - Välja mellan SMTP och Microsoft Graph.
+  - Ange avsändarnamn, reply-to och valfri branding (logotyp, färger, footertext).
+  - Skicka testmail. Misslyckade tester sparas automatiskt tillsammans med felmeddelande.
+- Per-organisation overrides finns under **Admin → Organisationer → [slug] → E-post**. När togglen “Använd organisationsspecifik e-postprovider” är avstängd används alltid den globala profilen.
+- Om inga providers är aktiva skriver systemet fortfarande ut mallarna till `uploads/outbox` så att utvecklare kan verifiera innehållet.
+- All gemensam funktionalitet (kryptering, transport, mallar) bor i `packages/email-kit`.
+
+### Tester
+
+- Kör de nya enhetstesterna för payload-hanteringen med `npm run test:unit --workspace frontend -- frontend/tests/server/email-provider.spec.ts`.
+
 ## Next Steps
 
 - Replace mock data in `backend/src/data/mockData.ts` with real connector calls (Cloudflare, Incus, ESXi, WordPress).

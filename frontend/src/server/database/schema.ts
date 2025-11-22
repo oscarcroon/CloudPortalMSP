@@ -165,6 +165,36 @@ export const organizationIdentityProviders = sqliteTable(
   })
 )
 
+export const emailProviderProfiles = sqliteTable(
+  'email_provider_profiles',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    targetType: text('target_type').notNull(),
+    targetKey: text('target_key').notNull(),
+    organizationId: text('organization_id').references(() => organizations.id, {
+      onDelete: 'cascade'
+    }),
+    providerType: text('provider_type').notNull(),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(0),
+    fromName: text('from_name'),
+    fromEmail: text('from_email'),
+    replyToEmail: text('reply_to_email'),
+    brandingConfig: text('branding_config', { length: 4096 }),
+    encryptedConfig: text('encrypted_config', { length: 8192 }),
+    encryptionIv: text('encryption_iv'),
+    encryptionAuthTag: text('encryption_auth_tag'),
+    configVersion: integer('config_version').notNull().default(1),
+    lastTestedAt: integer('last_tested_at', { mode: 'timestamp_ms' }),
+    lastTestStatus: text('last_test_status'),
+    lastTestError: text('last_test_error'),
+    ...timestampColumns()
+  },
+  table => ({
+    targetKeyIdx: uniqueIndex('email_provider_target_key_idx').on(table.targetKey),
+    orgUnique: uniqueIndex('email_provider_org_unique').on(table.organizationId)
+  })
+)
+
 export const dnsZones = sqliteTable(
   'dns_zones',
   {
@@ -313,7 +343,8 @@ export const organizationsRelations = relations(organizations, ({ many, one }) =
   dnsZones: many(dnsZones),
   containerProjects: many(containerProjects),
   vmInstances: many(vmInstances),
-  wordpressSites: many(wordpressSites)
+  wordpressSites: many(wordpressSites),
+  emailProviders: many(emailProviderProfiles)
 }))
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -390,6 +421,13 @@ export const vmInstanceRelations = relations(vmInstances, ({ one }) => ({
 export const wordpressSiteRelations = relations(wordpressSites, ({ one }) => ({
   organization: one(organizations, {
     fields: [wordpressSites.organizationId],
+    references: [organizations.id]
+  })
+}))
+
+export const emailProviderProfileRelations = relations(emailProviderProfiles, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [emailProviderProfiles.organizationId],
     references: [organizations.id]
   })
 }))

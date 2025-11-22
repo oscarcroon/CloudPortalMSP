@@ -4,6 +4,81 @@ export type OrganizationMemberStatus = 'active' | 'invited' | 'suspended'
 export type OrganizationInviteStatus = 'pending' | 'accepted' | 'expired' | 'revoked'
 export type OrganizationIdpType = 'none' | 'saml' | 'oidc'
 
+export type AdminEmailProviderType = 'smtp' | 'graph'
+
+export interface AdminEmailBranding {
+  logoUrl?: string
+  accentColor?: string
+  backgroundColor?: string
+  footerText?: string
+}
+
+export interface AdminEmailProviderSummary {
+  targetType: 'global' | 'organization'
+  organisationId?: string | null
+  providerType?: AdminEmailProviderType
+  fromEmail?: string
+  fromName?: string | null
+  replyToEmail?: string | null
+  branding?: AdminEmailBranding | null
+  isActive: boolean
+  hasConfig: boolean
+  lastTestedAt?: number
+  lastTestStatus?: string | null
+  lastTestError?: string | null
+  settings?: (
+    | {
+        type: 'smtp'
+        host: string
+        port: number
+        secure: boolean
+        ignoreTls?: boolean
+        authUser?: string | null
+      }
+    | {
+        type: 'graph'
+        tenantId: string
+        clientId: string
+        scope?: string
+        endpoint?: string
+        senderUserId?: string
+      }
+  ) | null
+}
+
+export interface AdminEmailProviderPayload {
+  fromEmail: string
+  fromName?: string
+  replyToEmail?: string
+  branding?: AdminEmailBranding | null
+  isActive?: boolean
+  provider:
+    | {
+        type: 'smtp'
+        host: string
+        port: number
+        secure?: boolean
+        auth?: {
+          user?: string
+          pass?: string
+        } | null
+        ignoreTls?: boolean
+      }
+    | {
+        type: 'graph'
+        tenantId: string
+        clientId: string
+        clientSecret: string
+        scope?: string
+        endpoint?: string
+        senderUserId?: string
+      }
+}
+
+export interface AdminEmailProviderTestPayload extends AdminEmailProviderPayload {
+  testEmail: string
+}
+
 export interface OrganizationAuthSettings {
   organizationId: string
   idpType: OrganizationIdpType

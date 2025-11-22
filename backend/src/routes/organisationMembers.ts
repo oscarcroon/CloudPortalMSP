@@ -16,8 +16,9 @@ import type {
   OrganisationMemberRole,
   OrganisationMemberStatus
 } from '../types/domain.js'
-import { currentOrgId, ensurePermission } from '../utils/authz.js'
+import { ensurePermission } from '../utils/authz.js'
 import { sendInvitationEmail } from '../utils/mailer.js'
+import { assertOrganisationScope } from '../utils/organisationScope.js'
 
 const INVITATION_EXPIRATION_DAYS = 7
 
@@ -164,10 +165,11 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
 
   await sendInvitationEmail({
     to: normalizedEmail,
+    organisationId,
     invitedBy,
     organisationName: organisation.name,
     role,
-    expiresAt: invitation.expiresAt,
+    expiresAt: Number(invitation.expiresAt),
     token: invitation.token
   })
 
@@ -256,40 +258,6 @@ organisationMembersRouter.delete('/:organisationId/members/:memberId', async (re
   await db.delete(organisationMembershipsTable).where(eq(organisationMembershipsTable.id, memberId))
   res.status(204).send()
 })
-
-async function assertOrganisationScope(req: Request, res: Response, id: string) {
-  const activeOrgId = currentOrgId(req)
-  if (activeOrgId !== id) {
-    res.status(403).json({ message: 'Operation limited to the active organisation.' })
-    return null
-  }
-
-  const organisationRow = await db
-    .select({
-      id: organisationsTable.id,
-      name: organisationsTable.name,
-      defaultRole: organisationsTable.defaultRole,
-      requireSso: organisationsTable.requireSso
-    })
-    .from(organisationsTable)
-    .where(eq(organisationsTable.id, id))
-    .get()
-
-  if (!organisationRow) {
-    res.status(404).json({ message: 'Organisation not found.' })
-    return null
-  }
-
-  const orgFromContext = req.userContext?.organisations.find((org) => org.id === id)
-
-  return {
-    id: organisationRow.id,
-    name: orgFromContext?.name ?? organisationRow.name,
-    role: (orgFromContext?.role ?? organisationRow.defaultRole) as OrganisationMemberRole,
-    branding: orgFromContext?.branding,
-    requireSso: Boolean(organisationRow.requireSso)
-  }
-}
 
 function isAssignableRole(role: OrganisationMemberRole) {
   return (

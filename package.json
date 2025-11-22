@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "frontend",
-    "backend"
+    "backend",
+    "packages/email-kit"
   ],
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
