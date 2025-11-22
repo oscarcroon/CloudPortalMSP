@@ -43,20 +43,23 @@
       <div class="flex gap-2">
         <NuxtLink
           to="/admin/settings/email"
-          class="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
         >
+          <Icon icon="mdi:email-outline" class="h-4 w-4" />
           Global e-post
         </NuxtLink>
         <NuxtLink
           to="/admin/users"
-          class="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
         >
+          <Icon icon="mdi:account-group-outline" class="h-4 w-4" />
           Hantera användare
         </NuxtLink>
         <NuxtLink
           to="/admin/organizations/new"
-          class="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80"
+          class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80"
         >
+          <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
           Skapa organisation
         </NuxtLink>
       </div>
@@ -139,6 +142,7 @@
 
 <script setup lang="ts">
 import { computed, ref, useFetch, useRoute, useRouter } from '#imports'
+import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import type { AdminOrganizationSummary } from '~/types/admin'
 

@@ -8,7 +8,10 @@
   >
     <div>
       <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ badge }}</p>
-      <h3 class="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ title }}</h3>
+      <div class="mt-2 flex items-center gap-3">
+        <Icon v-if="icon" :icon="icon" class="h-8 w-8 text-brand" />
+        <h3 class="text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ title }}</h3>
+      </div>
       <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
         {{ description }}
       </p>
@@ -21,6 +24,8 @@
 </template>
 
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
+
 defineProps({
   title: {
     type: String,
@@ -33,6 +38,10 @@ defineProps({
   badge: {
     type: String,
     default: 'Modul'
+  },
+  icon: {
+    type: String,
+    default: ''
   }
 })
 

@@ -7,8 +7,11 @@
 
     <div class="grid gap-6 lg:grid-cols-2">
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Organisationer</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Byt aktiv organisation och se roller.</p>
+        <div class="flex items-center gap-3">
+          <Icon icon="mdi:office-building-outline" class="h-6 w-6 text-brand" />
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Organisationer</h2>
+        </div>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Byt aktiv organisation och se roller.</p>
         <ul class="mt-4 space-y-3">
           <li
             v-for="org in auth.organizations.value"
@@ -37,8 +40,11 @@
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Medlemmar</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:account-group-outline" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Medlemmar</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Lista alla medlemmar i organisationen och hantera roller.
             </p>
           </div>
@@ -59,8 +65,11 @@
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Auth &amp; SSO</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:shield-lock-outline" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Auth &amp; SSO</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Aktivera Identity Provider, konfigurera OpenID eller Entra och styr om SSO ska krävas.
             </p>
           </div>
@@ -81,8 +90,11 @@
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">E-postoverride</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400">
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:email-outline" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">E-postoverride</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Ställ in organisationens egen SMTP- eller Graph-provider, inklusive branding och testutskick.
             </p>
           </div>
@@ -103,8 +115,11 @@
       <div class="space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Branding</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400">Byt logotyp för den aktiva organisationen.</p>
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:palette-outline" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Branding</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Byt logotyp för den aktiva organisationen.</p>
           </div>
           <span class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Max 2 MB</span>
         </div>
@@ -158,8 +173,11 @@
       </div>
 
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">API tokens</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Hantera autentisering mot externa leverantörer.</p>
+        <div class="flex items-center gap-3">
+          <Icon icon="mdi:key-outline" class="h-6 w-6 text-brand" />
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">API tokens</h2>
+        </div>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Hantera autentisering mot externa leverantörer.</p>
         <div class="mt-4 space-y-3">
           <div
             v-for="token in tokens"
@@ -180,6 +198,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from '#imports'
+import { Icon } from '@iconify/vue'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
 import { useAuth } from '~/composables/useAuth'
 import { useApiClient } from '~/composables/useApiClient'

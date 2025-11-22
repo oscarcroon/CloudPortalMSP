@@ -19,13 +19,17 @@
         :title="card.title"
         :description="card.description"
         :badge="card.badge"
+        :icon="card.icon"
         @select="navigateTo(card.to)"
       />
     </div>
 
     <div class="grid gap-6 lg:grid-cols-2">
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card transition-colors dark:border-slate-700 dark:bg-slate-900/70">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Status</h3>
+        <div class="flex items-center gap-3">
+          <Icon icon="mdi:chart-line" class="h-6 w-6 text-brand" />
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Status</h3>
+        </div>
         <ul class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
           <li v-for="item in statusItems" :key="item.label" class="flex items-center justify-between">
             <span>{{ item.label }}</span>
@@ -35,7 +39,10 @@
       </div>
 
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card transition-colors dark:border-slate-700 dark:bg-slate-900/70">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Nyheter</h3>
+        <div class="flex items-center gap-3">
+          <Icon icon="mdi:newspaper-outline" class="h-6 w-6 text-brand" />
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Nyheter</h3>
+        </div>
         <ul class="mt-4 space-y-4 text-sm text-slate-600 dark:text-slate-300">
           <li v-for="post in news" :key="post.title">
             <p class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ post.date }}</p>
@@ -49,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import DashboardCard from '~/components/dashboard/DashboardCard.vue'
 import { useAuth } from '~/composables/useAuth'
@@ -61,36 +69,42 @@ const cards = [
     title: 'DNS',
     description: 'Hantera Cloudflare-zoner och DNS-poster.',
     badge: 'Cloudflare',
+    icon: 'mdi:web',
     to: '/dns'
   },
   {
     title: 'Containers',
     description: 'Starta, stoppa och övervaka Incus containers.',
     badge: 'Incus',
+    icon: 'mdi:docker',
     to: '/containers'
   },
   {
     title: 'Virtuella maskiner',
     description: 'Kontrollera ESXi/Morpheus VMs via ett förenklat gränssnitt.',
     badge: 'ESXi / Morpheus',
+    icon: 'mdi:server',
     to: '/vms'
   },
   {
     title: 'WordPress',
     description: 'Överblick över dina sajter, status, uppdateringar och backuper.',
     badge: 'WordPress',
+    icon: 'mdi:wordpress',
     to: '/wordpress'
   },
   {
     title: 'Managed server',
     description: 'Få koll på dedikerade eller managed servrar.',
     badge: 'Managed',
+    icon: 'mdi:server-network',
     to: '/managed-server'
   },
   {
     title: 'Inställningar',
     description: 'Hantera organisationer, roller och API-nycklar.',
     badge: 'Admin',
+    icon: 'mdi:cog-outline',
     to: '/settings'
   }
 ]
