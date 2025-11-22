@@ -30,17 +30,19 @@
         </div>
         <div class="flex flex-wrap gap-2">
           <button
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             :disabled="loading"
             @click="refreshMembers"
           >
+            <Icon icon="mdi:refresh" class="h-4 w-4" :class="{ 'animate-spin': loading }" />
             {{ loading ? 'Uppdaterar...' : 'Uppdatera' }}
           </button>
           <button
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="!canInviteMembers"
             @click="openInviteModal"
           >
+            <Icon icon="mdi:account-plus-outline" class="h-4 w-4" />
             Bjud in medlem
           </button>
         </div>
@@ -163,6 +165,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from '#imports'
+import { Icon } from '@iconify/vue'
 import InviteMemberDialog from '~/components/organization/InviteMemberDialog.vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { useOrganizationMembers } from '~/composables/useOrganizationMembers'

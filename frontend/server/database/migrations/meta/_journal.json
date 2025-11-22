@@ -15,6 +15,13 @@
       "when": 1763787720000,
       "tag": "0004_email_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763848777903,
+      "tag": "0005_ncentral_monitoring",
+      "breakpoints": true
     }
   ]
 }

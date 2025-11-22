@@ -94,6 +94,20 @@ const cards = [
     to: '/wordpress'
   },
   {
+    title: 'nCentral',
+    description: 'Se agenter och servrar som körs i RMM-plattformen.',
+    badge: 'nCentral',
+    icon: 'mdi:server-network',
+    to: '/ncentral'
+  },
+  {
+    title: 'Övervakning',
+    description: 'Fånga upp alerts och status från observability stacken.',
+    badge: 'Monitoring',
+    icon: 'mdi:chart-line-variant',
+    to: '/monitoring'
+  },
+  {
     title: 'Managed server',
     description: 'Få koll på dedikerade eller managed servrar.',
     badge: 'Managed',

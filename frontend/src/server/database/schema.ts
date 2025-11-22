@@ -287,6 +287,30 @@ export const containerInstances = sqliteTable(
   })
 )
 
+export const ncentralDevices = sqliteTable(
+  'ncentral_devices',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    status: text('status').notNull().default('online'),
+    type: text('type').notNull().default('server'),
+    osVersion: text('os_version'),
+    region: text('region'),
+    lastSeenAt: integer('last_seen_at', { mode: 'timestamp_ms' }),
+    metadata: text('metadata', { length: 2048 }),
+    ...timestampColumns()
+  },
+  table => ({
+    orgNameIdx: uniqueIndex('ncentral_devices_org_name_idx').on(
+      table.organizationId,
+      table.name
+    )
+  })
+)
+
 export const vmInstances = sqliteTable(
   'vm_instances',
   {
@@ -308,6 +332,22 @@ export const vmInstances = sqliteTable(
     orgNameIdx: uniqueIndex('vm_instances_org_name_idx').on(table.organizationId, table.name)
   })
 )
+
+export const monitoringAlerts = sqliteTable('monitoring_alerts', {
+  id: text('id').primaryKey().$defaultFn(createId),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description', { length: 1024 }),
+  severity: text('severity').notNull().default('info'),
+  status: text('status').notNull().default('open'),
+  source: text('source'),
+  triggeredAt: integer('triggered_at', { mode: 'timestamp_ms' }),
+  resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
+  metadata: text('metadata', { length: 2048 }),
+  ...timestampColumns()
+})
 
 export const wordpressSites = sqliteTable(
   'wordpress_sites',
@@ -344,6 +384,8 @@ export const organizationsRelations = relations(organizations, ({ many, one }) =
   containerProjects: many(containerProjects),
   vmInstances: many(vmInstances),
   wordpressSites: many(wordpressSites),
+  ncentralDevices: many(ncentralDevices),
+  monitoringAlerts: many(monitoringAlerts),
   emailProviders: many(emailProviderProfiles)
 }))
 

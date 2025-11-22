@@ -6,6 +6,8 @@ import {
   containerProjects,
   dnsRecords,
   dnsZones,
+  monitoringAlerts,
+  ncentralDevices,
   organizationInvitations,
   organizationMemberships,
   organizations,
@@ -39,6 +41,8 @@ const seed = async () => {
     tx.delete(dnsRecords).run()
     tx.delete(dnsZones).run()
     tx.delete(containerInstances).run()
+    tx.delete(ncentralDevices).run()
+    tx.delete(monitoringAlerts).run()
     tx.delete(containerProjects).run()
     tx.delete(vmInstances).run()
     tx.delete(wordpressSites).run()
@@ -274,6 +278,113 @@ const seed = async () => {
           disk: '80GB',
           region: 'Stockholm',
           lastBackupAt: isoDate('2025-11-18T22:00:00Z')
+        }
+      ])
+      .run()
+
+    tx.insert(ncentralDevices)
+      .values([
+        {
+          id: 'nc-1',
+          organizationId: ownerOrgId,
+          name: 'edge-core-01',
+          status: 'online',
+          type: 'server',
+          osVersion: 'Ubuntu 24.04 LTS',
+          region: 'Karlstad',
+          lastSeenAt: isoDate('2025-11-22T06:45:00Z'),
+          metadata: JSON.stringify({ agentVersion: '23.6.1' })
+        },
+        {
+          id: 'nc-2',
+          organizationId: ownerOrgId,
+          name: 'dc-monitor-02',
+          status: 'warning',
+          type: 'appliance',
+          osVersion: 'Photon 5.0',
+          region: 'Stockholm',
+          lastSeenAt: isoDate('2025-11-22T05:55:00Z'),
+          metadata: JSON.stringify({ probe: 'snmp', packetLoss: 0.12 })
+        },
+        {
+          id: 'nc-3',
+          organizationId: internalOrgId,
+          name: 'laptop-anna',
+          status: 'online',
+          type: 'workstation',
+          osVersion: 'Windows 11 23H2',
+          region: 'Remote',
+          lastSeenAt: isoDate('2025-11-22T07:15:00Z'),
+          metadata: JSON.stringify({ user: 'anna@example.com' })
+        },
+        {
+          id: 'nc-4',
+          organizationId: internalOrgId,
+          name: 'fileserver-legacy',
+          status: 'offline',
+          type: 'server',
+          osVersion: 'Windows Server 2016',
+          region: 'Göteborg',
+          lastSeenAt: isoDate('2025-11-21T18:20:00Z'),
+          metadata: JSON.stringify({ maintenanceRequired: true })
+        }
+      ])
+      .run()
+
+    tx.insert(monitoringAlerts)
+      .values([
+        {
+          id: 'alert-1',
+          organizationId: ownerOrgId,
+          title: 'Disk usage över 90%',
+          description: 'edge-core-01 rapporterar diskavvikelse på /var',
+          severity: 'critical',
+          status: 'open',
+          source: 'Prometheus',
+          triggeredAt: isoDate('2025-11-22T05:15:00Z'),
+          metadata: JSON.stringify({ filesystem: '/var', threshold: 90 })
+        },
+        {
+          id: 'alert-2',
+          organizationId: ownerOrgId,
+          title: 'Backup misslyckades',
+          description: 'Veeam-jobbet nightly-apps har misslyckats två gånger',
+          severity: 'warning',
+          status: 'acknowledged',
+          source: 'Veeam',
+          triggeredAt: isoDate('2025-11-21T22:40:00Z'),
+          metadata: JSON.stringify({ jobName: 'nightly-apps' })
+        },
+        {
+          id: 'alert-3',
+          organizationId: internalOrgId,
+          title: 'Agent offline',
+          description: 'fileserver-legacy svarar inte på heartbeat',
+          severity: 'warning',
+          status: 'open',
+          source: 'nCentral',
+          triggeredAt: isoDate('2025-11-22T03:05:00Z')
+        },
+        {
+          id: 'alert-4',
+          organizationId: internalOrgId,
+          title: 'Certificate expiring',
+          description: 'api.internal.example.com löper ut om 10 dagar',
+          severity: 'info',
+          status: 'resolved',
+          source: 'Let\'s Encrypt',
+          triggeredAt: isoDate('2025-11-18T09:30:00Z'),
+          resolvedAt: isoDate('2025-11-19T08:00:00Z')
+        },
+        {
+          id: 'alert-5',
+          organizationId: ownerOrgId,
+          title: 'Hög CPU på incus-nod',
+          description: 'incus-core-02 ligger över 85% CPU i 15 minuter',
+          severity: 'critical',
+          status: 'open',
+          source: 'Grafana',
+          triggeredAt: isoDate('2025-11-22T07:05:00Z')
         }
       ])
       .run()
