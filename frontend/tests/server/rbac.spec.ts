@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hasPermission } from '../../server/utils/rbac'
+import { hasPermission } from '../../src/server/utils/rbac'
 import { rolePermissionMap } from '~/constants/rbac'
 
 describe('RBAC helpers', () => {

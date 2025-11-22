@@ -2,13 +2,46 @@ export interface OrganisationBranding {
   logoUrl?: string
 }
 
-export type OrganisationRole = 'owner' | 'admin' | 'operator' | 'viewer'
+export type OrganisationRole = 'owner' | 'admin' | 'operator' | 'viewer' | 'member'
 
 export interface Organisation {
   id: string
   name: string
   role: OrganisationRole
   branding?: OrganisationBranding
+}
+
+export type OrganisationMemberRole = 'owner' | 'admin' | 'member'
+
+export type OrganisationMemberStatus = 'active' | 'invited' | 'inactive'
+
+export interface OrganisationMember {
+  id: string
+  organisationId: string
+  userId?: string
+  email: string
+  displayName?: string
+  role: OrganisationMemberRole
+  status: OrganisationMemberStatus
+  invitedAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type OrganisationInvitationStatus = 'pending' | 'accepted' | 'cancelled' | 'expired'
+
+export interface OrganisationInvitation {
+  id: string
+  organisationId: string
+  email: string
+  role: OrganisationMemberRole
+  token: string
+  expiresAt: string
+  status: OrganisationInvitationStatus
+  invitedBy: string
+  createdAt: string
+  acceptedAt?: string
+  cancelledAt?: string
 }
 
 export interface UserContext {

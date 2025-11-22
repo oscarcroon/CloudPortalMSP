@@ -30,6 +30,7 @@ export const rolePermissionMap = {
     'wordpress:write',
     'audit:read'
   ],
+  member: ['org:read', 'cloudflare:read', 'containers:read', 'vms:read', 'wordpress:read'],
   operator: [
     'org:read',
     'cloudflare:read',

@@ -74,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from '#imports'
+import { computed, ref } from '#imports'
 import type { FetchError } from 'ofetch'
 import { useAuth } from '~/composables/useAuth'
 
@@ -84,11 +84,19 @@ definePageMeta({
 })
 
 const auth = useAuth()
+const route = useRoute()
 const step = ref<'email' | 'password'>('email')
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
 const providers = ref<{ restrictSso: boolean }>({ restrictSso: false })
+const redirectTarget = computed(() => {
+  const raw = route.query.redirect
+  if (typeof raw === 'string' && raw.startsWith('/')) {
+    return raw
+  }
+  return '/'
+})
 
 const handleEmailSubmit = async () => {
   errorMessage.value = ''
@@ -108,7 +116,7 @@ const handlePasswordSubmit = async () => {
   errorMessage.value = ''
   try {
     await auth.login({ email: email.value, password: password.value })
-    await navigateTo('/')
+    await navigateTo(redirectTarget.value)
   } catch (unknownError) {
     const fetchError = unknownError as FetchError | undefined
     const status =

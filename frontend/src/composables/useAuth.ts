@@ -104,6 +104,9 @@ export const useAuth = () => {
       })
       applyAuthPayload(data)
       return data
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Kunde inte byta organisation.')
+      throw error
     } finally {
       state.value.loading = false
     }

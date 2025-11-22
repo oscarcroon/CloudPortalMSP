@@ -1,4 +1,4 @@
-export const rbacRoles = ['owner', 'admin', 'operator', 'viewer'] as const
+export const rbacRoles = ['owner', 'admin', 'member', 'operator', 'viewer'] as const
 
 export type RbacRole = (typeof rbacRoles)[number]
 
@@ -53,6 +53,7 @@ export const rolePermissionMap: Record<RbacRole, RbacPermission[]> = {
     'wordpress:write',
     'audit:read'
   ],
+  member: ['org:read', 'cloudflare:read', 'containers:read', 'vms:read', 'wordpress:read'],
   operator: [
     'org:read',
     'cloudflare:read',
@@ -72,7 +73,7 @@ export const rolePermissionMap: Record<RbacRole, RbacPermission[]> = {
   ]
 }
 
-export const defaultRole: RbacRole = 'viewer'
+export const defaultRole: RbacRole = 'member'
 
 
 

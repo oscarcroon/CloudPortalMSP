@@ -8,6 +8,7 @@
     "preview": "nuxt preview",
     "lint": "eslint . --ext .ts,.js,.vue",
     "seed": "tsx scripts/seed.ts",
+    "db:backfill-owners": "tsx scripts/backfill-owners.ts",
     "test:unit": "vitest run",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config drizzle.config.ts",

@@ -66,6 +66,26 @@ cd frontend
 npm run seed
 ```
 
+### Backfill owners after deploying the new schema
+
+The admin refactor innebär att varje organisation måste ha minst en `owner`. Efter att du har kört migreringen `0002_admin_org_model.sql` i staging/produktion behöver du säkerställa detta. Ett enkelt sätt är att återanvända den första superadmin-användaren och koppla hen som temporär ägare på de organisationer som saknar owner:
+
+```bash
+cd frontend
+npm run db:backfill-owners
+```
+
+Kommandot läser databasen via Drizzle, letar efter den första användaren med `is_super_admin = 1` och värmer upp `organization_memberships` med ett `role='owner'` för varje organisation som saknar aktiva owners. Scriptet körs idempotent och skriver en loggrad per uppdaterad organisation.
+
+### SSO rollout checklist
+
+1. Sätt `require_sso` och `allow_self_signup` per organisation via admin-gränssnittet (`/admin/organizations/[slug]/auth`).  
+2. Om `require_sso` är aktivt blockeras lokal inloggning för alla användare utom:
+   - Superadmins
+   - Ägare när `allow_local_login_for_owners` är på. Dessa får en gul banner som påminner om att SSO egentligen krävs.  
+3. För övriga användare returnerar `/api/auth/switch-org` HTTP 409 med instruktion att starta SSO-flödet (`/api/auth/sso/[slug]/init`). Standardlayouten visar samma fel längst upp.  
+4. Lägg till IdP-uppgifter i `organization_auth_settings` (via Auth-fliken) när integrationen mot SAML/OIDC är klar. Konfigurationen sparas som JSON via `stringifyIdpConfig`/`serializeAuthSettings`.
+
 ### Superadmin & onboarding
 
 - Configure whether self-service sign-up is allowed via `AUTH_ALLOW_SELF_REGISTRATION` (default `false`).  

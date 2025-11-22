@@ -5,7 +5,12 @@ import { createError } from 'h3'
 import { and, eq } from 'drizzle-orm'
 import { createId } from '@paralleldrive/cuid2'
 import { getDb } from './db'
-import { organizationMemberships, organizations, users } from '../database/schema'
+import {
+  organizationAuthSettings,
+  organizationMemberships,
+  organizations,
+  users
+} from '../database/schema'
 import type { AuthOrganization, AuthState } from '../types/auth'
 import type { RbacRole } from '~/constants/rbac'
 import { normalizeEmail } from './crypto'
@@ -22,26 +27,39 @@ const fetchMembershipRows = async (userId: string) => {
   return db
     .select({
       org: organizations,
-      membership: organizationMemberships
+      membership: organizationMemberships,
+      auth: organizationAuthSettings
     })
     .from(organizationMemberships)
     .innerJoin(organizations, eq(organizations.id, organizationMemberships.organizationId))
-    .where(eq(organizationMemberships.userId, userId))
+    .leftJoin(
+      organizationAuthSettings,
+      eq(organizationAuthSettings.organizationId, organizations.id)
+    )
+    .where(
+      and(
+        eq(organizationMemberships.userId, userId),
+        eq(organizationMemberships.status, 'active')
+      )
+    )
 }
 
 type MembershipRow = {
   org: typeof organizations.$inferSelect
   membership: typeof organizationMemberships.$inferSelect
+  auth: typeof organizationAuthSettings.$inferSelect | null
 }
 
-const mapOrgRow = (row: MembershipRow, role: RbacRole): AuthOrganization => ({
+const mapOrgRow = (row: MembershipRow, role: RbacRole, isSuperAdmin: boolean): AuthOrganization => ({
   id: row.org.id,
   name: row.org.name,
   slug: row.org.slug,
   status: row.org.status,
   isSuspended: Boolean(row.org.isSuspended),
   logoUrl: row.org.logoUrl ?? undefined,
-  enforceSso: Boolean(row.org.enforceSso),
+  requireSso: Boolean(row.org.requireSso),
+  hasLocalLoginOverride:
+    isSuperAdmin || (role === 'owner' && Boolean(row.auth?.allowLocalLoginForOwners)),
   role
 })
 
@@ -70,7 +88,7 @@ export const buildAuthState = async (
   const organizationPayload: AuthOrganization[] = rows.map((row) => {
     const role = row.membership.role as RbacRole
     orgRoles[row.org.id] = role
-    return mapOrgRow(row, role)
+    return mapOrgRow(row, role, Boolean(user.isSuperAdmin))
   })
 
   const resolvedOrgId =
@@ -107,6 +125,44 @@ export const createUserWithOrganization = async (
   input: CreateUserWithOrgInput
 ): Promise<{ userId: string; organizationId: string }> => {
   const db = getDb()
+  const isSqlite =
+    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
+  if (isSqlite) {
+    return db.transaction((tx) => {
+      const orgId = createId()
+      const userId = createId()
+      const organization: typeof organizations.$inferInsert = {
+        id: orgId,
+        name: input.organizationName,
+        slug: slugify(input.organizationName),
+        status: 'active'
+      }
+      tx.insert(organizations).values(organization).run()
+
+      const user: typeof users.$inferInsert = {
+        id: userId,
+        email: normalizeEmail(input.email),
+        passwordHash: input.passwordHash,
+        fullName: input.fullName,
+        status: 'active',
+        defaultOrgId: orgId
+      }
+      tx.insert(users).values(user).run()
+
+      tx.insert(organizationMemberships)
+        .values({
+          id: createId(),
+          organizationId: orgId,
+          userId,
+          role: 'owner',
+          status: 'active'
+        })
+        .run()
+
+      return { userId, organizationId: orgId }
+    })
+  }
+
   return db.transaction(async (tx) => {
     const orgId = createId()
     const userId = createId()
@@ -132,7 +188,8 @@ export const createUserWithOrganization = async (
       id: createId(),
       organizationId: orgId,
       userId,
-      role: 'owner'
+      role: 'owner',
+      status: 'active'
     })
 
     return { userId, organizationId: orgId }
@@ -147,7 +204,8 @@ export const ensureMembership = async (userId: string, organizationId: string) =
     .where(
       and(
         eq(organizationMemberships.userId, userId),
-        eq(organizationMemberships.organizationId, organizationId)
+        eq(organizationMemberships.organizationId, organizationId),
+        eq(organizationMemberships.status, 'active')
       )
     )
   if (!membership) {
@@ -180,7 +238,7 @@ export const listOrganizationsForEmail = async (email: string) => {
 
 export const userRequiresSso = async (userId: string) => {
   const rows = await fetchMembershipRows(userId)
-  return rows.some((row) => Boolean(row.org.enforceSso))
+  return rows.some((row) => Boolean(row.org.requireSso))
 }
 
 export const touchUserLogin = async (userId: string) => {

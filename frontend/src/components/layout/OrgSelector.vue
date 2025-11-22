@@ -27,17 +27,20 @@
       <button
         v-for="org in auth.organizations.value"
         :key="org.id"
-        class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm text-white transition hover:bg-white/10"
+        class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm text-white transition"
         :class="{
-          'bg-white/10': auth.state.value.data?.currentOrgId === org.id
+          'bg-white/10': auth.state.value.data?.currentOrgId === org.id,
+          'cursor-not-allowed opacity-40': isOrgLocked(org),
+          'hover:bg-white/10': !isOrgLocked(org)
         }"
-        @click="selectOrg(org.id)"
+        :disabled="isOrgLocked(org)"
+        @click="trySelectOrg(org)"
       >
         <div>
           <p class="font-semibold">{{ org.name }}</p>
           <p class="text-xs text-slate-400">{{ org.role }} • {{ org.status }}</p>
         </div>
-        <span v-if="org.enforceSso" class="text-xs text-amber-400">SSO</span>
+        <span v-if="org.requireSso" class="text-xs text-amber-400">SSO</span>
       </button>
 
       <p v-if="!auth.organizations.value.length" class="px-2 py-4 text-sm text-slate-400">
@@ -50,6 +53,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from '#imports'
 import { useAuth } from '~/composables/useAuth'
+import type { AuthOrganization } from '~/types/auth'
 
 const auth = useAuth()
 const open = ref(false)
@@ -63,9 +67,22 @@ function toggle() {
   open.value = !open.value
 }
 
+const isSuperAdmin = auth.isSuperAdmin
+
+const isOrgLocked = (org: AuthOrganization) =>
+  org.requireSso && !org.hasLocalLoginOverride && !isSuperAdmin.value
+
 async function selectOrg(orgId: string) {
   await auth.switchOrganization(orgId)
   open.value = false
+}
+
+async function trySelectOrg(org: AuthOrganization) {
+  if (isOrgLocked(org)) {
+    auth.state.value.error = 'Organisationen kräver SSO. Starta SSO-flödet för att fortsätta.'
+    return
+  }
+  await selectOrg(org.id)
 }
 
 function handleGlobalClick(event: MouseEvent) {

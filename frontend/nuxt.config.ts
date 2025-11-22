@@ -44,6 +44,7 @@ export default defineNuxtConfig({
     }
   },
   nitro: {
+    compatibilityDate: '2025-11-21',
     devProxy: {
       '/backend': {
         target: process.env.NUXT_DEV_PROXY_API || backendProxyBase,

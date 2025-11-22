@@ -15,10 +15,10 @@ export default defineEventHandler(async (event) => {
     organizations: organizations.map((org: AuthOrganization) => ({
       id: org.id,
       name: org.name,
-      enforceSso: org.enforceSso,
+      requireSso: org.requireSso,
       slug: org.slug
     })),
-    requiresSso: organizations.some((org) => org.enforceSso),
+    requiresSso: organizations.some((org) => org.requireSso),
     // TODO: attach identity provider metadata once organization_identity_providers is populated
     identityProviders: []
   }

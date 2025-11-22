@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url'
 import { tenantContext } from './middleware/context.js'
 import { containersRouter } from './routes/containers.js'
 import { dnsRouter } from './routes/dns.js'
+import { invitationsRouter } from './routes/invitations.js'
+import { organisationMembersRouter } from './routes/organisationMembers.js'
 import { organisationsRouter } from './routes/organisations.js'
 import { vmRouter } from './routes/vms.js'
 import { wordpressRouter } from './routes/wordpress.js'
@@ -37,6 +39,8 @@ app.use('/api/containers', containersRouter)
 app.use('/api/vms', vmRouter)
 app.use('/api/wordpress', wordpressRouter)
 app.use('/api/organisations', organisationsRouter)
+app.use('/api/organisations', organisationMembersRouter)
+app.use('/api/invitations', invitationsRouter)
 
 const PORT = Number(process.env.PORT || 4000)
 

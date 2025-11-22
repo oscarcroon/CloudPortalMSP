@@ -34,6 +34,28 @@
         </ul>
       </div>
 
+      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Medlemmar</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Lista alla medlemmar i organisationen och hantera roller.
+            </p>
+          </div>
+          <NuxtLink
+            to="/settings/members"
+            class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200"
+          >
+            Öppna
+          </NuxtLink>
+        </div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <li>• Se status för aktiva och väntande medlemmar</li>
+          <li>• Uppdatera roller för owner, admin och member</li>
+          <li>• Ta bort åtkomst för användare som lämnar</li>
+        </ul>
+      </div>
+
       <div class="space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-start justify-between gap-4">
           <div>

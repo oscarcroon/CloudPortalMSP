@@ -8,14 +8,18 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
+    "@paralleldrive/cuid2": "^2.2.2",
     "@types/multer": "^2.0.0",
+    "better-sqlite3": "^11.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.44.7",
     "express": "^4.19.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.2"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/morgan": "^1.9.10",

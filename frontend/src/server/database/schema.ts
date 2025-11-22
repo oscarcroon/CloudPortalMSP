@@ -8,6 +8,7 @@ import {
   uniqueIndex
 } from 'drizzle-orm/sqlite-core'
 import type { RbacRole } from '~/constants/rbac'
+import type { OrganizationMemberStatus } from '~/types/admin'
 
 const timestampColumns = () => ({
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
@@ -30,8 +31,8 @@ export const organizations = sqliteTable(
     status: text('status').notNull().default('active'),
     isSuspended: integer('is_suspended', { mode: 'boolean' }).notNull().default(0),
     defaultRole: text('default_role').notNull().default('viewer'),
-    enforceSso: integer('enforce_sso', { mode: 'boolean' }).notNull().default(0),
-    selfSignupEnabled: integer('self_signup_enabled', { mode: 'boolean' }).notNull().default(0),
+    requireSso: integer('require_sso', { mode: 'boolean' }).notNull().default(0),
+    allowSelfSignup: integer('allow_self_signup', { mode: 'boolean' }).notNull().default(0),
     logoUrl: text('logo_url'),
     billingEmail: text('billing_email'),
     ...timestampColumns()
@@ -78,6 +79,10 @@ export const organizationMemberships = sqliteTable(
       .notNull()
       .$type<RbacRole>()
       .default('viewer'),
+    status: text('status')
+      .notNull()
+      .$type<OrganizationMemberStatus>()
+      .default('active'),
     labels: text('labels', { length: 1024 }),
     lastAccessedAt: integer('last_accessed_at', { mode: 'timestamp_ms' }),
     ...timestampColumns()
@@ -116,6 +121,19 @@ export const organizationInvitations = sqliteTable(
     tokenIdx: uniqueIndex('organization_invites_token_idx').on(table.token)
   })
 )
+
+export const organizationAuthSettings = sqliteTable('organization_auth_settings', {
+  organizationId: text('organization_id')
+    .primaryKey()
+    .references(() => organizations.id, { onDelete: 'cascade' }),
+  idpType: text('idp_type').notNull().default('none'),
+  ssoEnforced: integer('sso_enforced', { mode: 'boolean' }).notNull().default(0),
+  allowLocalLoginForOwners: integer('allow_local_login_for_owners', { mode: 'boolean' })
+    .notNull()
+    .default(1),
+  idpConfig: text('idp_config', { length: 4096 }),
+  ...timestampColumns()
+})
 
 export const organizationIdentityProviders = sqliteTable(
   'organization_identity_providers',
@@ -282,10 +300,14 @@ export const wordpressSites = sqliteTable(
   })
 )
 
-export const organizationsRelations = relations(organizations, ({ many }) => ({
+export const organizationsRelations = relations(organizations, ({ many, one }) => ({
   memberships: many(organizationMemberships),
   invitations: many(organizationInvitations),
   identityProviders: many(organizationIdentityProviders),
+  authSettings: one(organizationAuthSettings, {
+    fields: [organizations.id],
+    references: [organizationAuthSettings.organizationId]
+  }),
   dnsZones: many(dnsZones),
   containerProjects: many(containerProjects),
   vmInstances: many(vmInstances),
@@ -296,6 +318,16 @@ export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(organizationMemberships),
   invitations: many(organizationInvitations)
 }))
+
+export const organizationAuthSettingsRelations = relations(
+  organizationAuthSettings,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [organizationAuthSettings.organizationId],
+      references: [organizations.id]
+    })
+  })
+)
 
 export const membershipRelations = relations(organizationMemberships, ({ one }) => ({
   organization: one(organizations, {

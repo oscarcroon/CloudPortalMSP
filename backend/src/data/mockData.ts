@@ -4,6 +4,8 @@ import type {
   DnsRecord,
   DnsZone,
   Organisation,
+  OrganisationInvitation,
+  OrganisationMember,
   VmInstance,
   WordpressSite
 } from '../types/domain.js'
@@ -11,6 +13,81 @@ import type {
 export const organisations: Organisation[] = [
   { id: 'org-coreit', name: 'CoreIT Demo', role: 'owner' },
   { id: 'org-internal', name: 'Internal IT', role: 'operator' }
+]
+
+export const organisationMembers: OrganisationMember[] = [
+  {
+    id: 'member-coreit-1',
+    organisationId: 'org-coreit',
+    userId: 'user-anna',
+    email: 'anna@example.com',
+    displayName: 'Anna Andersson',
+    role: 'owner',
+    status: 'active',
+    invitedAt: '2025-11-10T08:00:00Z',
+    createdAt: '2025-11-10T08:00:00Z',
+    updatedAt: '2025-11-15T09:15:00Z'
+  },
+  {
+    id: 'member-coreit-2',
+    organisationId: 'org-coreit',
+    userId: 'user-fredrik',
+    email: 'fredrik@example.com',
+    displayName: 'Fredrik Karlsson',
+    role: 'admin',
+    status: 'active',
+    invitedAt: '2025-11-12T10:30:00Z',
+    createdAt: '2025-11-12T10:30:00Z',
+    updatedAt: '2025-11-18T11:00:00Z'
+  },
+  {
+    id: 'member-coreit-3',
+    organisationId: 'org-coreit',
+    email: 'guest@example.com',
+    displayName: 'Gäst Användare',
+    role: 'member',
+    status: 'invited',
+    invitedAt: '2025-11-19T13:45:00Z',
+    createdAt: '2025-11-19T13:45:00Z',
+    updatedAt: '2025-11-19T13:45:00Z'
+  },
+  {
+    id: 'member-internal-1',
+    organisationId: 'org-internal',
+    userId: 'user-sofia',
+    email: 'sofia@example.com',
+    displayName: 'Sofia Lind',
+    role: 'owner',
+    status: 'active',
+    invitedAt: '2025-10-21T07:15:00Z',
+    createdAt: '2025-10-21T07:15:00Z',
+    updatedAt: '2025-11-01T08:30:00Z'
+  },
+  {
+    id: 'member-internal-2',
+    organisationId: 'org-internal',
+    email: 'consultant@example.com',
+    displayName: 'Consultant AB',
+    role: 'member',
+    status: 'inactive',
+    invitedAt: '2025-09-02T09:00:00Z',
+    createdAt: '2025-09-02T09:00:00Z',
+    updatedAt: '2025-10-01T09:30:00Z'
+  }
+]
+
+export const organisationInvitations: OrganisationInvitation[] = [
+  {
+    id: 'invite-coreit-1',
+    organisationId: 'org-coreit',
+    email: 'new.engineer@example.com',
+    role: 'member',
+    token: 'inv-coreit-token-1',
+    expiresAt: '2025-12-01T00:00:00Z',
+    status: 'pending',
+    invitedBy: 'user-anna',
+    createdAt: '2025-11-18T14:00:00Z'
+  }
 ]
 
 export const dnsZones: DnsZone[] = [

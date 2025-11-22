@@ -3,6 +3,29 @@
     <TopBar />
     <MainNavbar />
 
+    <div v-if="authError" class="mx-auto max-w-6xl px-4">
+      <div class="mb-4 flex items-start justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
+        <p>{{ authError }}</p>
+        <button class="text-xs font-semibold" @click="clearAuthError">Stäng</button>
+      </div>
+    </div>
+
+    <div v-if="ssoBanner" class="mx-auto max-w-6xl px-4">
+      <div
+        class="mb-4 flex items-center justify-between rounded-lg px-4 py-3 text-sm"
+        :class="ssoBanner.variant === 'warning' ? 'border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200' : 'border border-red-200 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200'"
+      >
+        <p>{{ ssoBanner.message }}</p>
+        <NuxtLink
+          v-if="ssoBanner.slug && ssoBanner.variant === 'danger'"
+          :to="`/api/auth/sso/${ssoBanner.slug}/init`"
+          class="rounded border border-current px-3 py-1 text-xs font-semibold"
+        >
+          Starta SSO
+        </NuxtLink>
+      </div>
+    </div>
+
     <main class="px-4 py-6 lg:px-10 max-w-6xl mx-auto w-full">
       <slot />
     </main>
@@ -14,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from '#imports'
 import TopBar from '~/components/layout/TopBar.vue'
 import MainNavbar from '~/components/layout/MainNavbar.vue'
 import { useAuth } from '~/composables/useAuth'
@@ -22,5 +46,31 @@ const auth = useAuth()
 if (import.meta.client) {
   await auth.bootstrap()
 }
+
+const authError = computed(() => auth.state.value.error)
+const currentOrg = auth.currentOrg
+
+const clearAuthError = () => {
+  auth.state.value.error = null
+}
+
+const ssoBanner = computed(() => {
+  const org = currentOrg.value
+  if (!org?.requireSso) {
+    return null
+  }
+  if (org.hasLocalLoginOverride || auth.isSuperAdmin.value) {
+    return {
+      variant: 'warning' as const,
+      message: 'SSO är aktiverat för den här organisationen, men du har ett lokalt ägarundantag.',
+      slug: org.slug
+    }
+  }
+  return {
+    variant: 'danger' as const,
+    message: 'SSO är aktiverat och lokalt login är blockerad. Starta SSO-inloggningen.',
+    slug: org.slug
+  }
+})
 </script>
 

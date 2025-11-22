@@ -91,6 +91,9 @@ export const createSession = async (
   forcedOrgId?: string | null
 ): Promise<AuthState> => {
   const auth = await buildAuthState(userId, forcedOrgId)
+  if (auth.currentOrgId && !canAccessOrganization(auth, auth.currentOrgId)) {
+    auth.currentOrgId = null
+  }
   const token = signToken({
     userId: auth.user.id,
     currentOrgId: auth.currentOrgId,
@@ -173,4 +176,21 @@ const maybeBootstrapFromZeroTrust = async (event: H3Event) => {
 export const decodeSessionToken = (token: string) => verifyToken(token)
 
 export const getSessionCookieName = () => SESSION_COOKIE
+
+const canAccessOrganization = (auth: AuthState, organizationId: string | null) => {
+  if (!organizationId) {
+    return false
+  }
+  const org = auth.organizations.find((item) => item.id === organizationId)
+  if (!org) {
+    return false
+  }
+  if (!org.requireSso) {
+    return true
+  }
+  if (auth.user.isSuperAdmin) {
+    return true
+  }
+  return Boolean(org.hasLocalLoginOverride)
+}
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeEmail } from '../../server/utils/crypto'
+import { normalizeEmail } from '../../src/server/utils/crypto'
 
 describe('crypto helpers', () => {
   it('normalizeEmail trims and lowercases', () => {

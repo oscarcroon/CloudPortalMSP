@@ -17,7 +17,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
     : Boolean(auth?.state.value.data)
 
   if (!isAuthenticated && !isPublic && to.path !== '/login') {
-    return navigateTo('/login', { replace: true })
+    return navigateTo(
+      {
+        path: '/login',
+        query: { redirect: to.fullPath }
+      },
+      { replace: true }
+    )
   }
 
   if (isAuthenticated && to.path === '/login') {

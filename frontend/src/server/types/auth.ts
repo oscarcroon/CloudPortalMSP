@@ -17,7 +17,8 @@ export interface AuthOrganization {
   status: string
   isSuspended: boolean
   logoUrl?: string | null
-  enforceSso: boolean
+  requireSso: boolean
+  hasLocalLoginOverride: boolean
 }
 
 export interface AuthState {
