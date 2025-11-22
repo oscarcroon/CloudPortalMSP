@@ -33,12 +33,21 @@
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
-          <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
-            <input id="auth-require-sso" v-model="form.requireSso" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
-            <label for="auth-require-sso" class="text-sm text-slate-700 dark:text-slate-200">
-              Kräv SSO för alla användare
-            </label>
-          </div>
+          <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
+            <input
+              id="auth-require-sso"
+              v-model="form.requireSso"
+              type="checkbox"
+              class="rounded border-slate-300 dark:border-white/20"
+              :disabled="!canRequireSso"
+            />
+            <div>
+              <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">Krav på SSO</p>
+              <p v-if="!canRequireSso" class="text-xs text-slate-500 dark:text-slate-400">
+                {{ requireSsoHint }}
+              </p>
+            </div>
+          </label>
           <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
             <input id="auth-self-signup" v-model="form.allowSelfSignup" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
             <label for="auth-self-signup" class="text-sm text-slate-700 dark:text-slate-200">
@@ -106,6 +115,63 @@ const form = reactive({
   idpType: 'none',
   idpConfig: ''
 })
+
+const parsedIdpConfig = computed<Record<string, unknown> | null>(() => {
+  if (!form.idpConfig.trim()) {
+    return null
+  }
+  try {
+    return JSON.parse(form.idpConfig)
+  } catch {
+    return null
+  }
+})
+
+const canRequireSso = computed(() => {
+  if (form.idpType === 'none') {
+    return false
+  }
+  if (form.idpType === 'oidc') {
+    const config = parsedIdpConfig.value
+    if (!config) return false
+    const issuer = typeof config.issuer === 'string' ? config.issuer.trim() : ''
+    const clientId = typeof config.clientId === 'string' ? config.clientId.trim() : ''
+    const clientSecret =
+      typeof config.clientSecret === 'string' ? config.clientSecret.trim() : ''
+    const redirectUri =
+      typeof config.redirectUri === 'string' ? config.redirectUri.trim() : ''
+    return Boolean(issuer && clientId && clientSecret && redirectUri)
+  }
+  return Boolean(parsedIdpConfig.value || form.idpConfig.trim().length > 0)
+})
+
+const requireSsoHint = computed(() => {
+  if (form.idpType === 'none') {
+    return 'Konfigurera en IdP innan SSO kan krävas.'
+  }
+  if (!canRequireSso.value) {
+    return 'Fyll i en giltig IdP-konfiguration (issuer, client-id, secret, redirect).'
+  }
+  return ''
+})
+
+watch(
+  () => form.idpType,
+  (value) => {
+    if (value === 'none') {
+      form.requireSso = false
+    }
+  }
+)
+
+watch(
+  canRequireSso,
+  (allowed) => {
+    if (!allowed) {
+      form.requireSso = false
+    }
+  }
+)
 
 const parseIdpConfig = (value: unknown) => {
   if (!value) return ''

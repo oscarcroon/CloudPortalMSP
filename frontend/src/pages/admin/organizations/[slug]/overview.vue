@@ -95,8 +95,19 @@
             </select>
           </div>
           <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
-            <input id="overview-require-sso" v-model="form.requireSso" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
-            <label for="overview-require-sso" class="text-sm text-slate-700 dark:text-slate-200">Kräv SSO</label>
+            <input
+              id="overview-require-sso"
+              v-model="form.requireSso"
+              type="checkbox"
+              class="rounded border-slate-300 dark:border-white/20"
+              :disabled="!canToggleRequireSso"
+            />
+            <label for="overview-require-sso" class="text-sm text-slate-700 dark:text-slate-200">
+              Kräv SSO
+              <span v-if="!canToggleRequireSso" class="block text-xs text-slate-500 dark:text-slate-400">
+                {{ requireSsoHint }}
+              </span>
+            </label>
           </div>
           <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
             <input id="overview-self-signup" v-model="form.allowSelfSignup" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
@@ -207,6 +218,7 @@ const { data, pending, refresh, error } = await useFetch<AdminOrganizationDetail
 
 const organization = computed(() => data.value?.organization)
 const stats = computed(() => data.value?.stats ?? { memberCount: 0, activeMembers: 0, pendingInvites: 0 })
+const authSettings = computed(() => data.value?.authSettings ?? null)
 const deleteDisabled = computed(() => {
   if (!organization.value) return true
   return (
@@ -223,6 +235,37 @@ const form = reactive({
   allowSelfSignup: false
 })
 
+const canToggleRequireSso = computed(() => {
+  if (!authSettings.value) {
+    return false
+  }
+  if (authSettings.value.idpType === 'none') {
+    return false
+  }
+  if (authSettings.value.idpType === 'oidc') {
+    const config = authSettings.value.idpConfig
+    if (!config) return false
+    const issuer = typeof config.issuer === 'string' ? config.issuer.trim() : ''
+    const clientId = typeof config.clientId === 'string' ? config.clientId.trim() : ''
+    const clientSecret =
+      typeof config.clientSecret === 'string' ? config.clientSecret.trim() : ''
+    const redirectUri =
+      typeof config.redirectUri === 'string' ? config.redirectUri.trim() : ''
+    return Boolean(issuer && clientId && clientSecret && redirectUri)
+  }
+  return Boolean(authSettings.value.idpConfig)
+})
+
+const requireSsoHint = computed(() => {
+  if (!authSettings.value || authSettings.value.idpType === 'none') {
+    return 'Konfigurera en IdP före du kräver SSO.'
+  }
+  if (!canToggleRequireSso.value) {
+    return 'IdP-konfigurationen saknar issuer/client/secret/redirect.'
+  }
+  return ''
+})
+
 watch(
   organization,
   (org) => {
@@ -235,6 +278,15 @@ watch(
     form.allowSelfSignup = org.allowSelfSignup
   },
   { immediate: true }
+)
+
+watch(
+  canToggleRequireSso,
+  (allowed) => {
+    if (!allowed) {
+      form.requireSso = false
+    }
+  }
 )
 
 if (showCreatedBanner.value) {

@@ -121,6 +121,13 @@ export interface CreateUserWithOrgInput {
   organizationName: string
 }
 
+export interface CreateUserForOrganizationInput {
+  email: string
+  fullName?: string
+  organizationId: string
+  role?: RbacRole
+}
+
 export const createUserWithOrganization = async (
   input: CreateUserWithOrgInput
 ): Promise<{ userId: string; organizationId: string }> => {
@@ -193,6 +200,62 @@ export const createUserWithOrganization = async (
     })
 
     return { userId, organizationId: orgId }
+  })
+}
+
+export const createUserForOrganization = async (
+  input: CreateUserForOrganizationInput
+): Promise<{ userId: string }> => {
+  const db = getDb()
+  const userId = createId()
+  const normalizedEmail = normalizeEmail(input.email)
+
+  await db.insert(users).values({
+    id: userId,
+    email: normalizedEmail,
+    fullName: input.fullName,
+    status: 'active',
+    defaultOrgId: input.organizationId
+  })
+
+  await db.insert(organizationMemberships).values({
+    id: createId(),
+    organizationId: input.organizationId,
+    userId,
+    role: input.role ?? 'member',
+    status: 'active'
+  })
+
+  return { userId }
+}
+
+export const ensureMembershipOrCreate = async (
+  userId: string,
+  organizationId: string,
+  role: RbacRole
+) => {
+  const db = getDb()
+  const [existing] = await db
+    .select()
+    .from(organizationMemberships)
+    .where(
+      and(
+        eq(organizationMemberships.organizationId, organizationId),
+        eq(organizationMemberships.userId, userId),
+        eq(organizationMemberships.status, 'active')
+      )
+    )
+    .limit(1)
+  if (existing) {
+    return existing
+  }
+
+  await db.insert(organizationMemberships).values({
+    id: createId(),
+    organizationId,
+    userId,
+    role,
+    status: 'active'
   })
 }
 

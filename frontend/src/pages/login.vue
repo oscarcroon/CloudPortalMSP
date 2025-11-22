@@ -45,12 +45,34 @@
       </div>
 
       <p v-if="providers.restrictSso" class="rounded-lg bg-amber-500/20 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
-        Minst en organisation kräver SSO. Aktivera Cloudflare Access eller välj en annan org.
+        Minst en organisation kräver SSO. Använd knapparna nedan för att initiera SSO-flödet eller välj en org som tillåter lösenord.
       </p>
 
       <p v-if="errorMessage" class="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-900 dark:text-red-200">
         {{ errorMessage }}
       </p>
+
+      <div
+        v-if="providers.identityProviders.length"
+        class="space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
+      >
+        <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          SSO-aktiverade organisationer
+        </p>
+        <div class="space-y-2">
+          <a
+            v-for="provider in providers.identityProviders"
+            :key="provider.slug"
+            :href="buildSsoUrl(provider.slug)"
+            class="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          >
+            <span>{{ provider.organizationName }}</span>
+            <span class="text-xs uppercase text-slate-500 dark:text-slate-400">
+              {{ providerLabel(provider.provider) }}
+            </span>
+          </a>
+        </div>
+      </div>
 
       <button
         type="submit"
@@ -88,7 +110,24 @@ const step = ref<'email' | 'password'>('email')
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
-const providers = ref<{ restrictSso: boolean }>({ restrictSso: false })
+interface IdentityProviderSummary {
+  organizationId: string
+  organizationName: string
+  slug: string
+  requireSso: boolean
+  provider: string
+}
+
+interface ProvidersResponse {
+  userExists: boolean
+  requiresSso: boolean
+  identityProviders: IdentityProviderSummary[]
+}
+
+const providers = ref<{ restrictSso: boolean; identityProviders: IdentityProviderSummary[] }>({
+  restrictSso: false,
+  identityProviders: []
+})
 const redirectTarget = computed(() => {
   const raw = route.query.redirect
   if (typeof raw === 'string' && raw.startsWith('/')) {
@@ -97,13 +136,30 @@ const redirectTarget = computed(() => {
   return '/'
 })
 
+const providerLabel = (value: string) => {
+  if (value === 'entra') return 'Microsoft Entra ID'
+  if (value === 'openid') return 'OpenID Connect'
+  if (value === 'saml') return 'SAML'
+  return value.toUpperCase()
+}
+
+const buildSsoUrl = (slug: string) => {
+  const params = new URLSearchParams()
+  if (redirectTarget.value) {
+    params.set('redirect', redirectTarget.value)
+  }
+  const query = params.toString()
+  return `/api/auth/sso/${slug}/init${query ? `?${query}` : ''}`
+}
+
 const handleEmailSubmit = async () => {
   errorMessage.value = ''
   try {
-    const response = await $fetch('/api/auth/sso/providers', {
+    const response = await $fetch<ProvidersResponse>('/api/auth/sso/providers', {
       params: { email: email.value }
     })
     providers.value.restrictSso = Boolean(response.requiresSso)
+    providers.value.identityProviders = response.identityProviders ?? []
     step.value = 'password'
   } catch (unknownError) {
     const fetchError = unknownError as FetchError | undefined
@@ -148,6 +204,7 @@ const resetToEmailStep = () => {
   step.value = 'email'
   password.value = ''
   providers.value.restrictSso = false
+  providers.value.identityProviders = []
   errorMessage.value = ''
 }
 </script>

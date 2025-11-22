@@ -1,34 +1,51 @@
 import { eq } from 'drizzle-orm'
-import { defineEventHandler, readBody } from 'h3'
+import { createError, defineEventHandler, readBody } from 'h3'
 import {
   organizationAuthSettings,
   organizations
-} from '../../../../database/schema'
-import { getDb } from '../../../../utils/db'
-import { requireSuperAdmin } from '../../../../utils/rbac'
-import {
-  buildOrganizationDetailPayload,
-  ensureOrganizationAuthSettings,
-  parseOrgParam,
-  requireOrganizationByIdentifier,
-  stringifyIdpConfig
-} from '../utils'
-import type { OrganizationIdpType } from '~/types/admin'
-import { organizationAuthUpdateSchema } from '../../../organizations/auth.schema'
+} from '~/server/database/schema'
+import { getDb } from '~/server/utils/db'
 import {
   assertRequireSsoAllowed,
   prepareIdpConfigForStorage
 } from '~/server/utils/idp'
+import { requirePermission } from '~/server/utils/rbac'
+import {
+  buildOrganizationDetailPayload,
+  ensureOrganizationAuthSettings,
+  stringifyIdpConfig
+} from '../admin/organizations/utils'
+import type { OrganizationIdpType } from '~/types/admin'
+import { organizationAuthUpdateSchema } from './auth.schema'
+
+const parseConfig = (raw: string | null) => {
+  if (!raw) {
+    return null
+  }
+  try {
+    return JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
-  const orgParam = parseOrgParam(event)
+  const { orgId } = await requirePermission(event, 'org:manage')
   const payload = organizationAuthUpdateSchema.parse(await readBody(event))
   const db = getDb()
   const isSqlite =
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-  const organization = await requireOrganizationByIdentifier(db, orgParam)
-  const authSettings = await ensureOrganizationAuthSettings(db, organization.id)
+
+  const [organization] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1)
+  if (!organization) {
+    throw createError({ statusCode: 404, message: 'Organisationen kunde inte hittas.' })
+  }
+
+  const authSettings = await ensureOrganizationAuthSettings(db, orgId)
 
   const currentIdpType = authSettings.idpType as OrganizationIdpType
   let nextIdpType = currentIdpType
@@ -36,16 +53,7 @@ export default defineEventHandler(async (event) => {
     nextIdpType = payload.idpType
   }
 
-  const parseExistingConfig = () => {
-    if (!authSettings.idpConfig) return null
-    try {
-      return JSON.parse(authSettings.idpConfig) as Record<string, unknown>
-    } catch {
-      return null
-    }
-  }
-
-  let nextIdpConfig = parseExistingConfig()
+  let nextIdpConfig = parseConfig(authSettings.idpConfig)
   if (payload.idpConfig !== undefined) {
     nextIdpConfig = prepareIdpConfigForStorage(
       payload.idpType !== undefined ? payload.idpType : nextIdpType,
@@ -83,30 +91,30 @@ export default defineEventHandler(async (event) => {
   if (isSqlite) {
     db.transaction((tx) => {
       if (Object.keys(orgUpdates).length) {
-        tx.update(organizations).set(orgUpdates).where(eq(organizations.id, organization.id)).run()
+        tx.update(organizations).set(orgUpdates).where(eq(organizations.id, orgId)).run()
       }
       if (Object.keys(authUpdates).length) {
         tx
           .update(organizationAuthSettings)
           .set(authUpdates)
-          .where(eq(organizationAuthSettings.organizationId, organization.id))
+          .where(eq(organizationAuthSettings.organizationId, orgId))
           .run()
       }
     })
   } else {
     await db.transaction(async (tx) => {
       if (Object.keys(orgUpdates).length) {
-        await tx.update(organizations).set(orgUpdates).where(eq(organizations.id, organization.id))
+        await tx.update(organizations).set(orgUpdates).where(eq(organizations.id, orgId))
       }
       if (Object.keys(authUpdates).length) {
         await tx
           .update(organizationAuthSettings)
           .set(authUpdates)
-          .where(eq(organizationAuthSettings.organizationId, organization.id))
+          .where(eq(organizationAuthSettings.organizationId, orgId))
       }
     })
   }
 
-  return buildOrganizationDetailPayload(db, organization.id)
+  return buildOrganizationDetailPayload(db, orgId)
 })
 
