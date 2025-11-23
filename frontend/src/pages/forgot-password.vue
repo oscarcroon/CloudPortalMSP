@@ -1,5 +1,22 @@
 <template>
   <section class="space-y-6">
+    <NuxtLink
+      to="/login"
+      class="inline-flex items-center gap-2 text-sm text-slate-500 underline-offset-4 transition hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-white"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="h-4 w-4"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+      </svg>
+      Tillbaka till inloggning
+    </NuxtLink>
+
     <header class="text-center space-y-2">
       <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Återställ lösenord</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">

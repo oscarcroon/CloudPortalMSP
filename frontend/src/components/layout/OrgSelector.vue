@@ -1,10 +1,10 @@
 <template>
   <div ref="container" class="relative">
     <button
-      class="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand"
+      class="flex min-w-0 items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand"
       @click="toggle"
     >
-      <span class="truncate max-w-[180px]">{{ currentOrgName }}</span>
+      <span class="truncate max-w-[120px] sm:max-w-[180px]">{{ currentOrgName }}</span>
       <svg
         class="h-4 w-4 text-white"
         viewBox="0 0 20 20"
@@ -36,8 +36,8 @@
         :disabled="isOrgLocked(org)"
         @click="trySelectOrg(org)"
       >
-        <div>
-          <p class="font-semibold">{{ org.name }}</p>
+        <div class="min-w-0 flex-1">
+          <p class="truncate font-semibold">{{ org.name }}</p>
           <p class="text-xs text-slate-400">{{ org.role }} • {{ org.status }}</p>
         </div>
         <span v-if="org.requireSso" class="text-xs text-amber-400">SSO</span>
