@@ -29,6 +29,13 @@
       "when": 1764000000000,
       "tag": "0003_password_reset",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1764003805659,
+      "tag": "0004_unique_meggan",
+      "breakpoints": true
     }
   ]
 }

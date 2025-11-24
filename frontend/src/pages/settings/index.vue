@@ -31,7 +31,7 @@
               class="rounded-full border border-slate-200 px-3 py-1 text-xs transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
               @click="auth.switchOrganization(org.id)"
             >
-              Aktivera
+              {{ org.id === auth.state.value.data?.currentOrgId ? 'Aktiv' : 'Välj' }}
             </button>
           </li>
         </ul>
