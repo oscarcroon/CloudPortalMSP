@@ -5,6 +5,7 @@ import { getDb } from '~/server/utils/db'
 import { ensureAuthState } from '~/server/utils/session'
 import { normalizeEmail } from '~/server/utils/crypto'
 import { getOrganisationEmailProviderProfile } from '~/server/utils/emailProvider'
+import { normalizeLogoUrl } from '~/utils/logo'
 
 export default defineEventHandler(async (event) => {
   const token = getRouterParam(event, 'token')
@@ -26,6 +27,7 @@ export default defineEventHandler(async (event) => {
       createdAt: organizationInvitations.createdAt,
       invitedByUserId: organizationInvitations.invitedByUserId,
       organisationName: organizations.name,
+      organisationLogoUrl: organizations.logoUrl,
       invitedByEmail: users.email,
       invitedByName: users.fullName
     })
@@ -67,6 +69,31 @@ export default defineEventHandler(async (event) => {
 
   const brandingProfile = await getOrganisationEmailProviderProfile(row.organizationId)
 
+  // Prioritera organisationens logoUrl över email provider branding
+  // Organisationens logoUrl ska alltid användas om den finns
+  const logoUrl = row.organisationLogoUrl || brandingProfile?.branding?.logoUrl || null
+  const normalizedLogoUrl = logoUrl ? normalizeLogoUrl(logoUrl) : null
+
+  const branding = normalizedLogoUrl
+    ? {
+        ...(brandingProfile?.branding ?? {}),
+        logoUrl: normalizedLogoUrl
+      }
+    : brandingProfile?.branding
+    ? brandingProfile.branding
+    : null
+
+  // Debug logging
+  if (import.meta.dev) {
+    console.log('[invite] Token:', token)
+    console.log('[invite] Organisation ID:', row.organizationId)
+    console.log('[invite] Organisation name:', row.organisationName)
+    console.log('[invite] Organisation logoUrl (raw):', row.organisationLogoUrl)
+    console.log('[invite] Email provider branding logoUrl:', brandingProfile?.branding?.logoUrl)
+    console.log('[invite] Final normalized logoUrl:', normalizedLogoUrl)
+    console.log('[invite] Final branding object:', JSON.stringify(branding, null, 2))
+  }
+
   return {
     invitation: {
       id: row.id,
@@ -77,7 +104,7 @@ export default defineEventHandler(async (event) => {
       expiresAt: row.expiresAt.toISOString(),
       invitedBy: row.invitedByEmail || row.invitedByName || '',
       createdAt: row.createdAt.toISOString(),
-      branding: brandingProfile?.branding ?? null
+      branding
     },
     organisation: row.organizationId
       ? {

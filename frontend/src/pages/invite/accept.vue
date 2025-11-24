@@ -15,12 +15,16 @@
       class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-slate-900/60"
     >
       <div class="flex flex-col items-center gap-4 text-center">
-        <img
-          v-if="invitation?.branding?.logoUrl"
-          :src="invitation.branding.logoUrl"
-          alt="Organisation logo"
-          class="h-16 w-auto rounded-xl border border-slate-200/60 bg-white/80 px-4 py-2 shadow-sm dark:border-white/10 dark:bg-slate-800/60"
-        />
+        <div
+          v-if="normalizedLogoUrl"
+          class="rounded-xl border border-slate-700/20 bg-slate-800 p-3 shadow-sm"
+        >
+          <img
+            :src="normalizedLogoUrl"
+            alt="Organisation logo"
+            class="h-12 w-auto max-w-[60px]"
+          />
+        </div>
         <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
           {{ organisationName || 'Organisation' }}
         </h2>
@@ -161,6 +165,7 @@ import type {
   InvitationLookupResponse,
   InvitationDetails
 } from '~/types/members'
+import { normalizeLogoUrl } from '~/utils/logo'
 
 definePageMeta({
   layout: 'invite',
@@ -174,9 +179,7 @@ if (import.meta.client) {
   await auth.bootstrap()
 }
 
-const invitation = ref<
-  (InvitationDetails & { branding?: { logoUrl?: string | null } }) | null
->(null)
+const invitation = ref<InvitationDetails | null>(null)
 const organisationName = ref('')
 const loading = ref(false)
 const acceptLoading = ref(false)
@@ -215,6 +218,10 @@ const statusLabel = computed(() => {
   if (status === 'cancelled') return 'Avbruten'
   if (status === 'expired') return 'Utgången'
   return 'Väntar på svar'
+})
+const normalizedLogoUrl = computed(() => {
+  const logoUrl = invitation.value?.branding?.logoUrl
+  return normalizeLogoUrl(logoUrl)
 })
 const requiresAccountCreation = computed(
   () => inviteMeta.value?.emailExists === false && invitation.value?.status === 'pending'

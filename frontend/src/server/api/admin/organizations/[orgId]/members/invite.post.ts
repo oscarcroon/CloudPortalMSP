@@ -319,7 +319,8 @@ export default defineEventHandler(async (event) => {
       role: result.role,
       to: result.email,
       expiresAt: result.expiresAt,
-      token: result.token
+      token: result.token,
+      organisationLogo: organization.logoUrl ?? null
     })
   } catch (error) {
     console.error('[invite] Failed to send invitation email', error)

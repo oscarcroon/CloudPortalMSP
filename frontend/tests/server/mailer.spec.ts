@@ -87,5 +87,26 @@ describe('sendInvitationEmail', () => {
     )
     expect(emailKitMock.sendTemplatedEmail).not.toHaveBeenCalled()
   })
+
+  it('inkluderar organisationens logga i branding när den skickas in', async () => {
+    emailProviderMock.getEffectiveEmailProviderProfile.mockResolvedValue(null)
+
+    await sendInvitationEmail({
+      organisationId: 'org-3',
+      organisationName: 'Org with Logo',
+      invitedBy: 'Owner',
+      role: 'member',
+      to: 'logo@example.com',
+      expiresAt: Date.now() + 60_000,
+      token: 'token-logo',
+      organisationLogo: 'https://example.com/logo.png'
+    })
+
+    expect(emailKitMock.buildInvitationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branding: expect.objectContaining({ logoUrl: 'https://example.com/logo.png' })
+      })
+    )
+  })
 })
 

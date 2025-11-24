@@ -50,13 +50,25 @@ type MembershipRow = {
   auth: typeof organizationAuthSettings.$inferSelect | null
 }
 
+const normalizeLogoUrl = (logoUrl: string | null | undefined): string | undefined => {
+  if (!logoUrl) return undefined
+  // Ta bort dubblerade /api/api/ prefix
+  let normalized = logoUrl.replace(/\/api\/api\//g, '/api/')
+  // Konvertera gamla format (/uploads/logos/...) till nya format (/api/uploads/logos/...)
+  if (normalized.startsWith('/uploads/logos/')) {
+    normalized = normalized.replace('/uploads/logos/', '/api/uploads/logos/')
+  }
+  // Om det redan är /api/uploads/logos/ eller fullständig URL, returnera som den är
+  return normalized
+}
+
 const mapOrgRow = (row: MembershipRow, role: RbacRole, isSuperAdmin: boolean): AuthOrganization => ({
   id: row.org.id,
   name: row.org.name,
   slug: row.org.slug,
   status: row.org.status,
   isSuspended: Boolean(row.org.isSuspended),
-  logoUrl: row.org.logoUrl ?? undefined,
+  logoUrl: normalizeLogoUrl(row.org.logoUrl),
   requireSso: Boolean(row.org.requireSso),
   hasLocalLoginOverride:
     isSuperAdmin || (role === 'owner' && Boolean(row.auth?.allowLocalLoginForOwners)),

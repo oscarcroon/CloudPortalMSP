@@ -17,7 +17,8 @@ export async function assertOrganisationScope(req: Request, res: Response, id: s
       id: organisationsTable.id,
       name: organisationsTable.name,
       defaultRole: organisationsTable.defaultRole,
-      requireSso: organisationsTable.requireSso
+      requireSso: organisationsTable.requireSso,
+      logoUrl: organisationsTable.logoUrl
     })
     .from(organisationsTable)
     .where(eq(organisationsTable.id, id))
@@ -30,11 +31,15 @@ export async function assertOrganisationScope(req: Request, res: Response, id: s
 
   const orgFromContext = req.userContext?.organisations.find((org) => org.id === id)
 
+  const branding =
+    orgFromContext?.branding ??
+    (organisationRow.logoUrl ? { logoUrl: organisationRow.logoUrl ?? undefined } : undefined)
+
   return {
     id: organisationRow.id,
     name: orgFromContext?.name ?? organisationRow.name,
     role: (orgFromContext?.role ?? organisationRow.defaultRole) as OrganisationMemberRole,
-    branding: orgFromContext?.branding,
+    branding,
     requireSso: Boolean(organisationRow.requireSso)
   }
 }

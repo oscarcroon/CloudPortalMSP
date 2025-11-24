@@ -150,6 +150,15 @@
               >
                 {{ isUploading ? 'Laddar upp...' : 'Byt logotyp' }}
               </button>
+              <button
+                v-if="hasCustomLogo"
+                class="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"
+                type="button"
+                :disabled="isUploading || !auth.currentOrg.value"
+                @click="removeLogo"
+              >
+                {{ isUploading ? 'Tar bort...' : 'Ta bort logotyp' }}
+              </button>
               <input
                 ref="logoInputRef"
                 type="file"
@@ -201,10 +210,9 @@ import { computed, ref } from '#imports'
 import { Icon } from '@iconify/vue'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
 import { useAuth } from '~/composables/useAuth'
-import { useApiClient } from '~/composables/useApiClient'
+import { normalizeLogoUrl } from '~/utils/logo'
 
 const auth = useAuth()
-const api = useApiClient()
 const defaultLogo = defaultLogoAsset
 const logoInputRef = ref<HTMLInputElement | null>(null)
 const isUploading = ref(false)
@@ -220,7 +228,15 @@ const tokens = [
   { name: 'WordPress Management Token', description: 'REST Application password' }
 ]
 
-const currentLogo = computed(() => auth.currentOrg.value?.logoUrl ?? defaultLogo)
+const currentLogo = computed(() => {
+  const orgLogoUrl = auth.currentOrg.value?.logoUrl
+  const normalized = normalizeLogoUrl(orgLogoUrl)
+  return normalized ?? defaultLogo
+})
+const hasCustomLogo = computed(() => {
+  const orgLogoUrl = auth.currentOrg.value?.logoUrl
+  return Boolean(orgLogoUrl && normalizeLogoUrl(orgLogoUrl))
+})
 const activeOrganisationName = computed(() => auth.currentOrg.value?.name ?? 'CoreIT')
 
 function triggerFilePicker() {
@@ -265,18 +281,28 @@ async function handleLogoSelection(event: Event) {
   }
 
   isUploading.value = true
+  uploadError.value = null
+  uploadSuccessMessage.value = null
+  
   try {
     const formData = new FormData()
     formData.append('logo', file)
-    await api(`/organisations/${activeOrgId}/logo`, {
+    const result = await $fetch<{ logoUrl: string }>(`/api/organizations/${activeOrgId}/logo`, {
       method: 'POST',
-      body: formData
+      body: formData,
+      credentials: 'include'
     })
-    uploadSuccessMessage.value = 'Logotypen uppdaterades.'
-    await auth.fetchMe()
-  } catch (error) {
-    uploadError.value =
-      error instanceof Error ? error.message : 'Kunde inte ladda upp logotypen.'
+    
+    if (result?.logoUrl) {
+      uploadSuccessMessage.value = 'Logotypen uppdaterades.'
+      await auth.fetchMe()
+    } else {
+      uploadError.value = 'Kunde inte ladda upp logotypen. Inget svar från servern.'
+    }
+  } catch (error: any) {
+    console.error('[logo-upload] Error:', error)
+    const errorMessage = error?.data?.message || error?.message || 'Kunde inte ladda upp logotypen.'
+    uploadError.value = errorMessage
   } finally {
     isUploading.value = false
     target.value = ''
@@ -284,6 +310,52 @@ async function handleLogoSelection(event: Event) {
       setTimeout(() => {
         uploadSuccessMessage.value = null
       }, 4000)
+    }
+    if (uploadError.value) {
+      setTimeout(() => {
+        uploadError.value = null
+      }, 6000)
+    }
+  }
+}
+
+async function removeLogo() {
+  const activeOrgId = auth.state.value.data?.currentOrgId
+  if (!activeOrgId) {
+    uploadError.value = 'Ingen aktiv organisation vald.'
+    return
+  }
+
+  if (!confirm('Vill du ta bort den anpassade logotypen? Standardlogotypen kommer att användas istället.')) {
+    return
+  }
+
+  isUploading.value = true
+  uploadError.value = null
+  uploadSuccessMessage.value = null
+
+  try {
+    await $fetch(`/api/organizations/${activeOrgId}/logo`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    uploadSuccessMessage.value = 'Logotypen togs bort.'
+    await auth.fetchMe()
+  } catch (error: any) {
+    console.error('[logo-remove] Error:', error)
+    const errorMessage = error?.data?.message || error?.message || 'Kunde inte ta bort logotypen.'
+    uploadError.value = errorMessage
+  } finally {
+    isUploading.value = false
+    if (uploadSuccessMessage.value) {
+      setTimeout(() => {
+        uploadSuccessMessage.value = null
+      }, 4000)
+    }
+    if (uploadError.value) {
+      setTimeout(() => {
+        uploadError.value = null
+      }, 6000)
     }
   }
 }

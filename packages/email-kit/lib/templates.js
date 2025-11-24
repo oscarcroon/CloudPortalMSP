@@ -1,6 +1,8 @@
 const DEFAULT_ACCENT = '#2563eb';
-const DEFAULT_BACKGROUND = '#f7f9fc';
-const DEFAULT_TEXT = '#0f172a';
+const DEFAULT_BACKGROUND = '#f7f9fc'; // Ljus bakgrund
+const DEFAULT_TEXT = '#0f172a'; // Mörk text
+const DEFAULT_CARD_BG = '#1e293b'; // Mörk kortbakgrund för logotyp-boxen (slate-800)
+const DEFAULT_TEXT_SECONDARY = '#cbd5e1'; // Sekundär text (slate-300)
 const htmlEscapeMap = {
     '&': '&amp;',
     '<': '&lt;',
@@ -26,10 +28,10 @@ const blendWithWhite = (hex, amount = 0.12) => {
     const mix = (channel) => Math.round(channel + (255 - channel) * amount);
     return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 };
-const renderLines = (lines) => lines
+const renderLines = (lines, isDark = false) => lines
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${DEFAULT_TEXT};">${escapeHtml(line)}</p>`)
+    .map((line) => `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${isDark ? DEFAULT_TEXT_SECONDARY : '#0f172a'};">${escapeHtml(line)}</p>`)
     .join('');
 const renderText = (intro, body, outro, action) => {
     const result = [...intro, ...body];
@@ -47,31 +49,33 @@ export const renderBrandedTemplate = (input, branding) => {
     const bodyLines = input.body ?? [];
     const outroLines = input.outro ?? [];
     const text = renderText(introLines, bodyLines, outroLines, input.action);
+    // Använd mörk bakgrund endast för logotyp-boxen
+    const logoBackground = DEFAULT_CARD_BG;
     const html = `
   <div style="margin:0;padding:0;background:${background};font-family:'Inter','Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;">
     <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
-      <div style="text-align:center;margin-bottom:20px;">
+      <div style="text-align:center;margin-bottom:16px;padding:12px 16px;background:${logoBackground};border-radius:12px;border:1px solid rgba(148,163,184,0.1);">
         ${branding?.logoUrl
-        ? `<img src="${escapeHtml(branding.logoUrl)}" alt="Logo" style="max-width:160px;height:auto;" />`
-        : `<span style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:16px;background:${accentSoft};color:${accent};font-weight:600;font-size:20px;">CP</span>`}
+        ? `<img src="${escapeHtml(branding.logoUrl)}" alt="Logo" style="max-width:60px;height:auto;display:block;margin:0 auto;" />`
+        : `<span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:${accentSoft};color:${accent};font-weight:600;font-size:16px;">CP</span>`}
       </div>
       <div style="background:#fff;border-radius:28px;padding:40px 36px;box-shadow:0 20px 65px rgba(15,23,42,0.08);border:1px solid rgba(148,163,184,0.25);">
         ${input.pretitle
         ? `<p style="margin:0 0 12px;text-transform:uppercase;letter-spacing:0.24em;font-size:12px;color:${accent};font-weight:600;">${escapeHtml(input.pretitle)}</p>`
         : ''}
         ${input.title
-        ? `<h1 style="margin:0 0 16px;font-size:26px;color:${DEFAULT_TEXT};line-height:1.3;">${escapeHtml(input.title)}</h1>`
+        ? `<h1 style="margin:0 0 16px;font-size:26px;color:#0f172a;line-height:1.3;">${escapeHtml(input.title)}</h1>`
         : ''}
-        ${renderLines(introLines)}
-        <div>${renderLines(bodyLines)}</div>
+        ${renderLines(introLines, false)}
+        <div>${renderLines(bodyLines, false)}</div>
         ${input.action
         ? `<div style="margin:30px 0;text-align:center;">
-                <a href="${escapeHtml(input.action.url)}" style="display:inline-block;padding:14px 34px;border-radius:999px;background:${accent};color:#fff;font-weight:600;font-size:15px;text-decoration:none;">
+                <a href="${escapeHtml(input.action.url)}" style="display:inline-block;padding:14px 34px;border-radius:999px;background:${accent};color:#fff;font-weight:600;font-size:15px;text-decoration:none;transition:opacity 0.2s;">
                   ${escapeHtml(input.action.label)}
                 </a>
               </div>`
         : ''}
-        ${renderLines(outroLines)}
+        ${renderLines(outroLines, false)}
         ${branding?.footerText
         ? `<div style="margin-top:36px;padding-top:20px;border-top:1px solid rgba(15,23,42,0.08);font-size:13px;color:#475569;">${escapeHtml(branding.footerText)}</div>`
         : ''}

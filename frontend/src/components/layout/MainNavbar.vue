@@ -3,11 +3,16 @@
     <div class="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
       <div class="flex items-center gap-4">
         <NuxtLink to="/" class="flex items-center gap-2">
-          <img
-            :src="activeLogo"
-            :alt="`${activeOrganisationName} logo`"
-            class="h-10 w-auto max-h-10 object-contain"
-          />
+          <ClientOnly>
+            <img
+              :src="activeLogo"
+              :alt="`${activeOrganisationName} logo`"
+              class="h-10 w-auto max-h-10 object-contain"
+            />
+            <template #fallback>
+              <div class="h-10 w-10 bg-slate-700 animate-pulse rounded" />
+            </template>
+          </ClientOnly>
           <span class="sr-only">CoreIT Cloud Portal</span>
         </NuxtLink>
         <OrgSelector />
@@ -53,15 +58,18 @@ import { computed, ref } from '#imports'
 import OrgSelector from '~/components/layout/OrgSelector.vue'
 import { useAuth } from '~/composables/useAuth'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
+import { normalizeLogoUrl } from '~/utils/logo'
 
 const route = useRoute()
 const mobileOpen = ref(false)
 const auth = useAuth()
 const defaultLogo = defaultLogoAsset
 
-const activeLogo = computed(
-  () => auth.currentOrg.value?.logoUrl ?? defaultLogo
-)
+const activeLogo = computed(() => {
+  const orgLogoUrl = auth.currentOrg.value?.logoUrl
+  const normalized = normalizeLogoUrl(orgLogoUrl)
+  return normalized ?? defaultLogo
+})
 const activeOrganisationName = computed(
   () => auth.currentOrg.value?.name ?? 'CoreIT Cloud Portal'
 )

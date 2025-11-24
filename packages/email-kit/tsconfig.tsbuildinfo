@@ -1,0 +1,1 @@
+{"root":["./src/crypto.ts","./src/index.ts","./src/mailer.ts","./src/outbox.ts","./src/templates.ts","./src/transport.ts","./src/types.ts"],"version":"5.9.3"}

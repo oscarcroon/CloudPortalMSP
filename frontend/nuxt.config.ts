@@ -48,6 +48,9 @@ export default defineNuxtConfig({
     routeRules: {
       '/backend/**': {
         proxy: `${backendProxyBase}/**`
+      },
+      '/api/uploads/logos/**': {
+        headers: { 'cache-control': 'public, max-age=31536000' }
       }
     }
   },

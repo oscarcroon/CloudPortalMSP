@@ -137,6 +137,7 @@
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Bjuden av</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Gäller till</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">Åtgärder</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
@@ -153,6 +154,17 @@
                 </td>
                 <td class="px-6 py-3 text-xs text-slate-500 dark:text-slate-400">
                   {{ formatDate(invite.expiresAt) }}
+                </td>
+                <td class="px-6 py-3 text-right">
+                  <button
+                    v-if="invite.status === 'pending'"
+                    class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
+                    :disabled="inviteCancelLoadingId === invite.id"
+                    @click="cancelInvite(invite.id)"
+                  >
+                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                  </button>
+                  <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
                 </td>
               </tr>
             </tbody>
@@ -254,6 +266,7 @@ const successMessage = ref('')
 const roleLoadingId = ref('')
 const statusLoadingId = ref('')
 const deleteLoadingId = ref('')
+const inviteCancelLoadingId = ref('')
 
 const inviteForm = reactive({
   email: '',
@@ -312,6 +325,29 @@ const submitInvite = async () => {
     inviteError.value = err instanceof Error ? err.message : 'Kunde inte skicka inbjudan.'
   } finally {
     inviteSubmitting.value = false
+  }
+}
+
+const cancelInvite = async (inviteId: string) => {
+  if (!confirm('Avbryt denna inbjudan?')) {
+    return
+  }
+  inviteCancelLoadingId.value = inviteId
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await $fetch(`/api/admin/organizations/${slug.value}/invitations/${inviteId}/cancel`, {
+      method: 'DELETE'
+    })
+    await refresh()
+    successMessage.value = 'Inbjudan avbröts.'
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte avbryta inbjudan.'
+  } finally {
+    inviteCancelLoadingId.value = ''
   }
 }
 

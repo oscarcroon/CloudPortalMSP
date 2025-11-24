@@ -4,7 +4,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import multer from 'multer'
-import { organisations } from '../data/mockData.js'
+import { eq } from 'drizzle-orm'
+import { db } from '../db/client.js'
+import { organisationsTable } from '../db/schema.js'
 import { currentOrgId, ensurePermission } from '../utils/authz.js'
 
 const LOGO_FIELD = 'logo'
@@ -64,7 +66,7 @@ organisationsRouter.get('/', (req, res) => {
   res.json(result)
 })
 
-organisationsRouter.post('/:organisationId/logo', (req, res) => {
+organisationsRouter.post('/:organisationId/logo', async (req, res) => {
   if (!ensurePermission(req, res, 'org:manage')) {
     return
   }
@@ -73,7 +75,7 @@ organisationsRouter.post('/:organisationId/logo', (req, res) => {
     res.status(403).json({ message: 'Cannot upload logo for this organisation' })
     return
   }
-  singleLogoUpload(req, res, (error) => {
+  singleLogoUpload(req, res, async (error) => {
     if (error) {
       const message =
         error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE'
@@ -84,7 +86,11 @@ organisationsRouter.post('/:organisationId/logo', (req, res) => {
     }
 
     const { organisationId } = req.params
-    const organisation = organisations.find((org) => org.id === organisationId)
+    const organisation = await db
+      .select()
+      .from(organisationsTable)
+      .where(eq(organisationsTable.id, organisationId))
+      .get()
 
     if (!organisation) {
       if (req.file?.path) {
@@ -99,15 +105,16 @@ organisationsRouter.post('/:organisationId/logo', (req, res) => {
       return
     }
 
-    deleteExistingLogo(organisation.branding?.logoUrl)
+    deleteExistingLogo(organisation.logoUrl)
 
     const logoUrl = buildLogoUrl(req, req.file.path)
 
-    organisation.branding = {
-      logoUrl
-    }
+    await db
+      .update(organisationsTable)
+      .set({ logoUrl, updatedAt: new Date() })
+      .where(eq(organisationsTable.id, organisationId))
 
-    res.json(organisation)
+    res.json({ logoUrl })
   })
 })
 

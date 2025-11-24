@@ -6,6 +6,7 @@ async function sendOrRespondWithInvitation(
     to: string
     invitedBy: string
     role: OrganisationMemberRole
+    organisationLogo?: string | null
   }
 ) {
   try {
@@ -17,7 +18,8 @@ async function sendOrRespondWithInvitation(
       organisationName: options.organisation.name,
       role: options.role,
       expiresAt: Number.isFinite(expiresAtMs) ? expiresAtMs : Date.now(),
-      token: invitation.token
+      token: invitation.token,
+      organisationLogo: options.organisationLogo
     })
 
     const emailDelivery =
@@ -234,7 +236,8 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
         organisation,
         to: normalizedEmail,
         invitedBy,
-        role
+        role,
+        organisationLogo: organisation.branding?.logoUrl ?? null
       })
       return
     }
@@ -270,12 +273,13 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
     invitedByUserId: req.userContext?.id
   })
 
-  await sendOrRespondWithInvitation(res, invitation, {
-    organisation,
-    to: normalizedEmail,
-    invitedBy,
-    role
-  })
+await sendOrRespondWithInvitation(res, invitation, {
+  organisation,
+  to: normalizedEmail,
+  invitedBy,
+  role,
+  organisationLogo: organisation.branding?.logoUrl ?? null
+})
 })
 
 organisationMembersRouter.patch('/:organisationId/members/:memberId', async (req, res) => {
