@@ -22,9 +22,10 @@
         <li v-for="item in navItems" :key="item.to">
           <NuxtLink
             :to="item.to"
-            class="py-2 hover:text-brand-light"
+            class="flex items-center gap-2 py-2 hover:text-brand-light"
             :class="isNavActive(item.to) ? 'text-brand-light border-b border-brand-light' : 'text-white'"
           >
+            <Icon v-if="item.icon" :icon="item.icon" class="h-4 w-4" />
             {{ item.label }}
           </NuxtLink>
         </li>
@@ -36,9 +37,10 @@
         v-for="item in navItems"
         :key="item.to"
         :to="item.to"
-        class="block py-2 text-sm text-white"
+        class="flex items-center gap-2 py-2 text-sm text-white"
         @click="mobileOpen = false"
       >
+        <Icon v-if="item.icon" :icon="item.icon" class="h-4 w-4" />
         {{ item.label }}
       </NuxtLink>
     </div>
@@ -46,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { computed, ref } from '#imports'
 import OrgSelector from '~/components/layout/OrgSelector.vue'
 import { useAuth } from '~/composables/useAuth'
@@ -69,13 +72,13 @@ const baseNavItems = [
   { label: 'Containers', to: '/containers' },
   { label: 'VMs', to: '/vms' },
   { label: 'WordPress', to: '/wordpress' },
-  { label: 'Inställningar', to: '/settings' }
+  { label: 'Inställningar', to: '/settings', icon: 'mdi:cog' }
 ]
 
 const navItems = computed(() => {
   const items = [...baseNavItems]
   if (auth.isSuperAdmin.value) {
-    items.push({ label: 'Admin', to: '/admin/organizations' })
+    items.push({ label: 'Admin', to: '/admin/organizations', icon: 'mdi:shield-crown' })
   }
   return items
 })

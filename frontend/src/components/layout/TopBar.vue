@@ -19,32 +19,31 @@
 
       <!-- Mobil: Tre sektioner (vänster, mitten, höger) -->
       <div class="flex w-full items-center justify-between md:hidden">
-        <!-- Vänster: Sök-ikon -->
-        <button
-          type="button"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-          :aria-pressed="mobileSearchOpen"
-          :aria-label="mobileSearchOpen ? 'Stäng sök' : 'Öppna sök'"
-          aria-controls="mobile-search-panel"
-          @click="toggleMobileSearch"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M11 4a7 7 0 0 1 5.523 11.205l3.636 3.636a1 1 0 0 1-1.414 1.414l-3.636-3.636A7 7 0 1 1 11 4Zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"
-              fill="currentColor"
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span class="sr-only">Öppna sök</span>
-        </button>
-
-        <!-- Mitten: Tema toggle + Docs -->
+        <!-- Vänster: Sök-ikon + Docs-ikon -->
         <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            :aria-pressed="mobileSearchOpen"
+            :aria-label="mobileSearchOpen ? 'Stäng sök' : 'Öppna sök'"
+            aria-controls="mobile-search-panel"
+            @click="toggleMobileSearch"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M11 4a7 7 0 0 1 5.523 11.205l3.636 3.636a1 1 0 0 1-1.414 1.414l-3.636-3.636A7 7 0 1 1 11 4Zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"
+                fill="currentColor"
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <span class="sr-only">Öppna sök</span>
+          </button>
           <NuxtLink
             to="/docs"
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             aria-label="Dokumentation"
+            title="Dokumentation"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -62,6 +61,10 @@
               <path d="M9 17h4" />
             </svg>
           </NuxtLink>
+        </div>
+
+        <!-- Mitten: Tema toggle -->
+        <div class="flex items-center">
           <ThemeToggle />
         </div>
 
@@ -70,6 +73,7 @@
           to="/profile"
           class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-brand text-white transition hover:bg-brand/90 dark:bg-brand dark:hover:bg-brand/90"
           aria-label="Profil"
+          title="Profil"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
             <path
@@ -86,6 +90,7 @@
           to="/docs"
           class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           aria-label="Dokumentation"
+          title="Dokumentation"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -106,9 +111,15 @@
 
         <NuxtLink
           to="/support"
-          class="items-center text-xs uppercase tracking-wide text-brand"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          aria-label="Support"
+          title="Support"
         >
-          Hjälp
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <path d="M12 17h.01" />
+          </svg>
         </NuxtLink>
 
         <ThemeToggle />
@@ -116,6 +127,8 @@
         <NuxtLink
           to="/profile"
           class="inline-flex items-center gap-2 rounded-full bg-brand px-3 py-1.5 text-sm font-medium text-white transition hover:bg-brand/90 dark:bg-brand dark:hover:bg-brand/90"
+          aria-label="Profil"
+          title="Profil"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
             <path
