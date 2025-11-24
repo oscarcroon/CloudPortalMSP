@@ -78,7 +78,7 @@ export const organisationInvitationsTable = sqliteTable(
     invitedByUserId: text('invited_by_user_id'),
     expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
     acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
-    cancelledAt: integer('cancelled_at', { mode: 'timestamp_ms' }),
+    declinedAt: integer('declined_at', { mode: 'timestamp_ms' }),
     ...timestampColumns()
   },
   (table) => ({

@@ -16,6 +16,8 @@ import {
   parseOrgParam,
   requireOrganizationByIdentifier
 } from '../../utils'
+import { describeEmailSendError } from '~/server/utils/emailTest'
+import { sendInvitationEmail } from '~/server/utils/mailer'
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -25,6 +27,20 @@ const inviteSchema = z.object({
 
 const INVITE_VALIDITY_MS = 1000 * 60 * 60 * 24 * 14
 
+type InviteTransactionResult =
+  | {
+      type: 'member'
+      membershipId: string
+    }
+  | {
+      type: 'invite'
+      inviteId: string
+      token: string
+      expiresAt: number
+      email: string
+      role: string
+    }
+
 export default defineEventHandler(async (event) => {
   const auth = await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
@@ -33,6 +49,7 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
   const allowDirectAdd = Boolean(organization.requireSso)
+  const invitedByLabel = auth.user.fullName?.trim() || auth.user.email
   const isSqlite =
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
   if (payload.directAdd && !allowDirectAdd) {
@@ -42,8 +59,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const result = isSqlite
-    ? db.transaction((tx) => {
+  const result: InviteTransactionResult = isSqlite
+    ? db.transaction<InviteTransactionResult>((tx) => {
         const existingUser =
           tx.select().from(users).where(eq(users.email, normalizedEmail)).get() ?? null
         const targetRole = payload.role ?? organization.defaultRole
@@ -141,9 +158,16 @@ export default defineEventHandler(async (event) => {
           `[invite] pending invite for ${normalizedEmail} to ${organization.slug} token=${token}`
         )
 
-        return { type: 'invite', inviteId }
+        return {
+          type: 'invite',
+          inviteId,
+          token,
+          expiresAt,
+          email: normalizedEmail,
+          role: targetRole
+        }
       })
-    : await db.transaction(async (tx) => {
+    : await db.transaction<InviteTransactionResult>(async (tx) => {
         const [existingUser] = await tx.select().from(users).where(eq(users.email, normalizedEmail))
         const targetRole = payload.role ?? organization.defaultRole
         const shouldDirectAdd = Boolean(payload.directAdd && allowDirectAdd)
@@ -229,7 +253,14 @@ export default defineEventHandler(async (event) => {
           `[invite] pending invite for ${normalizedEmail} to ${organization.slug} token=${token}`
         )
 
-        return { type: 'invite', inviteId }
+        return {
+          type: 'invite',
+          inviteId,
+          token,
+          expiresAt,
+          email: normalizedEmail,
+          role: targetRole
+        }
       })
 
   if (result.type === 'member') {
@@ -278,6 +309,24 @@ export default defineEventHandler(async (event) => {
 
   if (!invite) {
     throw createError({ statusCode: 500, message: 'Inbjudan kunde inte skapas korrekt.' })
+  }
+
+  try {
+    await sendInvitationEmail({
+      organisationId: organization.id,
+      organisationName: organization.name,
+      invitedBy: invitedByLabel,
+      role: result.role,
+      to: result.email,
+      expiresAt: result.expiresAt,
+      token: result.token
+    })
+  } catch (error) {
+    console.error('[invite] Failed to send invitation email', error)
+    throw createError({
+      statusCode: 502,
+      message: `Inbjudan skapades men mejlet kunde inte skickas. ${describeEmailSendError(error)}`
+    })
   }
 
   return {

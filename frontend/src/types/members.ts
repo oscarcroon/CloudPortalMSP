@@ -17,6 +17,16 @@ export interface OrganizationMember {
   updatedAt: string
 }
 
+export interface OrganizationInvitationSummary {
+  id: string
+  email: string
+  role: OrganizationMemberRole
+  status: InvitationStatus
+  invitedAt: string
+  expiresAt: string
+  invitedBy: string | null
+}
+
 export interface OrganizationMembersResponse {
   organisation: {
     id: string
@@ -25,6 +35,7 @@ export interface OrganizationMembersResponse {
     requireSso?: boolean
   }
   members: OrganizationMember[]
+  invitations?: OrganizationInvitationSummary[]
 }
 
 export interface InviteMemberPayload {
@@ -46,6 +57,9 @@ export interface InvitationDetails {
   createdAt: string
   acceptedAt?: string
   cancelledAt?: string
+  branding?: {
+    logoUrl?: string | null
+  } | null
 }
 
 export interface InvitationLookupResponse {
@@ -54,6 +68,9 @@ export interface InvitationLookupResponse {
     id: string
     name: string
   }
+  emailExists: boolean
+  hasPassword: boolean
+  autoAccept: boolean
 }
 
 

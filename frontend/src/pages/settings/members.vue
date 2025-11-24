@@ -149,6 +149,73 @@
           </table>
         </div>
       </div>
+
+      <div class="rounded-2xl border border-dashed border-slate-200 bg-white shadow-card dark:border-white/10 dark:bg-white/5">
+        <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
+          <p class="text-sm font-semibold text-slate-900 dark:text-white">Väntande inbjudningar</p>
+        </div>
+        <div v-if="!invitations.length" class="px-6 py-8 text-sm text-slate-500 dark:text-slate-400">
+          Inga aktiva inbjudningar just nu.
+        </div>
+        <div v-else class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
+            <thead class="bg-slate-50 dark:bg-white/5">
+              <tr>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  E-post
+                </th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Roll
+                </th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Status
+                </th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Bjuden av
+                </th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Gäller till
+                </th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">
+                  Åtgärder
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+              <tr v-for="invite in invitations" :key="invite.id">
+                <td class="px-6 py-4 text-slate-700 dark:text-slate-200">
+                  {{ invite.email }}
+                </td>
+                <td class="px-6 py-4">
+                  {{ invite.role }}
+                </td>
+                <td class="px-6 py-4">
+                  <StatusPill :variant="invitationStatusVariant(invite.status)">
+                    {{ invitationStatusLabel(invite.status) }}
+                  </StatusPill>
+                </td>
+                <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
+                  {{ invite.invitedBy || '—' }}
+                </td>
+                <td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
+                  {{ formatDate(invite.expiresAt) }}
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <button
+                    v-if="invite.status === 'pending'"
+                    class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
+                    :disabled="inviteCancelLoadingId === invite.id"
+                    @click="cancelPendingInvitation(invite)"
+                  >
+                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                  </button>
+                  <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -172,9 +239,11 @@ import { useOrganizationMembers } from '~/composables/useOrganizationMembers'
 import { usePermission } from '~/composables/usePermission'
 import type {
   InviteMemberPayload,
+  OrganizationInvitationSummary,
   OrganizationMember,
   OrganizationMemberRole,
-  OrganizationMemberStatus
+  OrganizationMemberStatus,
+  InvitationStatus
 } from '~/types/members'
 import { rbacRoles } from '~/constants/rbac'
 import type { RbacRole } from '~/constants/rbac'
@@ -186,6 +255,7 @@ const membersApi = useOrganizationMembers()
 const permission = usePermission()
 
 const members = ref<OrganizationMember[]>([])
+const invitations = ref<OrganizationInvitationSummary[]>([])
 const organisationName = ref('')
 const organisationRequireSso = ref(false)
 const loading = ref(false)
@@ -194,6 +264,7 @@ const successMessage = ref('')
 const roleLoadingId = ref('')
 const statusLoadingId = ref('')
 const removalLoadingId = ref('')
+const inviteCancelLoadingId = ref('')
 const showInviteModal = ref(false)
 const inviteLoading = ref(false)
 const inviteError = ref('')
@@ -203,15 +274,32 @@ const canManageUsers = permission.can('users:manage')
 const canInviteMembers = permission.can('users:invite')
 
 const memberSummary = computed(() => {
-  if (!members.value.length) return 'Inga medlemmar registrerade.'
+  if (!members.value.length && !invitations.value.length) {
+    return 'Inga medlemmar eller väntande inbjudningar registrerade.'
+  }
   const active = members.value.filter((member) => member.status === 'active').length
-  const invited = members.value.filter((member) => member.status === 'invited').length
-  return `${active} aktiva · ${invited} inbjudna`
+  const invitedMembers = members.value.filter((member) => member.status === 'invited').length
+  const pendingInvites = invitations.value.filter((invite) => invite.status === 'pending').length
+  return `${active} aktiva · ${invitedMembers} inbjudna · ${pendingInvites} väntande inbjudningar`
 })
 
 const formatDate = (value?: string) => {
   if (!value) return '—'
   return new Date(value).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+const invitationStatusLabel = (status: InvitationStatus) => {
+  if (status === 'pending') return 'Avvaktar'
+  if (status === 'accepted') return 'Accepterad'
+  if (status === 'cancelled') return 'Avbruten'
+  return 'Utgången'
+}
+
+const invitationStatusVariant = (status: InvitationStatus) => {
+  if (status === 'pending') return 'warning'
+  if (status === 'accepted') return 'success'
+  if (status === 'cancelled') return 'info'
+  return 'danger'
 }
 
 const statusLabel = (status: OrganizationMemberStatus) => {
@@ -230,6 +318,7 @@ const statusVariant = (status: OrganizationMemberStatus) => {
 const loadMembers = async () => {
   if (!currentOrgId.value) {
     members.value = []
+    invitations.value = []
     organisationName.value = ''
     organisationRequireSso.value = false
     return
@@ -241,6 +330,7 @@ const loadMembers = async () => {
     members.value = response.members
     organisationName.value = response.organisation.name
     organisationRequireSso.value = Boolean(response.organisation.requireSso)
+    invitations.value = response.invitations ?? []
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : 'Kunde inte hämta medlemmar just nu.'
@@ -346,15 +436,61 @@ const closeInviteModal = () => {
 const handleInviteSubmit = async (payload: InviteMemberPayload) => {
   inviteLoading.value = true
   inviteError.value = ''
+  errorMessage.value = ''
+  successMessage.value = ''
   try {
-    await membersApi.inviteMember(payload)
+    const result = await membersApi.inviteMember(payload)
     showInviteModal.value = false
+    const delivery = (result as { emailDelivery?: { delivered: boolean; storedAt?: string | null } })
+      ?.emailDelivery
+    if (delivery && !delivery.delivered) {
+      errorMessage.value =
+        'Inbjudan skapades men mejlet kunde inte skickas. Kontrollera e-postinställningarna eller använd förhandsvisningen i uploads/outbox.'
+    } else {
+      successMessage.value = `Inbjudan skickades till ${payload.email}.`
+    }
+    setTimeout(() => {
+      successMessage.value = ''
+      errorMessage.value = ''
+    }, 4000)
     await loadMembers()
   } catch (error) {
-    inviteError.value =
-      error instanceof Error ? error.message : 'Kunde inte skicka inbjudan.'
+    if (error instanceof Error && 'statusCode' in error && (error as any).statusCode === 409) {
+      inviteError.value = 'Personen är redan medlem i organisationen.'
+    } else if (error instanceof Error) {
+      inviteError.value = error.message
+    } else {
+      inviteError.value = 'Kunde inte skicka inbjudan.'
+    }
   } finally {
     inviteLoading.value = false
+  }
+}
+
+const cancelPendingInvitation = async (invite: OrganizationInvitationSummary) => {
+  if (invite.status !== 'pending') return
+  if (
+    !confirm(
+      `Avbryt inbjudan till ${invite.email}? Personen behöver en ny inbjudan för att kunna gå med.`
+    )
+  ) {
+    return
+  }
+  inviteCancelLoadingId.value = invite.id
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await membersApi.cancelInvitation(invite.id)
+    successMessage.value = `Inbjudan till ${invite.email} avbröts.`
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+    await loadMembers()
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Kunde inte avbryta inbjudan.'
+  } finally {
+    inviteCancelLoadingId.value = ''
   }
 }
 

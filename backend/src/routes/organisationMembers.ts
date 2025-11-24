@@ -1,7 +1,49 @@
+async function sendOrRespondWithInvitation(
+  res: Response,
+  invitation: OrganisationInvitation,
+  options: {
+    organisation: Organisation
+    to: string
+    invitedBy: string
+    role: OrganisationMemberRole
+  }
+) {
+  try {
+    const expiresAtMs = new Date(invitation.expiresAt).getTime()
+    const deliveryResult = await sendInvitationEmail({
+      to: options.to,
+      organisationId: invitation.organisationId,
+      invitedBy: options.invitedBy,
+      organisationName: options.organisation.name,
+      role: options.role,
+      expiresAt: Number.isFinite(expiresAtMs) ? expiresAtMs : Date.now(),
+      token: invitation.token
+    })
+
+    const emailDelivery =
+      'delivery' in deliveryResult
+        ? {
+            delivered: deliveryResult.delivery.delivered ?? true,
+            channel: deliveryResult.delivery.channel ?? null
+          }
+        : {
+            delivered: false,
+            storedAt: deliveryResult.storedAt
+          }
+
+    res.status(emailDelivery.delivered ? 201 : 202).json({ invitation, emailDelivery })
+  } catch (error) {
+    console.error('[invite] Failed to send invitation email', error)
+    const friendly = describeEmailSendError(error)
+    res.status(502).json({
+      message: `Inbjudan skapades men mejlet kunde inte skickas. ${friendly}`
+    })
+  }
+}
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { randomUUID } from 'node:crypto'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray, lt, ne } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import {
   organisationInvitationsTable,
@@ -17,10 +59,13 @@ import type {
   OrganisationMemberStatus
 } from '../types/domain.js'
 import { ensurePermission } from '../utils/authz.js'
+import { describeEmailSendError } from '../utils/emailTest.js'
 import { sendInvitationEmail } from '../utils/mailer.js'
 import { assertOrganisationScope } from '../utils/organisationScope.js'
 
 const INVITATION_EXPIRATION_DAYS = 7
+const INVITATION_RETENTION_DAYS = 7
+const INVITATION_ACCEPTED_RETENTION_HOURS = 24
 
 export const organisationMembersRouter = Router()
 
@@ -33,6 +78,8 @@ organisationMembersRouter.get('/:organisationId/members', async (req, res) => {
   if (!organisation) {
     return
   }
+
+  await pruneStaleInvitations(organisationId)
 
   const memberRows = await db
     .select({
@@ -50,8 +97,53 @@ organisationMembersRouter.get('/:organisationId/members', async (req, res) => {
     .innerJoin(usersTable, eq(usersTable.id, organisationMembershipsTable.userId))
     .where(eq(organisationMembershipsTable.organizationId, organisationId))
 
+  const inviteRows = await db
+    .select({
+      id: organisationInvitationsTable.id,
+      email: organisationInvitationsTable.email,
+      role: organisationInvitationsTable.role,
+      status: organisationInvitationsTable.status,
+      invitedAt: organisationInvitationsTable.createdAt,
+      expiresAt: organisationInvitationsTable.expiresAt,
+      invitedByUserId: organisationInvitationsTable.invitedByUserId,
+      invitedByEmail: usersTable.email,
+      invitedByName: usersTable.fullName
+    })
+    .from(organisationInvitationsTable)
+    .leftJoin(usersTable, eq(usersTable.id, organisationInvitationsTable.invitedByUserId))
+    .where(eq(organisationInvitationsTable.organizationId, organisationId))
+
+  const now = new Date()
+  const expiredInviteIds: string[] = []
+
+  const invitations = inviteRows.map((row) => {
+    const expiresAtDate = new Date(row.expiresAt)
+    const isExpired =
+      row.status === 'pending' && !Number.isNaN(expiresAtDate.getTime()) && expiresAtDate.getTime() < now.getTime()
+    if (isExpired) {
+      expiredInviteIds.push(row.id)
+    }
+    const status = isExpired ? 'expired' : (row.status as OrganisationInvitation['status'])
+    return {
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      status,
+      invitedAt: toIso(row.invitedAt),
+      expiresAt: toIso(row.expiresAt),
+      invitedBy: row.invitedByEmail || row.invitedByName || null
+    }
+  })
+
+  if (expiredInviteIds.length) {
+    await db
+      .update(organisationInvitationsTable)
+      .set({ status: 'expired', updatedAt: now })
+      .where(inArray(organisationInvitationsTable.id, expiredInviteIds))
+  }
+
   const members = memberRows.map((row) => mapMemberRow(row))
-  res.json({ organisation, members })
+  res.json({ organisation, members, invitations })
 })
 
 organisationMembersRouter.post('/:organisationId/members/invite', async (req, res) => {
@@ -79,11 +171,10 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
   }
 
   const allowDirectAdd = Boolean(organisation.requireSso)
-  const shouldDirectAdd = Boolean(directAdd && allowDirectAdd)
-  if (directAdd && !allowDirectAdd) {
-    res.status(400).json({ message: 'Direktaktivering kräver att SSO är på för organisationen.' })
-    return
-  }
+  const defaultDirectAdd = allowDirectAdd
+  const shouldDirectAdd = Boolean(
+    typeof directAdd === 'boolean' ? directAdd && allowDirectAdd : defaultDirectAdd
+  )
 
   const normalizedEmail = email.trim().toLowerCase()
   if (!normalizedEmail) {
@@ -120,17 +211,33 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
         .update(organisationMembershipsTable)
           .set({ role, status: 'active', updatedAt: new Date() })
         .where(eq(organisationMembershipsTable.id, existingMember.id))
-    } else {
+    } else if (shouldDirectAdd) {
       await db.insert(organisationMembershipsTable).values({
         organizationId: organisationId,
         userId: user.id,
         role,
         status: 'active'
       })
+      const members = await fetchMembers(organisationId)
+      res.status(201).json({ organisation, members })
+      return
+    } else {
+      // User exists men saknar medlemskap -> skapa inbjudan istället
+      const invitation = await createInvitationRecord({
+        organisationId,
+        email: normalizedEmail,
+        role,
+        invitedBy,
+        invitedByUserId: req.userContext?.id
+      })
+      await sendOrRespondWithInvitation(res, invitation, {
+        organisation,
+        to: normalizedEmail,
+        invitedBy,
+        role
+      })
+      return
     }
-    const members = await fetchMembers(organisationId)
-    res.status(201).json({ organisation, members })
-    return
   }
 
   if (shouldDirectAdd) {
@@ -163,17 +270,12 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
     invitedByUserId: req.userContext?.id
   })
 
-  await sendInvitationEmail({
+  await sendOrRespondWithInvitation(res, invitation, {
+    organisation,
     to: normalizedEmail,
-    organisationId,
     invitedBy,
-    organisationName: organisation.name,
-    role,
-    expiresAt: Number(invitation.expiresAt),
-    token: invitation.token
+    role
   })
-
-  res.status(201).json({ invitation })
 })
 
 organisationMembersRouter.patch('/:organisationId/members/:memberId', async (req, res) => {
@@ -256,6 +358,57 @@ organisationMembersRouter.delete('/:organisationId/members/:memberId', async (re
   }
 
   await db.delete(organisationMembershipsTable).where(eq(organisationMembershipsTable.id, memberId))
+  res.status(204).send()
+})
+
+organisationMembersRouter.delete('/:organisationId/invitations/:invitationId', async (req, res) => {
+  if (!ensurePermission(req, res, 'users:invite')) {
+    return
+  }
+  const { organisationId, invitationId } = req.params
+  const organisation = await assertOrganisationScope(req, res, organisationId)
+  if (!organisation) {
+    return
+  }
+
+  const invitation = await db
+    .select({
+      id: organisationInvitationsTable.id,
+      status: organisationInvitationsTable.status
+    })
+    .from(organisationInvitationsTable)
+    .where(
+      and(
+        eq(organisationInvitationsTable.id, invitationId),
+        eq(organisationInvitationsTable.organizationId, organisationId)
+      )
+    )
+    .get()
+
+  if (!invitation) {
+    res.status(404).json({ message: 'Invitation not found.' })
+    return
+  }
+
+  if (invitation.status !== 'pending') {
+    res.status(409).json({ message: 'Invitation can no longer be cancelled.' })
+    return
+  }
+
+  await db
+    .update(organisationInvitationsTable)
+    .set({
+      status: 'cancelled',
+      declinedAt: new Date(),
+      updatedAt: new Date()
+    })
+    .where(
+      and(
+        eq(organisationInvitationsTable.id, invitationId),
+        eq(organisationInvitationsTable.organizationId, organisationId)
+      )
+    )
+
   res.status(204).send()
 })
 
@@ -424,6 +577,31 @@ function toIso(value: number | Date) {
     return value.toISOString()
   }
   return new Date(value).toISOString()
+}
+
+async function pruneStaleInvitations(organisationId: string) {
+  const retentionMs = INVITATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
+  const cutoff = new Date(Date.now() - retentionMs)
+  await db
+    .delete(organisationInvitationsTable)
+    .where(
+      and(
+        eq(organisationInvitationsTable.organizationId, organisationId),
+        ne(organisationInvitationsTable.status, 'pending'),
+        lt(organisationInvitationsTable.updatedAt, cutoff)
+      )
+    )
+
+  const acceptedCutoff = new Date(Date.now() - INVITATION_ACCEPTED_RETENTION_HOURS * 60 * 60 * 1000)
+  await db
+    .delete(organisationInvitationsTable)
+    .where(
+      and(
+        eq(organisationInvitationsTable.organizationId, organisationId),
+        eq(organisationInvitationsTable.status, 'accepted'),
+        lt(organisationInvitationsTable.updatedAt, acceptedCutoff)
+      )
+    )
 }
 
 

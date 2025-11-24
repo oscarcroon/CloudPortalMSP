@@ -35,6 +35,13 @@ export const useOrganizationMembers = () => {
     })
   }
 
+  const cancelInvitation = async (invitationId: string) => {
+    const organisationId = assertOrganisationId()
+    return api(`/organisations/${organisationId}/invitations/${invitationId}`, {
+      method: 'DELETE'
+    })
+  }
+
   const updateMemberRole = async (memberId: string, role: OrganizationMemberRole) => {
     const organisationId = assertOrganisationId()
     return api(`/organisations/${organisationId}/members/${memberId}`, {
@@ -64,7 +71,8 @@ export const useOrganizationMembers = () => {
     inviteMember,
     updateMemberRole,
     updateMemberStatus,
-    removeMember
+    removeMember,
+    cancelInvitation
   }
 }
 

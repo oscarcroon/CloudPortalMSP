@@ -15,10 +15,11 @@ import { organisationsRouter } from './routes/organisations.js'
 import { vmRouter } from './routes/vms.js'
 import { wordpressRouter } from './routes/wordpress.js'
 
-dotenv.config()
+const currentDir = path.dirname(fileURLToPath(import.meta.url))
+const rootDir = path.resolve(currentDir, '..', '..')
+dotenv.config({ path: path.resolve(rootDir, '.env') })
 
 const app = express()
-const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const uploadsRoot = path.resolve(currentDir, '..', 'uploads')
 
 app.use(

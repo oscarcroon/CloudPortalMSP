@@ -7,7 +7,7 @@ import {
   saveOrganisationEmailProvider
 } from '../services/emailProviders.js'
 import { ensurePermission } from '../utils/authz.js'
-import { sendProviderTestEmail } from '../utils/emailTest.js'
+import { describeEmailSendError, sendProviderTestEmail } from '../utils/emailTest.js'
 import { assertOrganisationScope } from '../utils/organisationScope.js'
 import {
   buildProfileFromPayload,
@@ -91,16 +91,14 @@ organisationEmailProviderRouter.post('/:organisationId/email-provider/test', asy
     res.json({ delivered: true })
   } catch (error) {
     console.error('[email-provider] Org test send failed', error)
-    await recordTestResult(
-      organisationId,
-      'failure',
-      error instanceof Error ? error.message : 'unknown error'
-    )
     if (error instanceof z.ZodError) {
+      await recordTestResult(organisationId, 'failure', 'Ogiltig testpayload.')
       res.status(400).json({ message: 'Ogiltig testpayload.', details: error.flatten() })
       return
     }
-    res.status(500).json({ message: error instanceof Error ? error.message : 'Kunde inte skicka testmail.' })
+    const friendly = describeEmailSendError(error)
+    await recordTestResult(organisationId, 'failure', friendly)
+    res.status(500).json({ message: friendly })
   }
 })
 

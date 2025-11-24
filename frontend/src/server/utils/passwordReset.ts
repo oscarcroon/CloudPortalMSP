@@ -3,8 +3,16 @@ import { createError } from 'h3'
 import { users } from '../database/schema'
 import { getDb } from './db'
 import { createInviteToken, sha256 } from './crypto'
+import { describeEmailSendError } from './emailTest'
 import { sendPasswordResetEmail } from './mailer'
 import { PASSWORD_RESET_TOKEN_TTL_MS } from './password'
+
+export class EmailDeliveryError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'EmailDeliveryError'
+  }
+}
 
 export const triggerPasswordReset = async (userId: string, email: string) => {
   const db = getDb()
@@ -25,10 +33,14 @@ export const triggerPasswordReset = async (userId: string, email: string) => {
     throw createError({ statusCode: 404, message: 'Användaren kunde inte uppdateras.' })
   }
 
-  await sendPasswordResetEmail({
-    to: email,
-    token,
-    expiresAt
-  })
+  try {
+    await sendPasswordResetEmail({
+      to: email,
+      token,
+      expiresAt
+    })
+  } catch (error) {
+    throw new EmailDeliveryError(describeEmailSendError(error))
+  }
 }
 

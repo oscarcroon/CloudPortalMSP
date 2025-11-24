@@ -43,6 +43,37 @@
             <dd class="capitalize">{{ user?.status }}</dd>
           </div>
         </dl>
+
+        <form class="mt-4 space-y-3" @submit.prevent="handleNameSave">
+          <div>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Ändra namn</label>
+            <input
+              v-model="nameForm.fullName"
+              type="text"
+              required
+              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-white/10 dark:text-white"
+              placeholder="Förnamn Efternamn"
+            />
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Ange både för- och efternamn.</p>
+          </div>
+
+          <p v-if="nameError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
+            {{ nameError }}
+          </p>
+          <p v-if="nameSuccess" class="rounded bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-200">
+            {{ nameSuccess }}
+          </p>
+
+          <div class="flex justify-end">
+            <button
+              type="submit"
+              class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+              :disabled="nameSubmitting || !nameChanged"
+            >
+              {{ nameSubmitting ? 'Sparar...' : 'Spara namn' }}
+            </button>
+          </div>
+        </form>
       </div>
 
       <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0f172a]">
@@ -129,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from '#imports'
+import { computed, reactive, ref, watch } from '#imports'
 import { passwordRequirements } from '~/constants/password'
 import { useAuth } from '~/composables/useAuth'
 
@@ -142,6 +173,23 @@ const user = computed(() => auth.user.value)
 const organizations = computed(() => auth.organizations.value)
 const requiresPasswordReset = computed(() => Boolean(user.value?.forcePasswordReset))
 
+const nameForm = reactive({
+  fullName: ''
+})
+const nameSubmitting = ref(false)
+const nameError = ref('')
+const nameSuccess = ref('')
+
+watch(
+  () => user.value?.fullName,
+  (fullName) => {
+    nameForm.fullName = fullName ?? ''
+  },
+  { immediate: true }
+)
+
+const nameChanged = computed(() => nameForm.fullName.trim() !== (user.value?.fullName ?? '').trim())
+
 const passwordForm = reactive({
   current: '',
   next: '',
@@ -150,6 +198,31 @@ const passwordForm = reactive({
 const passwordSubmitting = ref(false)
 const passwordError = ref('')
 const passwordSuccess = ref('')
+
+const handleNameSave = async () => {
+  if (!nameChanged.value) return
+  nameSubmitting.value = true
+  nameError.value = ''
+  nameSuccess.value = ''
+  try {
+    await $fetch('/api/profile/name', {
+      method: 'PATCH',
+      body: {
+        fullName: nameForm.fullName
+      }
+    })
+    await auth.fetchMe()
+    nameSuccess.value = 'Namnet sparades.'
+    setTimeout(() => {
+      nameSuccess.value = ''
+    }, 3000)
+  } catch (error) {
+    nameError.value =
+      error instanceof Error ? error.message : 'Kunde inte uppdatera namnet. Försök igen.'
+  } finally {
+    nameSubmitting.value = false
+  }
+}
 
 const handlePasswordChange = async () => {
   if (passwordForm.next !== passwordForm.confirm) {

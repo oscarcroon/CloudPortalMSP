@@ -29,10 +29,13 @@ invitationsRouter.get('/:token', async (req, res) => {
       expiresAt: organisationInvitationsTable.expiresAt,
       createdAt: organisationInvitationsTable.createdAt,
       invitedByUserId: organisationInvitationsTable.invitedByUserId,
-      organisationName: organisationsTable.name
+      organisationName: organisationsTable.name,
+      invitedByEmail: usersTable.email,
+      invitedByName: usersTable.fullName
     })
     .from(organisationInvitationsTable)
     .leftJoin(organisationsTable, eq(organisationsTable.id, organisationInvitationsTable.organizationId))
+    .leftJoin(usersTable, eq(usersTable.id, organisationInvitationsTable.invitedByUserId))
     .where(eq(organisationInvitationsTable.token, token))
     .get()
 
@@ -41,8 +44,22 @@ invitationsRouter.get('/:token', async (req, res) => {
     return
   }
 
+  const now = new Date()
+  const expiresAtDate = new Date(invitationRow.expiresAt)
+  let currentStatus = invitationRow.status
+  if (currentStatus === 'pending' && now > expiresAtDate) {
+    await db
+      .update(organisationInvitationsTable)
+      .set({ status: 'expired', updatedAt: now })
+      .where(eq(organisationInvitationsTable.id, invitationRow.id))
+    currentStatus = 'expired'
+  }
+
   res.json({
-    invitation: sanitizeInvitationRow(invitationRow),
+    invitation: sanitizeInvitationRow({
+      ...invitationRow,
+      status: currentStatus
+    }),
     organisation: invitationRow.organisationId
       ? {
           id: invitationRow.organisationId,
@@ -169,6 +186,8 @@ function sanitizeInvitationRow(invitation: {
   status: string
   expiresAt: number | Date
   createdAt: number | Date
+  invitedByEmail?: string | null
+  invitedByName?: string | null
 }) {
   const safeInvitation: PublicInvitation = {
     id: invitation.id,
@@ -177,7 +196,7 @@ function sanitizeInvitationRow(invitation: {
     role: invitation.role as OrganisationMemberRole,
     status: mapInvitationStatus(invitation.status),
     expiresAt: toIso(invitation.expiresAt),
-    invitedBy: '',
+    invitedBy: invitation.invitedByEmail || invitation.invitedByName || '',
     createdAt: toIso(invitation.createdAt)
   }
   return safeInvitation

@@ -113,7 +113,7 @@ watch(
     if (isOpen) {
       form.email = ''
       form.role = props.roles[0] ?? 'member'
-      form.directAdd = false
+      form.directAdd = Boolean(props.canDirectAdd)
     }
   }
 )

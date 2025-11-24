@@ -108,6 +108,8 @@ Kommandot läser databasen via Drizzle, letar efter den första användaren med 
 ### E-postprovider & branding
 
 - Lägg till `EMAIL_CRYPTO_KEY` i `.env` (32 byte i base64/hex) och `INVITE_ACCEPT_BASE_URL` om portalen ligger på annan domän. Samma nyckel används av både Express-backenden och Nuxt-servern för att kryptera leverantörs-secrets.
+- `PORTAL_BASE_URL` och `NUXT_PUBLIC_APP_URL` styr vilka länkar som genereras i e-postmallarna. Använd `PASSWORD_RESET_BASE_URL` och `INVITE_ACCEPT_BASE_URL` om återställnings- respektive inbjudningslänkar ska gå via annan domän eller port.
+- Sätt `UPLOADS_DIR` om outbox-filerna (förhandsvisning av mail vid fel/lokalt läge) ska skrivas någon annanstans än `./uploads`.
 - Globala inställningar hittas under **Admin → Global e-post** (`/admin/settings/email`). Här kan du:
   - Välja mellan SMTP och Microsoft Graph.
   - Ange avsändarnamn, reply-to och valfri branding (logotyp, färger, footertext).

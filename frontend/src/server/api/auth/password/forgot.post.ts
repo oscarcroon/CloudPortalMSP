@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { users } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { normalizeEmail } from '../../../utils/crypto'
-import { triggerPasswordReset } from '../../../utils/passwordReset'
+import { EmailDeliveryError, triggerPasswordReset } from '../../../utils/passwordReset'
 
 const requestSchema = z.object({
   email: z.string().email()
@@ -34,6 +34,12 @@ export default defineEventHandler(async (event) => {
   try {
     await triggerPasswordReset(user.id, user.email)
   } catch (error) {
+    if (error instanceof EmailDeliveryError) {
+      throw createError({
+        statusCode: 502,
+        message: `Kunde inte skicka återställningsmail. ${error.message}`
+      })
+    }
     console.error('[password-reset] failed to persist token', error)
     throw createError({ statusCode: 500, message: 'Kunde inte initiera återställning.' })
   }

@@ -7,7 +7,7 @@ import {
   saveGlobalEmailProvider
 } from '../services/emailProviders.js'
 import { ensurePermission } from '../utils/authz.js'
-import { sendProviderTestEmail } from '../utils/emailTest.js'
+import { describeEmailSendError, sendProviderTestEmail } from '../utils/emailTest.js'
 import {
   buildProfileFromPayload,
   buildSecretsFromPayload,
@@ -75,12 +75,14 @@ emailRouter.post('/provider/test', async (req, res) => {
     res.json({ delivered: true })
   } catch (error) {
     console.error('[email-provider] Test send failed', error)
-    await recordTestResult('global', 'failure', error instanceof Error ? error.message : 'unknown error')
     if (error instanceof z.ZodError) {
+      await recordTestResult('global', 'failure', 'Ogiltig testpayload.')
       res.status(400).json({ message: 'Ogiltig testpayload.', details: error.flatten() })
       return
     }
-    res.status(500).json({ message: error instanceof Error ? error.message : 'Kunde inte skicka testmail.' })
+    const friendly = describeEmailSendError(error)
+    await recordTestResult('global', 'failure', friendly)
+    res.status(500).json({ message: friendly })
   }
 })
 
