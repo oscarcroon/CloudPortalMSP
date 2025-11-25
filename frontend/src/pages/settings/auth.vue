@@ -10,7 +10,7 @@
       <div>
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Auth &amp; SSO</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Välj Identity Provider, följ Cloudflares guide och styr om SSO ska krävas för organisationen.
+          Välj Identity Provider, följ guiden och styr om SSO ska krävas för organisationen.
         </p>
       </div>
     </header>
@@ -145,7 +145,7 @@
 
         <div v-if="form.idpProvider !== 'none'" class="mt-6 space-y-4">
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Fyll i uppgifterna enligt Cloudflares guide. Redirect-URL för denna organisation:
+            Fyll i uppgifterna enligt guiden. Redirect-URL för denna organisation:
             <code class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-800 dark:bg-white/10 dark:text-slate-200">{{ redirectUriHint }}</code>
           </p>
 
@@ -312,42 +312,30 @@
         </div>
       </div>
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#101932]">
+      <div v-if="form.idpProvider !== 'none'" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#101932]">
         <div class="flex flex-col gap-2">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Cloudflare-guide</h2>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Konfigurationsguide</h2>
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Förhandsgranskade steg från Cloudflares dokumentation – anpassade till denna portal och din valda IdP.
+            Snabbguide för att konfigurera {{ selectedGuide?.title || 'din valda IdP' }}.
           </p>
         </div>
 
-        <div class="mt-4 grid gap-6 md:grid-cols-2">
-          <article
-            v-for="guide in providerGuides"
-            :key="guide.provider"
-            class="rounded-xl border p-4 transition"
-            :class="
-              guide.provider === form.idpProvider
-                ? 'border-brand bg-brand/5 dark:border-brand/60'
-                : 'border-slate-200 dark:border-white/10'
-            "
-          >
+        <div v-if="selectedGuide" class="mt-4">
+          <article class="rounded-xl border border-brand bg-brand/5 p-4 dark:border-brand/60">
             <div class="flex items-center justify-between gap-2">
-              <h3 class="text-base font-semibold text-slate-900 dark:text-white">{{ guide.title }}</h3>
-              <a
-                :href="guide.docUrl"
-                target="_blank"
-                rel="noopener"
+              <h3 class="text-base font-semibold text-slate-900 dark:text-white">{{ selectedGuide.title }}</h3>
+              <NuxtLink
+                :to="selectedGuide.localDocUrl"
                 class="text-xs font-semibold text-brand hover:underline"
-              >Öppna docs</a>
+              >
+                Läs mer i docs
+              </NuxtLink>
             </div>
             <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
-              <li v-for="step in guide.steps" :key="step">
+              <li v-for="step in selectedGuide.steps" :key="step">
                 {{ step }}
               </li>
             </ol>
-            <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-              {{ guide.summary }}
-            </p>
           </article>
         </div>
       </div>
@@ -447,46 +435,54 @@ const providerGuides = computed(() => {
     {
       provider: 'openid',
       title: 'OpenID Connect (OneLogin m.fl.)',
+      localDocUrl: '/docs/auth/openid',
       docUrl: 'https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/onelogin-oidc/',
       steps: [
         'Skapa en ny OIDC-app i din IdP (t.ex. OneLogin) och välj Web-klient.',
-        `Ange ${redirect} som Redirect URL både i IdP:n och i Cloudflare Access.`,
+        `Ange ${redirect} som Redirect URL i din IdP.`,
         'Kopiera Issuer/Discovery URL, Client ID och Client Secret från IdP:n.',
-        'I Cloudflare One → Integrations → Identity providers lägger du till en OIDC-provider och fyller i samma värden.',
-        'Aktivera metoden och testa inloggningen via Cloudflare innan du slår på “Kräv SSO” här.'
+        'Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.',
+        'Testa inloggningen innan du aktiverar "Kräv SSO" i CloudPortal.'
       ],
       summary:
-        'Följ Cloudflares OIDC-guide för OneLogin men byt ut redirect och klientuppgifter mot de värden som behövs för denna portal.'
+        'Följ guiden för att konfigurera OIDC med din IdP och fyll i värdena i CloudPortal.'
     },
     {
       provider: 'entra',
       title: 'Microsoft Entra ID (Azure AD)',
+      localDocUrl: '/docs/auth/entra',
       docUrl: 'https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/entra-id/',
       steps: [
         'Registrera en ny Entra-app (App registration) och välj Web som plattform.',
-        `Sätt Redirect URI till ${redirect} samt till Cloudflares access-callback.`,
+        `Sätt Redirect URI till ${redirect} i Microsoft Entra ID.`,
         'Anteckna Application (client) ID, Directory (tenant) ID och skapa ett Client secret.',
-        'I Cloudflare One lägger du till en Azure AD/Entra-provider och matar in dessa tre värden samt aktiverar PKCE.',
+        'Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.',
         'Tilldela användare och testa inloggningen, fyll sedan i Tenant ID, Client ID/Secret här innan du kräver SSO.'
       ],
       summary:
-        'Baserad på Cloudflares Entra ID-guide – stegen ovan pekar uttryckligen ut vilka värden som ska klistras in i denna portal.'
+        'Följ guiden för att konfigurera Microsoft Entra ID och fyll i värdena i CloudPortal.'
     },
     {
       provider: 'saml',
       title: 'SAML 2.0 (Azure AD, Okta m.fl.)',
+      localDocUrl: '/docs/auth/saml',
       docUrl: 'https://developers.cloudflare.com/cloudflare-one/identity/idp-integration/saml/',
       steps: [
         'Skapa en ny SAML-app i din IdP och ange ACS/Callback URL till redirect-URL:en ovan.',
         'Kopiera Issuer/Entity ID, Entry Point (SSO URL) och publik X.509-certifikat från IdP:n.',
-        'Konfigurera samma värden i Cloudflare One → Identity providers (SAML) och aktivera integrationen.',
+        'Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.',
         'Ange eventuella Audience/Entity ID som förväntas av IdP:n och välj om AuthnRequests ska signeras.',
-        'Testa inloggningen via Cloudflare innan du kräver SSO här i portalen.'
+        'Testa inloggningen innan du aktiverar "Kräv SSO" i CloudPortal.'
       ],
       summary:
-        'Standard-SAML-flöde: portalen fungerar som SP och behöver IdP:ns entrypoint, issuer och certifikat för att verifiera assertioner.'
+        'Standard-SAML-flöde: CloudPortal fungerar som SP och behöver IdP:ns entrypoint, issuer och certifikat för att verifiera assertioner.'
     }
   ]
+})
+
+const selectedGuide = computed(() => {
+  if (form.idpProvider === 'none') return null
+  return providerGuides.value.find(guide => guide.provider === form.idpProvider) || null
 })
 
 const populateForm = () => {
