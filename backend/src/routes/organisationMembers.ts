@@ -292,52 +292,75 @@ organisationMembersRouter.patch('/:organisationId/members/:memberId', async (req
     return
   }
 
-  const member = await fetchMember(organisationId, memberId)
-  if (!member) {
-    res.status(404).json({ message: 'Member not found.' })
-    return
-  }
+  try {
+    const member = await fetchMember(organisationId, memberId)
+    if (!member) {
+      res.status(404).json({ message: 'Medlemmen kunde inte hittas.' })
+      return
+    }
 
-  const { role, status } = req.body as Partial<{
-    role: OrganisationMemberRole
-    status: OrganisationMemberStatus
-  }>
+    const { role, status } = req.body as Partial<{
+      role: OrganisationMemberRole
+      status: OrganisationMemberStatus
+    }>
 
-  if (!role && !status) {
-    res.status(400).json({ message: 'No changes supplied.' })
-    return
-  }
+    if (!role && !status) {
+      res.status(400).json({ message: 'Inga ändringar angivna.' })
+      return
+    }
 
-  if (role && !isValidMemberRole(role)) {
-    res.status(400).json({ message: 'Unsupported role supplied.' })
-    return
-  }
+    if (role && !isValidMemberRole(role)) {
+      res.status(400).json({ message: 'Ogiltig roll angiven.' })
+      return
+    }
 
-  if (status && !isValidMemberStatus(status)) {
-    res.status(400).json({ message: 'Unsupported status supplied.' })
-    return
-  }
+    if (status && !isValidMemberStatus(status)) {
+      res.status(400).json({ message: 'Ogiltig status angiven.' })
+      return
+    }
 
-  if (
-    member.role === 'owner' &&
-    ((role && role !== 'owner') || (status && status !== 'active')) &&
-    (await isLastActiveOwner(organisationId, member.id))
-  ) {
-    res.status(400).json({ message: 'Organisation must keep at least one active owner.' })
-    return
-  }
+    if (member.role === 'owner') {
+      try {
+        const isLastOwner = await isLastActiveOwner(organisationId, member.id)
+        if (isLastOwner && ((role && role !== 'owner') || (status && status !== 'active'))) {
+          res.status(400).json({ 
+            message: 'Du kan inte ta bort eller ändra rollen för den sista ägaren i organisationen. Organisationen måste ha minst en aktiv ägare.' 
+          })
+          return
+        }
+      } catch (error) {
+        console.error('[update member] Error checking last owner:', error)
+        res.status(400).json({ 
+          message: 'Kunde inte verifiera ägarstatus. Försök igen.' 
+        })
+        return
+      }
+    }
 
-  await db
-    .update(organisationMembershipsTable)
-    .set({
-      ...(role ? { role } : {}),
-      ...(status ? { status: mapStatusForStorage(status) } : {}),
-      updatedAt: new Date()
+    await db
+      .update(organisationMembershipsTable)
+      .set({
+        ...(role ? { role } : {}),
+        ...(status ? { status: mapStatusForStorage(status) } : {}),
+        updatedAt: new Date()
+      })
+      .where(eq(organisationMembershipsTable.id, memberId))
+
+    const updated = await fetchMember(organisationId, memberId)
+    res.json(updated)
+  } catch (error) {
+    console.error('[update member] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Kunde inte uppdatera medlemmen.'
+    console.error('[update member] Full error details:', {
+      organisationId,
+      memberId,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
     })
-    .where(eq(organisationMembershipsTable.id, memberId))
-
-  const updated = await fetchMember(organisationId, memberId)
-  res.json(updated)
+    res.status(400).json({ 
+      message: errorMessage
+    })
+  }
 })
 
 organisationMembersRouter.delete('/:organisationId/members/:memberId', async (req, res) => {
@@ -350,19 +373,46 @@ organisationMembersRouter.delete('/:organisationId/members/:memberId', async (re
     return
   }
 
-  const member = await fetchMember(organisationId, memberId)
-  if (!member) {
-    res.status(404).json({ message: 'Member not found.' })
-    return
-  }
+  try {
+    const member = await fetchMember(organisationId, memberId)
+    if (!member) {
+      res.status(404).json({ message: 'Member not found.' })
+      return
+    }
 
-  if (member.role === 'owner' && (await isLastActiveOwner(organisationId, member.id))) {
-    res.status(400).json({ message: 'Organisation must keep at least one active owner.' })
-    return
-  }
+    if (member.role === 'owner') {
+      try {
+        const isLastOwner = await isLastActiveOwner(organisationId, member.id)
+        if (isLastOwner) {
+          res.status(400).json({ 
+            message: 'Du kan inte ta bort den sista ägaren i organisationen. Organisationen måste ha minst en aktiv ägare.' 
+          })
+          return
+        }
+      } catch (error) {
+        console.error('[delete member] Error checking last owner:', error)
+        res.status(400).json({ 
+          message: 'Kunde inte verifiera ägarstatus. Försök igen.' 
+        })
+        return
+      }
+    }
 
-  await db.delete(organisationMembershipsTable).where(eq(organisationMembershipsTable.id, memberId))
-  res.status(204).send()
+    await db.delete(organisationMembershipsTable).where(eq(organisationMembershipsTable.id, memberId))
+    res.status(204).send()
+  } catch (error) {
+    console.error('[delete member] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to remove member.'
+    console.error('[delete member] Full error details:', {
+      organisationId,
+      memberId,
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    res.status(400).json({ 
+      message: errorMessage
+    })
+  }
 })
 
 organisationMembersRouter.delete('/:organisationId/invitations/:invitationId', async (req, res) => {

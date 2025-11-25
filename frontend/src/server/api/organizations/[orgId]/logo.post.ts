@@ -39,19 +39,57 @@ function deleteExistingLogo(logoUrl: string | null | undefined) {
   if (!logoUrl) return
 
   try {
-    const parsedUrl = new URL(logoUrl)
-    const relativePath = parsedUrl.pathname.replace(/^\/+/, '')
-    // Hantera både /uploads/logos/ och /api/uploads/logos/
-    if (!relativePath.includes('uploads/logos/')) {
+    // Extrahera filnamnet från URL:en
+    let filename: string | null = null
+    
+    // Hantera olika URL-format
+    if (logoUrl.includes('/api/uploads/logos/')) {
+      const parts = logoUrl.split('/api/uploads/logos/')
+      if (parts.length > 1) {
+        filename = path.basename(parts[1].split('?')[0])
+      }
+    } else if (logoUrl.includes('uploads/logos/')) {
+      const parts = logoUrl.split('uploads/logos/')
+      if (parts.length > 1) {
+        filename = path.basename(parts[1].split('?')[0])
+      }
+    } else if (logoUrl.includes('/uploads/logos/')) {
+      const parts = logoUrl.split('/uploads/logos/')
+      if (parts.length > 1) {
+        filename = path.basename(parts[1].split('?')[0])
+      }
+    }
+
+    if (!filename || filename === '/' || filename === '') {
+      console.warn('[logo] Could not extract filename from logo URL:', logoUrl)
       return
     }
-    const filename = path.basename(relativePath)
-    const filePath = path.join(uploadsRoot, filename)
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
+
+    console.log('[logo] Deleting existing logo file:', filename)
+
+    // Försök radera från primär katalog (där filerna normalt sparas)
+    const primaryPath = path.join(uploadsRoot, filename)
+    if (fs.existsSync(primaryPath)) {
+      fs.unlinkSync(primaryPath)
+      console.log('[logo] Deleted existing logo file from primary location:', primaryPath)
+      return
     }
+
+    // Fallback: försök i backend/uploads/logos om filen inte hittas i primärkatalogen
+    const backendRoot = path.resolve(frontendRoot, '..', 'backend')
+    const backendUploadsDir = process.env.UPLOADS_DIR || path.join(backendRoot, 'uploads')
+    const backendLogosDir = path.join(backendUploadsDir, 'logos')
+    const fallbackPath = path.join(backendLogosDir, filename)
+    
+    if (fs.existsSync(fallbackPath)) {
+      fs.unlinkSync(fallbackPath)
+      console.log('[logo] Deleted existing logo file from fallback location:', fallbackPath)
+      return
+    }
+
+    console.warn('[logo] Existing logo file not found in primary or fallback location:', primaryPath, fallbackPath)
   } catch (error) {
-    console.warn('[logo] Failed to delete previous logo', error)
+    console.error('[logo] Failed to delete previous logo', error)
   }
 }
 

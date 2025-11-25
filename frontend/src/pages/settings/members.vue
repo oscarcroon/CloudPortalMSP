@@ -332,8 +332,7 @@ const loadMembers = async () => {
     organisationRequireSso.value = Boolean(response.organisation.requireSso)
     invitations.value = response.invitations ?? []
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Kunde inte hämta medlemmar just nu.'
+    errorMessage.value = extractErrorMessage(error) || 'Kunde inte hämta medlemmar just nu.'
   } finally {
     loading.value = false
   }
@@ -341,6 +340,23 @@ const loadMembers = async () => {
 
 const refreshMembers = async () => {
   await loadMembers()
+}
+
+const extractErrorMessage = (error: unknown): string => {
+  if (error && typeof error === 'object') {
+    // $fetch/FetchError har data.message
+    const fetchError = error as { data?: { message?: string }; message?: string }
+    if (fetchError.data?.message) {
+      return fetchError.data.message
+    }
+    if (fetchError.message) {
+      return fetchError.message
+    }
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  return 'Ett oväntat fel uppstod.'
 }
 
 const handleRoleChange = async (member: OrganizationMember, roleValue: string) => {
@@ -359,8 +375,7 @@ const handleRoleChange = async (member: OrganizationMember, roleValue: string) =
     }, 3000)
   } catch (error) {
     member.role = previousRole
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Kunde inte uppdatera rollen.'
+    errorMessage.value = extractErrorMessage(error)
   } finally {
     roleLoadingId.value = ''
   }
@@ -377,8 +392,7 @@ const removeMember = async (member: OrganizationMember) => {
     await membersApi.removeMember(member.id)
     members.value = members.value.filter((item) => item.id !== member.id)
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Kunde inte ta bort medlemmen.'
+    errorMessage.value = extractErrorMessage(error)
   } finally {
     removalLoadingId.value = ''
   }
@@ -407,8 +421,7 @@ const setMemberStatus = async (
       successMessage.value = ''
     }, 3000)
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Kunde inte uppdatera status.'
+    errorMessage.value = extractErrorMessage(error)
   } finally {
     statusLoadingId.value = ''
   }
@@ -455,12 +468,10 @@ const handleInviteSubmit = async (payload: InviteMemberPayload) => {
     }, 4000)
     await loadMembers()
   } catch (error) {
-    if (error instanceof Error && 'statusCode' in error && (error as any).statusCode === 409) {
+    if (error && typeof error === 'object' && 'statusCode' in error && (error as any).statusCode === 409) {
       inviteError.value = 'Personen är redan medlem i organisationen.'
-    } else if (error instanceof Error) {
-      inviteError.value = error.message
     } else {
-      inviteError.value = 'Kunde inte skicka inbjudan.'
+      inviteError.value = extractErrorMessage(error) || 'Kunde inte skicka inbjudan.'
     }
   } finally {
     inviteLoading.value = false
@@ -487,8 +498,7 @@ const cancelPendingInvitation = async (invite: OrganizationInvitationSummary) =>
     }, 3000)
     await loadMembers()
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Kunde inte avbryta inbjudan.'
+    errorMessage.value = extractErrorMessage(error) || 'Kunde inte avbryta inbjudan.'
   } finally {
     inviteCancelLoadingId.value = ''
   }

@@ -56,8 +56,8 @@ export const renderBrandedTemplate = (input, branding) => {
     <div style="max-width:640px;margin:0 auto;padding:32px 20px;">
       <div style="text-align:center;margin-bottom:16px;padding:12px 16px;background:${logoBackground};border-radius:12px;border:1px solid rgba(148,163,184,0.1);">
         ${branding?.logoUrl
-        ? `<img src="${escapeHtml(branding.logoUrl)}" alt="Logo" style="max-width:60px;height:auto;display:block;margin:0 auto;" />`
-        : `<span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:${accentSoft};color:${accent};font-weight:600;font-size:16px;">CP</span>`}
+        ? `<img src="${escapeHtml(branding.logoUrl)}" alt="Logo" style="max-width:150px;max-height:60px;width:auto;height:auto;display:block;margin:0 auto;" />`
+        : `<span style="display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:10px;background:${accentSoft};color:${accent};font-weight:600;font-size:14px;">Cloud Portal</span>`}
       </div>
       <div style="background:#fff;border-radius:28px;padding:40px 36px;box-shadow:0 20px 65px rgba(15,23,42,0.08);border:1px solid rgba(148,163,184,0.25);">
         ${input.pretitle
