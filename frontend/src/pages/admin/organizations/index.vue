@@ -93,7 +93,9 @@
             <tr>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Organisation</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tenant</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Medlemmar</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">SSO</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Självregistrering</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Skapad</th>
@@ -112,12 +114,29 @@
               </td>
               <td class="px-6 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">{{ org.slug }}</td>
               <td class="px-6 py-3 text-slate-700 dark:text-slate-200">
+                <span v-if="org.tenantId" class="text-xs text-slate-500 dark:text-slate-400">
+                  Tenant: {{ org.tenantId.slice(0, 8) }}...
+                </span>
+                <span v-else class="text-xs text-slate-400 dark:text-slate-500">Ingen tenant</span>
+              </td>
+              <td class="px-6 py-3 text-slate-700 dark:text-slate-200">
                 <button
                   class="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-white/20 dark:text-slate-200"
                   @click.stop="navigateToMembers(org.slug)"
                 >
                   {{ org.memberCount }} st
                 </button>
+              </td>
+              <td class="px-6 py-3">
+                <span
+                  v-if="org.hasEmailOverride"
+                  class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                  title="E-post override aktiv"
+                >
+                  <Icon icon="mdi:email-check" class="h-3 w-3" />
+                  Override
+                </span>
+                <span v-else class="text-xs text-slate-400 dark:text-slate-500">Ärvs</span>
               </td>
               <td class="px-6 py-3">
                 <StatusPill :variant="org.requireSso ? 'success' : 'info'">

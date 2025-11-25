@@ -38,7 +38,19 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const isSuperAdmin = import.meta.server
     ? Boolean(serverAuth?.user.isSuperAdmin)
     : Boolean(auth?.state.value.data?.user.isSuperAdmin)
-  if (requiresSuperAdmin && !isSuperAdmin) {
+  
+  // Check tenant access for tenant routes
+  if (to.path.startsWith('/admin/tenants')) {
+    const hasTenantAccess =
+      isSuperAdmin ||
+      (import.meta.server
+        ? Object.keys(serverAuth?.tenantRoles ?? {}).length > 0
+        : Object.keys(auth?.state.value.data?.tenantRoles ?? {}).length > 0)
+    
+    if (requiresSuperAdmin && !hasTenantAccess) {
+      return navigateTo('/settings?error=missing-permission')
+    }
+  } else if (requiresSuperAdmin && !isSuperAdmin) {
     return navigateTo('/settings?error=missing-permission')
   }
 

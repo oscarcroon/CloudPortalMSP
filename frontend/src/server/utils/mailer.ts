@@ -380,3 +380,144 @@ export const sendInviteAcceptedNotification = async (input: {
   console.info(`[mail] Invite accepted notification for ${input.invitedByEmail} stored at ${storedAt}`)
   return { storedAt }
 }
+
+export const sendDistributorInvitationEmail = async (input: {
+  tenantId: string
+  tenantName: string
+  tenantType: 'provider' | 'distributor'
+  to: string
+  expiresAt: number
+  token: string
+  invitedBy?: string
+}) => {
+  const acceptUrl = buildInviteAcceptUrl(input.token)
+  const expiresLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
+  const provider = await getGlobalEmailProviderProfile()
+  
+  const logoDataUri = await convertLogoToDataUri(provider?.branding?.logoUrl)
+  const branding = provider?.branding
+    ? {
+        ...provider.branding,
+        ...(logoDataUri ? { logoUrl: logoDataUri } : {})
+      }
+    : undefined
+
+  const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
+  const content = renderBrandedTemplate(
+    {
+      pretitle: `🎉 Grattis! Du är nu ${tenantTypeLabel}! 🎉`,
+      title: input.tenantName,
+      intro: 'Hej!',
+      body: [
+        `🎊 Grattis! Du har blivit utsedd till ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
+        `Detta är ett stort ansvar och vi är glada att ha dig med oss.`,
+        `Inbjudan är giltig till ${expiresLabel}.`
+      ],
+      action: { label: 'Acceptera inbjudan', url: acceptUrl },
+      outro: [
+        'Med denna roll får du hantera och administrera alla organisationer under din distributör.',
+        'Om du inte förväntade dig mejlet kan du ignorera det.'
+      ]
+    },
+    branding
+  )
+
+  if (provider) {
+    const delivery = await sendTemplatedEmail({
+      profile: provider,
+      to: [{ email: input.to }],
+      content: {
+        ...content,
+        subject: `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`
+      },
+      dryRunOutboxDir: outboxDir
+    })
+    return { acceptUrl, delivery }
+  }
+
+  const storedAt = await writeOutboxPreview(
+    {
+      to: [{ email: input.to }],
+      subject: `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`,
+      html: content.html,
+      text: content.text,
+      meta: {
+        reason: 'missing-provider',
+        tenantId: input.tenantId,
+        type: 'distributor-invitation'
+      }
+    },
+    outboxDir
+  )
+  console.info(`[mail] Distributor invitation email for ${input.to} stored at ${storedAt}`)
+  return { acceptUrl, storedAt }
+}
+
+export const sendDistributorConfirmationEmail = async (input: {
+  tenantId: string
+  tenantName: string
+  tenantType: 'provider' | 'distributor'
+  to: string
+  invitedBy?: string
+}) => {
+  const portalUrl = buildPortalUrl('/admin/tenants')
+  const provider = await getGlobalEmailProviderProfile()
+  
+  const logoDataUri = await convertLogoToDataUri(provider?.branding?.logoUrl)
+  const branding = provider?.branding
+    ? {
+        ...provider.branding,
+        ...(logoDataUri ? { logoUrl: logoDataUri } : {})
+      }
+    : undefined
+
+  const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
+  const content = renderBrandedTemplate(
+    {
+      pretitle: `🎉 Grattis! Du är nu ${tenantTypeLabel}! 🎉`,
+      title: input.tenantName,
+      intro: 'Hej!',
+      body: [
+        `🎊 Grattis! Du har nu fått rollen som ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
+        `Detta är ett stort ansvar och vi är glada att ha dig med oss.`,
+        `Med denna roll får du hantera och administrera alla organisationer under din ${tenantTypeLabel.toLowerCase()}.`
+      ],
+      action: { label: 'Öppna portalen', url: portalUrl },
+      outro: [
+        'Du kan nu logga in och börja hantera din distributör.',
+        'Om du inte förväntade dig mejlet kan du ignorera det.'
+      ]
+    },
+    branding
+  )
+
+  if (provider) {
+    const delivery = await sendTemplatedEmail({
+      profile: provider,
+      to: [{ email: input.to }],
+      content: {
+        ...content,
+        subject: `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`
+      },
+      dryRunOutboxDir: outboxDir
+    })
+    return { delivery }
+  }
+
+  const storedAt = await writeOutboxPreview(
+    {
+      to: [{ email: input.to }],
+      subject: `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`,
+      html: content.html,
+      text: content.text,
+      meta: {
+        reason: 'missing-provider',
+        tenantId: input.tenantId,
+        type: 'distributor-confirmation'
+      }
+    },
+    outboxDir
+  )
+  console.info(`[mail] Distributor confirmation email for ${input.to} stored at ${storedAt}`)
+  return { storedAt }
+}

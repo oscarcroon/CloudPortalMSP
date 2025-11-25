@@ -46,3 +46,45 @@ export const rolePermissionMap = {
 
 export type BackendRole = keyof typeof rolePermissionMap
 
+// Scope-agnostic tenant roles
+export const tenantRoles = ['admin', 'user', 'viewer', 'support'] as const
+
+export type TenantRole = (typeof tenantRoles)[number]
+
+// Scope-based tenant role permissions
+// These permissions apply within the tenant scope (with includeChildren if set)
+export const tenantRolePermissionMap: Record<TenantRole, string[]> = {
+  admin: [
+    'tenants:read',
+    'tenants:manage',
+    'tenants:create-distributor',
+    'tenants:create-customer',
+    'org:read',
+    'org:manage',
+    'users:invite',
+    'users:manage',
+    'audit:read'
+  ],
+  user: [
+    'org:read',
+    'cloudflare:read',
+    'containers:read',
+    'vms:read',
+    'wordpress:read'
+  ],
+  viewer: [
+    'org:read',
+    'tenants:read',
+    'cloudflare:read',
+    'containers:read',
+    'vms:read',
+    'wordpress:read'
+  ],
+  support: [
+    'tenants:read',
+    'org:read',
+    'users:read',
+    'audit:read'
+  ]
+}
+

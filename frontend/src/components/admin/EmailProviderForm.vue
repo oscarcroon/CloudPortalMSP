@@ -3,7 +3,15 @@
     <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
       <header class="mb-4">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-          {{ mode === 'global' ? 'Global avsändare' : 'E-postinställning för organisationen' }}
+          {{
+            mode === 'global'
+              ? 'Global avsändare'
+              : mode === 'provider'
+                ? 'E-postinställning för leverantör'
+                : mode === 'distributor'
+                  ? 'E-postinställning för distributör'
+                  : 'E-postinställning för organisationen'
+          }}
         </h2>
         <p class="text-sm text-slate-500 dark:text-slate-400">
           Ange avsändaradress, svarsmail och eventuell branding som ska gälla för utskick.
@@ -12,7 +20,7 @@
       <div v-if="mode === 'organization'" class="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
         <input id="use-override" v-model="useOverride" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
         <label for="use-override" class="text-sm text-slate-700 dark:text-slate-200">
-          Använd organisationsspecifik e-postprovider (annars används global inställning)
+          Använd organisationsspecifik e-postprovider (annars ärvs inställningar från distributör → leverantör → global)
         </label>
       </div>
       <div class="grid gap-4 md:grid-cols-2" :class="{ 'opacity-60 pointer-events-none': !isEditable }">
@@ -341,7 +349,7 @@ import type {
 
 const props = defineProps<{
   summary: AdminEmailProviderSummary | null
-  mode: 'global' | 'organization'
+  mode: 'global' | 'provider' | 'distributor' | 'organization'
   saving?: boolean
   testing?: boolean
   statusMessage?: string
@@ -399,6 +407,7 @@ const isEditable = computed(() => {
   if (props.mode === 'organization') {
     return useOverride.value
   }
+  // Global, provider, and distributor are always editable
   return true
 })
 
@@ -451,6 +460,7 @@ const applySummary = (summary: AdminEmailProviderSummary | null) => {
   if (props.mode === 'organization') {
     useOverride.value = summary?.isActive ?? false
   } else {
+    // Global, provider, and distributor are always active
     useOverride.value = true
   }
 }
@@ -468,6 +478,9 @@ watch(
   (value) => {
     if (props.mode === 'organization') {
       form.isActive = value ? (props.summary?.isActive ?? true) : false
+    } else {
+      // Global, provider, and distributor are always active when override is enabled
+      form.isActive = value
     }
   }
 )

@@ -1,4 +1,4 @@
-import type { RbacRole } from '~/constants/rbac'
+import type { RbacRole, TenantRole } from '~/constants/rbac'
 
 export interface AuthOrganization {
   id: string
@@ -10,6 +10,18 @@ export interface AuthOrganization {
   logoUrl?: string | null
   requireSso: boolean
   hasLocalLoginOverride: boolean
+  tenantId?: string | null
+}
+
+export interface AuthTenant {
+  id: string
+  name: string
+  slug: string
+  type: 'provider' | 'distributor' | 'organization'
+  parentTenantId?: string | null
+  role: TenantRole
+  includeChildren: boolean
+  status: string
 }
 
 export interface AuthUser {
@@ -25,8 +37,13 @@ export interface AuthUser {
 export interface AuthPayload {
   user: AuthUser
   organizations: AuthOrganization[]
+  tenants: AuthTenant[]
   orgRoles: Record<string, RbacRole>
+  tenantRoles: Record<string, TenantRole>
+  tenantIncludeChildren: Record<string, boolean>
   currentOrgId: string | null
   sessionIssuedAt: string
 }
+
+export type AuthState = AuthPayload
 

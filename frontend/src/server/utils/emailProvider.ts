@@ -8,7 +8,7 @@ import {
 import { eq } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
-import { emailProviderProfiles } from '~/server/database/schema'
+import { emailProviderProfiles, organizations, tenants } from '~/server/database/schema'
 import { getDb } from './db'
 import type { AdminEmailProviderSummary } from '~/types/admin'
 
@@ -82,8 +82,9 @@ const buildSettings = (profile?: EmailProviderProfile | null) => {
 }
 
 const toSummary = (record: ProviderRecord, profile?: EmailProviderProfile | null): EmailProviderSummary => ({
-  targetType: (record.targetType as 'global' | 'organization') ?? 'organization',
-  organisationId: record.organizationId,
+  targetType: (record.targetType as 'global' | 'provider' | 'distributor' | 'organization') ?? 'organization',
+  organisationId: record.organizationId ?? undefined,
+  tenantId: record.tenantId ?? undefined,
   providerType: record.providerType as 'smtp' | 'graph',
   fromEmail: record.fromEmail ?? undefined,
   fromName: record.fromName ?? undefined,
@@ -145,9 +146,10 @@ const tryDecryptProfile = (record: ProviderRecord): EmailProviderProfile | null 
   }
 }
 
-const baseSummary = (targetType: 'global' | 'organization', organisationId?: string | null) => ({
+const baseSummary = (targetType: 'global' | 'provider' | 'distributor' | 'organization', organisationId?: string | null, tenantId?: string | null) => ({
   targetType,
   organisationId: organisationId ?? null,
+  tenantId: tenantId ?? null,
   isActive: false,
   hasConfig: false
 })
@@ -156,6 +158,24 @@ export const getGlobalEmailProviderSummary = async () => {
   const record = await fetchByTargetKey(GLOBAL_TARGET_KEY)
   if (!record) {
     return baseSummary('global')
+  }
+  const profile = tryDecryptProfile(record)
+  return toSummary(record, profile)
+}
+
+export const getProviderTenantEmailProviderSummary = async (tenantId: string) => {
+  const record = await fetchByTargetKey(tenantId)
+  if (!record) {
+    return baseSummary('provider', null, tenantId)
+  }
+  const profile = tryDecryptProfile(record)
+  return toSummary(record, profile)
+}
+
+export const getDistributorTenantEmailProviderSummary = async (tenantId: string) => {
+  const record = await fetchByTargetKey(tenantId)
+  if (!record) {
+    return baseSummary('distributor', null, tenantId)
   }
   const profile = tryDecryptProfile(record)
   return toSummary(record, profile)
@@ -181,8 +201,9 @@ export interface SaveEmailProviderInput {
 
 const upsertProvider = async (
   targetKey: string,
-  targetType: 'global' | 'organization',
+  targetType: 'global' | 'provider' | 'distributor' | 'organization',
   organisationId: string | null,
+  tenantId: string | null,
   payload: SaveEmailProviderInput
 ) => {
   const cryptoKey = ensureCryptoKey()
@@ -194,6 +215,7 @@ const upsertProvider = async (
       targetKey,
       targetType,
       organizationId: organisationId,
+      tenantId: tenantId,
       providerType: payload.provider.type,
       isActive: payload.isActive,
       fromEmail: payload.fromEmail,
@@ -209,6 +231,7 @@ const upsertProvider = async (
       set: {
         targetType,
         organizationId: organisationId,
+        tenantId: tenantId,
         providerType: payload.provider.type,
         isActive: payload.isActive,
         fromEmail: payload.fromEmail,
@@ -225,33 +248,130 @@ const upsertProvider = async (
 }
 
 export const saveGlobalEmailProvider = async (payload: SaveEmailProviderInput) => {
-  await upsertProvider(GLOBAL_TARGET_KEY, 'global', null, payload)
+  await upsertProvider(GLOBAL_TARGET_KEY, 'global', null, null, payload)
   return getGlobalEmailProviderSummary()
+}
+
+export const saveProviderTenantEmailProvider = async (
+  tenantId: string,
+  payload: SaveEmailProviderInput
+) => {
+  await upsertProvider(tenantId, 'provider', null, tenantId, payload)
+  return getProviderTenantEmailProviderSummary(tenantId)
+}
+
+export const saveDistributorTenantEmailProvider = async (
+  tenantId: string,
+  payload: SaveEmailProviderInput
+) => {
+  await upsertProvider(tenantId, 'distributor', null, tenantId, payload)
+  return getDistributorTenantEmailProviderSummary(tenantId)
 }
 
 export const saveOrganisationEmailProvider = async (
   organisationId: string,
   payload: SaveEmailProviderInput
 ) => {
-  await upsertProvider(organisationId, 'organization', organisationId, payload)
+  await upsertProvider(organisationId, 'organization', organisationId, null, payload)
   return getOrganisationEmailProviderSummary(organisationId)
+}
+
+/**
+ * Get tenant hierarchy for an organization: [provider, distributor, organization]
+ * Returns empty array if organization not found
+ */
+const getTenantHierarchy = async (organisationId: string): Promise<Array<{ id: string; type: 'organization' | 'distributor' | 'provider' }>> => {
+  const db = getDb()
+  const [org] = await db
+    .select({ tenantId: organizations.tenantId })
+    .from(organizations)
+    .where(eq(organizations.id, organisationId))
+  
+  if (!org?.tenantId) {
+    return []
+  }
+
+  const hierarchy: Array<{ id: string; type: 'organization' | 'distributor' | 'provider' }> = []
+  
+  // Add organization first
+  hierarchy.push({ id: organisationId, type: 'organization' })
+  
+  // Walk up the tenant tree: distributor -> provider
+  let currentTenantId: string | null = org.tenantId
+  
+  while (currentTenantId) {
+    const [tenant] = await db
+      .select({ id: tenants.id, type: tenants.type, parentTenantId: tenants.parentTenantId })
+      .from(tenants)
+      .where(eq(tenants.id, currentTenantId))
+    
+    if (!tenant) break
+    
+    hierarchy.push({
+      id: tenant.id,
+      type: tenant.type as 'organization' | 'distributor' | 'provider'
+    })
+    
+    currentTenantId = tenant.parentTenantId ?? null
+  }
+  
+  return hierarchy.reverse() // Reverse to get [provider, distributor, organization]
 }
 
 export const getEffectiveEmailProviderProfile = async (organisationId?: string | null) => {
   const cryptoKey = ensureCryptoKey()
-  if (organisationId) {
-    const record = await fetchByTargetKey(organisationId)
-    if (record && record.isActive) {
-      const profile = mapToProfile(record, cryptoKey)
+  
+  if (!organisationId) {
+    // No organization - use global (which is inherited by providers)
+    const globalRecord = await fetchByTargetKey(GLOBAL_TARGET_KEY)
+    if (globalRecord && globalRecord.isActive) {
+      return mapToProfile(globalRecord, cryptoKey)
+    }
+    return null
+  }
+
+  // Follow hierarchy: organization -> distributor -> provider -> global
+  const hierarchy = await getTenantHierarchy(organisationId)
+  
+  // Check organization first
+  const orgRecord = await fetchByTargetKey(organisationId)
+  if (orgRecord && orgRecord.isActive && orgRecord.targetType === 'organization') {
+    const profile = mapToProfile(orgRecord, cryptoKey)
+    if (profile) {
+      return profile
+    }
+  }
+  
+  // Check distributor (if exists in hierarchy)
+  const distributor = hierarchy.find(t => t.type === 'distributor')
+  if (distributor) {
+    const distributorRecord = await fetchByTargetKey(distributor.id)
+    if (distributorRecord && distributorRecord.isActive && distributorRecord.targetType === 'distributor') {
+      const profile = mapToProfile(distributorRecord, cryptoKey)
       if (profile) {
         return profile
       }
     }
   }
+  
+  // Check provider (if exists in hierarchy)
+  const provider = hierarchy.find(t => t.type === 'provider')
+  if (provider) {
+    const providerRecord = await fetchByTargetKey(provider.id)
+    if (providerRecord && providerRecord.isActive && providerRecord.targetType === 'provider') {
+      const profile = mapToProfile(providerRecord, cryptoKey)
+      if (profile) {
+        return profile
+      }
+    }
+  }
+  
+  // Fallback to global (which is inherited by providers)
   const globalRecord = await fetchByTargetKey(GLOBAL_TARGET_KEY)
   if (globalRecord && globalRecord.isActive) {
     return mapToProfile(globalRecord, cryptoKey)
   }
+  
   return null
 }
 
@@ -259,6 +379,24 @@ export const getGlobalEmailProviderProfile = async () => {
   const cryptoKey = ensureCryptoKey()
   const record = await fetchByTargetKey(GLOBAL_TARGET_KEY)
   if (record && record.isActive) {
+    return mapToProfile(record, cryptoKey)
+  }
+  return null
+}
+
+export const getProviderTenantEmailProviderProfile = async (tenantId: string) => {
+  const cryptoKey = ensureCryptoKey()
+  const record = await fetchByTargetKey(tenantId)
+  if (record) {
+    return mapToProfile(record, cryptoKey)
+  }
+  return null
+}
+
+export const getDistributorTenantEmailProviderProfile = async (tenantId: string) => {
+  const cryptoKey = ensureCryptoKey()
+  const record = await fetchByTargetKey(tenantId)
+  if (record) {
     return mapToProfile(record, cryptoKey)
   }
   return null

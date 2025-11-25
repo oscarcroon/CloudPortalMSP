@@ -28,6 +28,14 @@
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Steg 1: Organisationsdetaljer</h2>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <div class="md:col-span-2">
+            <TenantSelector
+              v-model="form.tenantId"
+              :distributors="distributors"
+              :required="true"
+              help-text="Välj distributör som organisationen ska tillhöra"
+            />
+          </div>
+          <div class="md:col-span-2">
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</label>
             <input
               v-model="form.name"
@@ -207,9 +215,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, useRouter, watch } from '#imports'
+import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#imports'
 import { rbacRoles } from '~/constants/rbac'
-import type { AdminCreateOrganizationResponse } from '~/types/admin'
+import type { AdminCreateOrganizationResponse, AdminTenantSummary } from '~/types/admin'
+import TenantSelector from '~/components/admin/TenantSelector.vue'
 
 definePageMeta({
   layout: 'default',
@@ -217,6 +226,7 @@ definePageMeta({
 })
 
 const router = useRouter()
+const route = useRoute()
 const roles = rbacRoles
 const steps = [
   { id: 1, label: 'Organisationsdetaljer' },
@@ -231,7 +241,18 @@ const existingUserInfo = ref<{ email: string; fullName: string | null; status: s
 const userConfirmed = ref(false)
 const checkingEmail = ref(false)
 
+// Get tenantId from query if provided
+const initialTenantId = typeof route.query.tenantId === 'string' ? route.query.tenantId : ''
+
+// Fetch distributors
+const { data: distributorsData } = await useFetch<AdminTenantSummary[]>('/api/admin/tenants', {
+  query: { type: 'distributor' }
+})
+
+const distributors = computed(() => distributorsData.value ?? [])
+
 const form = reactive({
+  tenantId: initialTenantId,
   name: '',
   slug: '',
   billingEmail: '',
@@ -243,7 +264,7 @@ const form = reactive({
 
 const canContinue = computed(() => {
   if (currentStep.value === 1) {
-    return Boolean(form.name.trim() && form.coreId.trim().length === 4)
+    return Boolean(form.tenantId && form.name.trim() && form.coreId.trim().length === 4)
   }
   if (currentStep.value === 2) {
     return Boolean(form.ownerEmail.trim() && (userConfirmed.value || !existingUserInfo.value))
@@ -336,6 +357,7 @@ const handleSubmit = async () => {
     const payload = {
       name: form.name.trim(),
       defaultRole: form.defaultRole,
+      tenantId: form.tenantId,
       owner: {
         email: form.ownerEmail.trim()
       } as { email: string; fullName?: string }

@@ -2,17 +2,26 @@
   <section class="space-y-6">
     <header class="space-y-1">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Global e-postprovider</h1>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
+        E-postinställningar - {{ tenant?.name ?? 'Laddar...' }}
+      </h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        Konfigurera det globala utskicket som används för lösenord, inbjudningar och andra notifieringar.
-        Dessa inställningar ärvs av alla leverantörer om de inte har egna inställningar.
+        <span v-if="tenant?.type === 'provider'">
+          Leverantör - Dessa inställningar ärvs av alla distributörer och organisationer under denna leverantör.
+        </span>
+        <span v-else-if="tenant?.type === 'distributor'">
+          Distributör - Dessa inställningar ärvs av alla organisationer under denna distributör.
+        </span>
       </p>
     </header>
 
     <!-- Hierarchy info -->
-    <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+    <div v-if="tenant" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
       <p class="font-semibold">Hierarki:</p>
-      <p class="mt-1">Global → Leverantör → Distributör → Organisation</p>
+      <p class="mt-1">
+        <span v-if="tenant.type === 'provider'">Global → Leverantör ({{ tenant.name }}) → Distributör → Organisation</span>
+        <span v-else-if="tenant.type === 'distributor'">Global → Leverantör → Distributör ({{ tenant.name }}) → Organisation</span>
+      </p>
       <p class="mt-2 text-xs">
         E-postinställningar ärvs från högre nivåer om de inte är satta på lägre nivåer.
       </p>
@@ -32,7 +41,7 @@
     <EmailProviderForm
       v-else
       :summary="provider"
-      mode="global"
+      :mode="tenant?.type === 'provider' ? 'provider' : 'distributor'"
       :saving="saving"
       :testing="testing"
       :status-message="formStatusMessage"
@@ -46,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useFetch } from '#imports'
+import { computed, ref, useFetch, useRoute } from '#imports'
 import EmailProviderForm from '~/components/admin/EmailProviderForm.vue'
 import type { AdminEmailProviderSummary, AdminEmailProviderPayload, AdminEmailProviderTestPayload } from '~/types/admin'
 
@@ -55,6 +64,9 @@ definePageMeta({
   superAdmin: true
 })
 
+const route = useRoute()
+const tenantId = route.params.id as string
+
 const notification = ref('')
 const errorMessage = ref('')
 const saving = ref(false)
@@ -62,8 +74,16 @@ const testing = ref(false)
 const testMessage = ref('')
 const testVariant = ref<'success' | 'error'>('success')
 
+// Fetch tenant info
+const { data: tenantData } = await useFetch<{ tenant: { id: string; name: string; type: string } }>(
+  `/api/admin/tenants/${tenantId}`
+)
+
+const tenant = computed(() => tenantData.value?.tenant)
+
+// Fetch email provider
 const { data, pending, refresh, error } = await useFetch<{ provider: AdminEmailProviderSummary | null }>(
-  '/api/admin/email-provider'
+  `/api/admin/tenants/${tenantId}/email-provider`
 )
 
 if (error.value) {
@@ -86,7 +106,7 @@ const handleSave = async (payload: AdminEmailProviderPayload) => {
   errorMessage.value = ''
   saving.value = true
   try {
-    await $fetch('/api/admin/email-provider', {
+    await $fetch(`/api/admin/tenants/${tenantId}/email-provider`, {
       method: 'PUT',
       body: payload
     })
@@ -105,7 +125,7 @@ const handleTest = async (payload: AdminEmailProviderTestPayload) => {
   testMessage.value = ''
   testing.value = true
   try {
-    await $fetch('/api/admin/email-provider/test', {
+    await $fetch(`/api/admin/tenants/${tenantId}/email-provider/test`, {
       method: 'POST',
       body: payload
     })

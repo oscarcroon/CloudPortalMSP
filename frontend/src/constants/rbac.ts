@@ -2,6 +2,11 @@ export const rbacRoles = ['owner', 'admin', 'member', 'operator', 'viewer'] as c
 
 export type RbacRole = (typeof rbacRoles)[number]
 
+// Scope-agnostic tenant roles
+export const tenantRoles = ['admin', 'user', 'viewer', 'support'] as const
+
+export type TenantRole = (typeof tenantRoles)[number]
+
 export const rbacPermissions = [
   'org:read',
   'org:manage',
@@ -16,7 +21,11 @@ export const rbacPermissions = [
   'vms:write',
   'wordpress:read',
   'wordpress:write',
-  'audit:read'
+  'audit:read',
+  'tenants:read',
+  'tenants:manage',
+  'tenants:create-distributor',
+  'tenants:create-customer'
 ] as const
 
 export type RbacPermission = (typeof rbacPermissions)[number]
@@ -74,6 +83,43 @@ export const rolePermissionMap: Record<RbacRole, RbacPermission[]> = {
 }
 
 export const defaultRole: RbacRole = 'member'
+
+// Scope-based tenant role permissions
+// These permissions apply within the tenant scope (with includeChildren if set)
+export const tenantRolePermissionMap: Record<TenantRole, RbacPermission[]> = {
+  admin: [
+    'tenants:read',
+    'tenants:manage',
+    'tenants:create-distributor',
+    'tenants:create-customer',
+    'org:read',
+    'org:manage',
+    'users:invite',
+    'users:manage',
+    'audit:read'
+  ],
+  user: [
+    'org:read',
+    'cloudflare:read',
+    'containers:read',
+    'vms:read',
+    'wordpress:read'
+  ],
+  viewer: [
+    'org:read',
+    'tenants:read',
+    'cloudflare:read',
+    'containers:read',
+    'vms:read',
+    'wordpress:read'
+  ],
+  support: [
+    'tenants:read',
+    'org:read',
+    'users:read',
+    'audit:read'
+  ]
+}
 
 
 

@@ -1,0 +1,2 @@
+ALTER TABLE `email_provider_profiles` ADD `tenant_id` text REFERENCES tenants(id);--> statement-breakpoint
+CREATE UNIQUE INDEX `email_provider_tenant_unique` ON `email_provider_profiles` (`tenant_id`);

@@ -29,9 +29,13 @@ export interface AuthState {
   sessionIssuedAt: string
 }
 
+import type { TenantRole } from '~/constants/rbac'
+
 export interface SessionTokenPayload {
   userId: string
   orgRoles: Record<string, RbacRole>
+  tenantRoles?: Record<string, TenantRole>
+  tenantIncludeChildren?: Record<string, boolean>
   currentOrgId: string | null
   version: number
   iat?: number

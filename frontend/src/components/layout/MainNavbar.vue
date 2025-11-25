@@ -85,7 +85,15 @@ const baseNavItems = [
 
 const navItems = computed(() => {
   const items = [...baseNavItems]
-  if (auth.isSuperAdmin.value) {
+  const hasTenantAccess =
+    auth.isSuperAdmin.value ||
+    Object.keys(auth.state.value.data?.tenantRoles ?? {}).length > 0
+  if (hasTenantAccess) {
+    items.push(
+      { label: 'Tenants', to: '/admin/tenants', icon: 'mdi:account-group' },
+      { label: 'Organisationer', to: '/admin/organizations', icon: 'mdi:office-building' }
+    )
+  } else if (auth.isSuperAdmin.value) {
     items.push({ label: 'Admin', to: '/admin/organizations', icon: 'mdi:shield-crown' })
   }
   return items

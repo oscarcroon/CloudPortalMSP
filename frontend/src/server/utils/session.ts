@@ -75,7 +75,18 @@ export const ensureAuthState = async (event: H3Event) => {
 
   try {
     const payload = verifyToken(token)
-    const auth = await buildAuthState(payload.userId, payload.currentOrgId, payload.orgRoles)
+    const auth = await buildAuthState(
+      payload.userId,
+      payload.currentOrgId,
+      payload.orgRoles
+    )
+    // Merge tenant roles and includeChildren from token if available
+    if (payload.tenantRoles) {
+      auth.tenantRoles = { ...auth.tenantRoles, ...payload.tenantRoles }
+    }
+    if (payload.tenantIncludeChildren) {
+      auth.tenantIncludeChildren = { ...auth.tenantIncludeChildren, ...payload.tenantIncludeChildren }
+    }
     event.context.auth = auth
     return auth
   } catch (error) {
@@ -98,6 +109,8 @@ export const createSession = async (
     userId: auth.user.id,
     currentOrgId: auth.currentOrgId,
     orgRoles: auth.orgRoles,
+    tenantRoles: auth.tenantRoles,
+    tenantIncludeChildren: auth.tenantIncludeChildren,
     version: SESSION_VERSION
   })
   writeSessionCookie(event, token)

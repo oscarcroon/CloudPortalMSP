@@ -22,12 +22,29 @@ const timestampColumns = () => ({
 const softDeleteColumn = () =>
   integer('deleted_at', { mode: 'timestamp_ms' }).default(null)
 
+export const tenants = sqliteTable(
+  'tenants',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    type: text('type').notNull().$type<'provider' | 'distributor' | 'organization'>(),
+    parentTenantId: text('parent_tenant_id'),
+    status: text('status').notNull().default('active'),
+    ...timestampColumns()
+  },
+  table => ({
+    slugIdx: uniqueIndex('tenants_slug_idx').on(table.slug)
+  })
+)
+
 export const organizations = sqliteTable(
   'organizations',
   {
     id: text('id').primaryKey().$defaultFn(createId),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
+    tenantId: text('tenant_id'),
     status: text('status').notNull().default('active'),
     isSuspended: integer('is_suspended', { mode: 'boolean' }).notNull().default(0),
     defaultRole: text('default_role').notNull().default('viewer'),
@@ -93,6 +110,37 @@ export const organizationMemberships = sqliteTable(
   table => ({
     uniqueMembership: uniqueIndex('organization_membership_unique').on(
       table.organizationId,
+      table.userId
+    )
+  })
+)
+
+export const tenantMemberships = sqliteTable(
+  'tenant_memberships',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references((): any => tenants.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role')
+      .notNull()
+      .$type<'admin' | 'user' | 'viewer' | 'support'>()
+      .default('viewer'),
+    includeChildren: integer('include_children', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    status: text('status')
+      .notNull()
+      .$type<OrganizationMemberStatus>()
+      .default('active'),
+    ...timestampColumns()
+  },
+  table => ({
+    uniqueTenantMembership: uniqueIndex('tenant_membership_unique').on(
+      table.tenantId,
       table.userId
     )
   })
@@ -170,8 +218,11 @@ export const emailProviderProfiles = sqliteTable(
   'email_provider_profiles',
   {
     id: text('id').primaryKey().$defaultFn(createId),
-    targetType: text('target_type').notNull(),
+    targetType: text('target_type').notNull().$type<'global' | 'provider' | 'distributor' | 'organization'>(),
     targetKey: text('target_key').notNull(),
+    tenantId: text('tenant_id').references(() => tenants.id, {
+      onDelete: 'cascade'
+    }),
     organizationId: text('organization_id').references(() => organizations.id, {
       onDelete: 'cascade'
     }),
@@ -192,7 +243,8 @@ export const emailProviderProfiles = sqliteTable(
   },
   table => ({
     targetKeyIdx: uniqueIndex('email_provider_target_key_idx').on(table.targetKey),
-    orgUnique: uniqueIndex('email_provider_org_unique').on(table.organizationId)
+    orgUnique: uniqueIndex('email_provider_org_unique').on(table.organizationId),
+    tenantUnique: uniqueIndex('email_provider_tenant_unique').on(table.tenantId)
   })
 )
 
@@ -373,7 +425,24 @@ export const wordpressSites = sqliteTable(
   })
 )
 
+export const tenantsRelations = relations(tenants, ({ many, one }) => ({
+  parent: one(tenants, {
+    fields: [tenants.parentTenantId],
+    references: [tenants.id],
+    relationName: 'parentTenant'
+  }),
+  children: many(tenants, {
+    relationName: 'parentTenant'
+  }),
+  memberships: many(tenantMemberships),
+  organizations: many(organizations)
+}))
+
 export const organizationsRelations = relations(organizations, ({ many, one }) => ({
+  tenant: one(tenants, {
+    fields: [organizations.tenantId],
+    references: [tenants.id]
+  }),
   memberships: many(organizationMemberships),
   invitations: many(organizationInvitations),
   identityProviders: many(organizationIdentityProviders),
@@ -392,7 +461,19 @@ export const organizationsRelations = relations(organizations, ({ many, one }) =
 
 export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(organizationMemberships),
-  invitations: many(organizationInvitations)
+  invitations: many(organizationInvitations),
+  tenantMemberships: many(tenantMemberships)
+}))
+
+export const tenantMembershipRelations = relations(tenantMemberships, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [tenantMemberships.tenantId],
+    references: [tenants.id]
+  }),
+  user: one(users, {
+    fields: [tenantMemberships.userId],
+    references: [users.id]
+  })
 }))
 
 export const organizationAuthSettingsRelations = relations(

@@ -9,10 +9,12 @@ import {
   organizationAuthSettings,
   organizationMemberships,
   organizations,
+  tenantMemberships,
+  tenants,
   users
 } from '../database/schema'
-import type { AuthOrganization, AuthState } from '../types/auth'
-import type { RbacRole } from '~/constants/rbac'
+import type { AuthOrganization, AuthState, AuthTenant } from '../types/auth'
+import type { RbacRole, TenantRole } from '~/constants/rbac'
 import { normalizeEmail } from './crypto'
 
 export const slugify = (value: string) =>
@@ -82,6 +84,39 @@ export const findUserByEmail = async (email: string) => {
   return user ?? null
 }
 
+const fetchTenantMembershipRows = async (userId: string) => {
+  const db = getDb()
+  return db
+    .select({
+      tenant: tenants,
+      membership: tenantMemberships
+    })
+    .from(tenantMemberships)
+    .innerJoin(tenants, eq(tenants.id, tenantMemberships.tenantId))
+    .where(
+      and(
+        eq(tenantMemberships.userId, userId),
+        eq(tenantMemberships.status, 'active')
+      )
+    )
+}
+
+type TenantMembershipRow = {
+  tenant: typeof tenants.$inferSelect
+  membership: typeof tenantMemberships.$inferSelect
+}
+
+const mapTenantRow = (row: TenantMembershipRow): AuthTenant => ({
+  id: row.tenant.id,
+  name: row.tenant.name,
+  slug: row.tenant.slug,
+  type: row.tenant.type as 'provider' | 'distributor' | 'organization',
+  parentTenantId: row.tenant.parentTenantId ?? null,
+  role: row.membership.role as TenantRole,
+  includeChildren: Boolean(row.membership.includeChildren),
+  status: row.tenant.status
+})
+
 export const buildAuthState = async (
   userId: string,
   forcedOrgId?: string | null,
@@ -104,7 +139,20 @@ export const buildAuthState = async (
   const organizationPayload: AuthOrganization[] = rows.map((row) => {
     const role = row.membership.role as RbacRole
     orgRoles[row.org.id] = role
-    return mapOrgRow(row, role, Boolean(user.isSuperAdmin))
+    return {
+      ...mapOrgRow(row, role, Boolean(user.isSuperAdmin)),
+      tenantId: row.org.tenantId ?? null
+    }
+  })
+
+  const tenantRows = await fetchTenantMembershipRows(userId)
+  const tenantRoles: Record<string, TenantRole> = {}
+  const tenantIncludeChildren: Record<string, boolean> = {}
+  const tenantPayload: AuthTenant[] = tenantRows.map((row) => {
+    const role = row.membership.role as TenantRole
+    tenantRoles[row.tenant.id] = role
+    tenantIncludeChildren[row.tenant.id] = Boolean(row.membership.includeChildren)
+    return mapTenantRow(row)
   })
 
   const resolvedOrgId =
@@ -125,7 +173,10 @@ export const buildAuthState = async (
       forcePasswordReset: Boolean(user.forcePasswordReset)
     },
     organizations: organizationPayload,
+    tenants: tenantPayload,
     orgRoles,
+    tenantRoles,
+    tenantIncludeChildren,
     currentOrgId: resolvedOrgId,
     sessionIssuedAt: new Date().toISOString()
   }

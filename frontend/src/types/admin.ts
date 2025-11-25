@@ -14,8 +14,9 @@ export interface AdminEmailBranding {
 }
 
 export interface AdminEmailProviderSummary {
-  targetType: 'global' | 'organization'
+  targetType: 'global' | 'provider' | 'distributor' | 'organization'
   organisationId?: string | null
+  tenantId?: string | null
   providerType?: AdminEmailProviderType
   fromEmail?: string
   fromName?: string | null
@@ -96,9 +97,11 @@ export interface AdminOrganizationSummary {
   allowSelfSignup: boolean
   defaultRole: RbacRole
   billingEmail?: string | null
+  tenantId?: string | null
   createdAt: number
   memberCount: number
   ssoEnforced: boolean
+  hasEmailOverride?: boolean
 }
 
 export interface AdminOrganizationDetail {
@@ -257,5 +260,76 @@ export interface AdminUserDetail {
 
 export interface AdminUpdateUserStatusPayload {
   status: AdminUserStatus
+}
+
+export type TenantType = 'provider' | 'distributor' | 'organization'
+export type TenantRole = 'admin' | 'user' | 'viewer' | 'support'
+
+export interface AdminTenantSummary {
+  id: string
+  name: string
+  slug: string
+  type: TenantType
+  parentTenantId?: string | null
+  status: string
+  createdAt: number
+  memberCount: number
+  organizationCount?: number
+  hasEmailOverride?: boolean
+}
+
+export interface AdminTenantDetail {
+  tenant: {
+    id: string
+    name: string
+    slug: string
+    type: TenantType
+    parentTenantId?: string | null
+    status: string
+    createdAt: number
+    updatedAt: number
+  }
+  members: Array<{
+    id: string
+    userId: string
+    role: TenantRole
+    status: string
+    user: {
+      id: string
+      email: string
+      fullName?: string | null
+      status: string
+    }
+  }>
+  childTenants: AdminTenantSummary[]
+  organizations?: Array<{
+    id: string
+    name: string
+    slug: string
+    status: string
+    tenantId: string | null
+    createdAt: number
+    hasEmailOverride?: boolean
+  }>
+}
+
+export interface AdminCreateTenantPayload {
+  name: string
+  slug?: string
+  type: 'provider' | 'distributor'
+  parentTenantId?: string
+  owner: {
+    email: string
+    fullName?: string
+  }
+}
+
+export interface AdminCreateTenantResponse {
+  tenant: AdminTenantSummary
+  owner: {
+    id: string
+    email: string
+    fullName?: string | null
+  }
 }
 

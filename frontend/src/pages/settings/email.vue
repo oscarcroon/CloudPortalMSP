@@ -11,7 +11,7 @@
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">E-postinställningar</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
           Hantera organisationens egna utskick. Aktivera override för att använda egna SMTP-/Graph-inställningar,
-          annars används den globala providern.
+          annars ärvs inställningarna från distributör → leverantör → global.
         </p>
       </div>
     </header>
@@ -29,6 +29,15 @@
     </div>
 
     <div v-else class="space-y-6">
+      <!-- Hierarchy info -->
+      <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+        <p class="font-semibold">Hierarki:</p>
+        <p class="mt-1">Global → Leverantör → Distributör → Organisation ({{ organisationName }})</p>
+        <p class="mt-2 text-xs">
+          E-postinställningar ärvs från högre nivåer om de inte är satta på lägre nivåer.
+        </p>
+      </div>
+
       <div class="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
         Aktiv organisation: <span class="font-semibold text-slate-900 dark:text-white">{{ organisationName }}</span>.
         Alla utskick (inbjudningar, rapporter m.m.) använder dessa inställningar när override är aktiv.

@@ -42,8 +42,10 @@ const fetchAuthState = async (token: string) => {
   return (await response.json()) as {
     user: { id: string; email: string }
     organizations: Array<{ id: string; name: string; role: keyof typeof rolePermissionMap }>
+    tenants?: Array<{ id: string; name: string; type: string; role: string }>
     currentOrgId: string
     orgRoles: Record<string, keyof typeof rolePermissionMap>
+    tenantRoles?: Record<string, string>
   }
 }
 
