@@ -18,7 +18,7 @@ export const triggerPasswordReset = async (userId: string, email: string) => {
   const db = getDb()
   const token = createInviteToken()
   const tokenHash = sha256(token)
-  const expiresAt = Date.now() + PASSWORD_RESET_TOKEN_TTL_MS
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS)
 
   const result = await db
     .update(users)
@@ -37,7 +37,7 @@ export const triggerPasswordReset = async (userId: string, email: string) => {
     await sendPasswordResetEmail({
       to: email,
       token,
-      expiresAt
+      expiresAt: expiresAt.getTime()
     })
   } catch (error) {
     throw new EmailDeliveryError(describeEmailSendError(error))

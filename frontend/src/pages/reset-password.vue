@@ -35,9 +35,13 @@
         <li v-for="rule in passwordRequirements" :key="rule">{{ rule }}</li>
       </ul>
 
-      <p v-if="errorMessage" class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
-        {{ errorMessage }}
-      </p>
+      <div v-if="errorMessages.length > 0" class="rounded-lg bg-red-50 border border-red-200 dark:bg-red-500/10 dark:border-red-500/30 px-4 py-3">
+        <ul class="list-disc space-y-1 text-sm text-red-700 dark:text-red-200 ml-4">
+          <li v-for="(error, index) in errorMessages" :key="index">
+            {{ error }}
+          </li>
+        </ul>
+      </div>
 
       <button
         type="submit"
@@ -73,7 +77,7 @@ const route = useRoute()
 const token = ref<string>('')
 const submitting = ref(false)
 const success = ref(false)
-const errorMessage = ref('')
+const errorMessages = ref<string[]>([])
 const form = reactive({
   password: '',
   confirm: ''
@@ -86,15 +90,15 @@ watchEffect(() => {
 
 const handleSubmit = async () => {
   if (!token.value) {
-    errorMessage.value = 'Token saknas.'
+    errorMessages.value = ['Token saknas.']
     return
   }
   if (form.password !== form.confirm) {
-    errorMessage.value = 'Lösenorden matchar inte.'
+    errorMessages.value = ['Lösenorden matchar inte.']
     return
   }
   submitting.value = true
-  errorMessage.value = ''
+  errorMessages.value = []
 
   try {
     await $fetch('/api/auth/password/reset', {
@@ -111,7 +115,21 @@ const handleSubmit = async () => {
     }, 1500)
   } catch (error) {
     console.error(error)
-    errorMessage.value = 'Länken är ogiltig eller har gått ut.'
+    if (error && typeof error === 'object' && 'data' in error && error.data) {
+      const data = error.data as { message?: string; errors?: string[] }
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        errorMessages.value = data.errors
+      } else if (data.message) {
+        errorMessages.value = [data.message]
+      } else {
+        errorMessages.value = ['Kunde inte återställa lösenordet.']
+      }
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      const message = (error.message as string) || 'Kunde inte återställa lösenordet.'
+      errorMessages.value = [message]
+    } else {
+      errorMessages.value = ['Kunde inte återställa lösenordet. Kontrollera att länken är giltig.']
+    }
   } finally {
     submitting.value = false
   }

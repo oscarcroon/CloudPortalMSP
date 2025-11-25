@@ -139,7 +139,8 @@ export default defineEventHandler(async (event) => {
         }
 
         const token = createInviteToken()
-        const expiresAt = Date.now() + INVITE_VALIDITY_MS
+        const expiresAtMs = Date.now() + INVITE_VALIDITY_MS
+        const expiresAt = new Date(expiresAtMs)
         const inviteId = createId()
         tx.insert(organizationInvitations)
           .values({
@@ -162,7 +163,7 @@ export default defineEventHandler(async (event) => {
           type: 'invite',
           inviteId,
           token,
-          expiresAt,
+          expiresAt: expiresAtMs,
           email: normalizedEmail,
           role: targetRole
         }
@@ -236,7 +237,8 @@ export default defineEventHandler(async (event) => {
         }
 
         const token = createInviteToken()
-        const expiresAt = Date.now() + INVITE_VALIDITY_MS
+        const expiresAtMs = Date.now() + INVITE_VALIDITY_MS
+        const expiresAt = new Date(expiresAtMs)
         const inviteId = createId()
         await tx.insert(organizationInvitations).values({
           id: inviteId,
@@ -257,7 +259,7 @@ export default defineEventHandler(async (event) => {
           type: 'invite',
           inviteId,
           token,
-          expiresAt,
+          expiresAt: expiresAtMs,
           email: normalizedEmail,
           role: targetRole
         }

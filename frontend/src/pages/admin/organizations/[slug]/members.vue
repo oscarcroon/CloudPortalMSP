@@ -10,15 +10,18 @@
       </div>
       <div class="flex gap-2">
         <button
-          class="rounded border border-slate-300 px-3 py-1 text-xs uppercase tracking-wide text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+          :disabled="pending"
           @click="refresh"
         >
-          Uppdatera
+          <Icon icon="mdi:refresh" class="h-4 w-4" :class="{ 'animate-spin': pending }" />
+          {{ pending ? 'Uppdaterar...' : 'Uppdatera' }}
         </button>
         <button
-          class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80"
+          class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
           @click="openInviteModal"
         >
+          <Icon icon="mdi:account-plus-outline" class="h-4 w-4" />
           Bjud in medlem
         </button>
       </div>
@@ -239,6 +242,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, useFetch, useRoute, watch } from '#imports'
+import { Icon } from '@iconify/vue'
 import OrganizationTabs from '~/components/admin/OrganizationTabs.vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { defaultRole, rbacRoles } from '~/constants/rbac'

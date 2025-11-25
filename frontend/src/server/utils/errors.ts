@@ -16,17 +16,32 @@ export const formatZodError = (error: ZodError) => {
   const flattened = error.flatten()
   const fieldMessages = Object.entries(flattened.fieldErrors).flatMap(([field, messages]) =>
     (messages ?? []).map(
-      (message) => `Fältet "${humanizePath(field)}": ${message || 'Ogiltigt värde.'}`
+      (message) => message || 'Ogiltigt värde.'
     )
   )
 
-  const formMessages = flattened.formErrors.map((message) => `Fel: ${message}`)
+  const formMessages = flattened.formErrors.map((message) => message)
 
   const combined = [...fieldMessages, ...formMessages]
 
   return combined.length
-    ? combined.join(' ')
+    ? combined.join('. ')
     : 'Indata kunde inte valideras. Kontrollera att alla obligatoriska fält är ifyllda.'
+}
+
+export const formatZodErrorAsList = (error: ZodError): string[] => {
+  const flattened = error.flatten()
+  const fieldMessages = Object.entries(flattened.fieldErrors).flatMap(([field, messages]) =>
+    (messages ?? []).map(
+      (message) => message || 'Ogiltigt värde.'
+    )
+  )
+
+  const formMessages = flattened.formErrors.map((message) => message)
+
+  const combined = [...fieldMessages, ...formMessages]
+
+  return combined.length > 0 ? combined : ['Indata kunde inte valideras. Kontrollera att alla obligatoriska fält är ifyllda.']
 }
 
 export const isMissingCryptoKeyError = (error: unknown) =>

@@ -42,7 +42,15 @@ export default defineEventHandler(async (event) => {
 
   const now = new Date()
   let effectiveStatus = row.status
-  if (effectiveStatus === 'pending' && now > row.expiresAt) {
+  // Handle both Date object and number (milliseconds) from database
+  const expiresAtMs =
+    row.expiresAt instanceof Date
+      ? row.expiresAt.getTime()
+      : typeof row.expiresAt === 'number'
+        ? row.expiresAt
+        : new Date(row.expiresAt).getTime()
+  
+  if (effectiveStatus === 'pending' && !isNaN(expiresAtMs) && expiresAtMs < now.getTime()) {
     await db
       .update(organizationInvitations)
       .set({ status: 'expired', updatedAt: now })
@@ -101,7 +109,12 @@ export default defineEventHandler(async (event) => {
       email: row.email,
       role: row.role,
       status: effectiveStatus,
-      expiresAt: row.expiresAt.toISOString(),
+      expiresAt:
+        row.expiresAt instanceof Date
+          ? row.expiresAt.toISOString()
+          : typeof row.expiresAt === 'number'
+            ? new Date(row.expiresAt).toISOString()
+            : new Date(row.expiresAt).toISOString(),
       invitedBy: row.invitedByEmail || row.invitedByName || '',
       createdAt: row.createdAt.toISOString(),
       branding

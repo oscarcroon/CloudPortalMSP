@@ -10,11 +10,12 @@ import {
 import { getDb } from '~/server/utils/db'
 import { hashPassword, normalizeEmail } from '~/server/utils/crypto'
 import { createSession } from '~/server/utils/session'
+import { passwordSchema } from '~/server/utils/password'
 import type { OrganizationMemberRole } from '~/types/members'
-import { formatZodError } from '~/server/utils/errors'
+import { formatZodErrorAsList } from '~/server/utils/errors'
 
 const registerSchema = z.object({
-  password: z.string().min(8, 'Lösenordet måste vara minst 8 tecken.'),
+  password: passwordSchema,
   fullName: z
     .string()
     .trim()
@@ -38,7 +39,10 @@ export default defineEventHandler(async (event) => {
     if (error instanceof ZodError) {
       throw createError({
         statusCode: 400,
-        message: formatZodError(error)
+        message: formatZodErrorAsList(error).join('. '),
+        data: {
+          errors: formatZodErrorAsList(error)
+        }
       })
     }
     throw error

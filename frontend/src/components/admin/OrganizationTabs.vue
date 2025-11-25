@@ -4,25 +4,28 @@
       v-for="tab in tabs"
       :key="tab.key"
       :to="`/admin/organizations/${slug}/${tab.key}`"
-      class="rounded-full border px-4 py-1 text-sm font-semibold transition"
+      class="inline-flex items-center gap-2 rounded-full border px-4 py-1 text-sm font-semibold transition"
       :class="tabClass(tab.key)"
     >
+      <Icon :icon="tab.icon" class="h-4 w-4" />
       {{ tab.label }}
     </NuxtLink>
   </nav>
 </template>
 
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
+
 const props = defineProps<{
   slug: string
   active: 'overview' | 'members' | 'auth' | 'email'
 }>()
 
 const tabs = [
-  { key: 'overview', label: 'Översikt' },
-  { key: 'members', label: 'Medlemmar' },
-  { key: 'auth', label: 'Auth & SSO' },
-  { key: 'email', label: 'E-post' }
+  { key: 'overview', label: 'Översikt', icon: 'mdi:view-dashboard-outline' },
+  { key: 'members', label: 'Medlemmar', icon: 'mdi:account-group-outline' },
+  { key: 'auth', label: 'Auth & SSO', icon: 'mdi:shield-lock-outline' },
+  { key: 'email', label: 'E-post', icon: 'mdi:email-outline' }
 ]
 
 const tabClass = (key: string) => {

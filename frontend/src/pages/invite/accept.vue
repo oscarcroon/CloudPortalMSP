@@ -118,9 +118,18 @@
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             />
           </div>
-          <p v-if="registrationError" class="text-sm text-red-600 dark:text-red-300">
-            {{ registrationError }}
-          </p>
+
+          <ul class="list-disc space-y-1 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300" aria-live="polite">
+            <li v-for="rule in passwordRequirements" :key="rule">{{ rule }}</li>
+          </ul>
+
+          <div v-if="registrationErrors.length > 0" class="rounded-lg bg-red-50 border border-red-200 dark:bg-red-500/10 dark:border-red-500/30 px-4 py-3">
+            <ul class="list-disc space-y-1 text-sm text-red-700 dark:text-red-200 ml-4">
+              <li v-for="(error, index) in registrationErrors" :key="index">
+                {{ error }}
+              </li>
+            </ul>
+          </div>
           <button
             class="w-full rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-50"
             :disabled="registrationLoading"
@@ -161,6 +170,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from '#imports'
 import { useAuth } from '~/composables/useAuth'
+import { passwordRequirements } from '~/constants/password'
 import type {
   InvitationLookupResponse,
   InvitationDetails
@@ -186,7 +196,7 @@ const acceptLoading = ref(false)
 const registrationLoading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
-const registrationError = ref('')
+const registrationErrors = ref<string[]>([])
 const inviteMeta = ref<Pick<InvitationLookupResponse, 'emailExists' | 'hasPassword' | 'autoAccept'> | null>(
   null
 )
@@ -307,11 +317,11 @@ const loadInvitation = async () => {
 const submitRegistration = async () => {
   if (!token.value || !requiresAccountCreation.value) return
   if (registrationForm.password !== registrationForm.confirmPassword) {
-    registrationError.value = 'Lösenorden matchar inte.'
+    registrationErrors.value = ['Lösenorden matchar inte.']
     return
   }
   registrationLoading.value = true
-  registrationError.value = ''
+  registrationErrors.value = []
   errorMessage.value = ''
   successMessage.value = ''
   try {
@@ -328,8 +338,21 @@ const submitRegistration = async () => {
     await auth.fetchMe()
     await navigateTo('/')
   } catch (error) {
-    registrationError.value =
-      error instanceof Error ? error.message : 'Kunde inte skapa kontot.'
+    if (error && typeof error === 'object' && 'data' in error && error.data) {
+      const data = error.data as { message?: string; errors?: string[] }
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        registrationErrors.value = data.errors
+      } else if (data.message) {
+        registrationErrors.value = [data.message]
+      } else {
+        registrationErrors.value = ['Kunde inte skapa kontot.']
+      }
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      const message = (error.message as string) || 'Kunde inte skapa kontot.'
+      registrationErrors.value = [message]
+    } else {
+      registrationErrors.value = ['Kunde inte skapa kontot.']
+    }
   } finally {
     registrationLoading.value = false
   }
