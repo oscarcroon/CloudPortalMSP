@@ -26,6 +26,7 @@ const updateSchema = z
       .regex(slugRegex, 'Slug måste vara lowercase och får endast innehålla bindestreck.')
       .optional(),
     billingEmail: z.union([z.string().email(), z.literal(null), z.literal('')]).optional(),
+    coreId: z.union([z.string().max(4), z.literal(null), z.literal('')]).optional(),
     defaultRole: z.enum(rbacRoles).optional(),
     requireSso: z.boolean().optional(),
     allowSelfSignup: z.boolean().optional()
@@ -35,6 +36,7 @@ const updateSchema = z
       payload.name !== undefined ||
       payload.slug !== undefined ||
       payload.billingEmail !== undefined ||
+      payload.coreId !== undefined ||
       payload.defaultRole !== undefined ||
       payload.requireSso !== undefined ||
       payload.allowSelfSignup !== undefined,
@@ -57,6 +59,9 @@ export default defineEventHandler(async (event) => {
   if (payload.slug !== undefined) orgUpdates.slug = payload.slug
   if (payload.billingEmail !== undefined) {
     orgUpdates.billingEmail = payload.billingEmail === '' ? null : payload.billingEmail
+  }
+  if (payload.coreId !== undefined) {
+    orgUpdates.coreId = payload.coreId === '' ? null : payload.coreId?.toUpperCase() ?? null
   }
   if (payload.defaultRole !== undefined) orgUpdates.defaultRole = payload.defaultRole
   if (payload.requireSso !== undefined) orgUpdates.requireSso = payload.requireSso

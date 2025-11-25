@@ -80,7 +80,7 @@
             />
           </div>
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Faktura-e-post</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Kontaktperson</label>
             <input
               v-model="form.billingEmail"
               type="email"
@@ -95,6 +95,17 @@
             >
               <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
             </select>
+          </div>
+          <div>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">COREID</label>
+            <input
+              v-model="form.coreId"
+              type="text"
+              maxlength="4"
+              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white uppercase"
+              placeholder="ABCD"
+              style="text-transform: uppercase;"
+            />
           </div>
           <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
             <input
@@ -233,6 +244,7 @@ const form = reactive({
   name: '',
   slug: '',
   billingEmail: '',
+  coreId: '',
   defaultRole: roles[3],
   requireSso: false,
   allowSelfSignup: false
@@ -276,6 +288,7 @@ watch(
     form.name = org.name
     form.slug = org.slug
     form.billingEmail = org.billingEmail ?? ''
+    form.coreId = org.coreId ?? ''
     form.defaultRole = org.defaultRole
     form.requireSso = org.requireSso
     form.allowSelfSignup = org.allowSelfSignup
@@ -317,6 +330,7 @@ const handleSave = async () => {
     payload.slug = form.slug.trim()
   }
   payload.billingEmail = form.billingEmail.trim() || null
+  payload.coreId = form.coreId.trim() ? form.coreId.trim().toUpperCase() : null
 
   try {
     await $fetch(`/api/admin/organizations/${slug.value}`, {

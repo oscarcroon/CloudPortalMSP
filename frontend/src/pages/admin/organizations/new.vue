@@ -48,12 +48,12 @@
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Lämna tomt för automatisk generering.</p>
           </div>
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Fakturering</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Kontaktperson</label>
             <input
               v-model="form.billingEmail"
               type="email"
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="billing@example.com"
+              placeholder="kontakt@example.com"
             />
           </div>
           <div>
@@ -65,29 +65,55 @@
               <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
             </select>
           </div>
-          <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
-            <input id="require-sso" v-model="form.requireSso" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
-            <label for="require-sso" class="text-sm text-slate-700 dark:text-slate-200">Kräv SSO för organisationen</label>
-          </div>
-          <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
-            <input id="allow-signup" v-model="form.allowSelfSignup" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
-            <label for="allow-signup" class="text-sm text-slate-700 dark:text-slate-200">Tillåt självregistrering</label>
+          <div>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">COREID <span class="text-red-500">*</span></label>
+            <input
+              v-model="form.coreId"
+              type="text"
+              maxlength="4"
+              required
+              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white uppercase"
+              placeholder="ABCD"
+              style="text-transform: uppercase;"
+            />
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kundens prefix (fyra bokstäver). Går att redigera efter att organisationen har skapats.</p>
           </div>
         </div>
       </div>
 
       <div v-show="currentStep === 2" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Steg 2: Ägarkonto</h2>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+          Här skapar du ett användarkonto för organisationens ägare. Efter att organisationen har skapats kommer en inbjudningslänk att skickas via e-post där ägaren kan acceptera inbjudan och skapa sitt lösenord.
+        </p>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <div class="md:col-span-2">
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</label>
-            <input
-              v-model="form.ownerEmail"
-              type="email"
-              required
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="owner@example.com"
-            />
+            <div class="relative">
+              <input
+                v-model="form.ownerEmail"
+                type="email"
+                required
+                class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+                placeholder="owner@example.com"
+              />
+              <div v-if="checkingEmail" class="absolute right-3 top-1/2 -translate-y-1/2">
+                <div class="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-brand"></div>
+              </div>
+            </div>
+            <div v-if="existingUserInfo && !userConfirmed" class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-500/40 dark:bg-amber-500/10">
+              <p class="text-xs font-medium text-amber-800 dark:text-amber-200">
+                ⚠️ En användare med denna e-postadress finns redan i systemet.
+              </p>
+              <p v-if="existingUserInfo.fullName" class="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                Namn: {{ existingUserInfo.fullName }}
+              </p>
+            </div>
+            <div v-else-if="existingUserInfo && userConfirmed" class="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-500/40 dark:bg-emerald-500/10">
+              <p class="text-xs font-medium text-emerald-800 dark:text-emerald-200">
+                ✓ Bekräftad: Användaren kommer att läggas till som ägare.
+              </p>
+            </div>
           </div>
           <div class="md:col-span-2">
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</label>
@@ -97,13 +123,53 @@
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
               placeholder="Ex. Anna Andersson"
             />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Ägaren får sätta sitt lösenord via inloggningslänk.</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Ett användarkonto kommer att skapas och en inbjudningslänk skickas via e-post.</p>
           </div>
         </div>
       </div>
 
       <div v-if="errorMessage" class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
         {{ errorMessage }}
+      </div>
+
+      <!-- Confirmation dialog for existing user -->
+      <div
+        v-if="showConfirmDialog"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8"
+        @click.self="showConfirmDialog = false"
+      >
+        <div class="w-full max-w-lg space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#0f172a]">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Bekräfta e-postadress</h3>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            En användare med e-postadressen <strong class="font-semibold text-slate-900 dark:text-white">{{ form.ownerEmail }}</strong> finns redan i systemet.
+          </p>
+          <div v-if="existingUserInfo" class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Befintlig användare</p>
+            <p class="mt-1 text-sm font-medium text-slate-900 dark:text-white">
+              {{ existingUserInfo.fullName || 'Inget namn angivet' }}
+            </p>
+            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ existingUserInfo.email }}</p>
+          </div>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            Denna användare kommer att läggas till som ägare i den nya organisationen. Är du säker på att detta är rätt e-postadress?
+          </p>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              class="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+              @click="showConfirmDialog = false"
+            >
+              Avbryt
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80"
+              @click="confirmExistingUser"
+            >
+              Bekräfta och fortsätt
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="flex items-center justify-between">
@@ -141,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, useRouter } from '#imports'
+import { computed, reactive, ref, useRouter, watch } from '#imports'
 import { rbacRoles } from '~/constants/rbac'
 import type { AdminCreateOrganizationResponse } from '~/types/admin'
 
@@ -160,27 +226,103 @@ const steps = [
 const currentStep = ref(1)
 const submitting = ref(false)
 const errorMessage = ref('')
+const showConfirmDialog = ref(false)
+const existingUserInfo = ref<{ email: string; fullName: string | null; status: string } | null>(null)
+const userConfirmed = ref(false)
+const checkingEmail = ref(false)
 
 const form = reactive({
   name: '',
   slug: '',
   billingEmail: '',
   defaultRole: roles[3],
-  requireSso: false,
-  allowSelfSignup: false,
+  coreId: '',
   ownerEmail: '',
   ownerFullName: ''
 })
 
 const canContinue = computed(() => {
   if (currentStep.value === 1) {
-    return Boolean(form.name.trim())
+    return Boolean(form.name.trim() && form.coreId.trim().length === 4)
   }
   if (currentStep.value === 2) {
-    return Boolean(form.ownerEmail.trim())
+    return Boolean(form.ownerEmail.trim() && (userConfirmed.value || !existingUserInfo.value))
   }
   return true
 })
+
+// Check if user exists when email is entered
+watch(
+  () => form.ownerEmail,
+  async (newEmail, oldEmail) => {
+    // Reset confirmation if email changed
+    if (newEmail !== oldEmail) {
+      userConfirmed.value = false
+    }
+
+    if (!newEmail || newEmail.trim().length === 0) {
+      existingUserInfo.value = null
+      userConfirmed.value = false
+      showConfirmDialog.value = false
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newEmail)) {
+      existingUserInfo.value = null
+      userConfirmed.value = false
+      showConfirmDialog.value = false
+      return
+    }
+
+    checkingEmail.value = true
+    try {
+      const result = await $fetch<{ exists: boolean; user?: { email: string; fullName: string | null; status: string } }>(
+        '/api/admin/users/check-email',
+        {
+          method: 'POST',
+          body: { email: newEmail }
+        }
+      )
+
+      if (result.exists && result.user) {
+        existingUserInfo.value = result.user
+        // Only show dialog if not already confirmed and we're on step 2
+        if (currentStep.value === 2 && !userConfirmed.value) {
+          showConfirmDialog.value = true
+        }
+      } else {
+        existingUserInfo.value = null
+        userConfirmed.value = false
+        showConfirmDialog.value = false
+      }
+    } catch (error) {
+      console.error('Failed to check email', error)
+      existingUserInfo.value = null
+      userConfirmed.value = false
+      showConfirmDialog.value = false
+    } finally {
+      checkingEmail.value = false
+    }
+  },
+  { debounce: 500 }
+)
+
+// Show confirmation dialog when entering step 2 if user exists
+watch(
+  () => currentStep.value,
+  async (newStep) => {
+    if (newStep === 2 && existingUserInfo.value && !userConfirmed.value) {
+      showConfirmDialog.value = true
+    }
+  }
+)
+
+const confirmExistingUser = () => {
+  userConfirmed.value = true
+  showConfirmDialog.value = false
+}
 
 const handleSubmit = async () => {
   if (!canContinue.value) {
@@ -194,8 +336,6 @@ const handleSubmit = async () => {
     const payload = {
       name: form.name.trim(),
       defaultRole: form.defaultRole,
-      requireSso: form.requireSso,
-      allowSelfSignup: form.allowSelfSignup,
       owner: {
         email: form.ownerEmail.trim()
       } as { email: string; fullName?: string }
@@ -207,6 +347,7 @@ const handleSubmit = async () => {
     if (form.billingEmail.trim()) {
       payload.billingEmail = form.billingEmail.trim()
     }
+    payload.coreId = form.coreId.trim().toUpperCase()
     if (form.ownerFullName.trim()) {
       payload.owner.fullName = form.ownerFullName.trim()
     }

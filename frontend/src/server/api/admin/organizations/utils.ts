@@ -189,6 +189,7 @@ export const buildOrganizationDetailPayload = async (db: DrizzleDb, organization
       slug: organization.slug,
       status: organization.status,
       billingEmail: organization.billingEmail,
+      coreId: organization.coreId,
       defaultRole: organization.defaultRole,
       requireSso: Boolean(organization.requireSso),
       allowSelfSignup: Boolean(organization.allowSelfSignup),

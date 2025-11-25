@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { rbacRoles } from '~/constants/rbac'
 import {
   organizationAuthSettings,
+  organizationInvitations,
   organizationMemberships,
   organizations,
   users
@@ -13,7 +14,9 @@ import { getDb } from '../../../utils/db'
 import { normalizeEmail } from '../../../utils/crypto'
 import { slugify } from '../../../utils/auth'
 import { requireSuperAdmin } from '../../../utils/rbac'
-import { ensureOrganizationAuthSettings, serializeAuthSettings, slugRegex } from './utils'
+import { ensureOrganizationAuthSettings, serializeAuthSettings, slugRegex, createInviteToken } from './utils'
+import { sendInvitationEmail } from '~/server/utils/mailer'
+import { describeEmailSendError } from '~/server/utils/emailTest'
 
 const createOrgSchema = z.object({
   name: z.string().min(2).max(120),
@@ -24,14 +27,15 @@ const createOrgSchema = z.object({
     .regex(slugRegex, 'Slug may only contain lowercase letters, numbers och bindestreck.')
     .optional(),
   billingEmail: z.string().email().optional(),
-  requireSso: z.boolean().optional(),
-  allowSelfSignup: z.boolean().optional(),
+  coreId: z.string().length(4, 'COREID måste vara exakt 4 tecken'),
   defaultRole: z.enum(rbacRoles).optional(),
   owner: z.object({
     email: z.string().email(),
     fullName: z.string().min(2).max(120).optional()
   })
 })
+
+const INVITE_VALIDITY_MS = 1000 * 60 * 60 * 24 * 14
 
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
@@ -46,6 +50,12 @@ export default defineEventHandler(async (event) => {
 
   const organizationId = createId()
   const ownerUserId = existingUser?.id ?? createId()
+  
+  // Prepare invitation data - always create invitation for new organization owner
+  const inviteToken = createInviteToken()
+  const inviteExpiresAtMs = Date.now() + INVITE_VALIDITY_MS
+  const inviteExpiresAt = new Date(inviteExpiresAtMs)
+  const inviteId = createId()
 
   try {
     if (isSqlite) {
@@ -56,9 +66,10 @@ export default defineEventHandler(async (event) => {
           slug: payload.slug ?? slugify(payload.name),
           status: 'active',
           billingEmail: payload.billingEmail,
-          requireSso: payload.requireSso ?? false,
-          allowSelfSignup: payload.allowSelfSignup ?? false,
-          defaultRole: payload.defaultRole ?? 'viewer'
+          requireSso: false,
+          allowSelfSignup: false,
+          defaultRole: payload.defaultRole ?? 'viewer',
+          coreId: payload.coreId ? payload.coreId.toUpperCase() : null
         }
 
         tx.insert(organizations).values(organizationValues).run()
@@ -118,6 +129,20 @@ export default defineEventHandler(async (event) => {
             })
             .run()
         }
+
+        // Always create invitation for owner when creating new organization
+        tx.insert(organizationInvitations)
+          .values({
+            id: inviteId,
+            organizationId,
+            email: normalizedOwnerEmail,
+            role: 'owner',
+            token: inviteToken,
+            status: 'pending',
+            invitedByUserId: null,
+            expiresAt: inviteExpiresAt
+          })
+          .run()
       })
     } else {
       await db.transaction(async (tx) => {
@@ -127,9 +152,10 @@ export default defineEventHandler(async (event) => {
           slug: payload.slug ?? slugify(payload.name),
           status: 'active',
           billingEmail: payload.billingEmail,
-          requireSso: payload.requireSso ?? false,
-          allowSelfSignup: payload.allowSelfSignup ?? false,
-          defaultRole: payload.defaultRole ?? 'viewer'
+          requireSso: false,
+          allowSelfSignup: false,
+          defaultRole: payload.defaultRole ?? 'viewer',
+          coreId: payload.coreId ? payload.coreId.toUpperCase() : null
         }
 
         await tx.insert(organizations).values(organizationValues)
@@ -182,6 +208,18 @@ export default defineEventHandler(async (event) => {
             status: 'active'
           })
         }
+
+        // Always create invitation for owner when creating new organization
+        await tx.insert(organizationInvitations).values({
+          id: inviteId,
+          organizationId,
+          email: normalizedOwnerEmail,
+          role: 'owner',
+          token: inviteToken,
+          status: 'pending',
+          invitedByUserId: null,
+          expiresAt: inviteExpiresAt
+        })
       })
     }
   } catch (error: any) {
@@ -212,6 +250,24 @@ export default defineEventHandler(async (event) => {
   }
 
   const authSettings = await ensureOrganizationAuthSettings(db, organizationId)
+
+  // Always send invitation email to owner when creating new organization
+  try {
+    await sendInvitationEmail({
+      organisationId: organization.id,
+      organisationName: organization.name,
+      invitedBy: 'System',
+      role: 'owner',
+      to: normalizedOwnerEmail,
+      expiresAt: inviteExpiresAtMs,
+      token: inviteToken,
+      organisationLogo: organization.logoUrl ?? null
+    })
+  } catch (error) {
+    console.error('[create-org] Failed to send invitation email to owner', error)
+    // Don't fail the request if email fails, but log it
+    // In production, you might want to throw an error or queue the email for retry
+  }
 
   return {
     organization,

@@ -35,6 +35,7 @@ export const organizations = sqliteTable(
     allowSelfSignup: integer('allow_self_signup', { mode: 'boolean' }).notNull().default(0),
     logoUrl: text('logo_url'),
     billingEmail: text('billing_email'),
+    coreId: text('core_id'),
     ...timestampColumns()
   },
   table => ({

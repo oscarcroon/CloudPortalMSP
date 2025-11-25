@@ -108,6 +108,7 @@ export interface AdminOrganizationDetail {
     slug: string
     status: string
     billingEmail?: string | null
+    coreId?: string | null
     defaultRole: RbacRole
     requireSso: boolean
     allowSelfSignup: boolean
@@ -126,8 +127,7 @@ export interface AdminCreateOrganizationPayload {
   name: string
   slug?: string
   billingEmail?: string
-  requireSso?: boolean
-  allowSelfSignup?: boolean
+  coreId?: string
   defaultRole?: RbacRole
   owner: {
     email: string
@@ -149,6 +149,7 @@ export interface AdminUpdateOrganizationPayload {
   name?: string
   slug?: string
   billingEmail?: string | null
+  coreId?: string | null
   defaultRole?: RbacRole
   requireSso?: boolean
   allowSelfSignup?: boolean

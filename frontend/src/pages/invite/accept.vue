@@ -87,7 +87,7 @@
           @submit.prevent="submitRegistration"
         >
           <p class="text-slate-600 dark:text-slate-300">
-            Skapa ett lösenord för <strong>{{ invitation?.email }}</strong> för att gå med i organisationen.
+            En administratör har skapat en organisation och bjudit in dig som ägare. Skapa ett lösenord nedan för att acceptera inbjudan och gå med i organisationen.
           </p>
           <div>
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Fullständigt namn</label>
@@ -234,10 +234,16 @@ const normalizedLogoUrl = computed(() => {
   return normalizeLogoUrl(logoUrl)
 })
 const requiresAccountCreation = computed(
-  () => inviteMeta.value?.emailExists === false && invitation.value?.status === 'pending'
+  () => 
+    invitation.value?.status === 'pending' &&
+    (!inviteMeta.value?.emailExists || (inviteMeta.value?.emailExists && !inviteMeta.value?.hasPassword))
 )
 const shouldShowLoginPrompt = computed(
-  () => inviteMeta.value?.emailExists === true && !isAuthenticated.value && invitation.value?.status === 'pending'
+  () => 
+    inviteMeta.value?.emailExists === true && 
+    inviteMeta.value?.hasPassword === true &&
+    !isAuthenticated.value && 
+    invitation.value?.status === 'pending'
 )
 const showMismatchNotice = computed(
   () =>
