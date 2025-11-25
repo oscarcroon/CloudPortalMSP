@@ -469,7 +469,11 @@ const handleInviteSubmit = async (payload: InviteMemberPayload) => {
     await loadMembers()
   } catch (error) {
     if (error && typeof error === 'object' && 'statusCode' in error && (error as any).statusCode === 409) {
-      inviteError.value = 'Personen är redan medlem i organisationen.'
+      // Use the error message from backend, which can be either:
+      // - "User is already a member of this organisation."
+      // - "Det finns redan en väntande inbjudan för denna e-postadress."
+      const backendMessage = extractErrorMessage(error)
+      inviteError.value = backendMessage || 'Personen är redan medlem i organisationen eller har en väntande inbjudan.'
     } else {
       inviteError.value = extractErrorMessage(error) || 'Kunde inte skicka inbjudan.'
     }

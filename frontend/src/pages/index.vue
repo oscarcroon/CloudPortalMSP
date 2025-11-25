@@ -1,7 +1,7 @@
 <template>
   <section class="space-y-10">
     <div class="rounded-3xl bg-gradient-to-r from-brand to-brand-dark px-6 py-10 text-white shadow-card">
-      <p class="text-sm uppercase tracking-[0.3em] text-white/70">CloudPortal</p>
+      <p class="text-sm uppercase tracking-[0.3em] text-white/70">Cloud Portal</p>
       <h1 class="mt-3 text-4xl font-semibold">Single pane of glass</h1>
       <p class="mt-4 max-w-2xl text-white/80">
         Hantera DNS, containrar, virtuella maskiner och WordPress-webbplatser från ett enda gränssnitt.

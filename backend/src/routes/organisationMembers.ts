@@ -204,6 +204,27 @@ organisationMembersRouter.post('/:organisationId/members/invite', async (req, re
     return
   }
 
+  // Check for existing pending invitation
+  const existingPendingInvitation = await db
+    .select({
+      id: organisationInvitationsTable.id,
+      email: organisationInvitationsTable.email
+    })
+    .from(organisationInvitationsTable)
+    .where(
+      and(
+        eq(organisationInvitationsTable.organizationId, organisationId),
+        eq(organisationInvitationsTable.email, normalizedEmail),
+        eq(organisationInvitationsTable.status, 'pending')
+      )
+    )
+    .get()
+
+  if (existingPendingInvitation) {
+    res.status(409).json({ message: 'Det finns redan en väntande inbjudan för denna e-postadress.' })
+    return
+  }
+
   const invitedBy = req.userContext?.email ?? req.userContext?.id ?? 'system'
   const user = await db.select().from(usersTable).where(eq(usersTable.email, normalizedEmail)).get()
 

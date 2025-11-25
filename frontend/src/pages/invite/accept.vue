@@ -22,7 +22,7 @@
           <img
             :src="normalizedLogoUrl"
             alt="Organisation logo"
-            class="h-12 w-auto max-w-[60px]"
+            class="h-12 w-auto max-w-[150px]"
           />
         </div>
         <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
