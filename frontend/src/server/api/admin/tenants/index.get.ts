@@ -1,7 +1,7 @@
-import { and, desc, eq, like, or, sql } from 'drizzle-orm'
+import { and, desc, eq, like, or, sql, inArray } from 'drizzle-orm'
 import { defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
-import { tenants, tenantMemberships, organizations, emailProviderProfiles } from '../../../database/schema'
+import { tenants, tenantMemberships, organizations, organizationMemberships, emailProviderProfiles } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { ensureAuthState } from '../../../utils/session'
 import { canAccessTenant } from '../../../utils/rbac'
@@ -119,6 +119,60 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return accessibleTenants
+  // Get organizations for distributors (only if user has access to the distributor)
+  const accessibleDistributorIds = accessibleTenants
+    .filter(t => t.type === 'distributor')
+    .map(t => t.id)
+
+  let orgsList: any[] = []
+  if (accessibleDistributorIds.length > 0) {
+    const orgsQuery = db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        status: organizations.status,
+        tenantId: organizations.tenantId,
+        createdAt: organizations.createdAt,
+        memberCount: sql<number>`count(distinct ${organizationMemberships.id})`,
+        hasEmailOverride: sql<boolean>`(
+          select exists(
+            select 1
+            from ${emailProviderProfiles}
+            where ${emailProviderProfiles.organizationId} = ${organizations.id}
+            and ${emailProviderProfiles.isActive} = 1
+            and ${emailProviderProfiles.targetType} = 'organization'
+          )
+        )`
+      })
+      .from(organizations)
+      .leftJoin(
+        organizationMemberships,
+        and(
+          eq(organizationMemberships.organizationId, organizations.id),
+          eq(organizationMemberships.status, 'active')
+        )
+      )
+      .where(
+        auth.user.isSuperAdmin
+          ? undefined
+          : inArray(organizations.tenantId, accessibleDistributorIds)
+      )
+      .groupBy(
+        organizations.id,
+        organizations.name,
+        organizations.slug,
+        organizations.status,
+        organizations.tenantId,
+        organizations.createdAt
+      )
+
+    orgsList = await orgsQuery
+  }
+
+  return {
+    tenants: accessibleTenants,
+    organizations: orgsList
+  }
 })
 

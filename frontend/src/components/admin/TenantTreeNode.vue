@@ -7,8 +7,11 @@
        <!-- Tree connector lines -->
        <div
          v-if="level > 0"
-         class="absolute left-0 top-0 bottom-0 pointer-events-none"
-         :style="{ width: `${level * 24}px` }"
+         class="absolute left-0 top-0 pointer-events-none"
+         :style="{ 
+           width: `${level * 24}px`,
+           height: '100%'
+         }"
        >
          <!-- Vertical lines for parent levels (always show to connect the tree) -->
          <template v-for="i in level - 1" :key="`parent-line-${i}`">
@@ -36,8 +39,8 @@
            <div
              class="absolute left-[12px] w-px border-l border-slate-300 dark:border-slate-600"
              :style="{
-               top: hasSiblingAfter ? 'calc(-50% - 6px)' : '-12px',
-               height: hasSiblingAfter ? 'calc(50% + 6px)' : '12px'
+               top: hasSiblingAfter || (shouldShowChildren && visibleChildren.length > 0) ? 'calc(-50% - 6px)' : '-12px',
+               height: hasSiblingAfter || (shouldShowChildren && visibleChildren.length > 0) ? 'calc(50% + 6px)' : '12px'
              }"
            />
            <!-- Horizontal line (from end of vertical line to this node) -->
@@ -46,9 +49,9 @@
            />
          </div>
          
-         <!-- Vertical line continuation if has siblings after (continues down from connector point) -->
+         <!-- Vertical line continuation if has siblings after OR has children (continues down from connector point) -->
          <div
-           v-if="hasSiblingAfter"
+           v-if="hasSiblingAfter || (shouldShowChildren && visibleChildren.length > 0)"
            class="absolute border-l border-slate-300 dark:border-slate-600"
            :style="{
              left: `${(level - 1) * 24 + 12}px`,
@@ -61,19 +64,36 @@
 
       <!-- Tenant content -->
       <div
-        class="flex flex-1 cursor-pointer items-center gap-2 sm:gap-3 min-w-0"
-        @click="$emit('navigate', node.tenant.id)"
+        class="flex flex-1 items-center gap-2 sm:gap-3 min-w-0"
       >
+        <!-- Toggle button for distributors -->
+        <button
+          v-if="node.tenant.type === 'distributor' && hasOrganizations"
+          class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300"
+          @click.stop="toggleOrganizations"
+          :title="showDistributorOrgs ? 'Dölj organisationer' : 'Visa organisationer'"
+        >
+          <Icon
+            :icon="showDistributorOrgs ? 'mdi:chevron-down' : 'mdi:chevron-right'"
+            class="h-4 w-4"
+          />
+        </button>
+        <div v-else-if="level > 0" class="w-6 shrink-0" />
+
         <!-- Type icon -->
         <div
-          class="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg"
+          class="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg"
           :class="getTypeIconClass(node.tenant.type)"
+          @click="handleNavigate"
         >
           <Icon :icon="getTypeIcon(node.tenant.type)" class="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
 
         <!-- Tenant info -->
-        <div class="min-w-0 flex-1 overflow-hidden">
+        <div
+          class="min-w-0 flex-1 cursor-pointer overflow-hidden"
+          @click="handleNavigate"
+        >
           <div class="flex items-center gap-1 sm:gap-2 flex-wrap">
             <span class="truncate font-semibold text-sm sm:text-base text-slate-900 dark:text-white">{{ node.tenant.name }}</span>
             <span
@@ -109,7 +129,7 @@
         <div class="flex shrink-0 items-center gap-2 opacity-0 transition group-hover:opacity-100">
           <button
             class="rounded p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300"
-            @click.stop="$emit('navigate', node.tenant.id)"
+            @click.stop="handleNavigate"
             title="Visa detaljer"
           >
             <Icon icon="mdi:chevron-right" class="h-5 w-5" />
@@ -118,41 +138,131 @@
       </div>
     </div>
 
-    <!-- Children -->
-    <TenantTreeNode
-      v-for="(child, index) in node.children"
-      :key="child.tenant.id"
-      :node="child"
-      :level="level + 1"
-      :has-sibling-after="index < node.children.length - 1"
-      @navigate="$emit('navigate', $event)"
-    />
+    <!-- Children (tenants and organizations) -->
+    <template v-if="shouldShowChildren">
+      <TenantTreeNode
+        v-for="(child, index) in visibleChildren"
+        :key="`${child.tenant.id}-${child.isOrganization ? 'org' : 'tenant'}`"
+        :node="child"
+        :level="level + 1"
+        :has-sibling-after="index < visibleChildren.length - 1"
+        :show-all-organizations="showAllOrganizations"
+        :organizations="organizations"
+        @navigate="$emit('navigate', $event)"
+        @toggle-orgs="$emit('toggleOrgs', $event)"
+      />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import type { AdminTenantSummary } from '~/types/admin'
 
+interface OrganizationNode {
+  id: string
+  name: string
+  slug: string
+  status: string
+  tenantId: string | null
+  createdAt: number
+  memberCount: number
+  hasEmailOverride?: boolean
+}
+
 interface TenantTreeNode {
-  tenant: AdminTenantSummary
+  tenant: AdminTenantSummary | (OrganizationNode & { type: 'organization' })
   children: TenantTreeNode[]
+  isOrganization?: boolean
 }
 
 interface Props {
   node: TenantTreeNode
   level: number
   hasSiblingAfter?: boolean
+  showAllOrganizations?: boolean
+  organizations?: OrganizationNode[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  hasSiblingAfter: false
+  hasSiblingAfter: false,
+  showAllOrganizations: false,
+  organizations: () => []
 })
 
-defineEmits<{
-  navigate: [id: string]
+const emit = defineEmits<{
+  navigate: [payload: { type: 'tenant' | 'organization'; id?: string; slug?: string }]
+  toggleOrgs: [distributorId: string]
 }>()
+
+// Local state for showing organizations for this specific distributor
+// If showAllOrganizations is true, we should show them by default
+const showDistributorOrgs = ref(props.showAllOrganizations)
+
+// Watch for changes in showAllOrganizations prop
+watch(() => props.showAllOrganizations, (newValue) => {
+  if (props.node.tenant.type === 'distributor') {
+    showDistributorOrgs.value = newValue
+  }
+})
+
+// Check if this distributor has organizations
+const hasOrganizations = computed(() => {
+  if (props.node.tenant.type !== 'distributor') return false
+  return props.organizations.some(org => org.tenantId === props.node.tenant.id)
+})
+
+// Determine which children to show
+const visibleChildren = computed(() => {
+  if (props.node.tenant.type === 'distributor') {
+    // For distributors, show tenant children + organizations if toggled
+    const children = [...props.node.children]
+    if (showDistributorOrgs.value || props.showAllOrganizations) {
+      const orgs = props.organizations
+        .filter(org => org.tenantId === props.node.tenant.id)
+        .map(org => ({
+          tenant: {
+            ...org,
+            type: 'organization' as const
+          },
+          children: [],
+          isOrganization: true
+        }))
+      children.push(...orgs)
+    }
+    return children
+  }
+  // For other types, show all children
+  return props.node.children
+})
+
+// Should show children (tenants always, organizations based on toggle)
+const shouldShowChildren = computed(() => {
+  if (props.node.tenant.type === 'distributor') {
+    // Show if has tenant children OR if organizations are toggled
+    return props.node.children.length > 0 || showDistributorOrgs.value || props.showAllOrganizations
+  }
+  // For other types, show if has children
+  return props.node.children.length > 0
+})
+
+const toggleOrganizations = () => {
+  if (props.node.tenant.type === 'distributor') {
+    showDistributorOrgs.value = !showDistributorOrgs.value
+    emit('toggleOrgs', props.node.tenant.id)
+  }
+}
+
+const handleNavigate = () => {
+  // Organizations should navigate to organization page, tenants to tenant page
+  if (props.node.tenant.type === 'organization' || props.node.isOrganization) {
+    emit('navigate', { type: 'organization', slug: props.node.tenant.slug })
+  } else {
+    emit('navigate', { type: 'tenant', id: props.node.tenant.id })
+  }
+}
 
 const getTypeLabel = (type: string) => {
   switch (type) {
