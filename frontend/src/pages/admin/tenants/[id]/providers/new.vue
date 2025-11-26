@@ -2,18 +2,15 @@
   <section class="space-y-8">
     <header class="space-y-1">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
-        {{ tenantType === 'distributor' ? 'Skapa distributör' : 'Skapa leverantör' }}
-      </h1>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Skapa leverantör</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        <span v-if="tenantType === 'distributor'">Distributörer är högsta nivån och kan kopplas till leverantörer.</span>
-        <span v-else>Leverantörer kan skapa organisationer och kopplas till distributörer.</span>
+        Skapa en ny leverantör under distributören "{{ distributorName }}".
       </p>
     </header>
 
     <form class="space-y-6" @submit.prevent="handleSubmit">
       <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Tenant-detaljer</h2>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Leverantör-detaljer</h2>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <div class="md:col-span-2">
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</label>
@@ -35,42 +32,13 @@
             />
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Lämna tomt för automatisk generering.</p>
           </div>
-          <div v-if="tenantType === 'provider'">
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Distributörer</label>
-            <div v-if="distributorsPending" class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Laddar distributörer...
-            </div>
-            <div v-else class="mt-2 space-y-2">
-              <label
-                v-for="distributor in distributors"
-                :key="distributor.id"
-                class="flex items-center gap-2 cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  :value="distributor.id"
-                  v-model="form.distributorIds"
-                  class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/10 dark:bg-black/20"
-                />
-                <span class="text-sm text-slate-900 dark:text-white">
-                  {{ distributor.name }} ({{ distributor.slug }})
-                </span>
-              </label>
-              <p v-if="distributors.length === 0" class="text-xs text-slate-500 dark:text-slate-400">
-                Inga distributörer tillgängliga. Skapa en distributör först.
-              </p>
-            </div>
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Välj vilka distributörer denna leverantör ska kopplas till.
-            </p>
-          </div>
         </div>
       </div>
 
       <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Ägarkonto</h2>
         <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Skapa ett användarkonto för tenant-ägaren. En inbjudningslänk kommer att skickas via e-post.
+          Skapa ett användarkonto för leverantör-ägaren. En inbjudningslänk kommer att skickas via e-post.
         </p>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <div class="md:col-span-2">
@@ -101,17 +69,17 @@
 
       <div class="flex items-center justify-end gap-2">
         <NuxtLink
-          to="/admin/tenants"
+          :to="`/admin/tenants/${distributorId}`"
           class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
         >
           Avbryt
         </NuxtLink>
         <button
           type="submit"
-          class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-60"
+          class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
           :disabled="submitting"
         >
-          {{ submitting ? 'Skapar...' : 'Skapa tenant' }}
+          {{ submitting ? 'Skapar...' : 'Skapa leverantör' }}
         </button>
       </div>
     </form>
@@ -120,7 +88,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, useFetch, useRoute, useRouter } from '#imports'
-import type { AdminCreateTenantResponse, AdminTenantSummary } from '~/types/admin'
+import type { AdminTenantDetail } from '~/types/admin'
 
 definePageMeta({
   layout: 'default',
@@ -129,31 +97,18 @@ definePageMeta({
 
 const router = useRouter()
 const route = useRoute()
-const tenantType = computed(() => {
-  const type = typeof route.query.type === 'string' ? route.query.type : 'provider'
-  return type === 'distributor' ? 'distributor' : 'provider'
-})
+const distributorId = route.params.id as string
+
+const { data, pending } = await useFetch<AdminTenantDetail>(`/api/admin/tenants/${distributorId}`)
+
+const distributorName = computed(() => data.value?.tenant.name ?? 'Distributör')
 
 const submitting = ref(false)
 const errorMessage = ref('')
 
-// Fetch distributors if creating provider
-interface TenantsResponse {
-  tenants: AdminTenantSummary[]
-  organizations?: any[]
-  distributorProviderLinks?: any[]
-}
-
-const { data: distributorsData, pending: distributorsPending } = await useFetch<TenantsResponse>('/api/admin/tenants', {
-  query: { type: 'distributor' }
-})
-
-const distributors = computed(() => distributorsData.value?.tenants ?? [])
-
 const form = reactive({
   name: '',
   slug: '',
-  distributorIds: [] as string[], // For providers: which distributors to link to
   ownerEmail: '',
   ownerFullName: ''
 })
@@ -165,7 +120,6 @@ const handleSubmit = async () => {
   try {
     const payload: any = {
       name: form.name.trim(),
-      type: tenantType.value,
       owner: {
         email: form.ownerEmail.trim()
       }
@@ -177,22 +131,19 @@ const handleSubmit = async () => {
     if (form.ownerFullName.trim()) {
       payload.owner.fullName = form.ownerFullName.trim()
     }
-    if (tenantType.value === 'provider' && form.distributorIds.length > 0) {
-      payload.distributorIds = form.distributorIds
-    }
 
-    const response = await $fetch<AdminCreateTenantResponse>('/api/admin/tenants', {
+    const response = await $fetch(`/api/admin/tenants/${distributorId}/providers`, {
       method: 'POST',
       body: payload
     })
 
     await router.push({
-      path: `/admin/tenants/${response.tenant.id}`,
+      path: `/admin/tenants/${distributorId}`,
       query: { created: '1' }
     })
   } catch (error) {
     errorMessage.value =
-      error instanceof Error ? error.message : 'Kunde inte skapa tenant just nu.'
+      error instanceof Error ? error.message : 'Kunde inte skapa leverantör just nu.'
   } finally {
     submitting.value = false
   }

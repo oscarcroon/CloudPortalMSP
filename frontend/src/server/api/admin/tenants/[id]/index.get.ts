@@ -1,6 +1,6 @@
-import { eq, sql } from 'drizzle-orm'
+import { eq, sql, and } from 'drizzle-orm'
 import { defineEventHandler, getRouterParam } from 'h3'
-import { tenants, tenantMemberships, users, organizations, emailProviderProfiles } from '../../../../database/schema'
+import { tenants, tenantMemberships, users, organizations, emailProviderProfiles, distributorProviders } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
 import { ensureAuthState } from '../../../../utils/session'
 import { canAccessTenant } from '../../../../utils/rbac'
@@ -60,31 +60,87 @@ export default defineEventHandler(async (event) => {
     .innerJoin(users, eq(users.id, tenantMemberships.userId))
     .where(eq(tenantMemberships.tenantId, tenantId))
 
-  // Get child tenants (distributors for providers) with email override status
-  const childTenants = await db
-    .select({
-      id: tenants.id,
-      name: tenants.name,
-      slug: tenants.slug,
-      type: tenants.type,
-      parentTenantId: tenants.parentTenantId,
-      status: tenants.status,
-      createdAt: tenants.createdAt,
-      hasEmailOverride: sql<boolean>`(
-        select exists(
-          select 1
-          from ${emailProviderProfiles}
-          where ${emailProviderProfiles.tenantId} = ${tenants.id}
-          and ${emailProviderProfiles.isActive} = 1
-          and ${emailProviderProfiles.targetType} in ('provider', 'distributor')
-        )
-      )`
-    })
-    .from(tenants)
-    .where(eq(tenants.parentTenantId, tenantId))
+  // Get related tenants based on type
+  let childTenants: any[] = []
+  let linkedTenants: any[] = []
+  
+  if (tenant.type === 'distributor') {
+    // For distributors, get linked providers via junction table
+    linkedTenants = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        slug: tenants.slug,
+        type: tenants.type,
+        parentTenantId: tenants.parentTenantId,
+        status: tenants.status,
+        createdAt: tenants.createdAt,
+        hasEmailOverride: sql<boolean>`(
+          select exists(
+            select 1
+            from ${emailProviderProfiles}
+            where ${emailProviderProfiles.tenantId} = ${tenants.id}
+            and ${emailProviderProfiles.isActive} = 1
+            and ${emailProviderProfiles.targetType} in ('provider', 'distributor')
+          )
+        )`
+      })
+      .from(distributorProviders)
+      .innerJoin(tenants, eq(tenants.id, distributorProviders.providerId))
+      .where(eq(distributorProviders.distributorId, tenantId))
+  } else if (tenant.type === 'provider') {
+    // For providers, get linked distributors via junction table
+    linkedTenants = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        slug: tenants.slug,
+        type: tenants.type,
+        parentTenantId: tenants.parentTenantId,
+        status: tenants.status,
+        createdAt: tenants.createdAt,
+        hasEmailOverride: sql<boolean>`(
+          select exists(
+            select 1
+            from ${emailProviderProfiles}
+            where ${emailProviderProfiles.tenantId} = ${tenants.id}
+            and ${emailProviderProfiles.isActive} = 1
+            and ${emailProviderProfiles.targetType} in ('provider', 'distributor')
+          )
+        )`
+      })
+      .from(distributorProviders)
+      .innerJoin(tenants, eq(tenants.id, distributorProviders.distributorId))
+      .where(eq(distributorProviders.providerId, tenantId))
+    
+    // Legacy: Also get child tenants via parentTenantId for backward compatibility
+    const legacyChildren = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        slug: tenants.slug,
+        type: tenants.type,
+        parentTenantId: tenants.parentTenantId,
+        status: tenants.status,
+        createdAt: tenants.createdAt,
+        hasEmailOverride: sql<boolean>`(
+          select exists(
+            select 1
+            from ${emailProviderProfiles}
+            where ${emailProviderProfiles.tenantId} = ${tenants.id}
+            and ${emailProviderProfiles.isActive} = 1
+            and ${emailProviderProfiles.targetType} in ('provider', 'distributor')
+          )
+        )`
+      })
+      .from(tenants)
+      .where(eq(tenants.parentTenantId, tenantId))
+    
+    childTenants = legacyChildren
+  }
 
-  // Get organizations (for distributors) with email override status
-  const orgs = tenant.type === 'distributor'
+  // Get organizations (for providers) with email override status
+  const orgs = tenant.type === 'provider'
     ? await db
         .select({
           id: organizations.id,
@@ -111,6 +167,7 @@ export default defineEventHandler(async (event) => {
     tenant,
     members,
     childTenants,
+    linkedTenants, // Providers for Distributors, Distributors for Providers
     organizations: orgs
   }
 })

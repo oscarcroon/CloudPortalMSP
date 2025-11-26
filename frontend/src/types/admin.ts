@@ -301,7 +301,8 @@ export interface AdminTenantDetail {
       status: string
     }
   }>
-  childTenants: AdminTenantSummary[]
+  childTenants: AdminTenantSummary[] // Legacy: for backward compatibility
+  linkedTenants?: AdminTenantSummary[] // Providers for Distributors, Distributors for Providers
   organizations?: Array<{
     id: string
     name: string
@@ -317,7 +318,7 @@ export interface AdminCreateTenantPayload {
   name: string
   slug?: string
   type: 'provider' | 'distributor'
-  parentTenantId?: string
+  distributorIds?: string[] // For providers: which distributors to link to
   owner: {
     email: string
     fullName?: string

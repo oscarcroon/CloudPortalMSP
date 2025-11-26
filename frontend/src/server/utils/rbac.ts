@@ -4,7 +4,7 @@ import { rolePermissionMap, tenantRolePermissionMap } from '~/constants/rbac'
 import { ensureAuthState } from './session'
 import { getDb } from './db'
 import { eq, or, and } from 'drizzle-orm'
-import { organizations, tenants } from '../database/schema'
+import { organizations, tenants, distributorProviders } from '../database/schema'
 
 export const hasPermission = (role: RbacRole, permission: RbacPermission) =>
   rolePermissionMap[role]?.includes(permission) ?? false
@@ -129,14 +129,18 @@ export const canAccessTenant = async (
     return true
   }
 
-  // Check if targetTenantId is a descendant of userTenantId
   const db = getDb()
+  const [userTenant] = await db
+    .select()
+    .from(tenants)
+    .where(eq(tenants.id, userTenantId))
+
   const [targetTenant] = await db
     .select()
     .from(tenants)
     .where(eq(tenants.id, targetTenantId))
 
-  if (!targetTenant) {
+  if (!userTenant || !targetTenant) {
     return false
   }
 
@@ -148,12 +152,47 @@ export const canAccessTenant = async (
     return false
   }
 
-  // Check if targetTenant is a direct child
+  // Handle many-to-many relation: Distributor -> Provider
+  // If user has access to a Distributor, they can access Providers linked to that Distributor
+  if (userTenant.type === 'distributor' && targetTenant.type === 'provider') {
+    const [link] = await db
+      .select()
+      .from(distributorProviders)
+      .where(
+        and(
+          eq(distributorProviders.distributorId, userTenantId),
+          eq(distributorProviders.providerId, targetTenantId)
+        )
+      )
+    
+    if (link) {
+      return true
+    }
+  }
+
+  // Handle reverse: If user has access to a Provider, check if it's linked to their Distributor
+  if (userTenant.type === 'provider' && targetTenant.type === 'distributor') {
+    const [link] = await db
+      .select()
+      .from(distributorProviders)
+      .where(
+        and(
+          eq(distributorProviders.distributorId, targetTenantId),
+          eq(distributorProviders.providerId, userTenantId)
+        )
+      )
+    
+    if (link) {
+      return true
+    }
+  }
+
+  // Legacy: Check if targetTenant is a direct child (for backward compatibility)
   if (targetTenant.parentTenantId === userTenantId) {
     return true
   }
 
-  // Recursively check parent chain to see if targetTenant is a descendant
+  // Legacy: Recursively check parent chain (for backward compatibility)
   if (targetTenant.parentTenantId) {
     return canAccessTenant(auth, userTenantId, targetTenant.parentTenantId)
   }

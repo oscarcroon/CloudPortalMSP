@@ -137,8 +137,8 @@ export default defineEventHandler(async (event) => {
         and(or(...whereConditions), or(like(organizations.name, pattern), like(organizations.slug, pattern)))
       ) as typeof query
     } else {
-      query = query.where(
-        or(like(organizations.name, pattern), like(organizations.slug, pattern))
+    query = query.where(
+      or(like(organizations.name, pattern), like(organizations.slug, pattern))
       ) as typeof query
     }
   }
@@ -147,16 +147,16 @@ export default defineEventHandler(async (event) => {
 
   // For super admins, return all organizations without additional filtering
   if (auth.user.isSuperAdmin) {
-    return {
-      organizations: rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        slug: row.slug,
-        status: row.status,
-        requireSso: Boolean(row.requireSso),
-        allowSelfSignup: Boolean(row.allowSelfSignup),
-        defaultRole: row.defaultRole,
-        billingEmail: row.billingEmail,
+  return {
+    organizations: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      status: row.status,
+      requireSso: Boolean(row.requireSso),
+      allowSelfSignup: Boolean(row.allowSelfSignup),
+      defaultRole: row.defaultRole,
+      billingEmail: row.billingEmail,
         tenantId: row.tenantId,
         createdAt: row.createdAt,
         memberCount: row.memberCount,

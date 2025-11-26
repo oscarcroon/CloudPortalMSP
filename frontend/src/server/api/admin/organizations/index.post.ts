@@ -56,15 +56,15 @@ export default defineEventHandler(async (event) => {
     // Check tenant permission
     await requireTenantPermission(event, 'tenants:create-customer', payload.tenantId)
     
-    // Verify tenant is a distributor
+    // Verify tenant is a provider (organizations are now linked to providers, not distributors)
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, payload.tenantId))
     if (!tenant) {
       throw createError({ statusCode: 404, message: 'Tenant not found' })
     }
-    if (tenant.type !== 'distributor') {
+    if (tenant.type !== 'provider') {
       throw createError({
         statusCode: 400,
-        message: 'Organizations can only be created under distributor tenants'
+        message: 'Organizations can only be created under provider tenants'
       })
     }
   } else {

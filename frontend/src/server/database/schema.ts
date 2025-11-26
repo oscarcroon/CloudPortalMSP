@@ -146,6 +146,26 @@ export const tenantMemberships = sqliteTable(
   })
 )
 
+export const distributorProviders = sqliteTable(
+  'distributor_providers',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    distributorId: text('distributor_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    providerId: text('provider_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    ...timestampColumns()
+  },
+  table => ({
+    uniqueDistributorProvider: uniqueIndex('distributor_provider_unique').on(
+      table.distributorId,
+      table.providerId
+    )
+  })
+)
+
 export const organizationInvitations = sqliteTable(
   'organization_invitations',
   {

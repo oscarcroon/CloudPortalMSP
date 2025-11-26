@@ -66,15 +66,15 @@
       <div
         class="flex flex-1 items-center gap-2 sm:gap-3 min-w-0"
       >
-        <!-- Toggle button for distributors -->
+        <!-- Toggle button for providers (organizations are now under providers) -->
         <button
-          v-if="node.tenant.type === 'distributor' && hasOrganizations"
+          v-if="node.tenant.type === 'provider' && hasOrganizations"
           class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300"
           @click.stop="toggleOrganizations"
-          :title="showDistributorOrgs ? 'Dölj organisationer' : 'Visa organisationer'"
+          :title="showProviderOrgs ? 'Dölj organisationer' : 'Visa organisationer'"
         >
           <Icon
-            :icon="showDistributorOrgs ? 'mdi:chevron-down' : 'mdi:chevron-right'"
+            :icon="showProviderOrgs ? 'mdi:chevron-down' : 'mdi:chevron-right'"
             class="h-4 w-4"
           />
         </button>
@@ -109,7 +109,7 @@
           <div class="mt-1 flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
             <span class="font-mono truncate max-w-[120px] sm:max-w-none">{{ node.tenant.slug }}</span>
             <span class="whitespace-nowrap">{{ node.tenant.memberCount }} medlemmar</span>
-            <span v-if="node.tenant.type === 'distributor' && node.tenant.organizationCount !== undefined" class="whitespace-nowrap">
+            <span v-if="node.tenant.type === 'provider' && node.tenant.organizationCount !== undefined" class="whitespace-nowrap">
               {{ node.tenant.organizationCount }} organisationer
             </span>
             <span
@@ -197,29 +197,29 @@ const emit = defineEmits<{
   toggleOrgs: [distributorId: string]
 }>()
 
-// Local state for showing organizations for this specific distributor
+// Local state for showing organizations for this specific provider
 // If showAllOrganizations is true, we should show them by default
-const showDistributorOrgs = ref(props.showAllOrganizations)
+const showProviderOrgs = ref(props.showAllOrganizations)
 
 // Watch for changes in showAllOrganizations prop
 watch(() => props.showAllOrganizations, (newValue) => {
-  if (props.node.tenant.type === 'distributor') {
-    showDistributorOrgs.value = newValue
+  if (props.node.tenant.type === 'provider') {
+    showProviderOrgs.value = newValue
   }
 })
 
-// Check if this distributor has organizations
+// Check if this provider has organizations
 const hasOrganizations = computed(() => {
-  if (props.node.tenant.type !== 'distributor') return false
+  if (props.node.tenant.type !== 'provider') return false
   return props.organizations.some(org => org.tenantId === props.node.tenant.id)
 })
 
 // Determine which children to show
 const visibleChildren = computed(() => {
-  if (props.node.tenant.type === 'distributor') {
-    // For distributors, show tenant children + organizations if toggled
+  if (props.node.tenant.type === 'provider') {
+    // For providers, show tenant children + organizations if toggled
     const children = [...props.node.children]
-    if (showDistributorOrgs.value || props.showAllOrganizations) {
+    if (showProviderOrgs.value || props.showAllOrganizations) {
       const orgs = props.organizations
         .filter(org => org.tenantId === props.node.tenant.id)
         .map(org => ({
@@ -240,17 +240,17 @@ const visibleChildren = computed(() => {
 
 // Should show children (tenants always, organizations based on toggle)
 const shouldShowChildren = computed(() => {
-  if (props.node.tenant.type === 'distributor') {
+  if (props.node.tenant.type === 'provider') {
     // Show if has tenant children OR if organizations are toggled
-    return props.node.children.length > 0 || showDistributorOrgs.value || props.showAllOrganizations
+    return props.node.children.length > 0 || showProviderOrgs.value || props.showAllOrganizations
   }
   // For other types, show if has children
   return props.node.children.length > 0
 })
 
 const toggleOrganizations = () => {
-  if (props.node.tenant.type === 'distributor') {
-    showDistributorOrgs.value = !showDistributorOrgs.value
+  if (props.node.tenant.type === 'provider') {
+    showProviderOrgs.value = !showProviderOrgs.value
     emit('toggleOrgs', props.node.tenant.id)
   }
 }

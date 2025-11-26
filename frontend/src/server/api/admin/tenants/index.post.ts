@@ -2,7 +2,7 @@ import { createId } from '@paralleldrive/cuid2'
 import { createError, defineEventHandler, readBody } from 'h3'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { tenants, tenantMemberships, users, organizations, organizationInvitations, organizationAuthSettings } from '../../../database/schema'
+import { tenants, tenantMemberships, users, organizations, organizationInvitations, organizationAuthSettings, distributorProviders } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { normalizeEmail, createInviteToken } from '../../../utils/crypto'
 import { slugify } from '../../../utils/auth'
@@ -20,7 +20,7 @@ const createTenantSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug may only contain lowercase letters, numbers and hyphens.')
     .optional(),
   type: z.enum(['provider', 'distributor']),
-  parentTenantId: z.string().optional(),
+  distributorIds: z.array(z.string()).optional(), // For providers: which distributors to link to
   owner: z.object({
     email: z.string().email(),
     fullName: z.string().min(2).max(120).optional()
@@ -33,54 +33,55 @@ export default defineEventHandler(async (event) => {
   const isSqlite =
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
-  // Validate parent tenant if provided
-  if (payload.parentTenantId) {
-    const [parentTenant] = await db
-      .select()
-      .from(tenants)
-      .where(eq(tenants.id, payload.parentTenantId))
-
-    if (!parentTenant) {
-      throw createError({ statusCode: 404, message: 'Parent tenant not found' })
-    }
-
-    if (parentTenant.type !== 'provider' && payload.type === 'distributor') {
-      throw createError({
-        statusCode: 400,
-        message: 'Distributors can only be created under providers'
-      })
-    }
-
-    // Check permission to create tenant under parent
-    const permission =
-      payload.type === 'distributor' ? 'tenants:create-distributor' : 'tenants:create-customer'
-    await requireTenantPermission(event, permission, payload.parentTenantId)
-  } else {
-    // Creating a provider requires super admin or admin role with includeChildren
-    if (payload.type === 'provider') {
-      const auth = await ensureAuthState(event)
-      if (!auth?.user.isSuperAdmin) {
-        // Check if user has admin role with includeChildren in any tenant
-        let hasPermission = false
-        for (const [tenantId, role] of Object.entries(auth?.tenantRoles ?? {})) {
-          const includeChildren = auth?.tenantIncludeChildren?.[tenantId] ?? false
-          if (role === 'admin' && includeChildren) {
-            hasPermission = true
-            break
-          }
-        }
-        if (!hasPermission) {
-          throw createError({
-            statusCode: 403,
-            message: 'Super admin or admin with includeChildren required to create providers'
-          })
+  // Validate and check permissions based on type
+  if (payload.type === 'distributor') {
+    // Distributors are root level - require super admin or admin with includeChildren
+    const auth = await ensureAuthState(event)
+    if (!auth?.user.isSuperAdmin) {
+      let hasPermission = false
+      for (const [tenantId, role] of Object.entries(auth?.tenantRoles ?? {})) {
+        const includeChildren = auth?.tenantIncludeChildren?.[tenantId] ?? false
+        if (role === 'admin' && includeChildren) {
+          hasPermission = true
+          break
         }
       }
-    } else {
+      if (!hasPermission) {
+        throw createError({
+          statusCode: 403,
+          message: 'Super admin or admin with includeChildren required to create distributors'
+        })
+      }
+    }
+  } else if (payload.type === 'provider') {
+    // Providers must be linked to at least one distributor
+    if (!payload.distributorIds || payload.distributorIds.length === 0) {
       throw createError({
         statusCode: 400,
-        message: 'Distributors must have a parent supplier'
+        message: 'Providers must be linked to at least one distributor'
       })
+    }
+
+    // Validate all distributors exist and user has permission
+    for (const distributorId of payload.distributorIds) {
+      const [distributor] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, distributorId))
+
+      if (!distributor) {
+        throw createError({ statusCode: 404, message: `Distributor ${distributorId} not found` })
+      }
+
+      if (distributor.type !== 'distributor') {
+        throw createError({
+          statusCode: 400,
+          message: `Tenant ${distributorId} is not a distributor`
+        })
+      }
+
+      // Check permission to link provider to this distributor
+      await requireTenantPermission(event, 'tenants:create-provider', distributorId)
     }
   }
 
@@ -94,16 +95,30 @@ export default defineEventHandler(async (event) => {
   try {
     if (isSqlite) {
       await db.transaction((tx) => {
+        // Distributors are root level (no parentTenantId), Providers are also root level
         const tenantValues = {
           id: tenantId,
           name: payload.name,
           slug: payload.slug ?? slugify(payload.name),
           type: payload.type,
-          parentTenantId: payload.parentTenantId ?? null,
+          parentTenantId: null, // Both distributors and providers are root level now
           status: 'active'
         }
 
         tx.insert(tenants).values(tenantValues).run()
+
+        // For providers, create junction table entries to link to distributors
+        if (payload.type === 'provider' && payload.distributorIds) {
+          for (const distributorId of payload.distributorIds) {
+            tx.insert(distributorProviders)
+              .values({
+                id: createId(),
+                distributorId,
+                providerId: tenantId
+              })
+              .run()
+          }
+        }
 
         if (!existingUser) {
           tx.insert(users)
@@ -135,16 +150,28 @@ export default defineEventHandler(async (event) => {
       })
     } else {
       await db.transaction(async (tx) => {
+        // Distributors are root level (no parentTenantId), Providers are also root level
         const tenantValues = {
           id: tenantId,
           name: payload.name,
           slug: payload.slug ?? slugify(payload.name),
           type: payload.type,
-          parentTenantId: payload.parentTenantId ?? null,
+          parentTenantId: null, // Both distributors and providers are root level now
           status: 'active'
         }
 
         await tx.insert(tenants).values(tenantValues)
+
+        // For providers, create junction table entries to link to distributors
+        if (payload.type === 'provider' && payload.distributorIds) {
+          for (const distributorId of payload.distributorIds) {
+            await tx.insert(distributorProviders).values({
+              id: createId(),
+              distributorId,
+              providerId: tenantId
+            })
+          }
+        }
 
         if (!existingUser) {
           await tx.insert(users).values({

@@ -4,7 +4,7 @@
       <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
       <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Tenants</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        Hantera leverantörer och distributörer. Leverantörer kan skapa distributörer, distributörer kan skapa organisationer.
+        Hantera distributörer och leverantörer. Distributörer kan skapa leverantörer, leverantörer kan skapa organisationer.
       </p>
     </header>
 
@@ -34,6 +34,14 @@
       </form>
 
       <div class="flex gap-2">
+        <NuxtLink
+          v-if="canCreateDistributor"
+          to="/admin/tenants/new?type=distributor"
+          class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+        >
+          <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
+          Skapa distributör
+        </NuxtLink>
         <NuxtLink
           v-if="canCreateSupplier"
           to="/admin/tenants/new?type=provider"
@@ -114,6 +122,16 @@ const auth = useAuth()
 const searchInput = ref('')
 const appliedQuery = ref('')
 
+const canCreateDistributor = computed(() => {
+  // Super admins or users with admin role and includeChildren can create distributors
+  if (auth.isSuperAdmin.value) return true
+  for (const [tenantId, role] of Object.entries(auth.state.value.data?.tenantRoles ?? {})) {
+    const includeChildren = auth.state.value.data?.tenantIncludeChildren?.[tenantId] ?? false
+    if (role === 'admin' && includeChildren) return true
+  }
+  return false
+})
+
 const canCreateSupplier = computed(() => {
   // Super admins or users with admin role and includeChildren can create providers
   if (auth.isSuperAdmin.value) return true
@@ -136,6 +154,10 @@ interface TenantsResponse {
     memberCount: number
     hasEmailOverride?: boolean
   }>
+  distributorProviderLinks?: Array<{
+    distributorId: string
+    providerId: string
+  }>
 }
 
 const { data, pending, refresh, error } = await useFetch<TenantsResponse>(
@@ -148,6 +170,7 @@ const { data, pending, refresh, error } = await useFetch<TenantsResponse>(
 
 const tenants = computed(() => data.value?.tenants ?? [])
 const organizations = computed(() => data.value?.organizations ?? [])
+const distributorProviderLinks = computed(() => data.value?.distributorProviderLinks ?? [])
 const listError = computed(() => (error.value ? error.value.message : ''))
 const showAllOrganizations = ref(false)
 
@@ -182,13 +205,42 @@ const tenantTree = computed(() => {
     })
   }
 
-  // Build tree for tenants
+  // Build tree for tenants using many-to-many relations
+  // Distributors are root level, Providers are linked to Distributors via junction table
+  // For many-to-many, show each Provider under ALL Distributors it's linked to
   for (const tenant of flatList) {
     const node = nodeMap.get(tenant.id)!
-    if (tenant.parentTenantId && nodeMap.has(tenant.parentTenantId)) {
+    
+    // Check if this tenant is linked via junction table
+    let linked = false
+    if (tenant.type === 'provider') {
+      // Provider: find ALL distributors it's linked to (many-to-many)
+      const links = distributorProviderLinks.value.filter(link => link.providerId === tenant.id)
+      for (const link of links) {
+        if (nodeMap.has(link.distributorId)) {
+          const distributor = nodeMap.get(link.distributorId)!
+          // Create a copy of the node for each distributor (since a provider can be under multiple distributors)
+          distributor.children.push({
+            ...node,
+            tenant: { ...node.tenant } // Shallow copy to avoid reference issues
+          })
+          linked = true
+        }
+      }
+    } else if (tenant.type === 'distributor') {
+      // Distributor: check if it has any providers linked (will be added as children)
+      // Distributors are root level
+    }
+    
+    // Legacy: Also check parentTenantId for backward compatibility
+    if (!linked && tenant.parentTenantId && nodeMap.has(tenant.parentTenantId)) {
       const parent = nodeMap.get(tenant.parentTenantId)!
       parent.children.push(node)
-    } else {
+      linked = true
+    }
+    
+    // If not linked, it's a root node
+    if (!linked) {
       roots.push(node)
     }
   }
@@ -196,10 +248,10 @@ const tenantTree = computed(() => {
   // Organizations are added dynamically in TenantTreeNode component based on toggle state
   // We don't add them to the tree here - they're handled per-distributor in the component
 
-  // Sort: providers first, then distributors, then organizations
+  // Sort: distributors first (root), then providers, then organizations
   const sortNodes = (nodes: TenantTreeNode[]): TenantTreeNode[] => {
     return nodes.sort((a, b) => {
-      const typeOrder = { provider: 0, distributor: 1, organization: 2 }
+      const typeOrder = { distributor: 0, provider: 1, organization: 2 }
       const orderA = typeOrder[a.tenant.type as keyof typeof typeOrder] ?? 99
       const orderB = typeOrder[b.tenant.type as keyof typeof typeOrder] ?? 99
       if (orderA !== orderB) return orderA - orderB

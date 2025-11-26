@@ -30,9 +30,9 @@
           <div class="md:col-span-2">
             <TenantSelector
               v-model="form.tenantId"
-              :distributors="distributors"
+              :distributors="providers"
               :required="true"
-              help-text="Välj distributör som organisationen ska tillhöra"
+              help-text="Välj leverantör som organisationen ska tillhöra"
             />
           </div>
           <div class="md:col-span-2">
@@ -244,12 +244,12 @@ const checkingEmail = ref(false)
 // Get tenantId from query if provided
 const initialTenantId = typeof route.query.tenantId === 'string' ? route.query.tenantId : ''
 
-// Fetch distributors
-const { data: distributorsData } = await useFetch<AdminTenantSummary[]>('/api/admin/tenants', {
-  query: { type: 'distributor' }
+// Fetch providers (organizations are now linked to providers, not distributors)
+const { data: providersData } = await useFetch<AdminTenantSummary[]>('/api/admin/tenants', {
+  query: { type: 'provider' }
 })
 
-const distributors = computed(() => distributorsData.value ?? [])
+const providers = computed(() => providersData.value ?? [])
 
 const form = reactive({
   tenantId: initialTenantId,

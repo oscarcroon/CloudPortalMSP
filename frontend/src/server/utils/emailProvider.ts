@@ -8,7 +8,7 @@ import {
 import { eq } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
-import { emailProviderProfiles, organizations, tenants } from '~/server/database/schema'
+import { emailProviderProfiles, organizations, tenants, distributorProviders } from '~/server/database/schema'
 import { getDb } from './db'
 import type { AdminEmailProviderSummary } from '~/types/admin'
 
@@ -277,7 +277,8 @@ export const saveOrganisationEmailProvider = async (
 }
 
 /**
- * Get tenant hierarchy for an organization: [provider, distributor, organization]
+ * Get tenant hierarchy for an organization: [distributor, provider, organization]
+ * New structure: Organization -> Provider -> Distributor (via junction table)
  * Returns empty array if organization not found
  */
 const getTenantHierarchy = async (organisationId: string): Promise<Array<{ id: string; type: 'organization' | 'distributor' | 'provider' }>> => {
@@ -296,26 +297,41 @@ const getTenantHierarchy = async (organisationId: string): Promise<Array<{ id: s
   // Add organization first
   hierarchy.push({ id: organisationId, type: 'organization' })
   
-  // Walk up the tenant tree: distributor -> provider
-  let currentTenantId: string | null = org.tenantId
+  // Get provider (organization's tenantId should point to a provider)
+  const [provider] = await db
+    .select({ id: tenants.id, type: tenants.type })
+    .from(tenants)
+    .where(eq(tenants.id, org.tenantId))
   
-  while (currentTenantId) {
-    const [tenant] = await db
-      .select({ id: tenants.id, type: tenants.type, parentTenantId: tenants.parentTenantId })
-      .from(tenants)
-      .where(eq(tenants.id, currentTenantId))
-    
-    if (!tenant) break
-    
+  if (provider && provider.type === 'provider') {
     hierarchy.push({
-      id: tenant.id,
-      type: tenant.type as 'organization' | 'distributor' | 'provider'
+      id: provider.id,
+      type: 'provider'
     })
     
-    currentTenantId = tenant.parentTenantId ?? null
+    // Get distributors linked to this provider via junction table
+    const distributorLinks = await db
+      .select({ distributorId: distributorProviders.distributorId })
+      .from(distributorProviders)
+      .where(eq(distributorProviders.providerId, provider.id))
+      .limit(1) // Take first distributor (for hierarchy purposes)
+    
+    if (distributorLinks.length > 0) {
+      const [distributor] = await db
+        .select({ id: tenants.id, type: tenants.type })
+        .from(tenants)
+        .where(eq(tenants.id, distributorLinks[0].distributorId))
+      
+      if (distributor && distributor.type === 'distributor') {
+        hierarchy.push({
+          id: distributor.id,
+          type: 'distributor'
+        })
+      }
+    }
   }
   
-  return hierarchy.reverse() // Reverse to get [provider, distributor, organization]
+  return hierarchy.reverse() // Reverse to get [distributor, provider, organization]
 }
 
 export const getEffectiveEmailProviderProfile = async (organisationId?: string | null) => {
@@ -330,7 +346,7 @@ export const getEffectiveEmailProviderProfile = async (organisationId?: string |
     return null
   }
 
-  // Follow hierarchy: organization -> distributor -> provider -> global
+  // Follow hierarchy: organization -> provider -> distributor -> global
   const hierarchy = await getTenantHierarchy(organisationId)
   
   // Check organization first
@@ -342,24 +358,24 @@ export const getEffectiveEmailProviderProfile = async (organisationId?: string |
     }
   }
   
-  // Check distributor (if exists in hierarchy)
-  const distributor = hierarchy.find(t => t.type === 'distributor')
-  if (distributor) {
-    const distributorRecord = await fetchByTargetKey(distributor.id)
-    if (distributorRecord && distributorRecord.isActive && distributorRecord.targetType === 'distributor') {
-      const profile = mapToProfile(distributorRecord, cryptoKey)
+  // Check provider (if exists in hierarchy) - providers are now directly above organizations
+  const provider = hierarchy.find(t => t.type === 'provider')
+  if (provider) {
+    const providerRecord = await fetchByTargetKey(provider.id)
+    if (providerRecord && providerRecord.isActive && providerRecord.targetType === 'provider') {
+      const profile = mapToProfile(providerRecord, cryptoKey)
       if (profile) {
         return profile
       }
     }
   }
   
-  // Check provider (if exists in hierarchy)
-  const provider = hierarchy.find(t => t.type === 'provider')
-  if (provider) {
-    const providerRecord = await fetchByTargetKey(provider.id)
-    if (providerRecord && providerRecord.isActive && providerRecord.targetType === 'provider') {
-      const profile = mapToProfile(providerRecord, cryptoKey)
+  // Check distributor (if exists in hierarchy) - distributors are now above providers
+  const distributor = hierarchy.find(t => t.type === 'distributor')
+  if (distributor) {
+    const distributorRecord = await fetchByTargetKey(distributor.id)
+    if (distributorRecord && distributorRecord.isActive && distributorRecord.targetType === 'distributor') {
+      const profile = mapToProfile(distributorRecord, cryptoKey)
       if (profile) {
         return profile
       }

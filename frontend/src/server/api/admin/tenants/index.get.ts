@@ -1,10 +1,29 @@
 import { and, desc, eq, like, or, sql, inArray } from 'drizzle-orm'
 import { defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
-import { tenants, tenantMemberships, organizations, organizationMemberships, emailProviderProfiles } from '../../../database/schema'
+import { tenants, tenantMemberships, organizations, organizationMemberships, emailProviderProfiles, distributorProviders } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { ensureAuthState } from '../../../utils/session'
 import { canAccessTenant } from '../../../utils/rbac'
+
+// Helper to get distributor-provider links for accessible tenants
+async function getDistributorProviderLinks(accessibleTenantIds: string[]) {
+  const db = getDb()
+  const links = await db
+    .select({
+      distributorId: distributorProviders.distributorId,
+      providerId: distributorProviders.providerId
+    })
+    .from(distributorProviders)
+    .where(
+      or(
+        inArray(distributorProviders.distributorId, accessibleTenantIds),
+        inArray(distributorProviders.providerId, accessibleTenantIds)
+      )
+    )
+  
+  return links
+}
 
 const querySchema = z.object({
   q: z.string().max(120).optional(),
@@ -119,13 +138,36 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Get organizations for distributors (only if user has access to the distributor)
+  // Get organizations for providers (organizations are now linked to providers, not distributors)
+  // First, get all accessible providers (directly or via distributor links)
+  const accessibleProviderIds: string[] = []
+  
+  // Direct provider access
+  const directProviders = accessibleTenants
+    .filter(t => t.type === 'provider')
+    .map(t => t.id)
+  accessibleProviderIds.push(...directProviders)
+  
+  // Providers accessible via distributors
   const accessibleDistributorIds = accessibleTenants
     .filter(t => t.type === 'distributor')
     .map(t => t.id)
+  
+  if (accessibleDistributorIds.length > 0) {
+    const providerLinks = await db
+      .select({ providerId: distributorProviders.providerId })
+      .from(distributorProviders)
+      .where(inArray(distributorProviders.distributorId, accessibleDistributorIds))
+    
+    for (const link of providerLinks) {
+      if (!accessibleProviderIds.includes(link.providerId)) {
+        accessibleProviderIds.push(link.providerId)
+      }
+    }
+  }
 
   let orgsList: any[] = []
-  if (accessibleDistributorIds.length > 0) {
+  if (accessibleProviderIds.length > 0 || auth.user.isSuperAdmin) {
     const orgsQuery = db
       .select({
         id: organizations.id,
@@ -156,7 +198,7 @@ export default defineEventHandler(async (event) => {
       .where(
         auth.user.isSuperAdmin
           ? undefined
-          : inArray(organizations.tenantId, accessibleDistributorIds)
+          : inArray(organizations.tenantId, accessibleProviderIds)
       )
       .groupBy(
         organizations.id,
@@ -170,9 +212,15 @@ export default defineEventHandler(async (event) => {
     orgsList = await orgsQuery
   }
 
+  // Get distributor-provider links for building tree structure
+  const distributorProviderLinks = await getDistributorProviderLinks(
+    accessibleTenants.map(t => t.id)
+  )
+
   return {
     tenants: accessibleTenants,
-    organizations: orgsList
+    organizations: orgsList,
+    distributorProviderLinks // Include junction table data for frontend tree building
   }
 })
 
