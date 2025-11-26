@@ -28,8 +28,7 @@ const updateSchema = z
     billingEmail: z.union([z.string().email(), z.literal(null), z.literal('')]).optional(),
     coreId: z.union([z.string().max(4), z.literal(null), z.literal('')]).optional(),
     defaultRole: z.enum(rbacRoles).optional(),
-    requireSso: z.boolean().optional(),
-    allowSelfSignup: z.boolean().optional()
+    requireSso: z.boolean().optional()
   })
   .refine(
     (payload) =>
@@ -38,8 +37,7 @@ const updateSchema = z
       payload.billingEmail !== undefined ||
       payload.coreId !== undefined ||
       payload.defaultRole !== undefined ||
-      payload.requireSso !== undefined ||
-      payload.allowSelfSignup !== undefined,
+      payload.requireSso !== undefined,
     {
       message: 'Inga ändringar angavs.'
     }
@@ -65,7 +63,6 @@ export default defineEventHandler(async (event) => {
   }
   if (payload.defaultRole !== undefined) orgUpdates.defaultRole = payload.defaultRole
   if (payload.requireSso !== undefined) orgUpdates.requireSso = payload.requireSso
-  if (payload.allowSelfSignup !== undefined) orgUpdates.allowSelfSignup = payload.allowSelfSignup
 
   const authUpdates: Partial<typeof organizationAuthSettings.$inferInsert> = {}
   if (payload.requireSso !== undefined) {

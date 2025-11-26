@@ -15,7 +15,7 @@
           </ClientOnly>
           <span class="sr-only">CoreIT Cloud Portal</span>
         </NuxtLink>
-        <OrgSelector />
+        <ContextSwitcher />
       </div>
 
       <button class="md:hidden" @click="mobileOpen = !mobileOpen" aria-label="Toggle navigation">
@@ -90,7 +90,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { computed, ref } from '#imports'
-import OrgSelector from '~/components/layout/OrgSelector.vue'
+import ContextSwitcher from '~/components/navigation/ContextSwitcher.vue'
 import { useAuth } from '~/composables/useAuth'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
 import { normalizeLogoUrl } from '~/utils/logo'
@@ -135,6 +135,9 @@ const adminNavItems = computed(() => {
     )
   } else if (auth.isSuperAdmin.value) {
     items.push({ label: 'Admin', to: '/admin/organizations', icon: 'mdi:shield-crown' })
+  }
+  if (auth.isSuperAdmin.value) {
+    items.push({ label: 'RBAC Matris', to: '/admin/rbac-matrix', icon: 'mdi:shield-key' })
   }
   return items
 })

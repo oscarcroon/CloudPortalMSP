@@ -1,5 +1,5 @@
 import { and, desc, eq, like, or, sql, inArray } from 'drizzle-orm'
-import { defineEventHandler, getQuery } from 'h3'
+import { createError, defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
 import {
   organizationAuthSettings,
@@ -66,7 +66,6 @@ export default defineEventHandler(async (event) => {
       slug: organizations.slug,
       status: organizations.status,
       requireSso: organizations.requireSso,
-      allowSelfSignup: organizations.allowSelfSignup,
       defaultRole: organizations.defaultRole,
       billingEmail: organizations.billingEmail,
       tenantId: organizations.tenantId,
@@ -101,7 +100,6 @@ export default defineEventHandler(async (event) => {
       organizations.slug,
       organizations.status,
       organizations.requireSso,
-      organizations.allowSelfSignup,
       organizations.defaultRole,
       organizations.billingEmail,
       organizations.tenantId,
@@ -154,7 +152,6 @@ export default defineEventHandler(async (event) => {
       slug: row.slug,
       status: row.status,
       requireSso: Boolean(row.requireSso),
-      allowSelfSignup: Boolean(row.allowSelfSignup),
       defaultRole: row.defaultRole,
       billingEmail: row.billingEmail,
         tenantId: row.tenantId,
@@ -187,7 +184,6 @@ export default defineEventHandler(async (event) => {
       slug: row.slug,
       status: row.status,
       requireSso: Boolean(row.requireSso),
-      allowSelfSignup: Boolean(row.allowSelfSignup),
       defaultRole: row.defaultRole,
       billingEmail: row.billingEmail,
       tenantId: row.tenantId,

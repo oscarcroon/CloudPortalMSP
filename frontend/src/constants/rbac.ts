@@ -25,6 +25,7 @@ export const rbacPermissions = [
   'tenants:read',
   'tenants:manage',
   'tenants:create-distributor',
+  'tenants:create-provider',
   'tenants:create-customer'
 ] as const
 
@@ -90,7 +91,7 @@ export const tenantRolePermissionMap: Record<TenantRole, RbacPermission[]> = {
   admin: [
     'tenants:read',
     'tenants:manage',
-    'tenants:create-distributor',
+    'tenants:create-provider',
     'tenants:create-customer',
     'org:read',
     'org:manage',

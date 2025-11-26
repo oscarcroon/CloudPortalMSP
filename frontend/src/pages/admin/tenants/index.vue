@@ -119,21 +119,24 @@ const route = useRoute()
 const auth = useAuth()
 
 const canCreateDistributor = computed(() => {
-  // Super admins or users with admin role and includeChildren can create distributors
-  if (auth.isSuperAdmin.value) return true
-  for (const [tenantId, role] of Object.entries(auth.state.value.data?.tenantRoles ?? {})) {
-    const includeChildren = auth.state.value.data?.tenantIncludeChildren?.[tenantId] ?? false
-    if (role === 'admin' && includeChildren) return true
-  }
-  return false
+  // Only super admins can create distributors
+  return auth.isSuperAdmin.value
 })
 
 const canCreateSupplier = computed(() => {
-  // Super admins or users with admin role and includeChildren can create providers
+  // Only super admins or distributor admins with includeChildren can create providers
   if (auth.isSuperAdmin.value) return true
+  
+  // Check if user is admin in a distributor with includeChildren
   for (const [tenantId, role] of Object.entries(auth.state.value.data?.tenantRoles ?? {})) {
     const includeChildren = auth.state.value.data?.tenantIncludeChildren?.[tenantId] ?? false
-    if (role === 'admin' && includeChildren) return true
+    if (role === 'admin' && includeChildren) {
+      // Verify this tenant is a distributor (not a provider)
+      const tenant = allTenants.value.find(t => t.id === tenantId)
+      if (tenant && tenant.type === 'distributor') {
+        return true
+      }
+    }
   }
   return false
 })

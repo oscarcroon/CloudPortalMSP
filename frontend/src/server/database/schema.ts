@@ -1,6 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import { relations, sql } from 'drizzle-orm'
 import {
+  index,
   integer,
   real,
   sqliteTable,
@@ -202,9 +203,57 @@ export const organizationAuthSettings = sqliteTable('organization_auth_settings'
   allowLocalLoginForOwners: integer('allow_local_login_for_owners', { mode: 'boolean' })
     .notNull()
     .default(1),
+  requireMfaOnSensitiveActions: integer('require_mfa_on_sensitive_actions', { mode: 'boolean' })
+    .notNull()
+    .default(0),
+  requireMfaOnContextSwitch: integer('require_mfa_on_context_switch', { mode: 'boolean' })
+    .notNull()
+    .default(0),
   idpConfig: text('idp_config', { length: 4096 }),
   ...timestampColumns()
 })
+
+export const tenantAuthSettings = sqliteTable('tenant_auth_settings', {
+  tenantId: text('tenant_id')
+    .primaryKey()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  requireMfaOnSensitiveActions: integer('require_mfa_on_sensitive_actions', { mode: 'boolean' })
+    .notNull()
+    .default(0),
+  requireMfaOnContextSwitch: integer('require_mfa_on_context_switch', { mode: 'boolean' })
+    .notNull()
+    .default(0),
+  ...timestampColumns()
+})
+
+export const mfaSessions = sqliteTable('mfa_sessions', {
+  id: text('id').primaryKey().$defaultFn(createId),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  scope: text('scope').notNull(), // e.g., 'global', 'org:<id>', 'tenant:<id>'
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  ...timestampColumns()
+}, table => ({
+  userScopeIdx: uniqueIndex('mfa_sessions_user_scope_idx').on(table.userId, table.scope)
+}))
+
+export const auditLogs = sqliteTable('audit_logs', {
+  id: text('id').primaryKey().$defaultFn(createId),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  eventType: text('event_type').notNull(),
+  fromContext: text('from_context', { length: 1024 }),
+  toContext: text('to_context', { length: 1024 }),
+  ip: text('ip'),
+  userAgent: text('user_agent', { length: 512 }),
+  meta: text('meta', { length: 4096 }),
+  ...timestampColumns()
+}, table => ({
+  userIdIdx: index('audit_logs_user_id_idx').on(table.userId),
+  timestampIdx: index('audit_logs_timestamp_idx').on(table.createdAt)
+}))
 
 export const organizationIdentityProviders = sqliteTable(
   'organization_identity_providers',
@@ -493,6 +542,13 @@ export const tenantMembershipRelations = relations(tenantMemberships, ({ one }) 
   user: one(users, {
     fields: [tenantMemberships.userId],
     references: [users.id]
+  })
+}))
+
+export const tenantAuthSettingsRelations = relations(tenantAuthSettings, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [tenantAuthSettings.tenantId],
+    references: [tenants.id]
   })
 }))
 

@@ -97,7 +97,6 @@
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Medlemmar</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">SSO</th>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Självregistrering</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Skapad</th>
             </tr>
           </thead>
@@ -141,11 +140,6 @@
               <td class="px-6 py-3">
                 <StatusPill :variant="org.requireSso ? 'success' : 'info'">
                   {{ org.requireSso ? 'På' : 'Av' }}
-                </StatusPill>
-              </td>
-              <td class="px-6 py-3">
-                <StatusPill :variant="org.allowSelfSignup ? 'success' : 'info'">
-                  {{ org.allowSelfSignup ? 'På' : 'Av' }}
                 </StatusPill>
               </td>
               <td class="px-6 py-3 text-xs text-slate-500 dark:text-slate-400">

@@ -122,10 +122,6 @@
               </span>
             </label>
           </div>
-          <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
-            <input id="overview-self-signup" v-model="form.allowSelfSignup" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
-            <label for="overview-self-signup" class="text-sm text-slate-700 dark:text-slate-200">Tillåt självregistrering</label>
-          </div>
         </div>
       </form>
 
@@ -246,8 +242,7 @@ const form = reactive({
   billingEmail: '',
   coreId: '',
   defaultRole: roles[3],
-  requireSso: false,
-  allowSelfSignup: false
+  requireSso: false
 })
 
 const canToggleRequireSso = computed(() => {
@@ -291,7 +286,6 @@ watch(
     form.coreId = org.coreId ?? ''
     form.defaultRole = org.defaultRole
     form.requireSso = org.requireSso
-    form.allowSelfSignup = org.allowSelfSignup
   },
   { immediate: true }
 )
@@ -322,8 +316,7 @@ const handleSave = async () => {
   const payload: AdminUpdateOrganizationPayload = {
     name: form.name.trim(),
     defaultRole: form.defaultRole,
-    requireSso: form.requireSso,
-    allowSelfSignup: form.allowSelfSignup
+    requireSso: form.requireSso
   }
 
   if (form.slug.trim()) {

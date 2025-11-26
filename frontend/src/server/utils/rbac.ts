@@ -12,6 +12,10 @@ export const hasPermission = (role: RbacRole, permission: RbacPermission) =>
 export const hasTenantPermission = (role: TenantRole, permission: RbacPermission) =>
   tenantRolePermissionMap[role]?.includes(permission) ?? false
 
+/**
+ * Centralized permission checker that uses both org and tenant memberships
+ * Uses current context (currentOrgId/currentTenantId) from auth state
+ */
 export const requirePermission = async (
   event: H3Event,
   permission: RbacPermission,
@@ -30,37 +34,49 @@ export const requirePermission = async (
     return { auth, role: 'owner', orgId }
   }
 
-  // Check if user has direct organization permission
-  const role = auth.orgRoles[orgId]
-  if (role && hasPermission(role, permission)) {
-    return { auth, role, orgId }
+  // 1. Check direct organization membership
+  const directRole = auth.orgRoles[orgId]
+  if (directRole && hasPermission(directRole, permission)) {
+    return { auth, role: directRole, orgId }
   }
 
-  // Check if user can access organization via tenant hierarchy
+  // 2. Check if user can access organization via tenant hierarchy
   const hasAccess = await canAccessOrganization(auth, orgId)
-  if (hasAccess) {
-    // Check tenant permissions for tenant-level permissions
-    if (permission.startsWith('tenants:') || permission.startsWith('org:manage')) {
-      // For tenant-level permissions, check tenant roles
-      const [org] = await getDb()
-        .select()
-        .from(organizations)
-        .where(eq(organizations.id, orgId))
+  if (!hasAccess) {
+    throw createError({
+      statusCode: 403,
+      message: `Missing permission ${permission} for organization ${orgId}`
+    })
+  }
 
-      if (org?.tenantId) {
-        for (const [tenantId, tenantRole] of Object.entries(auth.tenantRoles)) {
-          if (
-            (await canAccessTenant(auth, tenantId, org.tenantId)) &&
-            hasTenantPermission(tenantRole, permission)
-          ) {
-            return { auth, role: 'owner', orgId }
-          }
+  // 3. Check tenant permissions for tenant-level permissions
+  if (permission.startsWith('tenants:') || permission.startsWith('org:manage')) {
+    // For tenant-level permissions, check tenant roles
+    const [org] = await getDb()
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, orgId))
+
+    if (org?.tenantId) {
+      for (const [tenantId, tenantRole] of Object.entries(auth.tenantRoles)) {
+        const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
+        if (!includeChildren && tenantId !== org.tenantId) {
+          continue
+        }
+
+        if (
+          (await canAccessTenant(auth, tenantId, org.tenantId)) &&
+          hasTenantPermission(tenantRole, permission)
+        ) {
+          // Grant owner-level access when accessing via tenant hierarchy
+          return { auth, role: 'owner', orgId }
         }
       }
-    } else {
-      // For organization-level permissions accessed via tenant, grant owner-level access
-      return { auth, role: 'owner', orgId }
     }
+  } else {
+    // For organization-level permissions accessed via tenant, grant owner-level access
+    // User already has access via tenant hierarchy (checked above)
+    return { auth, role: 'owner', orgId }
   }
 
   throw createError({
@@ -154,6 +170,7 @@ export const canAccessTenant = async (
 
   // Handle many-to-many relation: Distributor -> Provider
   // If user has access to a Distributor, they can access Providers linked to that Distributor
+  // NOTE: Providers should NOT be able to access Distributors (one-way relationship)
   if (userTenant.type === 'distributor' && targetTenant.type === 'provider') {
     const [link] = await db
       .select()
@@ -162,23 +179,6 @@ export const canAccessTenant = async (
         and(
           eq(distributorProviders.distributorId, userTenantId),
           eq(distributorProviders.providerId, targetTenantId)
-        )
-      )
-    
-    if (link) {
-      return true
-    }
-  }
-
-  // Handle reverse: If user has access to a Provider, check if it's linked to their Distributor
-  if (userTenant.type === 'provider' && targetTenant.type === 'distributor') {
-    const [link] = await db
-      .select()
-      .from(distributorProviders)
-      .where(
-        and(
-          eq(distributorProviders.distributorId, targetTenantId),
-          eq(distributorProviders.providerId, userTenantId)
         )
       )
     
@@ -198,6 +198,36 @@ export const canAccessTenant = async (
   }
 
   return false
+}
+
+/**
+ * Check if an organization is under a tenant (directly or via hierarchy)
+ */
+export const isOrgUnderTenant = async (
+  organizationId: string,
+  tenantId: string
+): Promise<boolean> => {
+  const db = getDb()
+  const [org] = await db
+    .select({ tenantId: organizations.tenantId })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+
+  if (!org?.tenantId) {
+    return false
+  }
+
+  // Direct relationship
+  if (org.tenantId === tenantId) {
+    return true
+  }
+
+  // Check tenant hierarchy
+  return canAccessTenant(
+    { user: { isSuperAdmin: false }, tenantRoles: {}, tenantIncludeChildren: {} } as any,
+    tenantId,
+    org.tenantId
+  )
 }
 
 export const canAccessOrganization = async (
@@ -226,6 +256,16 @@ export const canAccessOrganization = async (
 
   // Check if user has access to the organization's tenant
   for (const tenantId of Object.keys(auth.tenantRoles)) {
+    const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
+    if (!includeChildren) {
+      // Without includeChildren, can only access direct tenant
+      if (tenantId === org.tenantId) {
+        return true
+      }
+      continue
+    }
+
+    // With includeChildren, check hierarchy
     if (await canAccessTenant(auth, tenantId, org.tenantId)) {
       return true
     }

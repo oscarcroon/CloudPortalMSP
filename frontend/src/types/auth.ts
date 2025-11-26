@@ -42,8 +42,19 @@ export interface AuthPayload {
   tenantRoles: Record<string, TenantRole>
   tenantIncludeChildren: Record<string, boolean>
   currentOrgId: string | null
+  currentTenantId: string | null
   sessionIssuedAt: string
 }
 
 export type AuthState = AuthPayload
+
+export interface SessionTokenPayload {
+  userId: string
+  currentOrgId?: string | null
+  currentTenantId?: string | null
+  orgRoles?: Record<string, RbacRole>
+  tenantRoles?: Record<string, TenantRole>
+  tenantIncludeChildren?: Record<string, boolean>
+  version: number
+}
 

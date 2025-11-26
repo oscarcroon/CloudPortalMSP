@@ -94,7 +94,7 @@ export const useAuth = () => {
     state.value.initialized = true
   }
 
-  const switchOrganization = async (organizationId: string) => {
+  const switchOrganization = async (organizationId: string | null) => {
     state.value.loading = true
     try {
       const data = await $fetch<AuthPayload>('/api/auth/switch-org', {
@@ -112,9 +112,50 @@ export const useAuth = () => {
     }
   }
 
+  const switchTenant = async (tenantId: string | null) => {
+    state.value.loading = true
+    try {
+      const data = await $fetch<AuthPayload>('/api/auth/switch-tenant', {
+        method: 'POST',
+        body: { tenantId },
+        credentials: 'include'
+      })
+      applyAuthPayload(data)
+      return data
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Kunde inte byta tenant.')
+      throw error
+    } finally {
+      state.value.loading = false
+    }
+  }
+
+  const switchContext = async (payload: { organizationId?: string | null; tenantId?: string | null }) => {
+    state.value.loading = true
+    try {
+      const data = await $fetch<AuthPayload>('/api/auth/context-switch', {
+        method: 'POST',
+        body: payload,
+        credentials: 'include'
+      })
+      applyAuthPayload(data)
+      return data
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Kunde inte byta kontext.')
+      throw error
+    } finally {
+      state.value.loading = false
+    }
+  }
+
   const currentOrg = computed(() => {
     const orgId = state.value.data?.currentOrgId
     return state.value.data?.organizations.find((org) => org.id === orgId) ?? null
+  })
+
+  const currentTenant = computed(() => {
+    const tenantId = state.value.data?.currentTenantId
+    return state.value.data?.tenants.find((tenant) => tenant.id === tenantId) ?? null
   })
 
   const isSuperAdmin = computed(() => Boolean(state.value.data?.user?.isSuperAdmin))
@@ -123,8 +164,11 @@ export const useAuth = () => {
     state,
     user: computed(() => state.value.data?.user ?? null),
     organizations: computed(() => state.value.data?.organizations ?? []),
+    tenants: computed(() => state.value.data?.tenants ?? []),
     currentOrg,
+    currentTenant,
     orgRoles: computed(() => state.value.data?.orgRoles ?? {}),
+    tenantRoles: computed(() => state.value.data?.tenantRoles ?? {}),
     isSuperAdmin,
     loading: computed(() => state.value.loading),
     initialized: computed(() => state.value.initialized),
@@ -133,7 +177,9 @@ export const useAuth = () => {
     fetchMe,
     login,
     logout,
-    switchOrganization
+    switchOrganization,
+    switchTenant,
+    switchContext
   }
 }
 

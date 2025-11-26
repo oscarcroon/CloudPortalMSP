@@ -53,8 +53,23 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Check permission
-  await requireTenantPermission(event, 'tenants:create-provider', distributorId)
+  // Check permission - only super admins or distributor admins with includeChildren can create providers
+  const auth = await ensureAuthState(event)
+  if (!auth) {
+    throw createError({ statusCode: 401, message: 'Not authenticated' })
+  }
+
+  if (!auth.user.isSuperAdmin) {
+    const userRole = auth.tenantRoles[distributorId]
+    const includeChildren = auth.tenantIncludeChildren?.[distributorId] ?? false
+    
+    if (!userRole || userRole !== 'admin' || !includeChildren) {
+      throw createError({
+        statusCode: 403,
+        message: 'Super admin or distributor admin with includeChildren required to create providers'
+      })
+    }
+  }
 
   const normalizedOwnerEmail = normalizeEmail(payload.owner.email)
   const [existingUser] = await db.select().from(users).where(eq(users.email, normalizedOwnerEmail))

@@ -71,6 +71,20 @@
       "when": 1764145051430,
       "tag": "0009_bitter_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1764184418619,
+      "tag": "0010_abandoned_rage",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1764184449301,
+      "tag": "0011_demonic_shadowcat",
+      "breakpoints": true
     }
   ]
 }

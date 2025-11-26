@@ -120,6 +120,7 @@ const mapTenantRow = (row: TenantMembershipRow): AuthTenant => ({
 export const buildAuthState = async (
   userId: string,
   forcedOrgId?: string | null,
+  forcedTenantId?: string | null,
   presetRoles?: Record<string, RbacRole>
 ): Promise<AuthState> => {
   const db = getDb()
@@ -155,12 +156,23 @@ export const buildAuthState = async (
     return mapTenantRow(row)
   })
 
-  const resolvedOrgId =
-    forcedOrgId && orgRoles[forcedOrgId]
-      ? forcedOrgId
-      : user.defaultOrgId && orgRoles[user.defaultOrgId]
-        ? user.defaultOrgId
-        : organizationPayload[0]?.id ?? null
+  let resolvedOrgId: string | null
+  if (forcedOrgId !== undefined) {
+    resolvedOrgId = forcedOrgId && orgRoles[forcedOrgId] ? forcedOrgId : null
+  } else if (user.defaultOrgId && orgRoles[user.defaultOrgId]) {
+    resolvedOrgId = user.defaultOrgId
+  } else {
+    resolvedOrgId = organizationPayload[0]?.id ?? null
+  }
+
+  // Resolve currentTenantId: use forcedTenantId if provided (even if null)
+  // otherwise use first tenant in list
+  let resolvedTenantId: string | null
+  if (forcedTenantId !== undefined) {
+    resolvedTenantId = forcedTenantId && tenantRoles[forcedTenantId] ? forcedTenantId : null
+  } else {
+    resolvedTenantId = tenantPayload[0]?.id ?? null
+  }
 
   return {
     user: {
@@ -178,6 +190,7 @@ export const buildAuthState = async (
     tenantRoles,
     tenantIncludeChildren,
     currentOrgId: resolvedOrgId,
+    currentTenantId: resolvedTenantId,
     sessionIssuedAt: new Date().toISOString()
   }
 }

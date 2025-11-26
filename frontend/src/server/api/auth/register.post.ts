@@ -13,13 +13,11 @@ const registerSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  if (!config.auth?.allowSelfRegistration) {
-    throw createError({
-      statusCode: 403,
-      message: 'Self-service registration is disabled'
-    })
-  }
+  // Self-service registration is not allowed - users must use the invite system
+  throw createError({
+    statusCode: 403,
+    message: 'Self-service registration is disabled. Please use an invitation link to create an account.'
+  })
 
   const body = registerSchema.parse(await readBody(event))
   const email = normalizeEmail(body.email)

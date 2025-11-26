@@ -24,7 +24,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const payload = decodeSessionToken(token)
-  const auth = await buildAuthState(payload.userId, payload.currentOrgId, payload.orgRoles)
+  const auth = await buildAuthState(
+    payload.userId,
+    payload.currentOrgId,
+    payload.currentTenantId,
+    payload.orgRoles
+  )
   return auth
 })
 

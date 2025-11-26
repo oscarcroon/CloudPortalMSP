@@ -9,12 +9,23 @@
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center gap-3">
           <Icon icon="mdi:office-building-outline" class="h-6 w-6 text-brand" />
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Organisationer</h2>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ organizationSectionTitle }}</h2>
         </div>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Byt aktiv organisation och se roller.</p>
-        <ul class="mt-4 space-y-3">
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Byt aktiv organisation och se roller.
+          <span v-if="hasActiveTenant && auth.currentTenant.value" class="block text-xs text-slate-400 dark:text-slate-500">
+            Visar endast organisationer under {{ auth.currentTenant.value.name }}.
+          </span>
+        </p>
+        <p
+          v-if="!hasActiveOrg"
+          class="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          Ingen organisation är aktiv just nu. Välj en i listan för att visa organisationsspecifika inställningar.
+        </p>
+        <ul v-if="filteredOrganizations.length" class="mt-4 space-y-3">
           <li
-            v-for="org in auth.organizations.value"
+            v-for="org in filteredOrganizations"
             :key="org.id"
             class="flex items-center justify-between rounded-xl border px-4 py-3"
             :class="
@@ -35,9 +46,20 @@
             </button>
           </li>
         </ul>
+        <p
+          v-else
+          class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+        >
+          Inga organisationer är kopplade till den aktuella leverantören. Lägg till en organisation eller byt leverantör i context switchern.
+        </p>
       </div>
 
-      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
+      <div
+        :class="[
+          'rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70',
+          { 'pointer-events-none opacity-50': isSettingsLocked }
+        ]"
+      >
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="flex items-center gap-3">
@@ -50,7 +72,12 @@
           </div>
           <NuxtLink
             to="/settings/members"
-            class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200"
+            :aria-disabled="isSettingsLocked"
+            :tabindex="isSettingsLocked ? -1 : 0"
+            :class="[
+              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+              { 'pointer-events-none opacity-50': isSettingsLocked }
+            ]"
           >
             Öppna
           </NuxtLink>
@@ -62,7 +89,12 @@
         </ul>
       </div>
 
-      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
+      <div
+        :class="[
+          'rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70',
+          { 'pointer-events-none opacity-50': isSettingsLocked }
+        ]"
+      >
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="flex items-center gap-3">
@@ -75,7 +107,12 @@
           </div>
           <NuxtLink
             to="/settings/auth"
-            class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200"
+            :aria-disabled="isSettingsLocked"
+            :tabindex="isSettingsLocked ? -1 : 0"
+            :class="[
+              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+              { 'pointer-events-none opacity-50': isSettingsLocked }
+            ]"
           >
             Öppna
           </NuxtLink>
@@ -87,7 +124,12 @@
         </ul>
       </div>
 
-      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
+      <div
+        :class="[
+          'rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70',
+          { 'pointer-events-none opacity-50': isSettingsLocked }
+        ]"
+      >
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="flex items-center gap-3">
@@ -100,7 +142,12 @@
           </div>
           <NuxtLink
             to="/settings/email"
-            class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200"
+            :aria-disabled="isSettingsLocked"
+            :tabindex="isSettingsLocked ? -1 : 0"
+            :class="[
+              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+              { 'pointer-events-none opacity-50': isSettingsLocked }
+            ]"
           >
             Öppna
           </NuxtLink>
@@ -112,7 +159,12 @@
         </ul>
       </div>
 
-      <div class="space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
+      <div
+        :class="[
+          'space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70',
+          { 'pointer-events-none opacity-50': isSettingsLocked }
+        ]"
+      >
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="flex items-center gap-3">
@@ -228,6 +280,25 @@ const tokens = [
   { name: 'WordPress Management Token', description: 'REST Application password' }
 ]
 
+const currentTenantId = computed(() => auth.state.value.data?.currentTenantId ?? null)
+const hasActiveTenant = computed(() => Boolean(currentTenantId.value))
+
+const filteredOrganizations = computed(() => {
+  const tenantId = currentTenantId.value
+  if (!tenantId) {
+    return auth.organizations.value
+  }
+  return auth.organizations.value.filter((org) => org.tenantId === tenantId)
+})
+
+const hasActiveOrg = computed(() => Boolean(auth.state.value.data?.currentOrgId))
+const organizationSectionTitle = computed(() =>
+  hasActiveTenant.value && auth.currentTenant.value
+    ? `Organisationer för ${auth.currentTenant.value.name}`
+    : 'Organisationer'
+)
+const isSettingsLocked = computed(() => !hasActiveOrg.value)
+
 const currentLogo = computed(() => {
   const orgLogoUrl = auth.currentOrg.value?.logoUrl
   const normalized = normalizeLogoUrl(orgLogoUrl)
@@ -237,7 +308,7 @@ const hasCustomLogo = computed(() => {
   const orgLogoUrl = auth.currentOrg.value?.logoUrl
   return Boolean(orgLogoUrl && normalizeLogoUrl(orgLogoUrl))
 })
-const activeOrganisationName = computed(() => auth.currentOrg.value?.name ?? 'CoreIT')
+const activeOrganisationName = computed(() => auth.currentOrg.value?.name ?? 'Ingen organisation vald')
 
 function triggerFilePicker() {
   uploadError.value = null

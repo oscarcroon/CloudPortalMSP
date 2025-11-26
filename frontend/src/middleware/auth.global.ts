@@ -38,7 +38,15 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const isSuperAdmin = import.meta.server
     ? Boolean(serverAuth?.user.isSuperAdmin)
     : Boolean(auth?.state.value.data?.user.isSuperAdmin)
+  const currentOrgId = import.meta.server
+    ? serverAuth?.currentOrgId ?? null
+    : auth?.state.value.data?.currentOrgId ?? null
+  const isSettingsSubRoute = to.path.startsWith('/settings') && to.path !== '/settings'
   
+  if (isSettingsSubRoute && !currentOrgId) {
+    return navigateTo('/settings?error=no-org', { replace: true })
+  }
+
   // Check tenant access for tenant routes
   if (to.path.startsWith('/admin/tenants')) {
     const hasTenantAccess =
@@ -59,9 +67,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  const currentOrgId = import.meta.server
-    ? serverAuth?.currentOrgId ?? null
-    : auth?.state.value.data?.currentOrgId ?? null
   const role: RbacRole | undefined = currentOrgId
     ? import.meta.server
       ? serverAuth?.orgRoles[currentOrgId]

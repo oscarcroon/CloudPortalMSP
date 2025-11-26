@@ -66,7 +66,6 @@ export default defineEventHandler(async (event) => {
 
   const orgUpdates: Partial<typeof organizations.$inferInsert> = {}
   if (payload.requireSso !== undefined) orgUpdates.requireSso = payload.requireSso
-  if (payload.allowSelfSignup !== undefined) orgUpdates.allowSelfSignup = payload.allowSelfSignup
 
   const authUpdates: Partial<typeof organizationAuthSettings.$inferInsert> = {}
   if (payload.requireSso !== undefined) authUpdates.ssoEnforced = payload.requireSso

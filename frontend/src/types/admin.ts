@@ -94,7 +94,6 @@ export interface AdminOrganizationSummary {
   slug: string
   status: string
   requireSso: boolean
-  allowSelfSignup: boolean
   defaultRole: RbacRole
   billingEmail?: string | null
   tenantId?: string | null
@@ -114,7 +113,6 @@ export interface AdminOrganizationDetail {
     coreId?: string | null
     defaultRole: RbacRole
     requireSso: boolean
-    allowSelfSignup: boolean
     createdAt: number
     updatedAt?: number | null
   }
@@ -155,7 +153,6 @@ export interface AdminUpdateOrganizationPayload {
   coreId?: string | null
   defaultRole?: RbacRole
   requireSso?: boolean
-  allowSelfSignup?: boolean
 }
 
 export interface AdminOrganizationMember {
@@ -213,7 +210,6 @@ export interface AdminRemoveMemberResponse {
 
 export interface AdminUpdateAuthSettingsPayload {
   requireSso?: boolean
-  allowSelfSignup?: boolean
   idpType?: OrganizationIdpType
   allowLocalLoginForOwners?: boolean
   idpConfig?: Record<string, unknown> | null

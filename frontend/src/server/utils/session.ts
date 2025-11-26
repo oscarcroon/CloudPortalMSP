@@ -78,6 +78,7 @@ export const ensureAuthState = async (event: H3Event) => {
     const auth = await buildAuthState(
       payload.userId,
       payload.currentOrgId,
+      payload.currentTenantId,
       payload.orgRoles
     )
     // Merge tenant roles and includeChildren from token if available
@@ -86,6 +87,13 @@ export const ensureAuthState = async (event: H3Event) => {
     }
     if (payload.tenantIncludeChildren) {
       auth.tenantIncludeChildren = { ...auth.tenantIncludeChildren, ...payload.tenantIncludeChildren }
+    }
+    // Override currentTenantId/currentOrgId from token if present
+    if (payload.currentTenantId !== undefined) {
+      auth.currentTenantId = payload.currentTenantId
+    }
+    if (payload.currentOrgId !== undefined) {
+      auth.currentOrgId = payload.currentOrgId
     }
     event.context.auth = auth
     return auth
@@ -99,15 +107,17 @@ export const ensureAuthState = async (event: H3Event) => {
 export const createSession = async (
   event: H3Event,
   userId: string,
-  forcedOrgId?: string | null
+  forcedOrgId?: string | null,
+  forcedTenantId?: string | null
 ): Promise<AuthState> => {
-  const auth = await buildAuthState(userId, forcedOrgId)
+  const auth = await buildAuthState(userId, forcedOrgId, forcedTenantId)
   if (auth.currentOrgId && !canAccessOrganization(auth, auth.currentOrgId)) {
     auth.currentOrgId = null
   }
   const token = signToken({
     userId: auth.user.id,
     currentOrgId: auth.currentOrgId,
+    currentTenantId: auth.currentTenantId,
     orgRoles: auth.orgRoles,
     tenantRoles: auth.tenantRoles,
     tenantIncludeChildren: auth.tenantIncludeChildren,
@@ -118,12 +128,21 @@ export const createSession = async (
   return auth
 }
 
-export const refreshSession = async (event: H3Event, newOrgId: string | null) => {
+export const refreshSession = async (
+  event: H3Event,
+  newOrgId?: string | null,
+  newTenantId?: string | null
+) => {
   const auth = event.context.auth
   if (!auth) {
     throw createError({ statusCode: 401, message: 'Not authenticated' })
   }
-  return createSession(event, auth.user.id, newOrgId)
+  return createSession(
+    event,
+    auth.user.id,
+    newOrgId !== undefined ? newOrgId : auth.currentOrgId,
+    newTenantId !== undefined ? newTenantId : auth.currentTenantId
+  )
 }
 
 export const requireSession = async (event: H3Event) => {

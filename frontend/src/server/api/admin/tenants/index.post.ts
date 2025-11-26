@@ -6,7 +6,7 @@ import { tenants, tenantMemberships, users, organizations, organizationInvitatio
 import { getDb } from '../../../utils/db'
 import { normalizeEmail, createInviteToken } from '../../../utils/crypto'
 import { slugify } from '../../../utils/auth'
-import { requireTenantPermission } from '../../../utils/rbac'
+import { requireTenantPermission, requireSuperAdmin } from '../../../utils/rbac'
 import { ensureAuthState } from '../../../utils/session'
 import { sendDistributorInvitationEmail, sendDistributorConfirmationEmail } from '../../../utils/mailer'
 import type { TenantRole } from '~/constants/rbac'
@@ -35,24 +35,8 @@ export default defineEventHandler(async (event) => {
 
   // Validate and check permissions based on type
   if (payload.type === 'distributor') {
-    // Distributors are root level - require super admin or admin with includeChildren
-    const auth = await ensureAuthState(event)
-    if (!auth?.user.isSuperAdmin) {
-      let hasPermission = false
-      for (const [tenantId, role] of Object.entries(auth?.tenantRoles ?? {})) {
-        const includeChildren = auth?.tenantIncludeChildren?.[tenantId] ?? false
-        if (role === 'admin' && includeChildren) {
-          hasPermission = true
-          break
-        }
-      }
-      if (!hasPermission) {
-        throw createError({
-          statusCode: 403,
-          message: 'Super admin or admin with includeChildren required to create distributors'
-        })
-      }
-    }
+    // Distributors are root level - require super admin ONLY
+    await requireSuperAdmin(event)
   } else if (payload.type === 'provider') {
     // Providers must be linked to at least one distributor
     if (!payload.distributorIds || payload.distributorIds.length === 0) {
@@ -62,7 +46,38 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Validate all distributors exist and user has permission
+    const auth = await ensureAuthState(event)
+    if (!auth) {
+      throw createError({ statusCode: 401, message: 'Not authenticated' })
+    }
+
+    // Only super admins or distributor admins with includeChildren can create providers
+    if (!auth.user.isSuperAdmin) {
+      let hasPermission = false
+      for (const [tenantId, role] of Object.entries(auth.tenantRoles)) {
+        const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
+        if (role === 'admin' && includeChildren) {
+          // Verify this tenant is a distributor
+          const [tenant] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, tenantId))
+          
+          if (tenant && tenant.type === 'distributor') {
+            hasPermission = true
+            break
+          }
+        }
+      }
+      if (!hasPermission) {
+        throw createError({
+          statusCode: 403,
+          message: 'Super admin or distributor admin with includeChildren required to create providers'
+        })
+      }
+    }
+
+    // Validate all distributors exist
     for (const distributorId of payload.distributorIds) {
       const [distributor] = await db
         .select()
@@ -80,8 +95,17 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      // Check permission to link provider to this distributor
-      await requireTenantPermission(event, 'tenants:create-provider', distributorId)
+      // For non-super-admins, verify they have access to this distributor
+      if (!auth.user.isSuperAdmin) {
+        const userRole = auth.tenantRoles[distributorId]
+        const includeChildren = auth.tenantIncludeChildren?.[distributorId] ?? false
+        if (!userRole || userRole !== 'admin' || !includeChildren) {
+          throw createError({
+            statusCode: 403,
+            message: `Access denied to distributor ${distributorId}`
+          })
+        }
+      }
     }
   }
 

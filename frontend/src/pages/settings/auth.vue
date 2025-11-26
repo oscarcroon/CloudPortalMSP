@@ -83,19 +83,6 @@
 
           <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
             <input
-              id="settings-auth-self-signup"
-              v-model="form.allowSelfSignup"
-              type="checkbox"
-              class="rounded border-slate-300 dark:border-white/20"
-            />
-            <div>
-              <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Tillåt självregistrering</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Användare kan skapa konton utan inbjudan.</p>
-            </div>
-          </label>
-
-          <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
-            <input
               id="settings-auth-owner-local"
               v-model="form.allowLocalLoginForOwners"
               type="checkbox"
@@ -367,7 +354,6 @@ const providerOptions = [
 
 const form = reactive({
   requireSso: false,
-  allowSelfSignup: false,
   allowLocalLoginForOwners: true,
   idpProvider: 'none' as 'none' | 'openid' | 'entra' | 'saml',
   openid: {
@@ -489,7 +475,6 @@ const populateForm = () => {
   if (!data.value) return
   const { organization: org, authSettings } = data.value
   form.requireSso = org.requireSso
-  form.allowSelfSignup = org.allowSelfSignup
   form.allowLocalLoginForOwners = authSettings.allowLocalLoginForOwners
 
   if (authSettings.idpType === 'oidc' && authSettings.idpConfig) {
@@ -588,7 +573,6 @@ const requireSsoDisabledMessage = computed(() =>
 const buildPayload = (): OrganizationAuthUpdatePayload => {
   const payload: OrganizationAuthUpdatePayload = {
     requireSso: form.requireSso,
-    allowSelfSignup: form.allowSelfSignup,
     allowLocalLoginForOwners: form.allowLocalLoginForOwners
   }
 

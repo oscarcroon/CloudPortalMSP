@@ -6,7 +6,7 @@ import { tenants, tenantMemberships, users, organizations, organizationInvitatio
 import { getDb } from '../../../../utils/db'
 import { normalizeEmail, createInviteToken } from '../../../../utils/crypto'
 import { slugify } from '../../../../utils/auth'
-import { requireTenantPermission } from '../../../../utils/rbac'
+import { requireSuperAdmin } from '../../../../utils/rbac'
 import { sendDistributorInvitationEmail, sendDistributorConfirmationEmail } from '../../../../utils/mailer'
 import type { TenantRole } from '~/constants/rbac'
 
@@ -30,23 +30,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing parent tenant ID' })
   }
 
-  await requireTenantPermission(event, 'tenants:create-distributor', parentTenantId)
+  // Only super admins can create distributors
+  await requireSuperAdmin(event)
 
   const payload = createDistributorSchema.parse(await readBody(event))
   const db = getDb()
 
-  // Verify parent is a supplier
+  // Note: This endpoint seems to be legacy - distributors should not be created under providers
+  // Keeping for backward compatibility but requiring super admin
   const [parentTenant] = await db.select().from(tenants).where(eq(tenants.id, parentTenantId))
 
   if (!parentTenant) {
     throw createError({ statusCode: 404, message: 'Parent tenant not found' })
-  }
-
-  if (parentTenant.type !== 'provider') {
-    throw createError({
-      statusCode: 400,
-      message: 'Distributors can only be created under providers'
-    })
   }
 
   const normalizedOwnerEmail = normalizeEmail(payload.owner.email)
