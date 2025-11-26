@@ -208,7 +208,7 @@ watch(() => props.showAllOrganizations, (newValue) => {
   }
 })
 
-// Check if this provider has organizations
+// Check if this provider has organizations (including filtered ones)
 const hasOrganizations = computed(() => {
   if (props.node.tenant.type !== 'provider') return false
   return props.organizations.some(org => org.tenantId === props.node.tenant.id)
@@ -293,11 +293,11 @@ const getTypeClass = (type: string) => {
 const getTypeIcon = (type: string) => {
   switch (type) {
     case 'provider':
-      return 'mdi:office-building'
-    case 'distributor':
       return 'mdi:store'
+    case 'distributor':
+      return 'mdi:city'
     case 'organization':
-      return 'mdi:domain'
+      return 'mdi:home'
     default:
       return 'mdi:folder'
   }

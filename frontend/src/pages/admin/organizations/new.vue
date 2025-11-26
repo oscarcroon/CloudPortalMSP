@@ -32,6 +32,8 @@
               v-model="form.tenantId"
               :distributors="providers"
               :required="true"
+              label="Leverantör"
+              placeholder="Välj leverantör..."
               help-text="Välj leverantör som organisationen ska tillhöra"
             />
           </div>
@@ -245,11 +247,17 @@ const checkingEmail = ref(false)
 const initialTenantId = typeof route.query.tenantId === 'string' ? route.query.tenantId : ''
 
 // Fetch providers (organizations are now linked to providers, not distributors)
-const { data: providersData } = await useFetch<AdminTenantSummary[]>('/api/admin/tenants', {
+interface TenantsResponse {
+  tenants: AdminTenantSummary[]
+  organizations?: any[]
+  distributorProviderLinks?: any[]
+}
+
+const { data: providersData } = await useFetch<TenantsResponse>('/api/admin/tenants', {
   query: { type: 'provider' }
 })
 
-const providers = computed(() => providersData.value ?? [])
+const providers = computed(() => providersData.value?.tenants ?? [])
 
 const form = reactive({
   tenantId: initialTenantId,

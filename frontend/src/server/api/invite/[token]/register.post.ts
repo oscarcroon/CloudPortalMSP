@@ -5,6 +5,8 @@ import { z, ZodError } from 'zod'
 import {
   organizationInvitations,
   organizationMemberships,
+  organizations,
+  tenantMemberships,
   users
 } from '~/server/database/schema'
 import { getDb } from '~/server/utils/db'
@@ -237,6 +239,74 @@ export default defineEventHandler(async (event) => {
         .where(eq(organizationInvitations.id, invitation.id))
     }
 
+    // If this is a tenant invitation (organization name ends with " - System" and has tenantId),
+    // also create tenant membership
+    // Note: The role and includeChildren are not stored in the invitation, so we use defaults
+    // Admin can update these later if needed
+    if (organization && organization.tenantId && organization.name?.endsWith(' - System')) {
+      const tenantId = organization.tenantId
+      const existingTenantMembership = isSqlite
+        ? await (db as any)
+            .select()
+            .from(tenantMemberships)
+            .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, userId)))
+            .get()
+        : await (db as any)
+            .select()
+            .from(tenantMemberships)
+            .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, userId)))
+            .then((rows: any[]) => rows[0] ?? null)
+
+      if (!existingTenantMembership) {
+        // Create tenant membership with default role 'viewer'
+        // Note: The actual role and includeChildren should ideally be stored in the invitation,
+        // but for now we use defaults. Admin can update these later.
+        if (isSqlite) {
+          await (db as any).insert(tenantMemberships).values({
+            id: createId(),
+            tenantId,
+            userId,
+            role: 'viewer',
+            includeChildren: 0,
+            status: 'active',
+            createdAt: now,
+            updatedAt: now
+          }).run()
+        } else {
+          await (db as any).insert(tenantMemberships).values({
+            id: createId(),
+            tenantId,
+            userId,
+            role: 'viewer',
+            includeChildren: false,
+            status: 'active',
+            createdAt: now,
+            updatedAt: now
+          })
+        }
+      } else {
+        // Update existing membership to active
+        if (isSqlite) {
+          await (db as any)
+            .update(tenantMemberships)
+            .set({
+              status: 'active',
+              updatedAt: now
+            })
+            .where(eq(tenantMemberships.id, existingTenantMembership.id))
+            .run()
+        } else {
+          await (db as any)
+            .update(tenantMemberships)
+            .set({
+              status: 'active',
+              updatedAt: now
+            })
+            .where(eq(tenantMemberships.id, existingTenantMembership.id))
+        }
+      }
+    }
+
     await createSession(event, userId, invitation.organizationId)
 
     return { success: true }
@@ -270,6 +340,38 @@ export default defineEventHandler(async (event) => {
       .set({ status: 'accepted', acceptedAt: now, updatedAt: now })
       .where(eq(organizationInvitations.id, invitation.id))
       .run()
+
+    // If this is a tenant invitation, also create tenant membership
+    if (organization && organization.tenantId && organization.name?.endsWith(' - System')) {
+      const tenantId = organization.tenantId
+      const existingTenantMembership = await (db as any)
+        .select()
+        .from(tenantMemberships)
+        .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, userId)))
+        .get()
+
+      if (!existingTenantMembership) {
+        await (db as any).insert(tenantMemberships).values({
+          id: createId(),
+          tenantId,
+          userId,
+          role: 'viewer',
+          includeChildren: 0,
+          status: 'active',
+          createdAt: now,
+          updatedAt: now
+        }).run()
+      } else {
+        await (db as any)
+          .update(tenantMemberships)
+          .set({
+            status: 'active',
+            updatedAt: now
+          })
+          .where(eq(tenantMemberships.id, existingTenantMembership.id))
+          .run()
+      }
+    }
   } else {
     await (db as any).insert(users).values({
       id: userId,
@@ -295,6 +397,37 @@ export default defineEventHandler(async (event) => {
       .update(organizationInvitations)
       .set({ status: 'accepted', acceptedAt: now, updatedAt: now })
       .where(eq(organizationInvitations.id, invitation.id))
+
+    // If this is a tenant invitation, also create tenant membership
+    if (organization && organization.tenantId && organization.name?.endsWith(' - System')) {
+      const tenantId = organization.tenantId
+      const existingTenantMembership = await (db as any)
+        .select()
+        .from(tenantMemberships)
+        .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, userId)))
+        .then((rows: any[]) => rows[0] ?? null)
+
+      if (!existingTenantMembership) {
+        await (db as any).insert(tenantMemberships).values({
+          id: createId(),
+          tenantId,
+          userId,
+          role: 'viewer',
+          includeChildren: false,
+          status: 'active',
+          createdAt: now,
+          updatedAt: now
+        })
+      } else {
+        await (db as any)
+          .update(tenantMemberships)
+          .set({
+            status: 'active',
+            updatedAt: now
+          })
+          .where(eq(tenantMemberships.id, existingTenantMembership.id))
+      }
+    }
   }
 
   await createSession(event, userId, invitation.organizationId)

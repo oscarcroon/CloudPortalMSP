@@ -9,29 +9,25 @@
     </header>
 
     <div class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
-      <form class="flex flex-1 flex-col gap-2 sm:flex-row" @submit.prevent="applySearch">
-        <input
-          v-model="searchInput"
-          type="text"
-          class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-          placeholder="Sök efter namn eller slug"
-        />
-        <div class="flex gap-2">
+      <div class="flex flex-1 flex-col gap-2 sm:flex-row">
+        <div class="relative flex-1">
+          <input
+            v-model="searchInput"
+            type="text"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            placeholder="Sök efter namn eller slug..."
+          />
           <button
-            type="submit"
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
-          >
-            Sök
-          </button>
-          <button
+            v-if="searchInput"
             type="button"
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+            class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300"
             @click="clearSearch"
+            title="Rensa sökning"
           >
-            Rensa
+            <Icon icon="mdi:close-circle" class="h-5 w-5" />
           </button>
         </div>
-      </form>
+      </div>
 
       <div class="flex gap-2">
         <NuxtLink
@@ -39,7 +35,7 @@
           to="/admin/tenants/new?type=distributor"
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
         >
-          <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
+          <Icon icon="mdi:city" class="h-4 w-4" />
           Skapa distributör
         </NuxtLink>
         <NuxtLink
@@ -47,7 +43,7 @@
           to="/admin/tenants/new?type=provider"
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
         >
-          <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
+          <Icon icon="mdi:store" class="h-4 w-4" />
           Skapa leverantör
         </NuxtLink>
       </div>
@@ -58,8 +54,8 @@
         <div>
           <p class="text-sm font-semibold text-slate-900 dark:text-white">Alla tenants</p>
           <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ tenants.length }} resultat
-            <span v-if="appliedQuery">för "{{ appliedQuery }}"</span>
+            {{ filteredTenants.length }} resultat
+            <span v-if="searchInput">för "{{ searchInput }}"</span>
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -82,19 +78,20 @@
 
       <div v-if="listError" class="px-6 py-4 text-sm text-red-500">{{ listError }}</div>
       <div v-else-if="pending" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Laddar tenants...</div>
-      <div v-else-if="!tenants.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-        Inga tenants matchade din sökning.
+      <div v-else-if="!filteredTenants.length && !filteredOrganizations.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+        <span v-if="searchInput">Inga resultat matchade din sökning.</span>
+        <span v-else>Inga tenants hittades.</span>
       </div>
       <div v-else class="overflow-x-auto p-4 sm:p-6">
         <!-- Tree View -->
         <div class="space-y-1 min-w-0 pl-0">
           <TenantTreeNode
-            v-for="node in tenantTree"
+            v-for="node in filteredTenantTree"
             :key="node.tenant.id"
             :node="node"
             :level="0"
-            :show-all-organizations="showAllOrganizations"
-            :organizations="organizations"
+            :show-all-organizations="effectiveShowAllOrganizations"
+            :organizations="filteredOrganizations"
             @navigate="navigateToTenant"
             @toggle-orgs="handleToggleOrgs"
           />
@@ -105,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useFetch, useRouter } from '#imports'
+import { computed, onMounted, ref, useFetch, useRoute, useRouter, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import TenantTreeNode from '~/components/admin/TenantTreeNode.vue'
@@ -118,9 +115,8 @@ definePageMeta({
 })
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuth()
-const searchInput = ref('')
-const appliedQuery = ref('')
 
 const canCreateDistributor = computed(() => {
   // Super admins or users with admin role and includeChildren can create distributors
@@ -160,19 +156,96 @@ interface TenantsResponse {
   }>
 }
 
+// Fetch all data without search filter (we'll filter on client side)
 const { data, pending, refresh, error } = await useFetch<TenantsResponse>(
   '/api/admin/tenants',
   {
-    query: () => (appliedQuery.value ? { q: appliedQuery.value } : {}),
-    watch: [appliedQuery]
+    query: () => ({ limit: 200 }) // Get more results for client-side filtering
   }
 )
 
-const tenants = computed(() => data.value?.tenants ?? [])
-const organizations = computed(() => data.value?.organizations ?? [])
+// Refresh data when navigating back to this page (e.g., after creating an organization)
+const isFirstMount = ref(true)
+onMounted(() => {
+  isFirstMount.value = false
+})
+
+watch(() => route.path, (newPath, oldPath) => {
+  // Only refresh if navigating back to this page from another page (not on first mount)
+  if (newPath === '/admin/tenants' && oldPath && oldPath !== newPath && !isFirstMount.value) {
+    refresh()
+  }
+})
+
+const allTenants = computed(() => data.value?.tenants ?? [])
+const allOrganizations = computed(() => data.value?.organizations ?? [])
 const distributorProviderLinks = computed(() => data.value?.distributorProviderLinks ?? [])
 const listError = computed(() => (error.value ? error.value.message : ''))
 const showAllOrganizations = ref(false)
+const searchInput = ref('')
+
+// Auto-show organizations when searching
+const effectiveShowAllOrganizations = computed(() => {
+  return showAllOrganizations.value || searchInput.value.trim().length > 0
+})
+
+// Normalize text for fuzzy search (remove diacritics, lowercase)
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .trim()
+}
+
+// Fuzzy search function - checks if search query matches name or slug
+const matchesSearch = (item: { name: string; slug: string }, query: string): boolean => {
+  if (!query) return true
+  
+  const normalizedQuery = normalizeText(query)
+  const normalizedName = normalizeText(item.name)
+  const normalizedSlug = normalizeText(item.slug)
+  
+  // Check if query is contained in name or slug
+  return normalizedName.includes(normalizedQuery) || normalizedSlug.includes(normalizedQuery)
+}
+
+// Filter tenants based on search
+// If searching, also include providers that have matching organizations
+const filteredTenants = computed(() => {
+  if (!searchInput.value.trim()) {
+    return allTenants.value
+  }
+  const query = searchInput.value.trim()
+  const matchingTenants = allTenants.value.filter(tenant => matchesSearch(tenant, query))
+  
+  // Also include providers that have matching organizations
+  const providersWithMatchingOrgs = new Set<string>()
+  for (const org of filteredOrganizations.value) {
+    if (org.tenantId) {
+      providersWithMatchingOrgs.add(org.tenantId)
+    }
+  }
+  
+  // Add providers that have matching organizations but aren't already in the list
+  for (const tenant of allTenants.value) {
+    if (tenant.type === 'provider' && providersWithMatchingOrgs.has(tenant.id)) {
+      if (!matchingTenants.some(t => t.id === tenant.id)) {
+        matchingTenants.push(tenant)
+      }
+    }
+  }
+  
+  return matchingTenants
+})
+
+// Filter organizations based on search
+const filteredOrganizations = computed(() => {
+  if (!searchInput.value.trim()) {
+    return allOrganizations.value
+  }
+  return allOrganizations.value.filter(org => matchesSearch(org, searchInput.value))
+})
 
 // Build hierarchical tree structure
 interface TenantTreeNode {
@@ -192,8 +265,8 @@ interface TenantTreeNode {
 }
 
 const tenantTree = computed(() => {
-  const flatList = tenants.value
-  const orgsList = organizations.value
+  const flatList = filteredTenants.value
+  const orgsList = filteredOrganizations.value
   const nodeMap = new Map<string, TenantTreeNode>()
   const roots: TenantTreeNode[] = []
 
@@ -265,14 +338,13 @@ const tenantTree = computed(() => {
   return sortNodes(roots)
 })
 
-const applySearch = () => {
-  appliedQuery.value = searchInput.value.trim()
-}
+// Create filtered tenant tree
+const filteredTenantTree = computed(() => {
+  return tenantTree.value
+})
 
 const clearSearch = () => {
   searchInput.value = ''
-  appliedQuery.value = ''
-  refresh()
 }
 
 const navigateToTenant = (payload: { type: 'tenant' | 'organization'; id?: string; slug?: string }) => {

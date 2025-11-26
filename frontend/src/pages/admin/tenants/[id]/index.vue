@@ -23,11 +23,11 @@
           <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Information</h2>
           <button
             v-if="canEdit && (tenant.type === 'provider' || tenant.type === 'distributor')"
-            class="text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
             @click="isEditing = !isEditing"
           >
-            <Icon :icon="isEditing ? 'mdi:close' : 'mdi:pencil'" class="h-4 w-4" />
-            <span class="ml-1">{{ isEditing ? 'Avbryt' : 'Redigera' }}</span>
+            <Icon :icon="isEditing ? 'mdi:close' : 'mdi:pencil-outline'" class="h-3 w-3" />
+            {{ isEditing ? 'Avbryt' : 'Redigera' }}
           </button>
         </div>
         
@@ -121,9 +121,9 @@
         <NuxtLink
           v-if="tenant.type === 'distributor' && canCreateProvider"
           :to="`/admin/tenants/${tenant.id}/providers/new`"
-          class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+          class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
         >
-          <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
+          <Icon icon="mdi:store" class="h-4 w-4" />
           Skapa leverantör
         </NuxtLink>
         <NuxtLink
@@ -131,7 +131,7 @@
           :to="`/admin/organizations/new?tenantId=${tenant.id}`"
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80"
         >
-          <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
+          <Icon icon="mdi:home" class="h-4 w-4" />
           Skapa organisation
         </NuxtLink>
         <NuxtLink
@@ -147,15 +147,29 @@
       <!-- Linked Tenants (Providers for Distributors, Distributors for Providers) -->
       <div v-if="tenant.type === 'distributor' || tenant.type === 'provider'" class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5 flex items-center justify-between">
-          <div>
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-              <span v-if="tenant.type === 'distributor'">Leverantörer</span>
-              <span v-else-if="tenant.type === 'provider'">Distributörer</span>
-            </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              <span v-if="tenant.type === 'distributor'">{{ linkedTenants.length }} leverantörer</span>
-              <span v-else-if="tenant.type === 'provider'">{{ linkedTenants.length }} distributörer</span>
-            </p>
+          <div class="flex items-center gap-3">
+            <div
+              v-if="tenant.type === 'provider'"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+            >
+              <Icon icon="mdi:city" class="h-5 w-5" />
+            </div>
+            <div
+              v-else-if="tenant.type === 'distributor'"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+            >
+              <Icon icon="mdi:store" class="h-5 w-5" />
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                <span v-if="tenant.type === 'distributor'">Leverantörer</span>
+                <span v-else-if="tenant.type === 'provider'">Distributörer</span>
+              </h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                <span v-if="tenant.type === 'distributor'">{{ linkedTenants.length }} leverantörer</span>
+                <span v-else-if="tenant.type === 'provider'">{{ linkedTenants.length }} distributörer</span>
+              </p>
+            </div>
           </div>
           <button
             v-if="tenant.type === 'provider' && canEditTenant"
@@ -214,8 +228,15 @@
       <!-- Organizations (for Providers) -->
       <div v-if="tenant.type === 'provider' && organizations.length > 0" class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Organisationer</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400">{{ organizations.length }} organisationer</p>
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+              <Icon icon="mdi:home" class="h-5 w-5" />
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Organisationer</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">{{ organizations.length }} organisationer</p>
+            </div>
+          </div>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
@@ -261,8 +282,27 @@
       <!-- Members -->
       <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Medlemmar</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400">{{ members.length }} medlemmar</p>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                <Icon icon="mdi:account-group" class="h-5 w-5" />
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Medlemmar</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  {{ members.length }} medlemmar med {{ tenant.type === 'distributor' ? 'distributörs' : tenant.type === 'provider' ? 'leverantörs' : 'organisations' }}rättigheter
+                </p>
+              </div>
+            </div>
+            <button
+              v-if="canInviteMember"
+              class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
+              @click="openInviteModal"
+            >
+              <Icon icon="mdi:account-plus-outline" class="h-4 w-4" />
+              Bjud in medlem
+            </button>
+          </div>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
@@ -296,6 +336,28 @@
           </table>
         </div>
       </div>
+
+      <!-- Danger Zone (for distributors only) -->
+      <section
+        v-if="tenant.type === 'distributor' && auth.isSuperAdmin.value"
+        class="rounded-xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-500/40 dark:bg-[#1a0f14]"
+      >
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-red-700 dark:text-red-200">Danger zone</h2>
+            <p class="text-sm text-red-600 dark:text-red-300">
+              Radering tar bort distributören och all kopplad data. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna. Detta kan inte ångras.
+            </p>
+          </div>
+          <button
+            class="rounded-lg border border-red-400 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-500 dark:text-red-200 dark:hover:bg-red-500/10"
+            :disabled="!tenant"
+            @click="openDeleteModal"
+          >
+            Ta bort distributör
+          </button>
+        </div>
+      </section>
     </div>
 
     <!-- Edit Distributors Modal -->
@@ -350,11 +412,129 @@
         </form>
       </template>
     </Modal>
+
+    <!-- Invite Member Modal -->
+    <div
+      v-if="showInviteModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8"
+      @click.self="closeInviteModal"
+    >
+      <form
+        class="w-full max-w-lg space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#0f172a]"
+        @submit.prevent="submitInvite"
+      >
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Bjud in medlem</h3>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          Bjud in en användare att bli medlem i {{ tenant?.type === 'distributor' ? 'distributören' : 'leverantören' }} med rättigheter.
+        </p>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</label>
+          <input
+            v-model="inviteForm.email"
+            type="email"
+            required
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            placeholder="namn@example.com"
+          />
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</label>
+          <select
+            v-model="inviteForm.role"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+          >
+            <option value="viewer">Viewer</option>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+            <option value="support">Support</option>
+          </select>
+        </div>
+        <div>
+          <label class="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200">
+            <input
+              v-model="inviteForm.includeChildren"
+              type="checkbox"
+              class="mt-1 rounded border-slate-300 dark:border-white/20"
+            />
+            <span>Inkludera rättigheter för underordnade (kan skapa och hantera leverantörer/organisationer)</span>
+          </label>
+        </div>
+        <div v-if="inviteError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
+          {{ inviteError }}
+        </div>
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200"
+            @click="closeInviteModal"
+          >
+            Avbryt
+          </button>
+          <button
+            type="submit"
+            class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-60"
+            :disabled="inviteLoading"
+          >
+            {{ inviteLoading ? 'Skickar...' : 'Skicka inbjudan' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Delete Distributor Modal -->
+    <div
+      v-if="showDeleteModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8"
+      @click.self="closeDeleteModal"
+    >
+      <form
+        class="w-full max-w-lg space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#0f172a]"
+        @submit.prevent="submitDelete"
+      >
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Ta bort distributör</h3>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          Bekräfta åtgärden genom att skriva in distributörens slug (<strong>{{ tenant?.slug }}</strong>) och markera att du förstår konsekvenserna. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.
+        </p>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Bekräfta slug</label>
+          <input
+            v-model="deleteForm.confirmSlug"
+            type="text"
+            required
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 dark:border-white/10 dark:bg-black/20 dark:text-white"
+            :placeholder="tenant?.slug ?? ''"
+          />
+        </div>
+        <label class="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200">
+          <input v-model="deleteForm.acknowledgeImpact" type="checkbox" class="mt-1 rounded border-slate-300 dark:border-white/20" />
+          <span>Jag förstår att distributören och all kopplad data (leverantörs-kopplingar, medlemskap m.m.) raderas permanent. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.</span>
+        </label>
+        <div v-if="deleteError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300 whitespace-pre-line">
+          {{ deleteError }}
+        </div>
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200"
+            @click="closeDeleteModal"
+          >
+            Avbryt
+          </button>
+          <button
+            type="submit"
+            class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-60"
+            :disabled="deleteDisabled || deleteLoading"
+          >
+            {{ deleteLoading ? 'Raderar...' : 'Ta bort permanent' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useFetch, useRoute, useRouter, watch } from '#imports'
+import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import Modal from '~/components/shared/Modal.vue'
@@ -387,6 +567,25 @@ const editForm = ref({
   slug: ''
 })
 
+// Delete distributor state
+const showDeleteModal = ref(false)
+const deleteLoading = ref(false)
+const deleteError = ref('')
+const deleteForm = reactive({
+  confirmSlug: '',
+  acknowledgeImpact: false
+})
+
+// Invite member state
+const showInviteModal = ref(false)
+const inviteLoading = ref(false)
+const inviteError = ref('')
+const inviteForm = reactive({
+  email: '',
+  role: 'viewer' as 'admin' | 'user' | 'viewer' | 'support',
+  includeChildren: false
+})
+
 watch(tenant, (t) => {
   if (t) {
     editForm.value.name = t.name
@@ -399,6 +598,21 @@ const canEdit = computed(() => {
   if (auth.isSuperAdmin.value) return true
   const role = auth.state.value.data?.tenantRoles[tenant.value.id]
   return role === 'admin'
+})
+
+const canInviteMember = computed(() => {
+  if (!tenant.value) return false
+  // For distributors, only superadmins can invite members
+  if (tenant.value.type === 'distributor') {
+    return auth.isSuperAdmin.value
+  }
+  // For providers, admins can invite members
+  if (tenant.value.type === 'provider') {
+    if (auth.isSuperAdmin.value) return true
+    const role = auth.state.value.data?.tenantRoles[tenant.value.id]
+    return role === 'admin'
+  }
+  return false
 })
 
 const cancelEdit = () => {
@@ -520,6 +734,84 @@ const navigateToTenant = (id: string) => {
 
 const navigateToOrg = (slug: string) => {
   router.push(`/admin/organizations/${slug}/overview`)
+}
+
+const openDeleteModal = () => {
+  if (tenant.value?.type === 'distributor' && auth.isSuperAdmin.value) {
+    deleteForm.confirmSlug = ''
+    deleteForm.acknowledgeImpact = false
+    deleteError.value = ''
+    showDeleteModal.value = true
+  }
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+  deleteError.value = ''
+  deleteForm.confirmSlug = ''
+  deleteForm.acknowledgeImpact = false
+}
+
+const deleteDisabled = computed(() => {
+  return !deleteForm.confirmSlug || !deleteForm.acknowledgeImpact || deleteForm.confirmSlug !== tenant.value?.slug
+})
+
+const submitDelete = async () => {
+  if (!tenant.value || tenant.value.type !== 'distributor') return
+  deleteError.value = ''
+  deleteLoading.value = true
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId}/delete`, {
+      method: 'POST',
+      body: {
+        confirmSlug: deleteForm.confirmSlug.trim(),
+        acknowledgeImpact: deleteForm.acknowledgeImpact
+      }
+    })
+    closeDeleteModal()
+    router.replace({ path: '/admin/tenants', query: { deleted: tenant.value.slug } })
+  } catch (err: any) {
+    // Extract error message from API response
+    const errorMessage = err?.data?.message || err?.message || 'Kunde inte radera distributören.'
+    deleteError.value = errorMessage
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
+const openInviteModal = () => {
+  inviteForm.email = ''
+  inviteForm.role = 'viewer'
+  inviteForm.includeChildren = false
+  inviteError.value = ''
+  showInviteModal.value = true
+}
+
+const closeInviteModal = () => {
+  showInviteModal.value = false
+  inviteError.value = ''
+}
+
+const submitInvite = async () => {
+  if (!tenant.value) return
+  inviteError.value = ''
+  inviteLoading.value = true
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId}/members/invite`, {
+      method: 'POST',
+      body: {
+        email: inviteForm.email.trim(),
+        role: inviteForm.role,
+        includeChildren: inviteForm.includeChildren
+      }
+    })
+    closeInviteModal()
+    await refresh()
+  } catch (err: any) {
+    inviteError.value = err?.data?.message || err?.message || 'Kunde inte skicka inbjudan.'
+  } finally {
+    inviteLoading.value = false
+  }
 }
 
 const getTypeLabel = (type: string) => {
