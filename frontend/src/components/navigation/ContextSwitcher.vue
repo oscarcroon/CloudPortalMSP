@@ -55,7 +55,6 @@
               </div>
               <p class="text-xs text-slate-400">
                 {{ getTenantTypeLabel(tenant.type) }} • {{ tenant.role }}
-                <span v-if="tenant.includeChildren" class="ml-1 text-amber-400">(inkl. barn)</span>
               </p>
             </div>
             <Icon
@@ -80,7 +79,7 @@
             >
               <div class="min-w-0 flex-1">
                 <p class="truncate font-medium">{{ org.name }}</p>
-                <p class="text-xs text-slate-500">{{ org.status }}</p>
+                <p class="text-xs text-slate-500">{{ org.role }} • {{ org.status }}</p>
               </div>
               <Icon
                 v-if="auth.state.value.data?.currentOrgId === org.id"
