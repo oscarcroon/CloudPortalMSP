@@ -125,6 +125,30 @@
         </div>
       </form>
 
+      <!-- Provider Section -->
+      <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
+        <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+              <Icon icon="mdi:city" class="h-5 w-5" />
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Leverantör</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                <span v-if="data?.provider">{{ data.provider.name }} ({{ data.provider.slug }})</span>
+                <span v-else>Ingen leverantör kopplad</span>
+              </p>
+            </div>
+          </div>
+          <button
+            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+            @click="openMoveProviderModal"
+          >
+            Ändra leverantör
+          </button>
+        </div>
+      </div>
+
       <section class="rounded-xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-500/40 dark:bg-[#1a0f14]">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -189,14 +213,97 @@
       </div>
     </form>
   </div>
+
+  <!-- Move Provider Modal -->
+  <Modal :show="showMoveProviderModal" @close="closeMoveProviderModal">
+    <template #title>Flytta organisation till annan leverantör</template>
+    <template #content>
+      <form @submit.prevent="handleMoveProvider" class="space-y-4">
+        <div>
+          <p class="mb-4 text-sm text-slate-600 dark:text-slate-400">
+            Du är på väg att flytta den här organisationen till en annan leverantör.
+            Det kan påverka tillgång till tjänster och fakturering. Är du säker?
+          </p>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">Leverantör</label>
+          <div class="mt-2 space-y-2 max-h-60 overflow-y-auto">
+            <label
+              class="flex items-center gap-2 cursor-pointer"
+            >
+              <input
+                type="radio"
+                :value="null"
+                v-model="moveProviderForm.newTenantId"
+                class="h-4 w-4 border-slate-300 text-brand focus:ring-brand dark:border-white/10 dark:bg-black/20"
+              />
+              <span class="text-sm text-slate-900 dark:text-white">
+                Ingen leverantör (ta bort koppling)
+              </span>
+            </label>
+            <label
+              v-for="provider in allProviders"
+              :key="provider.id"
+              class="flex items-center gap-2 cursor-pointer"
+            >
+              <input
+                type="radio"
+                :value="provider.id"
+                v-model="moveProviderForm.newTenantId"
+                class="h-4 w-4 border-slate-300 text-brand focus:ring-brand dark:border-white/10 dark:bg-black/20"
+              />
+              <span class="text-sm text-slate-900 dark:text-white">
+                {{ provider.name }} ({{ provider.slug }})
+              </span>
+            </label>
+            <p v-if="allProviders.length === 0" class="text-sm text-slate-500 dark:text-slate-400">
+              Inga leverantörer tillgängliga.
+            </p>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+            Bekräfta flytt
+          </label>
+          <input
+            v-model="moveProviderForm.confirmName"
+            type="text"
+            placeholder="Skriv organisationsnamnet för att bekräfta"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+          />
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Skriv "{{ organization?.name }}" för att bekräfta flytten.
+          </p>
+        </div>
+        <div v-if="moveProviderError" class="text-sm text-red-500">{{ moveProviderError }}</div>
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+            @click="closeMoveProviderModal"
+          >
+            Avbryt
+          </button>
+          <button
+            type="submit"
+            class="inline-flex justify-center rounded-md border border-transparent bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand/80 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50"
+            :disabled="moveProviderDisabled || savingProvider"
+          >
+            <Icon v-if="savingProvider" icon="mdi:loading" class="h-5 w-5 animate-spin" />
+            <span v-else>Bekräfta flytt</span>
+          </button>
+        </div>
+      </form>
+    </template>
+  </Modal>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#imports'
+import { Icon } from '@iconify/vue'
 import OrganizationTabs from '~/components/admin/OrganizationTabs.vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
+import Modal from '~/components/shared/Modal.vue'
 import { rbacRoles } from '~/constants/rbac'
-import type { AdminOrganizationDetail, AdminUpdateOrganizationPayload } from '~/types/admin'
+import type { AdminOrganizationDetail, AdminUpdateOrganizationPayload, AdminMoveOrganizationProviderPayload } from '~/types/admin'
 
 definePageMeta({
   layout: 'default',
@@ -227,6 +334,7 @@ const { data, pending, refresh, error } = await useFetch<AdminOrganizationDetail
 )
 
 const organization = computed(() => data.value?.organization)
+const provider = computed(() => data.value?.provider ?? null)
 const stats = computed(() => data.value?.stats ?? { memberCount: 0, activeMembers: 0, pendingInvites: 0 })
 const authSettings = computed(() => data.value?.authSettings ?? null)
 const deleteDisabled = computed(() => {
@@ -367,6 +475,79 @@ const submitDelete = async () => {
     deleteError.value = err instanceof Error ? err.message : 'Kunde inte radera organisationen.'
   } finally {
     deleteLoading.value = false
+  }
+}
+
+// Fetch all providers for moving organization
+interface TenantsResponse {
+  tenants: Array<{
+    id: string
+    name: string
+    slug: string
+    type: string
+  }>
+}
+
+const { data: providersData } = await useFetch<TenantsResponse>('/api/admin/tenants', {
+  query: { type: 'provider' }
+})
+
+const allProviders = computed(() => providersData.value?.tenants ?? [])
+
+// Move provider modal state
+const showMoveProviderModal = ref(false)
+const savingProvider = ref(false)
+const moveProviderError = ref('')
+const moveProviderForm = reactive({
+  newTenantId: null as string | null,
+  confirmName: ''
+})
+
+const moveProviderDisabled = computed(() => {
+  if (!organization.value) return true
+  return moveProviderForm.confirmName.trim() !== organization.value.name
+})
+
+const openMoveProviderModal = () => {
+  // Initialize form with currently linked provider
+  moveProviderForm.newTenantId = organization.value?.tenantId ?? null
+  moveProviderForm.confirmName = ''
+  moveProviderError.value = ''
+  showMoveProviderModal.value = true
+}
+
+const closeMoveProviderModal = () => {
+  showMoveProviderModal.value = false
+  moveProviderError.value = ''
+  moveProviderForm.confirmName = ''
+}
+
+const handleMoveProvider = async () => {
+  if (!organization.value) return
+
+  savingProvider.value = true
+  moveProviderError.value = ''
+
+  try {
+    const payload: AdminMoveOrganizationProviderPayload = {
+      newTenantId: moveProviderForm.newTenantId
+    }
+
+    await $fetch(`/api/admin/organizations/${organization.value.id}/move-provider`, {
+      method: 'POST',
+      body: payload
+    })
+
+    await refresh()
+    closeMoveProviderModal()
+  } catch (err: any) {
+    if (err?.statusCode === 409) {
+      moveProviderError.value = 'Den valda leverantören är inte tillgänglig för organisationens distributör. Den nya leverantören måste vara kopplad till minst en av samma distributörer som den nuvarande leverantören.'
+    } else {
+      moveProviderError.value = err?.data?.message || err?.message || 'Kunde inte flytta organisationen.'
+    }
+  } finally {
+    savingProvider.value = false
   }
 }
 </script>

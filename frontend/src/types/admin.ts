@@ -109,6 +109,7 @@ export interface AdminOrganizationDetail {
     name: string
     slug: string
     status: string
+    tenantId?: string | null
     billingEmail?: string | null
     coreId?: string | null
     defaultRole: RbacRole
@@ -116,6 +117,11 @@ export interface AdminOrganizationDetail {
     createdAt: number
     updatedAt?: number | null
   }
+  provider?: {
+    id: string
+    name: string
+    slug: string
+  } | null
   authSettings: OrganizationAuthSettings
   stats: {
     memberCount: number
@@ -144,6 +150,10 @@ export interface AdminCreateOrganizationResponse {
     email: string
     fullName?: string | null
   }
+}
+
+export interface AdminMoveOrganizationProviderPayload {
+  newTenantId: string | null
 }
 
 export interface AdminUpdateOrganizationPayload {

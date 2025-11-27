@@ -7,7 +7,8 @@ import {
   organizationAuthSettings,
   organizationInvitations,
   organizationMemberships,
-  organizations
+  organizations,
+  tenants
 } from '~/server/database/schema'
 import type {
   OrganizationAuthSettings as OrganizationAuthSettingsDto,
@@ -182,12 +183,35 @@ export const buildOrganizationDetailPayload = async (db: DrizzleDb, organization
     .from(organizationInvitations)
     .where(eq(organizationInvitations.organizationId, organizationId))
 
+  // Hämta provider-info om tenantId finns
+  let provider = null
+  if (organization.tenantId) {
+    const [providerTenant] = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        slug: tenants.slug
+      })
+      .from(tenants)
+      .where(eq(tenants.id, organization.tenantId))
+      .limit(1)
+    
+    if (providerTenant) {
+      provider = {
+        id: providerTenant.id,
+        name: providerTenant.name,
+        slug: providerTenant.slug
+      }
+    }
+  }
+
   return {
     organization: {
       id: organization.id,
       name: organization.name,
       slug: organization.slug,
       status: organization.status,
+      tenantId: organization.tenantId,
       billingEmail: organization.billingEmail,
       coreId: organization.coreId,
       defaultRole: organization.defaultRole,
@@ -195,6 +219,7 @@ export const buildOrganizationDetailPayload = async (db: DrizzleDb, organization
       createdAt: organization.createdAt,
       updatedAt: organization.updatedAt
     },
+    provider,
     authSettings: serializeAuthSettings(authSettings),
     stats: {
       memberCount: memberStats?.memberCount ?? 0,
