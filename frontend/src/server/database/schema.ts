@@ -504,7 +504,8 @@ export const tenantsRelations = relations(tenants, ({ many, one }) => ({
     relationName: 'parentTenant'
   }),
   memberships: many(tenantMemberships),
-  organizations: many(organizations)
+  organizations: many(organizations),
+  modulePolicies: many(tenantModulePolicies)
 }))
 
 export const organizationsRelations = relations(organizations, ({ many, one }) => ({
@@ -525,7 +526,12 @@ export const organizationsRelations = relations(organizations, ({ many, one }) =
   wordpressSites: many(wordpressSites),
   ncentralDevices: many(ncentralDevices),
   monitoringAlerts: many(monitoringAlerts),
-  emailProviders: many(emailProviderProfiles)
+  emailProviders: many(emailProviderProfiles),
+  modulePolicies: many(organizationModulePolicies),
+  cloudflareCredentials: one(cloudflareCredentials, {
+    fields: [organizations.id],
+    references: [cloudflareCredentials.organizationId]
+  })
 }))
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -628,6 +634,119 @@ export const wordpressSiteRelations = relations(wordpressSites, ({ one }) => ({
 export const emailProviderProfileRelations = relations(emailProviderProfiles, ({ one }) => ({
   organization: one(organizations, {
     fields: [emailProviderProfiles.organizationId],
+    references: [organizations.id]
+  })
+}))
+
+/**
+ * Module policies at tenant level (distributor/provider)
+ * These policies define which modules are available and which permissions are allowed
+ * at the tenant level. Organizations inherit from their tenant's policy.
+ */
+export const tenantModulePolicies = sqliteTable(
+  'tenant_module_policies',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    moduleId: text('module_id').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(1),
+    // If disabled is true, module is visible but grayed out (deactivated)
+    // If enabled is false, module is hidden completely (inactivated)
+    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(0),
+    // JSON object storing permission overrides
+    // Example: { "cloudflare:write": false } to disable write access
+    permissionOverrides: text('permission_overrides', { length: 2048 }),
+    ...timestampColumns()
+  },
+  table => ({
+    tenantModuleIdx: uniqueIndex('tenant_module_policy_unique').on(
+      table.tenantId,
+      table.moduleId
+    ),
+    tenantIdx: index('tenant_module_policy_tenant_idx').on(table.tenantId)
+  })
+)
+
+/**
+ * Module policies at organization level
+ * These policies can further restrict what's allowed at tenant level
+ * Organizations can only restrict, not expand permissions
+ */
+export const organizationModulePolicies = sqliteTable(
+  'organization_module_policies',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    moduleId: text('module_id').notNull(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(1),
+    // If disabled is true, module is visible but grayed out (deactivated)
+    // If enabled is false, module is hidden completely (inactivated)
+    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(0),
+    // JSON object storing permission overrides
+    // Example: { "cloudflare:write": false } to disable write access
+    permissionOverrides: text('permission_overrides', { length: 2048 }),
+    ...timestampColumns()
+  },
+  table => ({
+    orgModuleIdx: uniqueIndex('organization_module_policy_unique').on(
+      table.organizationId,
+      table.moduleId
+    ),
+    orgIdx: index('organization_module_policy_org_idx').on(table.organizationId)
+  })
+)
+
+/**
+ * Cloudflare API credentials per organization
+ * Stores encrypted API tokens for Cloudflare integration
+ */
+export const cloudflareCredentials = sqliteTable(
+  'cloudflare_credentials',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    // Encrypted API token
+    encryptedApiToken: text('encrypted_api_token', { length: 2048 }).notNull(),
+    encryptionIv: text('encryption_iv').notNull(),
+    encryptionAuthTag: text('encryption_auth_tag').notNull(),
+    // Optional: Cloudflare account ID if needed
+    accountId: text('account_id'),
+    // Status of the credentials
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(1),
+    lastValidatedAt: integer('last_validated_at', { mode: 'timestamp_ms' }),
+    ...timestampColumns()
+  },
+  table => ({
+    orgUnique: uniqueIndex('cloudflare_credentials_org_unique').on(table.organizationId)
+  })
+)
+
+export const tenantModulePolicyRelations = relations(tenantModulePolicies, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [tenantModulePolicies.tenantId],
+    references: [tenants.id]
+  })
+}))
+
+export const organizationModulePolicyRelations = relations(
+  organizationModulePolicies,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [organizationModulePolicies.organizationId],
+      references: [organizations.id]
+    })
+  })
+)
+
+export const cloudflareCredentialsRelations = relations(cloudflareCredentials, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [cloudflareCredentials.organizationId],
     references: [organizations.id]
   })
 }))

@@ -62,6 +62,45 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/settings?error=missing-permission')
   }
 
+  // Check module policy for module routes
+  if (currentOrgId) {
+    if (import.meta.server && event) {
+      // Server-side check
+      const { getAllModules } = await import('~/lib/modules')
+      const { getEffectiveModulePolicyForOrg } = await import('~/server/utils/modulePolicy')
+      
+      const modules = getAllModules()
+      const matchingModule = modules.find((m) => m.routePath === to.path)
+      
+      if (matchingModule) {
+        const policy = await getEffectiveModulePolicyForOrg(currentOrgId, matchingModule.id)
+        // Block if module is not enabled (inactivated) or if it's disabled (deactivated)
+        if (!policy.enabled || policy.disabled) {
+          return navigateTo('/?error=module-disabled', { replace: true })
+        }
+      }
+    } else if (import.meta.client && auth) {
+      // Client-side check - make API call to check module visibility
+      const { getAllModules } = await import('~/lib/modules')
+      const modules = getAllModules()
+      const matchingModule = modules.find((m) => m.routePath === to.path)
+      
+      if (matchingModule) {
+        try {
+          const response = await $fetch(`/api/organizations/${currentOrgId}/modules/visible`)
+          const module = (response.modules || []).find((m: any) => m.id === matchingModule.id)
+          // Block if module is not visible (not enabled) or if it's disabled (deactivated)
+          if (!module || module.disabled) {
+            return navigateTo('/?error=module-disabled', { replace: true })
+          }
+        } catch (error) {
+          // If API call fails, allow access (fail open for better UX)
+          console.warn('Failed to check module visibility:', error)
+        }
+      }
+    }
+  }
+
   const requiredPermissions = (to.meta.permissions as RbacPermission[]) ?? []
   if (!requiredPermissions.length || isSuperAdmin) {
     return

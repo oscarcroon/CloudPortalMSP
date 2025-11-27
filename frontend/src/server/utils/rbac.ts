@@ -5,6 +5,8 @@ import { ensureAuthState } from './session'
 import { getDb } from './db'
 import { eq, or, and } from 'drizzle-orm'
 import { organizations, tenants, distributorProviders } from '../database/schema'
+import { getModuleIdFromPermission } from '~/constants/modules'
+import { isModulePermissionAllowed as checkModulePolicy } from './modulePolicy'
 
 export const hasPermission = (role: RbacRole, permission: RbacPermission) =>
   rolePermissionMap[role]?.includes(permission) ?? false
@@ -36,53 +38,78 @@ export const requirePermission = async (
 
   // 1. Check direct organization membership
   const directRole = auth.orgRoles[orgId]
+  let hasRbacPermission = false
+  let effectiveRole: RbacRole | undefined
+
   if (directRole && hasPermission(directRole, permission)) {
-    return { auth, role: directRole, orgId }
+    hasRbacPermission = true
+    effectiveRole = directRole
   }
 
   // 2. Check if user can access organization via tenant hierarchy
-  const hasAccess = await canAccessOrganization(auth, orgId)
-  if (!hasAccess) {
+  if (!hasRbacPermission) {
+    const hasAccess = await canAccessOrganization(auth, orgId)
+    if (!hasAccess) {
+      throw createError({
+        statusCode: 403,
+        message: `Missing permission ${permission} for organization ${orgId}`
+      })
+    }
+
+    // 3. Check tenant permissions for tenant-level permissions
+    if (permission.startsWith('tenants:') || permission.startsWith('org:manage')) {
+      // For tenant-level permissions, check tenant roles
+      const [org] = await getDb()
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, orgId))
+
+      if (org?.tenantId) {
+        for (const [tenantId, tenantRole] of Object.entries(auth.tenantRoles)) {
+          const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
+          if (!includeChildren && tenantId !== org.tenantId) {
+            continue
+          }
+
+          if (
+            (await canAccessTenant(auth, tenantId, org.tenantId)) &&
+            hasTenantPermission(tenantRole, permission)
+          ) {
+            // Grant owner-level access when accessing via tenant hierarchy
+            hasRbacPermission = true
+            effectiveRole = 'owner'
+            break
+          }
+        }
+      }
+    } else {
+      // For organization-level permissions accessed via tenant, grant owner-level access
+      // User already has access via tenant hierarchy (checked above)
+      hasRbacPermission = true
+      effectiveRole = 'owner'
+    }
+  }
+
+  if (!hasRbacPermission) {
     throw createError({
       statusCode: 403,
       message: `Missing permission ${permission} for organization ${orgId}`
     })
   }
 
-  // 3. Check tenant permissions for tenant-level permissions
-  if (permission.startsWith('tenants:') || permission.startsWith('org:manage')) {
-    // For tenant-level permissions, check tenant roles
-    const [org] = await getDb()
-      .select()
-      .from(organizations)
-      .where(eq(organizations.id, orgId))
-
-    if (org?.tenantId) {
-      for (const [tenantId, tenantRole] of Object.entries(auth.tenantRoles)) {
-        const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
-        if (!includeChildren && tenantId !== org.tenantId) {
-          continue
-        }
-
-        if (
-          (await canAccessTenant(auth, tenantId, org.tenantId)) &&
-          hasTenantPermission(tenantRole, permission)
-        ) {
-          // Grant owner-level access when accessing via tenant hierarchy
-          return { auth, role: 'owner', orgId }
-        }
-      }
+  // 4. Check module policy (if permission belongs to a module)
+  const moduleId = getModuleIdFromPermission(permission)
+  if (moduleId) {
+    const modulePolicyAllowed = await checkModulePolicy(orgId, moduleId, permission)
+    if (!modulePolicyAllowed) {
+      throw createError({
+        statusCode: 403,
+        message: `Module policy denies permission ${permission} for organization ${orgId}`
+      })
     }
-  } else {
-    // For organization-level permissions accessed via tenant, grant owner-level access
-    // User already has access via tenant hierarchy (checked above)
-    return { auth, role: 'owner', orgId }
   }
 
-  throw createError({
-    statusCode: 403,
-    message: `Missing permission ${permission} for organization ${orgId}`
-  })
+  return { auth, role: effectiveRole!, orgId }
 }
 
 export const requireSuperAdmin = async (event: H3Event) => {
