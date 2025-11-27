@@ -18,8 +18,35 @@
     <div v-if="pending" class="text-sm text-slate-600 dark:text-slate-400">Laddar modulrättigheter...</div>
 
     <div v-else-if="tenant" class="space-y-6">
+      <!-- Search input and expand all button -->
+      <div class="flex items-center gap-3">
+        <div class="relative flex-1">
+          <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input
+            v-model="moduleSearchQuery"
+            type="text"
+            placeholder="Sök efter moduler..."
+            class="w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+          />
+        </div>
+        <button
+          @click="toggleAllPermissions"
+          class="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+        >
+          <Icon :icon="allPermissionsExpanded ? 'mdi:unfold-less-horizontal' : 'mdi:unfold-more-horizontal'" class="h-5 w-5" />
+          {{ allPermissionsExpanded ? 'Dölj alla rättigheter' : 'Visa alla rättigheter' }}
+        </button>
+      </div>
+
+      <div v-if="filteredPolicies.length === 0" class="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
+        <Icon icon="mdi:puzzle-outline" class="mx-auto h-12 w-12 text-slate-400" />
+        <p class="mt-4 text-sm text-slate-600 dark:text-slate-400">
+          {{ moduleSearchQuery ? 'Inga moduler matchade sökningen' : 'Inga moduler hittades för denna tenant.' }}
+        </p>
+      </div>
+
       <div
-        v-for="policy in policies"
+        v-for="policy in filteredPolicies"
         :key="policy.moduleId"
         class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]"
       >
@@ -74,9 +101,18 @@
           </div>
         </div>
 
-        <div v-if="policy.enabled && !policy.disabled && policy.module.permissions.length > 0" class="p-6">
-          <p class="mb-4 text-sm font-medium text-slate-700 dark:text-slate-300">Rättigheter</p>
-          <div class="space-y-3">
+        <div v-if="policy.enabled && !policy.disabled && policy.module.permissions.length > 0" class="border-t border-slate-200 px-6 py-4 dark:border-white/5">
+          <button
+            @click="toggleModulePermissions(policy.moduleId)"
+            class="flex w-full items-center justify-between text-left"
+          >
+            <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Rättigheter</p>
+            <Icon 
+              :icon="expandedPermissions[policy.moduleId] ? 'mdi:chevron-up' : 'mdi:chevron-down'" 
+              class="h-5 w-5 text-slate-400" 
+            />
+          </button>
+          <div v-if="expandedPermissions[policy.moduleId]" class="mt-4 space-y-3">
             <label
               v-for="permission in policy.module.permissions"
               :key="permission"
@@ -108,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useRoute } from 'vue-router'
 
@@ -139,6 +175,42 @@ const tenant = ref<any>(null)
 const policies = ref<ModulePolicy[]>([])
 const pending = ref(true)
 const error = ref<string | null>(null)
+const moduleSearchQuery = ref('')
+const expandedPermissions = ref<Record<string, boolean>>({})
+const allPermissionsExpanded = ref(false)
+
+// Normalize text for fuzzy search (same as ContextSwitcher and settings/modules)
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
+
+function matchesSearch(value: string, query: string) {
+  if (!query) {
+    return true
+  }
+  return normalizeText(value).includes(normalizeText(query))
+}
+
+// Filter policies by search query
+const filteredPolicies = computed(() => {
+  const query = moduleSearchQuery.value
+  if (!query) {
+    return policies.value
+  }
+  
+  const normalizedQuery = normalizeText(query)
+  return policies.value.filter((policy) => {
+    return (
+      matchesSearch(policy.module.name, normalizedQuery) ||
+      matchesSearch(policy.module.description, normalizedQuery) ||
+      matchesSearch(policy.module.category, normalizedQuery)
+    )
+  })
+})
 
 const fetchTenant = async () => {
   try {
@@ -285,6 +357,43 @@ const getPermissionDescription = (permission: string): string => {
   }
   return descriptions[permission] || permission
 }
+
+const toggleModulePermissions = (moduleId: string) => {
+  expandedPermissions.value[moduleId] = !expandedPermissions.value[moduleId]
+}
+
+const toggleAllPermissions = () => {
+  allPermissionsExpanded.value = !allPermissionsExpanded.value
+  // Update all module permissions to match the "all" state
+  filteredPolicies.value.forEach((policy) => {
+    if (policy.enabled && !policy.disabled && policy.module.permissions.length > 0) {
+      expandedPermissions.value[policy.moduleId] = allPermissionsExpanded.value
+    }
+  })
+}
+
+// Watch for changes in individual permissions to update "all" state
+watch(expandedPermissions, (newVal) => {
+  const modulesWithPermissions = filteredPolicies.value.filter(
+    (p) => p.enabled && !p.disabled && p.module.permissions.length > 0
+  )
+  if (modulesWithPermissions.length === 0) {
+    allPermissionsExpanded.value = false
+    return
+  }
+  const allExpanded = modulesWithPermissions.every(
+    (p) => newVal[p.moduleId] === true
+  )
+  const allCollapsed = modulesWithPermissions.every(
+    (p) => newVal[p.moduleId] !== true
+  )
+  // Only update if all are in the same state
+  if (allExpanded) {
+    allPermissionsExpanded.value = true
+  } else if (allCollapsed) {
+    allPermissionsExpanded.value = false
+  }
+}, { deep: true })
 
 onMounted(async () => {
   await Promise.all([fetchTenant(), fetchPolicies()])

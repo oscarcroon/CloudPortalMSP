@@ -751,3 +751,49 @@ export const cloudflareCredentialsRelations = relations(cloudflareCredentials, (
   })
 }))
 
+/**
+ * User-specific module permissions per organization
+ * Allows granular control over which permissions a user has for specific modules
+ * Can only restrict (deny) permissions, not expand beyond the user's role
+ */
+export const userModulePermissions = sqliteTable(
+  'user_module_permissions',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    moduleId: text('module_id').notNull(),
+    // JSON object storing denied permissions
+    // Example: { "cloudflare:write": true } means write is denied for this user
+    // If permission is not in this object, it follows the user's role permissions
+    deniedPermissions: text('denied_permissions', { length: 2048 }),
+    ...timestampColumns()
+  },
+  table => ({
+    userModuleUnique: uniqueIndex('user_module_permission_unique').on(
+      table.organizationId,
+      table.userId,
+      table.moduleId
+    ),
+    userOrgIdx: index('user_module_permission_user_org_idx').on(
+      table.organizationId,
+      table.userId
+    )
+  })
+)
+
+export const userModulePermissionRelations = relations(userModulePermissions, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [userModulePermissions.organizationId],
+    references: [organizations.id]
+  }),
+  user: one(users, {
+    fields: [userModulePermissions.userId],
+    references: [users.id]
+  })
+}))
+

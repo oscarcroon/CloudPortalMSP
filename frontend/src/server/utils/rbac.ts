@@ -107,6 +107,16 @@ export const requirePermission = async (
         message: `Module policy denies permission ${permission} for organization ${orgId}`
       })
     }
+
+    // 5. Check user-specific module permissions (can only restrict)
+    const { getUserModuleDeniedPermissions } = await import('./userModulePermissions')
+    const userDenials = await getUserModuleDeniedPermissions(orgId, auth.user.id, moduleId)
+    if (userDenials && userDenials.has(permission)) {
+      throw createError({
+        statusCode: 403,
+        message: `User-specific module policy denies permission ${permission} for organization ${orgId}`
+      })
+    }
   }
 
   return { auth, role: effectiveRole!, orgId }

@@ -5,7 +5,12 @@
       <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Inställningar</h1>
     </header>
 
-    <div class="grid gap-6 lg:grid-cols-2">
+    <!-- Loading state while auth is initializing -->
+    <div v-if="!showContent" class="flex items-center justify-center py-12">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
+    </div>
+
+    <div v-if="showContent" class="grid gap-6 lg:grid-cols-2">
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center gap-3">
           <Icon icon="mdi:office-building-outline" class="h-6 w-6 text-brand" />
@@ -233,6 +238,41 @@
         </div>
       </div>
 
+      <div
+        :class="[
+          'rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70',
+          { 'pointer-events-none opacity-50': isSettingsLocked }
+        ]"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:puzzle-outline" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Modulrättigheter</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation.
+            </p>
+          </div>
+          <NuxtLink
+            to="/settings/modules"
+            :aria-disabled="isSettingsLocked"
+            :tabindex="isSettingsLocked ? -1 : 0"
+            :class="[
+              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+              { 'pointer-events-none opacity-50': isSettingsLocked }
+            ]"
+          >
+            Öppna
+          </NuxtLink>
+        </div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <li>• Aktivera eller inaktivera moduler för organisationen</li>
+          <li>• Hantera rättigheter per modul (read/write)</li>
+          <li>• Sätt granulära rättigheter per användare</li>
+        </ul>
+      </div>
+
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center gap-3">
           <Icon icon="mdi:key-outline" class="h-6 w-6 text-brand" />
@@ -258,13 +298,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from '#imports'
+import { computed, ref, onMounted } from '#imports'
 import { Icon } from '@iconify/vue'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
 import { useAuth } from '~/composables/useAuth'
 import { normalizeLogoUrl } from '~/utils/logo'
 
 const auth = useAuth()
+
+// Bootstrap auth state on mount if not already initialized
+onMounted(async () => {
+  if (!auth.state.value.initialized && !auth.state.value.loading) {
+    await auth.bootstrap()
+  }
+})
+
+// Computed property to determine if content should be shown
+const showContent = computed(() => {
+  return auth.state.value.initialized && !auth.state.value.loading
+})
+
 const defaultLogo = defaultLogoAsset
 const logoInputRef = ref<HTMLInputElement | null>(null)
 const isUploading = ref(false)
@@ -297,7 +350,15 @@ const organizationSectionTitle = computed(() =>
     ? `Organisationer för ${auth.currentTenant.value.name}`
     : 'Organisationer'
 )
-const isSettingsLocked = computed(() => !hasActiveOrg.value)
+// Only lock settings if auth is initialized and there's no active org
+// This prevents locking during initial load/refresh
+const isSettingsLocked = computed(() => {
+  // If auth is not initialized yet, don't lock (show loading state instead)
+  if (!auth.state.value.initialized || auth.state.value.loading) {
+    return false
+  }
+  return !hasActiveOrg.value
+})
 
 const currentLogo = computed(() => {
   const orgLogoUrl = auth.currentOrg.value?.logoUrl
