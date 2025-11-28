@@ -244,6 +244,12 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
 
   const isSuperAdminUser = isSuperAdmin.value
 
+  // If only tenant is selected (no organization), navigate to tenant page for all users
+  if (payload.tenantId && !payload.organizationId) {
+    await router.push(`/admin/tenants/${payload.tenantId}`)
+    return
+  }
+
   if (payload.organizationId) {
     if (isSuperAdminUser) {
       const org = auth.organizations.value.find(o => o.id === payload.organizationId)
@@ -269,14 +275,6 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
       }
       return
     }
-  }
-
-  if (payload.tenantId) {
-    // If switching to a tenant, and we are on a generic page, we might want to go to the tenant dashboard?
-    // Or stay?
-    // User query was specific about "clicking an organization".
-    // For tenant selection, the previous behavior (going to tenant dashboard) seemed accepted.
-    await router.push(`/admin/tenants/${payload.tenantId}`)
   }
 }
 
@@ -334,10 +332,14 @@ async function trySelectOrg(org: AuthOrganization) {
   }
   
   try {
-    // If organization belongs to a tenant, keep that tenant context
-    await auth.switchContext({ organizationId: org.id, tenantId: org.tenantId ?? null })
+    // Only set tenantId if user has membership in that tenant
+    // If user lacks membership in the tenant, set tenantId to null
+    const tenantRoles = auth.state.value.data?.tenantRoles ?? {}
+    const tenantId = org.tenantId && tenantRoles[org.tenantId] ? org.tenantId : null
+    
+    await auth.switchContext({ organizationId: org.id, tenantId })
     open.value = false
-    await navigateAfterContextChange({ organizationId: org.id, tenantId: org.tenantId ?? null })
+    await navigateAfterContextChange({ organizationId: org.id, tenantId })
   } catch (error: any) {
     console.error('Failed to switch context:', error)
     auth.state.value.error = error.data?.message || error.message || 'Kunde inte byta till denna organisation.'
@@ -411,14 +413,21 @@ function normalizeTenantOrganizations(
 
 function buildTenantOrgMapFromOrganizations(orgs: AuthOrganization[]) {
   const map: Record<string, AuthOrganization[]> = {}
+  // Only group organizations under tenants where user has membership
+  const userTenantIds = new Set(Object.keys(auth.tenantRoles.value))
+  
   for (const org of orgs) {
     if (!org.tenantId) {
       continue
     }
-    if (!map[org.tenantId]) {
-      map[org.tenantId] = []
+    // Only add organization to tenant map if user has membership in that tenant
+    if (userTenantIds.has(org.tenantId)) {
+      if (!map[org.tenantId]) {
+        map[org.tenantId] = []
+      }
+      map[org.tenantId].push(org)
     }
-    map[org.tenantId].push(org)
+    // If user doesn't have membership in the tenant, the organization will be shown as standalone
   }
   for (const tenantId of Object.keys(map)) {
     map[tenantId] = dedupeOrganizations(map[tenantId]).sort((a, b) =>

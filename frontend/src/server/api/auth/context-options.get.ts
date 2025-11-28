@@ -101,30 +101,31 @@ export default defineEventHandler(async (event) => {
         )
     : []
 
-  // Group ALL organizations by tenant
-  // First, collect all organizations that have a tenantId (from both sources)
+  // Group organizations by tenant, but ONLY for tenants where user has membership
+  // Organizations belonging to tenants where user lacks membership should be shown as standalone
+  const userTenantIds = new Set(Object.keys(auth.tenantRoles))
   const allOrgsWithTenantId = new Map<string, typeof tenantOrgsData[0]>()
   
-  // Add organizations from tenantOrgsData
+  // Add organizations from tenantOrgsData (these are already filtered to tenants with membership)
   for (const org of tenantOrgsData) {
     if (org.tenantId) {
       allOrgsWithTenantId.set(org.id, org)
     }
   }
   
-  // Add organizations from orgsData that have a tenantId
-  // (user has direct membership, so they should see it under the tenant)
+  // Add organizations from orgsData that have a tenantId AND user has membership in that tenant
+  // If user lacks membership in the tenant, the organization will be shown as standalone
   for (const org of orgsData) {
-    if (org.tenantId) {
+    if (org.tenantId && userTenantIds.has(org.tenantId)) {
       // Use orgsData version as it's more complete (from direct membership)
       allOrgsWithTenantId.set(org.id, org)
     }
   }
   
-  // Now group them by tenantId
+  // Now group them by tenantId (only tenants where user has membership)
   const tenantOrganizations: Record<string, typeof tenantOrgsData> = {}
   for (const org of allOrgsWithTenantId.values()) {
-    if (org.tenantId) {
+    if (org.tenantId && userTenantIds.has(org.tenantId)) {
       if (!tenantOrganizations[org.tenantId]) {
         tenantOrganizations[org.tenantId] = []
       }

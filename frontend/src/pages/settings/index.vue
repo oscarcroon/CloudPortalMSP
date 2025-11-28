@@ -503,10 +503,16 @@ watch(searchTerm, () => {
 const filteredOrganizations = computed(() => {
   const tenantId = currentTenantId.value
   const isSuperAdmin = auth.state.value.data?.user?.isSuperAdmin ?? false
+  const tenantRoles = auth.state.value.data?.tenantRoles ?? {}
+  
   let orgs: AuthOrganization[]
-  if (!tenantId) {
+  // Only filter by tenant if user has membership in that tenant
+  // Otherwise, show all organizations where user has direct membership
+  if (!tenantId || !tenantRoles[tenantId]) {
+    // No active tenant or user doesn't have membership in active tenant - show all organizations
     orgs = auth.organizations.value
   } else {
+    // User has membership in active tenant - show only organizations for that tenant
     orgs = auth.organizations.value.filter((org) => org.tenantId === tenantId)
   }
 
