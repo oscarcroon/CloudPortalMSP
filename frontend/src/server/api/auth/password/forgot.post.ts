@@ -5,6 +5,7 @@ import { users } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { normalizeEmail } from '../../../utils/crypto'
 import { EmailDeliveryError, triggerPasswordReset } from '../../../utils/passwordReset'
+import { logUserAction } from '../../../utils/audit'
 
 const requestSchema = z.object({
   email: z.string().email()
@@ -33,6 +34,11 @@ export default defineEventHandler(async (event) => {
 
   try {
     await triggerPasswordReset(user.id, user.email)
+    
+    // Log audit event
+    await logUserAction(event, 'PASSWORD_RESET_REQUESTED', {
+      targetUserEmail: normalizedEmail
+    }, user.id)
   } catch (error) {
     if (error instanceof EmailDeliveryError) {
       throw createError({

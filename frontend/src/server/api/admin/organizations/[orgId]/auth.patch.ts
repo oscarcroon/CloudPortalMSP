@@ -19,6 +19,7 @@ import {
   assertRequireSsoAllowed,
   prepareIdpConfigForStorage
 } from '~/server/utils/idp'
+import { logOrganizationAction } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
@@ -29,6 +30,11 @@ export default defineEventHandler(async (event) => {
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
   const organization = await requireOrganizationByIdentifier(db, orgParam)
   const authSettings = await ensureOrganizationAuthSettings(db, organization.id)
+
+  // Store old values for audit log
+  const oldIdpType = authSettings.idpType as OrganizationIdpType
+  const oldRequireSso = Boolean(organization.requireSso)
+  const oldAllowLocalLogin = Boolean(authSettings.allowLocalLoginForOwners)
 
   const currentIdpType = authSettings.idpType as OrganizationIdpType
   let nextIdpType = currentIdpType
@@ -104,6 +110,27 @@ export default defineEventHandler(async (event) => {
           .where(eq(organizationAuthSettings.organizationId, organization.id))
       }
     })
+  }
+
+  // Log audit event
+  const changedFields: Record<string, { old: any; new: any }> = {}
+  if (payload.idpType !== undefined && payload.idpType !== oldIdpType) {
+    changedFields.idpType = { old: oldIdpType, new: payload.idpType }
+  }
+  if (payload.requireSso !== undefined && payload.requireSso !== oldRequireSso) {
+    changedFields.requireSso = { old: oldRequireSso, new: payload.requireSso }
+  }
+  if (payload.allowLocalLoginForOwners !== undefined && payload.allowLocalLoginForOwners !== oldAllowLocalLogin) {
+    changedFields.allowLocalLoginForOwners = { old: oldAllowLocalLogin, new: payload.allowLocalLoginForOwners }
+  }
+  if (payload.idpConfig !== undefined) {
+    changedFields.idpConfig = { old: '***', new: '***' } // Don't log actual config
+  }
+
+  if (Object.keys(changedFields).length > 0) {
+    await logOrganizationAction(event, 'ORG_AUTH_SETTINGS_UPDATED', {
+      changedFields
+    }, organization.id)
   }
 
   return buildOrganizationDetailPayload(db, organization.id)

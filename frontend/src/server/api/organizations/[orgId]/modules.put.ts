@@ -8,6 +8,7 @@ import { getDb } from '~/server/utils/db'
 import { organizations } from '~/server/database/schema'
 import type { ModuleId } from '~/constants/modules'
 import type { ModulePermissionOverrides } from '~/server/utils/modulePolicy'
+import { logOrganizationAction } from '~/server/utils/audit'
 
 const bodySchema = z.object({
   moduleId: z.string(),
@@ -101,7 +102,23 @@ export default defineEventHandler(async (event) => {
     ...(permissionOverrides || {})
   }
 
+  // Get old policy for audit log
+  const oldPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)
+  const oldEnabled = oldPolicy.enabled
+  const oldDisabled = oldPolicy.disabled
+
   await setOrganizationModulePolicy(orgId, moduleId as ModuleId, finalEnabled, finalOverrides, finalDisabled)
+
+  // Log audit event
+  if (finalEnabled !== oldEnabled || finalDisabled !== oldDisabled) {
+    await logOrganizationAction(event, finalEnabled ? 'MODULE_ENABLED' : 'MODULE_DISABLED', {
+      moduleId,
+      oldEnabled,
+      newEnabled: finalEnabled,
+      oldDisabled,
+      newDisabled: finalDisabled
+    }, orgId)
+  }
 
   // Return updated policy
   const updatedPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)

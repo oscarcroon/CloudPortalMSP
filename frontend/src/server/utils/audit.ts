@@ -1,64 +1,203 @@
-import { H3Event, getRequestHeaders } from 'h3'
+import { H3Event, getRequestHeaders, getRequestURL } from 'h3'
 import { getClientIP } from './ip'
 import { getDb } from './db'
 import { auditLogs } from '../database/schema'
 import { createId } from '@paralleldrive/cuid2'
 import { ensureAuthState } from './session'
+import { getRequestId, logSecurity, logInfo, logWarn } from './logger'
 
 export type AuditEventType =
-  | 'CONTEXT_SWITCH'
-  | 'MFA_STEP_UP'
-  | 'LOGIN'
+  // Authentication & Security
+  | 'LOGIN_SUCCESS'
+  | 'LOGIN_FAILED'
   | 'LOGOUT'
-  | 'TENANT_SETTINGS_UPDATED'
+  | 'MFA_ENABLED'
+  | 'MFA_DISABLED'
+  | 'MFA_STEP_UP'
+  | 'PASSWORD_CHANGED'
+  | 'PASSWORD_RESET_REQUESTED'
+  | 'PASSWORD_RESET_COMPLETED'
+  | 'RATE_LIMIT_EXCEEDED'
+  | 'PERMISSION_DENIED'
+  | 'SENSITIVE_DATA_ACCESSED'
+  // User & Roles
+  | 'USER_CREATED'
+  | 'USER_UPDATED'
+  | 'USER_DELETED'
+  | 'USER_INVITED'
+  | 'INVITE_ACCEPTED'
+  | 'INVITE_EXPIRED'
+  | 'USER_REMOVED'
+  | 'ROLE_CHANGED'
+  // Organizations
+  | 'ORGANIZATION_CREATED'
+  | 'ORGANIZATION_UPDATED'
+  | 'ORGANIZATION_DELETED'
   | 'ORG_SETTINGS_UPDATED'
+  | 'ORG_AUTH_SETTINGS_UPDATED'
+  // Tenants / Distributors / Providers
+  | 'TENANT_CREATED'
+  | 'TENANT_UPDATED'
+  | 'TENANT_DELETED'
+  | 'TENANT_SETTINGS_UPDATED'
   | 'SSO_CONFIGURED'
+  | 'SSO_UPDATED'
   | 'SSO_REMOVED'
-  | 'BILLING_UPDATED'
+  // Modules & Configuration
+  | 'MODULE_ENABLED'
+  | 'MODULE_DISABLED'
+  | 'EMAIL_PROVIDER_CONFIGURED'
+  | 'EMAIL_PROVIDER_UPDATED'
+  | 'API_TOKEN_CREATED'
+  | 'API_TOKEN_REVOKED'
   | 'API_KEY_ROTATED'
   | 'API_KEY_CREATED'
   | 'API_KEY_DELETED'
-  | 'USER_INVITED'
-  | 'USER_REMOVED'
-  | 'ROLE_CHANGED'
-  | 'ORG_DELETED'
-  | 'TENANT_DELETED'
+  // Context & Other
+  | 'CONTEXT_SWITCH'
+  | 'BILLING_UPDATED'
+
+export type AuditSeverity = 'info' | 'warning' | 'error' | 'critical'
 
 export interface AuditLogMeta {
   [key: string]: any
 }
 
+export interface AuditLogOptions {
+  eventType: AuditEventType
+  severity?: AuditSeverity
+  meta?: AuditLogMeta
+  fromContext?: { organizationId?: string | null; tenantId?: string | null }
+  toContext?: { organizationId?: string | null; tenantId?: string | null }
+  userId?: string | null
+  orgId?: string | null
+  tenantId?: string | null
+}
+
 /**
  * Log an audit event
+ * Can log events even when user is not authenticated (for security events like LOGIN_FAILED)
  */
 export const logAuditEvent = async (
   event: H3Event,
   eventType: AuditEventType,
   meta?: AuditLogMeta,
   fromContext?: { organizationId?: string | null; tenantId?: string | null },
-  toContext?: { organizationId?: string | null; tenantId?: string | null }
-) => {
-  const auth = await ensureAuthState(event)
-  if (!auth) {
-    // Don't log if not authenticated
-    return
+  toContext?: { organizationId?: string | null; tenantId?: string | null },
+  options?: {
+    severity?: AuditSeverity
+    userId?: string | null
+    orgId?: string | null
+    tenantId?: string | null
   }
-
+) => {
   const db = getDb()
   const ip = getClientIP(event)
   const headers = getRequestHeaders(event)
   const userAgent = headers['user-agent'] || ''
-
+  const url = getRequestURL(event)
+  const method = event.node.req.method
+  const requestId = getRequestId(event)
+  
+  // Determine severity if not provided
+  const severity = options?.severity || getDefaultSeverity(eventType)
+  
+  // Try to get auth state, but allow logging without it
+  let userId: string | null = options?.userId ?? null
+  let orgId: string | null = options?.orgId ?? null
+  let tenantId: string | null = options?.tenantId ?? null
+  
+  if (!userId) {
+    try {
+      const auth = await ensureAuthState(event)
+      if (auth) {
+        userId = auth.user.id
+        orgId = orgId || auth.currentOrgId || null
+        tenantId = tenantId || auth.currentTenantId || null
+      }
+    } catch {
+      // Not authenticated, continue with provided or null values
+    }
+  }
+  
+  // Sanitize metadata - remove sensitive information
+  const sanitizedMeta = sanitizeMetadata(meta)
+  
+  // Insert into audit_logs table
   await db.insert(auditLogs).values({
     id: createId(),
-    userId: auth.user.id,
+    userId: userId || null,
     eventType,
+    severity,
+    requestId,
+    endpoint: url.pathname,
+    method,
+    orgId: orgId || null,
+    tenantId: tenantId || null,
     fromContext: fromContext ? JSON.stringify(fromContext) : null,
     toContext: toContext ? JSON.stringify(toContext) : null,
     ip: ip || undefined,
     userAgent: userAgent || undefined,
-    meta: meta ? JSON.stringify(meta) : undefined
+    meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
   })
+  
+  // Also log to structured logger for correlation
+  const logMessage = `Audit event: ${eventType}`
+  const logContext = {
+    eventType,
+    severity,
+    userId: userId || undefined,
+    orgId: orgId || undefined,
+    tenantId: tenantId || undefined
+  }
+  
+  if (severity === 'critical' || severity === 'error') {
+    await logSecurity(event, logMessage, { ...logContext, ...sanitizedMeta })
+  } else if (severity === 'warning') {
+    await logWarn(event, logMessage, { ...logContext, ...sanitizedMeta })
+  } else {
+    await logInfo(event, logMessage, { ...logContext, ...sanitizedMeta })
+  }
+}
+
+/**
+ * Get default severity for event type
+ */
+const getDefaultSeverity = (eventType: AuditEventType): AuditSeverity => {
+  switch (eventType) {
+    case 'LOGIN_FAILED':
+    case 'RATE_LIMIT_EXCEEDED':
+    case 'PERMISSION_DENIED':
+      return 'warning'
+    case 'USER_DELETED':
+    case 'ORGANIZATION_DELETED':
+    case 'TENANT_DELETED':
+    case 'API_TOKEN_REVOKED':
+      return 'error'
+    case 'SENSITIVE_DATA_ACCESSED':
+      return 'info'
+    default:
+      return 'info'
+  }
+}
+
+/**
+ * Sanitize metadata to remove sensitive information
+ */
+const sanitizeMetadata = (meta?: AuditLogMeta): AuditLogMeta | undefined => {
+  if (!meta) return undefined
+  
+  const sanitized: AuditLogMeta = { ...meta }
+  const sensitiveKeys = ['password', 'token', 'secret', 'key', 'apiKey', 'api_key', 'accessToken', 'refreshToken']
+  
+  for (const key of Object.keys(sanitized)) {
+    const lowerKey = key.toLowerCase()
+    if (sensitiveKeys.some(sk => lowerKey.includes(sk))) {
+      sanitized[key] = '[REDACTED]'
+    }
+  }
+  
+  return sanitized
 }
 
 /**
@@ -93,5 +232,89 @@ export const logSensitiveAction = async (
   meta?: AuditLogMeta
 ) => {
   await logAuditEvent(event, actionType, meta)
+}
+
+/**
+ * Log security event (failed logins, permission denials, etc.)
+ */
+export const logSecurityEvent = async (
+  event: H3Event,
+  eventType: AuditEventType,
+  meta?: AuditLogMeta,
+  options?: {
+    userId?: string | null
+    orgId?: string | null
+    tenantId?: string | null
+  }
+) => {
+  const severity = getDefaultSeverity(eventType)
+  await logAuditEvent(event, eventType, meta, undefined, undefined, {
+    severity,
+    ...options
+  })
+}
+
+/**
+ * Log user-related action
+ */
+export const logUserAction = async (
+  event: H3Event,
+  eventType: AuditEventType,
+  meta?: AuditLogMeta,
+  targetUserId?: string
+) => {
+  await logAuditEvent(event, eventType, { ...meta, targetUserId })
+}
+
+/**
+ * Log organization-related action
+ */
+export const logOrganizationAction = async (
+  event: H3Event,
+  eventType: AuditEventType,
+  meta?: AuditLogMeta,
+  orgId?: string
+) => {
+  await logAuditEvent(event, eventType, meta, undefined, undefined, {
+    orgId: orgId || undefined
+  })
+}
+
+/**
+ * Log tenant-related action
+ */
+export const logTenantAction = async (
+  event: H3Event,
+  eventType: AuditEventType,
+  meta?: AuditLogMeta,
+  tenantId?: string
+) => {
+  await logAuditEvent(event, eventType, meta, undefined, undefined, {
+    tenantId: tenantId || undefined
+  })
+}
+
+/**
+ * Log permission denied event
+ */
+export const logPermissionDenied = async (
+  event: H3Event,
+  permission: string,
+  reason: string,
+  orgId?: string,
+  tenantId?: string
+) => {
+  await logAuditEvent(
+    event,
+    'PERMISSION_DENIED',
+    { permission, reason },
+    undefined,
+    undefined,
+    {
+      severity: 'warning',
+      orgId,
+      tenantId
+    }
+  )
 }
 

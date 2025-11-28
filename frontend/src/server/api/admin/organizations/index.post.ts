@@ -19,6 +19,7 @@ import { ensureAuthState } from '../../../utils/session'
 import { ensureOrganizationAuthSettings, serializeAuthSettings, slugRegex, createInviteToken } from './utils'
 import { sendInvitationEmail } from '~/server/utils/mailer'
 import { describeEmailSendError } from '~/server/utils/emailTest'
+import { logOrganizationAction } from '../../../utils/audit'
 
 const createOrgSchema = z.object({
   name: z.string().min(2).max(120),
@@ -278,6 +279,14 @@ export default defineEventHandler(async (event) => {
   if (!organization) {
     throw createError({ statusCode: 500, message: 'Organisationen kunde inte skapas korrekt.' })
   }
+
+  // Log audit event
+  await logOrganizationAction(event, 'ORGANIZATION_CREATED', {
+    organizationName: organization.name,
+    organizationSlug: organization.slug,
+    tenantId: organization.tenantId || undefined,
+    ownerEmail: normalizedOwnerEmail
+  }, organization.id)
 
   const authSettings = await ensureOrganizationAuthSettings(db, organizationId)
 

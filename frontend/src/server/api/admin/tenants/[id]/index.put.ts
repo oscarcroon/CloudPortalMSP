@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { tenants } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
 import { requireTenantPermission } from '../../../../utils/rbac'
+import { logTenantAction } from '../../../../utils/audit'
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -33,6 +34,13 @@ export default defineEventHandler(async (event) => {
 
   if (!tenant) {
     throw createError({ statusCode: 404, message: 'Tenant not found' })
+  }
+
+  // Store old values for audit log
+  const oldValues = {
+    name: tenant.name,
+    slug: tenant.slug,
+    status: tenant.status
   }
 
   const updates: Partial<typeof tenants.$inferInsert> = {}
@@ -79,6 +87,24 @@ export default defineEventHandler(async (event) => {
   }
 
   const [updatedTenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId))
+
+  // Log audit event
+  const changedFields: Record<string, { old: any; new: any }> = {}
+  if (payload.name && payload.name !== oldValues.name) {
+    changedFields.name = { old: oldValues.name, new: payload.name }
+  }
+  if (payload.slug && payload.slug !== oldValues.slug) {
+    changedFields.slug = { old: oldValues.slug, new: payload.slug }
+  }
+  if (payload.status && payload.status !== oldValues.status) {
+    changedFields.status = { old: oldValues.status, new: payload.status }
+  }
+
+  if (Object.keys(changedFields).length > 0) {
+    await logTenantAction(event, 'TENANT_UPDATED', {
+      changedFields
+    }, tenantId)
+  }
 
   return { tenant: updatedTenant }
 })

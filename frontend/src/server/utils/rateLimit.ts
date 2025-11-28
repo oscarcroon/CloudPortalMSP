@@ -1,6 +1,7 @@
-import { H3Event, createError } from 'h3'
+import { H3Event, createError, getRequestURL } from 'h3'
 import { ensureAuthState } from '../utils/session'
 import { getClientIP } from './ip'
+import { logSecurityEvent } from './audit'
 
 interface RateLimitConfig {
   windowMs: number // Time window in milliseconds
@@ -57,6 +58,34 @@ export const rateLimit = (config: RateLimitConfig) => {
     entry.count++
 
     if (entry.count > config.maxRequests) {
+      const url = getRequestURL(event)
+      const method = event.node.req.method
+      
+      // Log rate limit violation
+      try {
+        const auth = await ensureAuthState(event)
+        await logSecurityEvent(event, 'RATE_LIMIT_EXCEEDED', {
+          endpoint: url.pathname,
+          method,
+          limitType: config.keyGenerator ? 'custom' : 'default',
+          limit: config.maxRequests,
+          windowMs: config.windowMs,
+          retryAfter: Math.ceil((entry.resetTime - now) / 1000)
+        }, {
+          userId: auth?.user.id || null
+        })
+      } catch {
+        // Log even if auth fails
+        await logSecurityEvent(event, 'RATE_LIMIT_EXCEEDED', {
+          endpoint: url.pathname,
+          method,
+          limitType: config.keyGenerator ? 'custom' : 'default',
+          limit: config.maxRequests,
+          windowMs: config.windowMs,
+          retryAfter: Math.ceil((entry.resetTime - now) / 1000)
+        })
+      }
+      
       throw createError({
         statusCode: 429,
         message: 'Too many requests. Please try again later.',

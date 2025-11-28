@@ -18,6 +18,7 @@ import {
 } from '../../utils'
 import { describeEmailSendError } from '~/server/utils/emailTest'
 import { sendInvitationEmail } from '~/server/utils/mailer'
+import { logUserAction } from '../../../../../utils/audit'
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -284,6 +285,15 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, message: 'Medlemmen kunde inte läsas efter uppdatering.' })
     }
 
+    // Log audit event for direct add
+    await logUserAction(event, 'USER_INVITED', {
+      targetUserId: member.userId,
+      targetUserEmail: member.email,
+      organizationId: organization.id,
+      role: member.role,
+      directAdd: true
+    }, member.userId)
+
     return {
       member: {
         membershipId: member.membershipId,
@@ -331,6 +341,15 @@ export default defineEventHandler(async (event) => {
       message: `Inbjudan skapades men mejlet kunde inte skickas. ${describeEmailSendError(error)}`
     })
   }
+
+  // Log audit event for invitation
+  await logUserAction(event, 'USER_INVITED', {
+    targetUserEmail: result.email,
+    organizationId: organization.id,
+    role: result.role,
+    inviteId: invite.id,
+    directAdd: false
+  })
 
   return {
     invite: {

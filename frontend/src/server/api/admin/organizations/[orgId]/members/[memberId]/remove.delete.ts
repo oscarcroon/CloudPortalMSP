@@ -9,6 +9,7 @@ import {
 } from '../../../utils'
 import { organizationMemberships } from '../../../../../../database/schema'
 import { fetchMemberPayload } from '../helpers'
+import { logUserAction } from '../../../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
@@ -38,6 +39,13 @@ export default defineEventHandler(async (event) => {
   const payload = await fetchMemberPayload(db, membership.id)
 
   await db.delete(organizationMemberships).where(eq(organizationMemberships.id, membership.id))
+
+  // Log audit event
+  await logUserAction(event, 'USER_REMOVED', {
+    targetUserId: payload.member.userId,
+    organizationId: organization.id,
+    role: membership.role
+  }, payload.member.userId)
 
   return payload
 })

@@ -7,6 +7,7 @@ import { hashPassword, sha256 } from '../../../utils/crypto'
 import { createSession } from '../../../utils/session'
 import { passwordSchema } from '../../../utils/password'
 import { formatZodErrorAsList } from '../../../utils/errors'
+import { logUserAction } from '../../../utils/audit'
 
 const resetSchema = z.object({
   token: z.string().min(10).max(256),
@@ -83,6 +84,10 @@ export default defineEventHandler(async (event) => {
     .where(eq(users.id, user.id))
 
   const auth = await createSession(event, user.id)
+  
+  // Log audit event
+  await logUserAction(event, 'PASSWORD_RESET_COMPLETED', {}, user.id)
+  
   return { success: true, auth }
 })
 

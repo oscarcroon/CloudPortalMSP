@@ -241,9 +241,14 @@ export const mfaSessions = sqliteTable('mfa_sessions', {
 export const auditLogs = sqliteTable('audit_logs', {
   id: text('id').primaryKey().$defaultFn(createId),
   userId: text('user_id')
-    .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   eventType: text('event_type').notNull(),
+  severity: text('severity').notNull().default('info').$type<'info' | 'warning' | 'error' | 'critical'>(),
+  requestId: text('request_id'),
+  endpoint: text('endpoint'),
+  method: text('method'),
+  orgId: text('org_id'),
+  tenantId: text('tenant_id'),
   fromContext: text('from_context', { length: 1024 }),
   toContext: text('to_context', { length: 1024 }),
   ip: text('ip'),
@@ -252,7 +257,11 @@ export const auditLogs = sqliteTable('audit_logs', {
   ...timestampColumns()
 }, table => ({
   userIdIdx: index('audit_logs_user_id_idx').on(table.userId),
-  timestampIdx: index('audit_logs_timestamp_idx').on(table.createdAt)
+  timestampIdx: index('audit_logs_timestamp_idx').on(table.createdAt),
+  eventTypeIdx: index('audit_logs_event_type_idx').on(table.eventType),
+  requestIdIdx: index('audit_logs_request_id_idx').on(table.requestId),
+  orgIdIdx: index('audit_logs_org_id_idx').on(table.orgId),
+  tenantIdIdx: index('audit_logs_tenant_id_idx').on(table.tenantId)
 }))
 
 export const organizationIdentityProviders = sqliteTable(

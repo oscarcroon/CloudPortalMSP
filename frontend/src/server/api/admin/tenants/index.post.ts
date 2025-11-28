@@ -10,6 +10,7 @@ import { requireTenantPermission, requireSuperAdmin } from '../../../utils/rbac'
 import { ensureAuthState } from '../../../utils/session'
 import { sendDistributorInvitationEmail, sendDistributorConfirmationEmail } from '../../../utils/mailer'
 import type { TenantRole } from '~/constants/rbac'
+import { logTenantAction } from '../../../utils/audit'
 
 const createTenantSchema = z.object({
   name: z.string().min(2).max(120),
@@ -236,6 +237,15 @@ export default defineEventHandler(async (event) => {
   if (!tenant) {
     throw createError({ statusCode: 500, message: 'Tenant could not be created correctly' })
   }
+
+  // Log audit event
+  await logTenantAction(event, 'TENANT_CREATED', {
+    tenantName: tenant.name,
+    tenantSlug: tenant.slug,
+    tenantType: tenant.type,
+    ownerEmail: normalizedOwnerEmail,
+    distributorIds: payload.distributorIds
+  }, tenant.id)
 
   // Send email to owner
   try {

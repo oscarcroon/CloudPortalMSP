@@ -5,6 +5,7 @@ import { organizations } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
 import { requireSuperAdmin } from '../../../../utils/rbac'
 import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
+import { logOrganizationAction } from '../../../../utils/audit'
 
 export const deleteSchema = z.object({
   confirmSlug: z.string().min(1, 'Ange sluggen för att bekräfta.'),
@@ -29,6 +30,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Store org info for audit log before deletion
+  const orgInfo = {
+    name: organization.name,
+    slug: organization.slug,
+    tenantId: organization.tenantId || undefined
+  }
+
   if (isSqlite) {
     db.transaction((tx) => {
       tx.delete(organizations).where(eq(organizations.id, organization.id)).run()
@@ -38,6 +46,13 @@ export default defineEventHandler(async (event) => {
       await tx.delete(organizations).where(eq(organizations.id, organization.id))
     })
   }
+
+  // Log audit event
+  await logOrganizationAction(event, 'ORGANIZATION_DELETED', {
+    organizationName: orgInfo.name,
+    organizationSlug: orgInfo.slug,
+    tenantId: orgInfo.tenantId
+  }, organization.id)
 
   return { success: true }
 })

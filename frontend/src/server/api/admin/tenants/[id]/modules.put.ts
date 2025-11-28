@@ -5,6 +5,7 @@ import { setTenantModulePolicy, getTenantModulePolicy } from '~/server/utils/mod
 import { getAllModules } from '~/lib/modules'
 import type { ModuleId } from '~/constants/modules'
 import type { ModulePermissionOverrides } from '~/server/utils/modulePolicy'
+import { logTenantAction } from '~/server/utils/audit'
 
 const bodySchema = z.object({
   moduleId: z.string(),
@@ -62,6 +63,11 @@ export default defineEventHandler(async (event) => {
     finalDisabled = disabled ?? false
   }
 
+  // Get old policy for audit log
+  const oldPolicy = await getTenantModulePolicy(tenantId, moduleId as ModuleId)
+  const oldEnabled = oldPolicy?.enabled ?? true
+  const oldDisabled = oldPolicy?.disabled ?? false
+
   // Update policy
   await setTenantModulePolicy(
     tenantId,
@@ -70,6 +76,17 @@ export default defineEventHandler(async (event) => {
     finalPermissionOverrides as ModulePermissionOverrides | undefined,
     finalDisabled
   )
+
+  // Log audit event
+  if (finalEnabled !== oldEnabled || finalDisabled !== oldDisabled) {
+    await logTenantAction(event, finalEnabled ? 'MODULE_ENABLED' : 'MODULE_DISABLED', {
+      moduleId,
+      oldEnabled,
+      newEnabled: finalEnabled,
+      oldDisabled,
+      newDisabled: finalDisabled
+    }, tenantId)
+  }
 
   // Return updated policy
   const updatedPolicy = await getTenantModulePolicy(tenantId, moduleId as ModuleId)

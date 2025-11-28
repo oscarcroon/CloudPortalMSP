@@ -9,6 +9,7 @@ import {
 } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
 import { requireSuperAdmin } from '../../../../utils/rbac'
+import { logTenantAction } from '../../../../utils/audit'
 
 export const deleteSchema = z.object({
   confirmSlug: z.string().min(1, 'Ange sluggen för att bekräfta.'),
@@ -33,6 +34,13 @@ export default defineEventHandler(async (event) => {
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
   if (!tenant) {
     throw createError({ statusCode: 404, message: 'Distributören kunde inte hittas.' })
+  }
+
+  // Store tenant info for audit log before deletion
+  const tenantInfo = {
+    name: tenant.name,
+    slug: tenant.slug,
+    type: tenant.type
   }
 
   // Only allow deletion of distributors
@@ -134,6 +142,13 @@ export default defineEventHandler(async (event) => {
       await tx.delete(tenants).where(eq(tenants.id, tenantId))
     })
   }
+
+  // Log audit event
+  await logTenantAction(event, 'TENANT_DELETED', {
+    tenantName: tenantInfo.name,
+    tenantSlug: tenantInfo.slug,
+    tenantType: tenantInfo.type
+  }, tenantId)
 
   return { success: true }
 })

@@ -150,6 +150,14 @@
           <Icon icon="mdi:puzzle-outline" class="h-4 w-4" />
           Modulrättigheter
         </NuxtLink>
+        <NuxtLink
+          v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
+          :to="`/admin/tenants/${tenant.id}/audit-logs`"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+        >
+          <Icon icon="mdi:file-document-outline" class="h-4 w-4" />
+          Audit Loggar
+        </NuxtLink>
       </div>
 
       <!-- Linked Tenants (Providers for Distributors, Distributors for Providers) -->

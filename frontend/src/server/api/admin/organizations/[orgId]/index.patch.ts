@@ -15,6 +15,7 @@ import {
   requireOrganizationByIdentifier,
   slugRegex
 } from '../utils'
+import { logOrganizationAction } from '../../../../utils/audit'
 
 const updateSchema = z
   .object({
@@ -51,6 +52,16 @@ export default defineEventHandler(async (event) => {
   const isSqlite =
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+
+  // Store old values for audit log
+  const oldValues = {
+    name: organization.name,
+    slug: organization.slug,
+    billingEmail: organization.billingEmail,
+    coreId: organization.coreId,
+    defaultRole: organization.defaultRole,
+    requireSso: organization.requireSso
+  }
 
   const orgUpdates: Partial<typeof organizations.$inferInsert> = {}
   if (payload.name !== undefined) orgUpdates.name = payload.name
@@ -106,6 +117,33 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 409, message: 'Sluggen används redan av en annan organisation.' })
     }
     throw error
+  }
+
+  // Log audit event
+  const changedFields: Record<string, { old: any; new: any }> = {}
+  if (payload.name !== undefined && payload.name !== oldValues.name) {
+    changedFields.name = { old: oldValues.name, new: payload.name }
+  }
+  if (payload.slug !== undefined && payload.slug !== oldValues.slug) {
+    changedFields.slug = { old: oldValues.slug, new: payload.slug }
+  }
+  if (payload.billingEmail !== undefined && payload.billingEmail !== oldValues.billingEmail) {
+    changedFields.billingEmail = { old: oldValues.billingEmail, new: payload.billingEmail }
+  }
+  if (payload.coreId !== undefined && payload.coreId !== oldValues.coreId) {
+    changedFields.coreId = { old: oldValues.coreId, new: payload.coreId }
+  }
+  if (payload.defaultRole !== undefined && payload.defaultRole !== oldValues.defaultRole) {
+    changedFields.defaultRole = { old: oldValues.defaultRole, new: payload.defaultRole }
+  }
+  if (payload.requireSso !== undefined && payload.requireSso !== oldValues.requireSso) {
+    changedFields.requireSso = { old: oldValues.requireSso, new: payload.requireSso }
+  }
+
+  if (Object.keys(changedFields).length > 0) {
+    await logOrganizationAction(event, 'ORGANIZATION_UPDATED', {
+      changedFields
+    }, organization.id)
   }
 
   return buildOrganizationDetailPayload(db, organization.id)

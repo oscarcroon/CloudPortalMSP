@@ -7,6 +7,7 @@ import { eq, or, and } from 'drizzle-orm'
 import { organizations, tenants, distributorProviders } from '../database/schema'
 import { getModuleIdFromPermission } from '~/constants/modules'
 import { isModulePermissionAllowed as checkModulePolicy } from './modulePolicy'
+import { logPermissionDenied } from './audit'
 
 export const hasPermission = (role: RbacRole, permission: RbacPermission) =>
   rolePermissionMap[role]?.includes(permission) ?? false
@@ -50,6 +51,7 @@ export const requirePermission = async (
   if (!hasRbacPermission) {
     const hasAccess = await canAccessOrganization(auth, orgId)
     if (!hasAccess) {
+      await logPermissionDenied(event, permission, 'no_organization_access', orgId)
       throw createError({
         statusCode: 403,
         message: `Missing permission ${permission} for organization ${orgId}`
@@ -91,6 +93,7 @@ export const requirePermission = async (
   }
 
   if (!hasRbacPermission) {
+    await logPermissionDenied(event, permission, 'missing_rbac_permission', orgId)
     throw createError({
       statusCode: 403,
       message: `Missing permission ${permission} for organization ${orgId}`
@@ -102,6 +105,7 @@ export const requirePermission = async (
   if (moduleId) {
     const modulePolicyAllowed = await checkModulePolicy(orgId, moduleId, permission)
     if (!modulePolicyAllowed) {
+      await logPermissionDenied(event, permission, 'module_policy_denied', orgId, undefined)
       throw createError({
         statusCode: 403,
         message: `Module policy denies permission ${permission} for organization ${orgId}`
@@ -112,6 +116,7 @@ export const requirePermission = async (
     const { getUserModuleDeniedPermissions } = await import('./userModulePermissions')
     const userDenials = await getUserModuleDeniedPermissions(orgId, auth.user.id, moduleId)
     if (userDenials && userDenials.has(permission)) {
+      await logPermissionDenied(event, permission, 'user_module_policy_denied', orgId, undefined)
       throw createError({
         statusCode: 403,
         message: `User-specific module policy denies permission ${permission} for organization ${orgId}`

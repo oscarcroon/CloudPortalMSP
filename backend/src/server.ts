@@ -1,6 +1,6 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
-import express from 'express'
+import express, { type Request, type Response, type NextFunction } from 'express'
 import morgan from 'morgan'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +14,7 @@ import { organisationMembersRouter } from './routes/organisationMembers.js'
 import { organisationsRouter } from './routes/organisations.js'
 import { vmRouter } from './routes/vms.js'
 import { wordpressRouter } from './routes/wordpress.js'
+import { getRequestId, logInfo, logWarn, logError } from './utils/logger.js'
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(currentDir, '..', '..')
@@ -29,7 +30,41 @@ app.use(
   })
 )
 app.use(express.json())
-app.use(morgan('dev'))
+
+// Request logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestId = getRequestId(req)
+  res.setHeader('x-request-id', requestId)
+  
+  const startTime = Date.now()
+  
+  // Log request
+  logInfo(req, `Incoming request: ${req.method} ${req.path}`, {
+    query: req.query || undefined
+  })
+  
+  // Log response when finished
+  res.on('finish', () => {
+    const duration = Date.now() - startTime
+    const message = `Request completed: ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`
+    
+    if (res.statusCode >= 500) {
+      logError(req, message, undefined, { duration }, res)
+    } else if (res.statusCode >= 400) {
+      logWarn(req, message, { duration }, res)
+    } else {
+      logInfo(req, message, { duration }, res)
+    }
+  })
+  
+  next()
+})
+
+// Keep morgan for compatibility, but structured logging is primary
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'))
+}
+
 app.use(tenantContext)
 app.use('/uploads', express.static(uploadsRoot))
 

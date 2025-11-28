@@ -6,6 +6,7 @@ import { getDb } from '../../../utils/db'
 import { hashPassword, verifyPassword } from '../../../utils/crypto'
 import { requireSession, createSession } from '../../../utils/session'
 import { passwordSchema } from '../../../utils/password'
+import { logUserAction } from '../../../utils/audit'
 
 const changeSchema = z.object({
   currentPassword: z.string().min(8, 'Nuvarande lösenord krävs.'),
@@ -47,6 +48,9 @@ export default defineEventHandler(async (event) => {
     .where(eq(users.id, user.id))
 
   await createSession(event, user.id)
+
+  // Log audit event
+  await logUserAction(event, 'PASSWORD_CHANGED', {}, user.id)
 
   return { success: true }
 })

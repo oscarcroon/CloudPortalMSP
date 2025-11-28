@@ -42,6 +42,13 @@
 
       <div class="flex gap-2">
         <NuxtLink
+          to="/admin/audit-logs"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+        >
+          <Icon icon="mdi:file-document-outline" class="h-4 w-4" />
+          Audit Loggar
+        </NuxtLink>
+        <NuxtLink
           to="/admin/settings/email"
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
         >

@@ -14,6 +14,7 @@ import {
   parseOrgParam,
   requireOrganizationByIdentifier
 } from '../../../utils'
+import { logUserAction } from '../../../../../../utils/audit'
 
 const payloadSchema = z.object({
   role: z.enum(rbacRoles)
@@ -52,6 +53,8 @@ export default defineEventHandler(async (event) => {
     return fetchMemberPayload(db, membership.id)
   }
 
+  const oldRole = membership.role
+
   if (membership.role === 'owner' && payload.role !== 'owner') {
     await assertOwnerWillRemain(db, organization.id, membership.id)
   }
@@ -60,6 +63,14 @@ export default defineEventHandler(async (event) => {
     .update(organizationMemberships)
     .set({ role: payload.role })
     .where(eq(organizationMemberships.id, membership.id))
+
+  // Log audit event
+  await logUserAction(event, 'ROLE_CHANGED', {
+    targetUserId: membership.userId,
+    organizationId: organization.id,
+    oldRole,
+    newRole: payload.role
+  }, membership.userId)
 
   return fetchMemberPayload(db, membership.id)
 })
