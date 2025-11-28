@@ -19,6 +19,8 @@ export interface AuthOrganization {
   logoUrl?: string | null
   requireSso: boolean
   hasLocalLoginOverride: boolean
+  tenantId?: string | null
+  lastAccessedAt?: number | null
 }
 
 export interface AuthState {

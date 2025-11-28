@@ -74,7 +74,9 @@ const mapOrgRow = (row: MembershipRow, role: RbacRole, isSuperAdmin: boolean): A
   requireSso: Boolean(row.org.requireSso),
   hasLocalLoginOverride:
     isSuperAdmin || (role === 'owner' && Boolean(row.auth?.allowLocalLoginForOwners)),
-  role
+  role,
+  tenantId: row.org.tenantId ?? null,
+  lastAccessedAt: row.membership.lastAccessedAt ?? null
 })
 
 export const findUserByEmail = async (email: string) => {
@@ -140,10 +142,7 @@ export const buildAuthState = async (
   const organizationPayload: AuthOrganization[] = rows.map((row) => {
     const role = row.membership.role as RbacRole
     orgRoles[row.org.id] = role
-    return {
-      ...mapOrgRow(row, role, Boolean(user.isSuperAdmin)),
-      tenantId: row.org.tenantId ?? null
-    }
+    return mapOrgRow(row, role, Boolean(user.isSuperAdmin))
   })
 
   const tenantRows = await fetchTenantMembershipRows(userId)
@@ -160,9 +159,27 @@ export const buildAuthState = async (
   if (forcedOrgId !== undefined) {
     resolvedOrgId = forcedOrgId && orgRoles[forcedOrgId] ? forcedOrgId : null
   } else if (user.defaultOrgId && orgRoles[user.defaultOrgId]) {
+    // 1. Try primary organization (defaultOrgId)
     resolvedOrgId = user.defaultOrgId
   } else {
-    resolvedOrgId = organizationPayload[0]?.id ?? null
+    // 2. Try most recently accessed organization
+    const orgsWithAccess = organizationPayload
+      .filter(org => org.lastAccessedAt !== null)
+      .sort((a, b) => (b.lastAccessedAt ?? 0) - (a.lastAccessedAt ?? 0))
+    
+    if (orgsWithAccess.length > 0) {
+      resolvedOrgId = orgsWithAccess[0].id
+    } else {
+      // 3. Fallback: first organization (alphabetically if multiple)
+      const sortedOrgs = [...organizationPayload].sort((a, b) => a.name.localeCompare(b.name))
+      resolvedOrgId = sortedOrgs[0]?.id ?? null
+    }
+  }
+  
+  // Sanitize invalid defaultOrgId: if user's defaultOrgId points to an org they're no longer a member of
+  if (user.defaultOrgId && !orgRoles[user.defaultOrgId]) {
+    // Reset defaultOrgId - this will be persisted on next user update
+    user.defaultOrgId = null
   }
 
   // Resolve currentTenantId: use forcedTenantId if provided (even if null)

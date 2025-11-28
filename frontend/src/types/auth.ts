@@ -11,6 +11,7 @@ export interface AuthOrganization {
   requireSso: boolean
   hasLocalLoginOverride: boolean
   tenantId?: string | null
+  lastAccessedAt?: number | null
 }
 
 export interface AuthTenant {

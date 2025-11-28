@@ -22,37 +22,148 @@
             Visar endast organisationer under {{ auth.currentTenant.value.name }}.
           </span>
         </p>
+
+        <!-- Active Organization Section -->
+        <div v-if="hasActiveOrg && activeOrganization" class="mt-4">
+          <div class="rounded-xl border border-brand bg-brand-light/40 px-4 py-3 dark:border-brand/70 dark:bg-brand/10">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <p class="font-semibold text-slate-900 dark:text-slate-100">{{ activeOrganization.name }}</p>
+                  <span
+                    v-if="isPrimaryOrganization(activeOrganization.id)"
+                    class="rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white"
+                  >
+                    Primär
+                  </span>
+                  <span
+                    v-else
+                    class="text-xs text-slate-400 dark:text-slate-500"
+                  >
+                    Ej primär
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Roll: {{ activeOrganization.role }}</p>
+                <p class="mt-1 text-xs font-semibold text-brand">Aktiv nu</p>
+              </div>
+              <button
+                class="flex items-center justify-center rounded-full p-2 transition hover:bg-white/20"
+                :class="
+                  isPrimaryOrganization(activeOrganization.id)
+                    ? 'text-yellow-500'
+                    : 'text-slate-400 hover:text-yellow-500'
+                "
+                :title="
+                  isPrimaryOrganization(activeOrganization.id)
+                    ? 'Primär organisation'
+                    : 'Sätt som primär organisation'
+                "
+                @click="handleSetPrimary(activeOrganization.id)"
+              >
+                <Icon
+                  :icon="isPrimaryOrganization(activeOrganization.id) ? 'mdi:star' : 'mdi:star-outline'"
+                  class="h-5 w-5"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+
         <p
           v-if="!hasActiveOrg"
           class="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
         >
           Ingen organisation är aktiv just nu. Välj en i listan för att visa organisationsspecifika inställningar.
         </p>
-        <ul v-if="filteredOrganizations.length" class="mt-4 space-y-3">
-          <li
-            v-for="org in filteredOrganizations"
-            :key="org.id"
-            class="flex items-center justify-between rounded-xl border px-4 py-3"
-            :class="
-              org.id === auth.state.value.data?.currentOrgId
-                ? 'border-brand bg-brand-light/40 dark:border-brand/70 dark:bg-brand/10'
-                : 'border-slate-200 dark:border-slate-700 dark:bg-slate-900/40'
-            "
-          >
-            <div>
-              <p class="font-semibold text-slate-900 dark:text-slate-100">{{ org.name }}</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Roll: {{ org.role }}</p>
-            </div>
-            <button
-              class="rounded-full border border-slate-200 px-3 py-1 text-xs transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-              @click="auth.switchOrganization(org.id)"
+
+        <!-- Other Organizations Section -->
+        <div v-if="otherOrganizations.length > 0" class="mt-6">
+          <h3 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Övriga organisationer</h3>
+          
+          <!-- Search Input -->
+          <div class="mb-4">
+            <input
+              v-model="searchTerm"
+              type="text"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white dark:placeholder-slate-500"
+              placeholder="Sök efter organisation..."
+              @input="currentPage = 1"
+            />
+          </div>
+
+          <!-- Organization List -->
+          <ul class="space-y-3">
+            <li
+              v-for="org in pagedOrganizations"
+              :key="org.id"
+              class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/40"
             >
-              {{ org.id === auth.state.value.data?.currentOrgId ? 'Aktiv' : 'Välj' }}
+              <div class="flex flex-1 items-center gap-3">
+                <button
+                  class="flex items-center justify-center rounded-full p-1 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+                  :class="
+                    isPrimaryOrganization(org.id)
+                      ? 'text-yellow-500'
+                      : 'text-slate-400 hover:text-yellow-500'
+                  "
+                  :title="
+                    isPrimaryOrganization(org.id)
+                      ? 'Primär organisation'
+                      : 'Sätt som primär organisation'
+                  "
+                  @click="handleSetPrimary(org.id)"
+                >
+                  <Icon
+                    :icon="isPrimaryOrganization(org.id) ? 'mdi:star' : 'mdi:star-outline'"
+                    class="h-5 w-5"
+                  />
+                </button>
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <p class="font-semibold text-slate-900 dark:text-slate-100">{{ org.name }}</p>
+                    <span
+                      v-if="isPrimaryOrganization(org.id)"
+                      class="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200"
+                    >
+                      Primär
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Roll: {{ org.role }}</p>
+                </div>
+              </div>
+              <button
+                class="rounded-full border border-slate-200 px-3 py-1 text-xs transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                @click="auth.switchOrganization(org.id)"
+              >
+                Välj
+              </button>
+            </li>
+          </ul>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="mt-4 flex items-center justify-center gap-2">
+            <button
+              class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-slate-200"
+              :disabled="currentPage === 1"
+              @click="currentPage = Math.max(1, currentPage - 1)"
+            >
+              Föregående
             </button>
-          </li>
-        </ul>
+            <span class="text-sm text-slate-600 dark:text-slate-400">
+              Sida {{ currentPage }} av {{ totalPages }}
+            </span>
+            <button
+              class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-slate-200"
+              :disabled="currentPage >= totalPages"
+              @click="currentPage = Math.min(totalPages, currentPage + 1)"
+            >
+              Nästa
+            </button>
+          </div>
+        </div>
+
         <p
-          v-else
+          v-if="otherOrganizations.length === 0 && filteredOrganizations.length === 0"
           class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
         >
           Inga organisationer är kopplade till den aktuella leverantören. Lägg till en organisation eller byt leverantör i context switchern.
@@ -333,11 +444,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from '#imports'
+import { computed, ref, onMounted, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
 import { useAuth } from '~/composables/useAuth'
 import { normalizeLogoUrl } from '~/utils/logo'
+import { matchesSearch } from '~/utils/search'
+import type { AuthOrganization } from '~/server/types/auth'
 
 const auth = useAuth()
 
@@ -371,13 +484,90 @@ const tokens = [
 const currentTenantId = computed(() => auth.state.value.data?.currentTenantId ?? null)
 const hasActiveTenant = computed(() => Boolean(currentTenantId.value))
 
+const PAGE_SIZE = 5
+const searchTerm = ref('')
+const currentPage = ref(1)
+
+// Reset to page 1 when search term changes
+watch(searchTerm, () => {
+  currentPage.value = 1
+})
+
 const filteredOrganizations = computed(() => {
   const tenantId = currentTenantId.value
+  let orgs: AuthOrganization[]
   if (!tenantId) {
-    return auth.organizations.value
+    orgs = auth.organizations.value
+  } else {
+    orgs = auth.organizations.value.filter((org) => org.tenantId === tenantId)
   }
-  return auth.organizations.value.filter((org) => org.tenantId === tenantId)
+
+  // Sort organizations: lastAccessedAt desc (null last), then alphabetically
+  const sorted = [...orgs].sort((a, b) => {
+    // 1. lastAccessedAt desc (null last)
+    if (a.lastAccessedAt && b.lastAccessedAt) {
+      return b.lastAccessedAt - a.lastAccessedAt
+    }
+    if (a.lastAccessedAt && !b.lastAccessedAt) return -1
+    if (!a.lastAccessedAt && b.lastAccessedAt) return 1
+
+    // 2. Alphabetically by name
+    return a.name.localeCompare(b.name)
+  })
+
+  return sorted
 })
+
+const activeOrganization = computed(() => {
+  const activeOrgId = auth.state.value.data?.currentOrgId
+  if (!activeOrgId) return null
+  return filteredOrganizations.value.find((org) => org.id === activeOrgId) ?? null
+})
+
+const otherOrganizations = computed(() => {
+  const activeOrgId = auth.state.value.data?.currentOrgId
+  return filteredOrganizations.value.filter((org) => org.id !== activeOrgId)
+})
+
+const defaultOrgId = computed(() => auth.state.value.data?.user?.defaultOrgId ?? null)
+
+const isPrimaryOrganization = (orgId: string) => {
+  return defaultOrgId.value === orgId
+}
+
+const filteredOtherOrganizations = computed(() => {
+  if (!searchTerm.value.trim()) {
+    return otherOrganizations.value
+  }
+
+  return otherOrganizations.value.filter((org) => {
+    return (
+      matchesSearch(org.name, searchTerm.value) ||
+      matchesSearch(org.slug, searchTerm.value)
+    )
+  })
+})
+
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredOtherOrganizations.value.length / PAGE_SIZE))
+})
+
+const pagedOrganizations = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return filteredOtherOrganizations.value.slice(start, start + PAGE_SIZE)
+})
+
+async function handleSetPrimary(orgId: string) {
+  if (isPrimaryOrganization(orgId)) {
+    return // Already primary, do nothing
+  }
+
+  try {
+    await auth.setPrimaryOrganization(orgId)
+  } catch (error) {
+    console.error('Failed to set primary organization:', error)
+  }
+}
 
 const hasActiveOrg = computed(() => Boolean(auth.state.value.data?.currentOrgId))
 const organizationSectionTitle = computed(() =>

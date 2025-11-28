@@ -114,6 +114,19 @@ export default defineEventHandler(async (event) => {
       }
 
       newOrgId = body.organizationId
+      
+      // Update lastAccessedAt for this membership if user has direct membership
+      if (membership) {
+        await db
+          .update(organizationMemberships)
+          .set({ lastAccessedAt: new Date() })
+          .where(
+            and(
+              eq(organizationMemberships.organizationId, body.organizationId),
+              eq(organizationMemberships.userId, auth.user.id)
+            )
+          )
+      }
     } else {
       newOrgId = null
     }

@@ -148,6 +148,29 @@ export const useAuth = () => {
     }
   }
 
+  const setPrimaryOrganization = async (orgId: string) => {
+    state.value.loading = true
+    try {
+      await $fetch('/api/auth/set-primary-org', {
+        method: 'POST',
+        body: { orgId },
+        credentials: 'include'
+      })
+      
+      // Update local state
+      if (state.value.data?.user) {
+        state.value.data.user.defaultOrgId = orgId
+      }
+      
+      return { success: true }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Kunde inte sätta primär organisation.')
+      throw error
+    } finally {
+      state.value.loading = false
+    }
+  }
+
   const currentOrg = computed(() => {
     const orgId = state.value.data?.currentOrgId
     return state.value.data?.organizations.find((org) => org.id === orgId) ?? null
@@ -179,7 +202,8 @@ export const useAuth = () => {
     logout,
     switchOrganization,
     switchTenant,
-    switchContext
+    switchContext,
+    setPrimaryOrganization
   }
 }
 

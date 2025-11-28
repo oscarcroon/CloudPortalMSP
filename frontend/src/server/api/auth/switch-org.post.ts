@@ -1,10 +1,10 @@
 import { createError, defineEventHandler, readBody } from 'h3'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { ensureMembership } from '../../utils/auth'
 import { refreshSession, requireSession } from '../../utils/session'
 import { getDb } from '../../utils/db'
-import { organizationAuthSettings, organizations } from '../../database/schema'
+import { organizationAuthSettings, organizationMemberships, organizations } from '../../database/schema'
 
 const schema = z.object({
   organizationId: z.string().min(1)
@@ -48,6 +48,17 @@ export default defineEventHandler(async (event) => {
       }
     })
   }
+
+  // Update lastAccessedAt for this membership
+  await db
+    .update(organizationMemberships)
+    .set({ lastAccessedAt: new Date() })
+    .where(
+      and(
+        eq(organizationMemberships.organizationId, organizationId),
+        eq(organizationMemberships.userId, auth.user.id)
+      )
+    )
 
   const updated = await refreshSession(event, organizationId)
   return updated
