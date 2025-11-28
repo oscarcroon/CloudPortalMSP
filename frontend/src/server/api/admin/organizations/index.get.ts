@@ -69,6 +69,8 @@ export default defineEventHandler(async (event) => {
       defaultRole: organizations.defaultRole,
       billingEmail: organizations.billingEmail,
       tenantId: organizations.tenantId,
+      tenantName: tenants.name,
+      tenantSlug: tenants.slug,
       createdAt: organizations.createdAt,
       memberCount: sql<number>`count(${organizationMemberships.id})`,
       ssoEnforced: organizationAuthSettings.ssoEnforced,
@@ -94,6 +96,10 @@ export default defineEventHandler(async (event) => {
       organizationAuthSettings,
       eq(organizationAuthSettings.organizationId, organizations.id)
     )
+    .leftJoin(
+      tenants,
+      eq(tenants.id, organizations.tenantId)
+    )
     .groupBy(
       organizations.id,
       organizations.name,
@@ -104,7 +110,9 @@ export default defineEventHandler(async (event) => {
       organizations.billingEmail,
       organizations.tenantId,
       organizations.createdAt,
-      organizationAuthSettings.ssoEnforced
+      organizationAuthSettings.ssoEnforced,
+      tenants.name,
+      tenants.slug
     )
     .orderBy(desc(organizations.createdAt))
     .limit(limit)
@@ -120,44 +128,49 @@ export default defineEventHandler(async (event) => {
       whereConditions.push(inArray(organizations.id, userOrgIds))
     }
 
-    if (whereConditions.length > 0) {
-      query = query.where(or(...whereConditions)) as typeof query
-    } else {
+    if (whereConditions.length === 0) {
       // User has no access to any organizations
       return { organizations: [] }
     }
   }
 
+  // Apply search filter
   if (q && q.trim()) {
     const pattern = `%${q.trim()}%`
+    const searchCondition = or(like(organizations.name, pattern), like(organizations.slug, pattern))
+    
     if (!auth.user.isSuperAdmin && whereConditions.length > 0) {
       query = query.where(
-        and(or(...whereConditions), or(like(organizations.name, pattern), like(organizations.slug, pattern)))
+        and(or(...whereConditions), searchCondition)
       ) as typeof query
     } else {
-    query = query.where(
-      or(like(organizations.name, pattern), like(organizations.slug, pattern))
-      ) as typeof query
+      query = query.where(searchCondition) as typeof query
     }
+  } else if (!auth.user.isSuperAdmin && whereConditions.length > 0) {
+    // Apply access filter even without search
+    query = query.where(or(...whereConditions)) as typeof query
   }
 
   const rows = await query
 
   // For super admins, return all organizations without additional filtering
   if (auth.user.isSuperAdmin) {
-  return {
-    organizations: rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      status: row.status,
-      requireSso: Boolean(row.requireSso),
-      defaultRole: row.defaultRole,
-      billingEmail: row.billingEmail,
+    return {
+      organizations: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        status: row.status,
+        requireSso: Boolean(row.requireSso),
+        defaultRole: row.defaultRole,
+        billingEmail: row.billingEmail,
         tenantId: row.tenantId,
+        tenantName: row.tenantName,
+        tenantSlug: row.tenantSlug,
         createdAt: row.createdAt,
         memberCount: row.memberCount,
-        ssoEnforced: Boolean(row.ssoEnforced)
+        ssoEnforced: Boolean(row.ssoEnforced),
+        hasEmailOverride: Boolean(row.hasEmailOverride)
       }))
     }
   }
@@ -187,9 +200,12 @@ export default defineEventHandler(async (event) => {
       defaultRole: row.defaultRole,
       billingEmail: row.billingEmail,
       tenantId: row.tenantId,
+      tenantName: row.tenantName,
+      tenantSlug: row.tenantSlug,
       createdAt: row.createdAt,
       memberCount: row.memberCount,
-      ssoEnforced: Boolean(row.ssoEnforced)
+      ssoEnforced: Boolean(row.ssoEnforced),
+      hasEmailOverride: Boolean(row.hasEmailOverride)
     }))
   }
 })

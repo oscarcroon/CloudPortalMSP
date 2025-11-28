@@ -33,6 +33,23 @@ export const requirePermission = async (
     throw createError({ statusCode: 400, message: 'Select an organization' })
   }
 
+  // Check if organization is active (unless super admin)
+  if (!auth.user.isSuperAdmin) {
+    const db = getDb()
+    const [org] = await db
+      .select({ status: organizations.status })
+      .from(organizations)
+      .where(eq(organizations.id, orgId))
+      .limit(1)
+
+    if (org && org.status !== 'active') {
+      throw createError({
+        statusCode: 403,
+        message: 'Organisationen är inaktiverad och kan inte användas.'
+      })
+    }
+  }
+
   if (auth.user.isSuperAdmin) {
     return { auth, role: 'owner', orgId }
   }
@@ -276,13 +293,8 @@ export const canAccessOrganization = async (
   auth: Awaited<ReturnType<typeof ensureAuthState>>,
   organizationId: string
 ): Promise<boolean> => {
-  if (!auth || auth.user.isSuperAdmin) {
-    return true
-  }
-
-  // Check if user has direct organization membership
-  if (auth.orgRoles[organizationId]) {
-    return true
+  if (!auth) {
+    return false
   }
 
   // Check if user can access organization via tenant hierarchy
@@ -292,7 +304,26 @@ export const canAccessOrganization = async (
     .from(organizations)
     .where(eq(organizations.id, organizationId))
 
-  if (!org || !org.tenantId) {
+  if (!org) {
+    return false
+  }
+
+  // Check if organization is active (super admins can always access)
+  if (org.status !== 'active' && !auth.user.isSuperAdmin) {
+    return false
+  }
+
+  // Super admins can always access active organizations
+  if (auth.user.isSuperAdmin) {
+    return true
+  }
+
+  // Check if user has direct organization membership
+  if (auth.orgRoles[organizationId]) {
+    return true
+  }
+
+  if (!org.tenantId) {
     return false
   }
 

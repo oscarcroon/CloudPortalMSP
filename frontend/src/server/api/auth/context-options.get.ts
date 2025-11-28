@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Fetch full organization details for direct memberships (standalone orgs)
+  // Only include active organizations (or all for super admins)
   const orgsList = Array.from(accessibleOrgIds)
   const orgsData = orgsList.length > 0
     ? await db
@@ -67,10 +68,18 @@ export default defineEventHandler(async (event) => {
           status: organizations.status
         })
         .from(organizations)
-        .where(inArray(organizations.id, orgsList))
+        .where(
+          auth.user.isSuperAdmin
+            ? inArray(organizations.id, orgsList)
+            : and(
+                inArray(organizations.id, orgsList),
+                eq(organizations.status, 'active')
+              )
+        )
     : []
 
   // Fetch full organization details for tenant hierarchy orgs
+  // Only include active organizations (or all for super admins)
   const tenantOrgIds = orgsForTenantHierarchy.map(o => o.id)
   const tenantOrgsData = tenantOrgIds.length > 0
     ? await db
@@ -82,7 +91,14 @@ export default defineEventHandler(async (event) => {
           status: organizations.status
         })
         .from(organizations)
-        .where(inArray(organizations.id, tenantOrgIds))
+        .where(
+          auth.user.isSuperAdmin
+            ? inArray(organizations.id, tenantOrgIds)
+            : and(
+                inArray(organizations.id, tenantOrgIds),
+                eq(organizations.status, 'active')
+              )
+        )
     : []
 
   // Group ALL organizations by tenant

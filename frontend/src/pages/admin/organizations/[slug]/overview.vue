@@ -39,10 +39,38 @@
           <p class="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">{{ stats.memberCount }}</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-          <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">SSO-läge</p>
-          <StatusPill :variant="organization.requireSso ? 'success' : 'info'">
-            {{ organization.requireSso ? 'Krävs' : 'Valfritt' }}
-          </StatusPill>
+          <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</p>
+          <div class="mt-2 space-y-2">
+            <StatusPill :variant="organization.status === 'active' ? 'success' : 'warning'">
+              {{ organization.status === 'active' ? 'Aktiv' : 'Inaktiv' }}
+            </StatusPill>
+            <div v-if="canChangeStatus" class="space-y-1.5">
+              <button
+                class="w-full rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                :class="organization.status === 'active' 
+                  ? 'border-amber-300 bg-amber-100 text-amber-800 hover:border-amber-400 hover:bg-amber-200 dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-amber-100 dark:hover:bg-amber-500/30'
+                  : 'border-emerald-300 bg-emerald-100 text-emerald-800 hover:border-emerald-400 hover:bg-emerald-200 dark:border-emerald-500/50 dark:bg-emerald-500/20 dark:text-emerald-100 dark:hover:bg-emerald-500/30'"
+                :disabled="statusLoading"
+                @click="toggleOrganizationStatus"
+              >
+                <span v-if="statusLoading" class="flex items-center justify-center gap-1.5">
+                  <Icon icon="mdi:loading" class="h-3.5 w-3.5 animate-spin" />
+                  <span>Uppdaterar...</span>
+                </span>
+                <span v-else-if="organization.status === 'active'" class="flex items-center justify-center gap-1.5">
+                  <Icon icon="mdi:alert-circle" class="h-3.5 w-3.5" />
+                  <span>Inaktivera organisation</span>
+                </span>
+                <span v-else class="flex items-center justify-center gap-1.5">
+                  <Icon icon="mdi:check-circle" class="h-3.5 w-3.5" />
+                  <span>Aktivera organisation</span>
+                </span>
+              </button>
+              <p v-if="organization.status === 'active'" class="text-xs text-amber-700 dark:text-amber-300">
+                Inaktivering gör att organisationen inte kan användas tills den aktiveras igen.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -321,6 +349,7 @@ const showCreatedBanner = ref(route.query.created === '1')
 const showDeleteModal = ref(false)
 const deleteLoading = ref(false)
 const deleteError = ref('')
+const statusLoading = ref(false)
 const deleteForm = reactive({
   confirmSlug: '',
   acknowledgeImpact: false
@@ -382,6 +411,13 @@ const requireSsoHint = computed(() => {
     return 'IdP-konfigurationen saknar issuer/client/secret/redirect.'
   }
   return ''
+})
+
+const canChangeStatus = computed(() => {
+  // Super admins can always change status
+  // For provider admins, they can change status if organization belongs to their provider
+  // This will be validated on the backend
+  return true
 })
 
 watch(
@@ -475,6 +511,32 @@ const submitDelete = async () => {
     deleteError.value = err instanceof Error ? err.message : 'Kunde inte radera organisationen.'
   } finally {
     deleteLoading.value = false
+  }
+}
+
+const toggleOrganizationStatus = async () => {
+  if (!organization.value) return
+  const newStatus = organization.value.status === 'active' ? 'inactive' : 'active'
+  const confirmMessage = newStatus === 'inactive' 
+    ? 'Inaktivera organisationen? Organisationen kommer inte att kunna användas förrän den aktiveras igen.'
+    : 'Aktivera organisationen?'
+  
+  if (!confirm(confirmMessage)) {
+    return
+  }
+  
+  statusLoading.value = true
+  errorMessage.value = ''
+  try {
+    await $fetch(`/api/admin/organizations/${slug.value}/status`, {
+      method: 'PATCH',
+      body: { status: newStatus }
+    })
+    await refresh()
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte uppdatera organisations status.'
+  } finally {
+    statusLoading.value = false
   }
 }
 

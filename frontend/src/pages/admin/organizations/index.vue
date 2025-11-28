@@ -15,21 +15,16 @@
       Organisationen "{{ deletedSlug }}" raderades permanent.
     </div>
 
-    <div class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
+    <div class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
       <form class="flex flex-1 flex-col gap-2 sm:flex-row" @submit.prevent="applySearch">
         <input
           v-model="searchInput"
           type="text"
           class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           placeholder="Sök efter namn eller slug"
+          @input="applySearch"
         />
         <div class="flex gap-2">
-          <button
-            type="submit"
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
-          >
-            Sök
-          </button>
           <button
             type="button"
             class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
@@ -39,6 +34,33 @@
           </button>
         </div>
       </form>
+      <div class="flex flex-wrap gap-3">
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status:</label>
+          <select
+            v-model="statusFilter"
+            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            @change="applyFilters"
+          >
+            <option value="">Alla</option>
+            <option value="active">Aktiva</option>
+            <option value="inactive">Inaktiva</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tenant:</label>
+          <select
+            v-model="tenantFilter"
+            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            @change="applyFilters"
+          >
+            <option value="">Alla</option>
+            <option v-for="tenant in uniqueTenants" :key="tenant.id" :value="tenant.id">
+              {{ tenant.name }}
+            </option>
+          </select>
+        </div>
+      </div>
 
       <div class="flex gap-2">
         <NuxtLink
@@ -79,6 +101,14 @@
           <p class="text-xs text-slate-500 dark:text-slate-400">
             {{ organizations.length }} resultat
             <span v-if="appliedQuery">för "{{ appliedQuery }}"</span>
+            <span v-if="statusFilter || tenantFilter">
+              <span v-if="appliedQuery"> • </span>
+              <span v-if="statusFilter">Status: {{ statusFilter === 'active' ? 'Aktiva' : 'Inaktiva' }}</span>
+              <span v-if="statusFilter && tenantFilter"> • </span>
+              <span v-if="tenantFilter">
+                Tenant: {{ uniqueTenants.find(t => t.id === tenantFilter)?.name ?? tenantFilter }}
+              </span>
+            </span>
           </p>
         </div>
         <button
@@ -100,6 +130,7 @@
             <tr>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Organisation</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tenant</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Medlemmar</th>
               <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
@@ -116,12 +147,16 @@
             >
               <td class="px-6 py-3 text-slate-900 dark:text-white">
                 <div class="font-semibold">{{ org.name }}</div>
-                <p class="text-xs text-slate-500 dark:text-slate-400">{{ org.status }}</p>
               </td>
               <td class="px-6 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">{{ org.slug }}</td>
+              <td class="px-6 py-3">
+                <StatusPill :variant="org.status === 'active' ? 'success' : 'warning'">
+                  {{ org.status === 'active' ? 'Aktiv' : 'Inaktiv' }}
+                </StatusPill>
+              </td>
               <td class="px-6 py-3 text-slate-700 dark:text-slate-200">
-                <span v-if="org.tenantId" class="text-xs text-slate-500 dark:text-slate-400">
-                  Tenant: {{ org.tenantId.slice(0, 8) }}...
+                <span v-if="org.tenantName" class="text-xs font-medium text-slate-900 dark:text-slate-100">
+                  {{ org.tenantName }}
                 </span>
                 <span v-else class="text-xs text-slate-400 dark:text-slate-500">Ingen tenant</span>
               </td>
@@ -175,6 +210,8 @@ const router = useRouter()
 const route = useRoute()
 const searchInput = ref('')
 const appliedQuery = ref('')
+const statusFilter = ref('')
+const tenantFilter = ref('')
 const deletedSlug = ref(typeof route.query.deleted === 'string' ? route.query.deleted : '')
 
 if (deletedSlug.value) {
@@ -186,21 +223,61 @@ if (deletedSlug.value) {
 const { data, pending, refresh, error } = await useFetch<{ organizations: AdminOrganizationSummary[] }>(
   '/api/admin/organizations',
   {
-    query: () => (appliedQuery.value ? { q: appliedQuery.value } : {}),
+    query: () => {
+      const query: Record<string, string> = {}
+      if (appliedQuery.value) {
+        query.q = appliedQuery.value
+      }
+      return query
+    },
     watch: [appliedQuery]
   }
 )
 
-const organizations = computed(() => data.value?.organizations ?? [])
+const allOrganizations = computed(() => data.value?.organizations ?? [])
 const listError = computed(() => (error.value ? error.value.message : ''))
+
+// Get unique tenants for filter dropdown
+const uniqueTenants = computed(() => {
+  const tenantMap = new Map<string, { id: string; name: string }>()
+  for (const org of allOrganizations.value) {
+    if (org.tenantId && org.tenantName && !tenantMap.has(org.tenantId)) {
+      tenantMap.set(org.tenantId, { id: org.tenantId, name: org.tenantName })
+    }
+  }
+  return Array.from(tenantMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+// Apply client-side filtering
+const organizations = computed(() => {
+  let filtered = allOrganizations.value
+
+  // Filter by status
+  if (statusFilter.value) {
+    filtered = filtered.filter((org) => org.status === statusFilter.value)
+  }
+
+  // Filter by tenant
+  if (tenantFilter.value) {
+    filtered = filtered.filter((org) => org.tenantId === tenantFilter.value)
+  }
+
+  return filtered
+})
 
 const applySearch = () => {
   appliedQuery.value = searchInput.value.trim()
 }
 
+const applyFilters = () => {
+  // Filters are applied via computed property, no need to refresh
+}
+
 const clearSearch = () => {
   searchInput.value = ''
   appliedQuery.value = ''
+  statusFilter.value = ''
+  tenantFilter.value = ''
   refresh()
 }
 

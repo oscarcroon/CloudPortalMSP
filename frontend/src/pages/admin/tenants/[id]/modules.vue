@@ -49,6 +49,9 @@
         v-for="policy in filteredPolicies"
         :key="policy.moduleId"
         class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]"
+        :class="{
+          'opacity-50': policy.distributorLevelDisabled
+        }"
       >
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
           <div class="flex items-center justify-between">
@@ -59,7 +62,8 @@
                 <p class="text-xs text-slate-500 dark:text-slate-400">{{ policy.module.description }}</p>
               </div>
             </div>
-            <div class="flex items-center gap-4">
+            <!-- Show controls if module is enabled at distributor level and not disabled -->
+            <div v-if="policy.distributorLevelEnabled !== false && !policy.distributorLevelDisabled" class="flex items-center gap-4">
               <!-- Avaktivera (gray out module) -->
               <div class="flex flex-col items-end gap-1">
                 <label class="relative inline-flex cursor-pointer items-center">
@@ -98,10 +102,15 @@
                 </p>
               </div>
             </div>
+            <!-- Show message if module is deactivated (disabled=true) at distributor level -->
+            <div v-else-if="policy.distributorLevelDisabled" class="flex items-center gap-2 rounded-lg bg-yellow-50 px-3 py-2 dark:bg-yellow-900/20">
+              <Icon icon="mdi:alert-circle-outline" class="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              <span class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Modulen är avaktiverad på högre nivå</span>
+            </div>
           </div>
         </div>
 
-        <div v-if="policy.enabled && !policy.disabled && policy.module.permissions.length > 0" class="border-t border-slate-200 px-6 py-4 dark:border-white/5">
+        <div v-if="policy.enabled && !policy.disabled && !policy.distributorLevelDisabled && policy.module.permissions.length > 0" class="border-t border-slate-200 px-6 py-4 dark:border-white/5">
           <button
             @click="toggleModulePermissions(policy.moduleId)"
             class="flex w-full items-center justify-between text-left"
@@ -169,6 +178,8 @@ interface ModulePolicy {
   enabled: boolean
   disabled: boolean
   permissionOverrides: Record<string, boolean>
+  distributorLevelEnabled?: boolean // Whether the module is enabled at distributor level
+  distributorLevelDisabled?: boolean // Whether the module is disabled (grayed out) at distributor level
 }
 
 const tenant = ref<any>(null)
@@ -195,15 +206,25 @@ function matchesSearch(value: string, query: string) {
   return normalizeText(value).includes(normalizeText(query))
 }
 
-// Filter policies by search query
+// Filter policies: hide modules inactivated (enabled=false) at distributor level, show deactivated (disabled=true) with message, filter by search query
 const filteredPolicies = computed(() => {
+  // Hide modules that are inactivated (enabled=false) at distributor level
+  // These should be completely hidden
+  // But show modules that are deactivated (disabled=true) at distributor level with a message
+  let filtered = policies.value.filter((policy) => {
+    // If distributorLevelEnabled is explicitly false, hide the module completely
+    // If it's undefined or true, show it (even if disabled at distributor level)
+    return policy.distributorLevelEnabled !== false
+  })
+  
+  // Apply search query if present
   const query = moduleSearchQuery.value
   if (!query) {
-    return policies.value
+    return filtered
   }
   
   const normalizedQuery = normalizeText(query)
-  return policies.value.filter((policy) => {
+  return filtered.filter((policy) => {
     return (
       matchesSearch(policy.module.name, normalizedQuery) ||
       matchesSearch(policy.module.description, normalizedQuery) ||

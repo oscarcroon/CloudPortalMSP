@@ -66,6 +66,7 @@ export default defineEventHandler(async (event) => {
         .select({
           id: organizations.id,
           slug: organizations.slug,
+          status: organizations.status,
           requireSso: organizations.requireSso,
           allowLocalLoginForOwners: organizationAuthSettings.allowLocalLoginForOwners,
           requireMfaOnContextSwitch: organizationAuthSettings.requireMfaOnContextSwitch
@@ -79,6 +80,14 @@ export default defineEventHandler(async (event) => {
 
       if (!target) {
         throw createError({ statusCode: 404, message: 'Organisationen kunde inte hittas.' })
+      }
+
+      // Check if organization is active
+      if (target.status !== 'active' && !auth.user.isSuperAdmin) {
+        throw createError({
+          statusCode: 403,
+          message: 'Organisationen är inaktiverad och kan inte användas.'
+        })
       }
 
       const requiresSso = Boolean(target.requireSso)

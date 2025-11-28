@@ -97,6 +97,8 @@ export interface AdminOrganizationSummary {
   defaultRole: RbacRole
   billingEmail?: string | null
   tenantId?: string | null
+  tenantName?: string | null
+  tenantSlug?: string | null
   createdAt: number
   memberCount: number
   ssoEnforced: boolean

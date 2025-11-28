@@ -98,12 +98,15 @@ export default defineEventHandler(async (event) => {
     .set({ status: 'accepted', acceptedAt: now, updatedAt: now })
     .where(eq(organizationInvitations.id, invitation.id))
 
-  await db
-    .update(users)
-    .set({
-      defaultOrgId: invitation.organizationId
-    })
-    .where(eq(users.id, auth.user.id))
+  // Only update defaultOrgId if user doesn't already have one
+  if (!auth.user.defaultOrgId) {
+    await db
+      .update(users)
+      .set({
+        defaultOrgId: invitation.organizationId
+      })
+      .where(eq(users.id, auth.user.id))
+  }
 
   if (invitationRow?.invitedByEmail) {
     try {

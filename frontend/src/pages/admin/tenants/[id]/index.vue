@@ -14,6 +14,10 @@
       {{ error }}
     </div>
 
+    <div v-if="memberError" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+      {{ memberError }}
+    </div>
+
     <div v-if="pending" class="text-sm text-slate-600 dark:text-slate-400">Laddar tenant-detaljer...</div>
 
     <div v-else-if="tenant" class="space-y-6">
@@ -327,6 +331,7 @@
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Användare</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
+                <th v-if="canInviteMember" class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Åtgärder</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
@@ -346,6 +351,33 @@
                   <StatusPill :variant="member.status === 'active' ? 'success' : 'warning'">
                     {{ member.status }}
                   </StatusPill>
+                </td>
+                <td v-if="canInviteMember" class="px-6 py-3 text-right">
+                  <div class="flex flex-wrap justify-end gap-2 text-xs">
+                    <button
+                      v-if="member.status === 'active'"
+                      class="rounded border border-amber-200 px-3 py-1 text-amber-700 transition hover:border-amber-300 hover:text-amber-600 disabled:opacity-40 dark:border-amber-500/30 dark:text-amber-200"
+                      :disabled="statusLoadingId === member.id || removalLoadingId === member.id"
+                      @click="disableMember(member)"
+                    >
+                      {{ statusLoadingId === member.id ? 'Inaktiverar...' : 'Inaktivera' }}
+                    </button>
+                    <button
+                      v-if="member.status === 'suspended'"
+                      class="rounded border border-emerald-200 px-3 py-1 text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-600 disabled:opacity-40 dark:border-emerald-500/30 dark:text-emerald-200"
+                      :disabled="statusLoadingId === member.id || removalLoadingId === member.id"
+                      @click="enableMember(member)"
+                    >
+                      {{ statusLoadingId === member.id ? 'Aktiverar...' : 'Aktivera' }}
+                    </button>
+                    <button
+                      class="rounded border border-red-200 px-3 py-1 font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
+                      :disabled="removalLoadingId === member.id || statusLoadingId === member.id"
+                      @click="removeMember(member)"
+                    >
+                      {{ removalLoadingId === member.id ? 'Tar bort...' : 'Ta bort permanent' }}
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -472,7 +504,13 @@
               type="checkbox"
               class="mt-1 rounded border-slate-300 dark:border-white/20"
             />
-            <span>Inkludera rättigheter för underordnade (kan skapa och hantera leverantörer/organisationer)</span>
+            <span>
+              Ge användaren rättigheter att skapa och hantera underordnade enheter
+              <span class="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                <span v-if="tenant?.type === 'distributor'">Distributörer kan skapa leverantörer</span>
+                <span v-else-if="tenant?.type === 'provider'">Leverantörer kan skapa organisationer</span>
+              </span>
+            </span>
           </label>
         </div>
         <div v-if="inviteError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
@@ -601,6 +639,11 @@ const inviteForm = reactive({
   role: 'viewer' as 'admin' | 'user' | 'viewer' | 'support',
   includeChildren: false
 })
+
+// Member management state
+const statusLoadingId = ref<string>('')
+const removalLoadingId = ref<string>('')
+const memberError = ref('')
 
 watch(tenant, (t) => {
   if (t) {
@@ -853,6 +896,55 @@ const getTypeClass = (type: string) => {
       return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
     default:
       return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+  }
+}
+
+const setMemberStatus = async (
+  member: typeof members.value[0],
+  nextStatus: 'active' | 'suspended',
+  options: { confirm?: string } = {}
+) => {
+  if (member.status === nextStatus) return
+  if (options.confirm && !confirm(options.confirm)) {
+    return
+  }
+  statusLoadingId.value = member.id
+  memberError.value = ''
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId}/members/${member.id}/status`, {
+      method: 'PATCH',
+      body: { status: nextStatus }
+    })
+    await refresh()
+  } catch (err: any) {
+    memberError.value = err?.data?.message || err?.message || 'Kunde inte uppdatera medlemsstatus.'
+  } finally {
+    statusLoadingId.value = ''
+  }
+}
+
+const disableMember = (member: typeof members.value[0]) =>
+  setMemberStatus(member, 'suspended', {
+    confirm: `Inaktivera ${member.user.email}? Personen kan inte logga in förrän kontot aktiveras igen.`
+  })
+
+const enableMember = (member: typeof members.value[0]) => setMemberStatus(member, 'active')
+
+const removeMember = async (member: typeof members.value[0]) => {
+  if (!confirm(`Ta bort ${member.user.email} permanent? Personen måste bjudas in igen för att återfå åtkomst.`)) {
+    return
+  }
+  removalLoadingId.value = member.id
+  memberError.value = ''
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId}/members/${member.id}`, {
+      method: 'DELETE'
+    })
+    await refresh()
+  } catch (err: any) {
+    memberError.value = err?.data?.message || err?.message || 'Kunde inte ta bort medlemmen.'
+  } finally {
+    removalLoadingId.value = ''
   }
 }
 </script>

@@ -80,8 +80,8 @@
         <div v-if="otherOrganizations.length > 0" class="mt-6">
           <h3 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Övriga organisationer</h3>
           
-          <!-- Search Input -->
-          <div class="mb-4">
+          <!-- Search Input - Only show if more than 5 organizations -->
+          <div v-if="otherOrganizations.length > 5" class="mb-4">
             <input
               v-model="searchTerm"
               type="text"
@@ -127,12 +127,19 @@
                     >
                       Primär
                     </span>
+                    <span
+                      v-if="org.status !== 'active'"
+                      class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+                    >
+                      Inaktiv
+                    </span>
                   </div>
                   <p class="text-xs text-slate-500 dark:text-slate-400">Roll: {{ org.role }}</p>
                 </div>
               </div>
               <button
-                class="rounded-full border border-slate-200 px-3 py-1 text-xs transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                class="rounded-full border border-slate-200 px-3 py-1 text-xs transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                :disabled="org.status !== 'active'"
                 @click="auth.switchOrganization(org.id)"
               >
                 Välj
@@ -495,11 +502,17 @@ watch(searchTerm, () => {
 
 const filteredOrganizations = computed(() => {
   const tenantId = currentTenantId.value
+  const isSuperAdmin = auth.state.value.data?.user?.isSuperAdmin ?? false
   let orgs: AuthOrganization[]
   if (!tenantId) {
     orgs = auth.organizations.value
   } else {
     orgs = auth.organizations.value.filter((org) => org.tenantId === tenantId)
+  }
+
+  // Filter out inactive organizations (unless super admin)
+  if (!isSuperAdmin) {
+    orgs = orgs.filter((org) => org.status === 'active')
   }
 
   // Sort organizations: lastAccessedAt desc (null last), then alphabetically
