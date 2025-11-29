@@ -188,6 +188,7 @@ export const useAuth = () => {
     user: computed(() => state.value.data?.user ?? null),
     organizations: computed(() => state.value.data?.organizations ?? []),
     tenants: computed(() => state.value.data?.tenants ?? []),
+    branding: computed(() => state.value.data?.branding ?? null),
     currentOrg,
     currentTenant,
     orgRoles: computed(() => state.value.data?.orgRoles ?? {}),

@@ -13,9 +13,9 @@ export default <Partial<Config>>{
     extend: {
       colors: {
         brand: {
-          DEFAULT: '#1c6dd0',
-          dark: '#0f3b73',
-          light: '#eaf2ff'
+          DEFAULT: 'rgb(var(--brand, 28 109 208) / <alpha-value>)',
+          dark: 'rgb(var(--brand-dark, 15 59 115) / <alpha-value>)',
+          light: 'rgb(var(--brand-light, 234 242 255) / <alpha-value>)'
         }
       },
       boxShadow: {

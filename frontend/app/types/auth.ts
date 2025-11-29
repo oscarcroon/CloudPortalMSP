@@ -45,6 +45,7 @@ export interface AuthPayload {
   currentOrgId: string | null
   currentTenantId: string | null
   sessionIssuedAt: string
+  branding: BrandingState | null
 }
 
 export type AuthState = AuthPayload
@@ -57,5 +58,37 @@ export interface SessionTokenPayload {
   tenantRoles?: Record<string, TenantRole>
   tenantIncludeChildren?: Record<string, boolean>
   version: number
+}
+
+export interface BrandingState {
+  organizationTheme: BrandingThemeLayer | null
+  tenantTheme: BrandingThemeLayer | null
+  distributorTheme: BrandingThemeLayer | null
+  activeTheme: BrandingActiveTheme
+}
+
+export interface BrandingThemeLayer {
+  targetType: 'organization' | 'provider' | 'distributor'
+  targetId: string
+  name: string
+  logoUrl: string | null
+  accentColor: string | null
+  paletteKey: string | null
+  updatedAt: number | null
+  source: 'custom' | 'inherited'
+}
+
+export interface BrandingThemeSource {
+  targetType: 'organization' | 'provider' | 'distributor' | 'default'
+  targetId: string | null
+  name: string | null
+}
+
+export interface BrandingActiveTheme {
+  logoUrl: string | null
+  accentColor: string
+  paletteKey: string | null
+  logoSource: BrandingThemeSource
+  accentSource: BrandingThemeSource
 }
 

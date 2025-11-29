@@ -1,4 +1,5 @@
 import type { RbacRole } from '~/constants/rbac'
+import type { BrandingTargetType } from '../database/schema'
 
 export interface AuthUser {
   id: string
@@ -29,6 +30,8 @@ export interface AuthState {
   orgRoles: Record<string, RbacRole>
   currentOrgId: string | null
   sessionIssuedAt: string
+  branding: AuthBrandingState | null
+  branding: AuthBrandingState | null
 }
 
 import type { TenantRole } from '~/constants/rbac'
@@ -50,5 +53,37 @@ export interface ZeroTrustIdentity {
   subject?: string
   audience?: string | string[]
   expiresAt?: number
+}
+
+export interface AuthBrandingState {
+  organizationTheme: BrandingThemeLayer | null
+  tenantTheme: BrandingThemeLayer | null
+  distributorTheme: BrandingThemeLayer | null
+  activeTheme: BrandingActiveTheme
+}
+
+export interface BrandingThemeLayer {
+  targetType: BrandingTargetType
+  targetId: string
+  name: string
+  logoUrl: string | null
+  accentColor: string | null
+  paletteKey: string | null
+  updatedAt: number | null
+  source: 'custom' | 'inherited'
+}
+
+export interface BrandingActiveTheme {
+  logoUrl: string | null
+  accentColor: string
+  paletteKey: string | null
+  logoSource: BrandingThemeSource
+  accentSource: BrandingThemeSource
+}
+
+export interface BrandingThemeSource {
+  targetType: BrandingTargetType | 'default'
+  targetId: string | null
+  name: string | null
 }
 

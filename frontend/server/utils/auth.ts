@@ -2,13 +2,17 @@
 
 import { randomUUID } from 'node:crypto'
 import { createError } from 'h3'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { createId } from '@paralleldrive/cuid2'
 import { getDb } from './db'
+import type { DrizzleDb } from './db'
 import {
+  brandingThemes,
+  BrandingTargetType,
   organizationAuthSettings,
   organizationMemberships,
   organizations,
+  distributorProviders,
   tenantMemberships,
   tenants,
   users
@@ -16,6 +20,7 @@ import {
 import type { AuthOrganization, AuthState, AuthTenant } from '../types/auth'
 import type { RbacRole, TenantRole } from '~/constants/rbac'
 import { normalizeEmail } from './crypto'
+import { normalizeStoredLogoUrl, resolveBrandingChain } from './branding'
 
 export const slugify = (value: string) =>
   value
@@ -52,25 +57,13 @@ type MembershipRow = {
   auth: typeof organizationAuthSettings.$inferSelect | null
 }
 
-const normalizeLogoUrl = (logoUrl: string | null | undefined): string | undefined => {
-  if (!logoUrl) return undefined
-  // Ta bort dubblerade /api/api/ prefix
-  let normalized = logoUrl.replace(/\/api\/api\//g, '/api/')
-  // Konvertera gamla format (/uploads/logos/...) till nya format (/api/uploads/logos/...)
-  if (normalized.startsWith('/uploads/logos/')) {
-    normalized = normalized.replace('/uploads/logos/', '/api/uploads/logos/')
-  }
-  // Om det redan är /api/uploads/logos/ eller fullständig URL, returnera som den är
-  return normalized
-}
-
 const mapOrgRow = (row: MembershipRow, role: RbacRole, isSuperAdmin: boolean): AuthOrganization => ({
   id: row.org.id,
   name: row.org.name,
   slug: row.org.slug,
   status: row.org.status,
   isSuspended: Boolean(row.org.isSuspended),
-  logoUrl: normalizeLogoUrl(row.org.logoUrl),
+  logoUrl: normalizeStoredLogoUrl(row.org.logoUrl),
   requireSso: Boolean(row.org.requireSso),
   hasLocalLoginOverride:
     isSuperAdmin || (role === 'owner' && Boolean(row.auth?.allowLocalLoginForOwners)),
@@ -145,6 +138,13 @@ export const buildAuthState = async (
     return mapOrgRow(row, role, Boolean(user.isSuperAdmin))
   })
 
+  const resolvedLogos = await resolveOrganizationLogos(db, rows)
+  for (const org of organizationPayload) {
+    if (resolvedLogos.has(org.id)) {
+      org.logoUrl = resolvedLogos.get(org.id) ?? null
+    }
+  }
+
   const tenantRows = await fetchTenantMembershipRows(userId)
   const tenantRoles: Record<string, TenantRole> = {}
   const tenantIncludeChildren: Record<string, boolean> = {}
@@ -191,6 +191,16 @@ export const buildAuthState = async (
     resolvedTenantId = tenantPayload[0]?.id ?? null
   }
 
+  let brandingState = null
+  if (resolvedOrgId) {
+    brandingState = await resolveBrandingChain({ organizationId: resolvedOrgId })
+  } else if (resolvedTenantId) {
+    const currentTenant = tenantPayload.find((tenant) => tenant.id === resolvedTenantId)
+    if (currentTenant && (currentTenant.type === 'provider' || currentTenant.type === 'distributor')) {
+      brandingState = await resolveBrandingChain({ tenantId: resolvedTenantId })
+    }
+  }
+
   return {
     user: {
       id: user.id,
@@ -208,8 +218,119 @@ export const buildAuthState = async (
     tenantIncludeChildren,
     currentOrgId: resolvedOrgId,
     currentTenantId: resolvedTenantId,
-    sessionIssuedAt: new Date().toISOString()
+    sessionIssuedAt: new Date().toISOString(),
+    branding: brandingState
   }
+}
+
+async function resolveOrganizationLogos(db: DrizzleDb, rows: MembershipRow[]) {
+  const orgIds = rows.map((row) => row.org.id)
+  if (orgIds.length === 0) {
+    return new Map<string, string | null>()
+  }
+
+  const providerIds = Array.from(
+    new Set(rows.map((row) => row.org.tenantId).filter((id): id is string => Boolean(id)))
+  )
+  const providerToDistributor = await loadProviderDistributors(db, providerIds)
+  const distributorIds = Array.from(new Set(providerToDistributor.values()))
+
+  const orgBrandRows =
+    orgIds.length > 0
+      ? await db
+          .select()
+          .from(brandingThemes)
+          .where(inArray(brandingThemes.organizationId, orgIds))
+      : []
+
+  const providerBrandRows =
+    providerIds.length > 0
+      ? await db
+          .select()
+          .from(brandingThemes)
+          .where(
+            and(
+              eq(brandingThemes.targetType, 'provider'),
+              inArray(brandingThemes.tenantId, providerIds)
+            )
+          )
+      : []
+
+  const distributorBrandRows =
+    distributorIds.length > 0
+      ? await db
+          .select()
+          .from(brandingThemes)
+          .where(
+            and(
+              eq(brandingThemes.targetType, 'distributor'),
+              inArray(brandingThemes.tenantId, distributorIds)
+            )
+          )
+      : []
+
+  const orgBrandMap = new Map<string, string | null>()
+  const providerBrandMap = new Map<string, string | null>()
+  const distributorBrandMap = new Map<string, string | null>()
+
+  for (const row of orgBrandRows) {
+    if (row.organizationId) {
+      orgBrandMap.set(row.organizationId, row.logoUrl ?? null)
+    }
+  }
+  for (const row of providerBrandRows) {
+    if (row.tenantId) {
+      providerBrandMap.set(row.tenantId, row.logoUrl ?? null)
+    }
+  }
+  for (const row of distributorBrandRows) {
+    if (row.tenantId) {
+      distributorBrandMap.set(row.tenantId, row.logoUrl ?? null)
+    }
+  }
+
+  const resolved = new Map<string, string | null>()
+
+  for (const membershipRow of rows) {
+    const organizationId = membershipRow.org.id
+    const providerId = membershipRow.org.tenantId ?? null
+    const distributorId = providerId ? providerToDistributor.get(providerId) ?? null : null
+
+    const directLogo = orgBrandMap.has(organizationId)
+      ? orgBrandMap.get(organizationId)
+      : membershipRow.org.logoUrl
+    const providerLogo = providerId ? providerBrandMap.get(providerId) ?? null : null
+    const distributorLogo = distributorId ? distributorBrandMap.get(distributorId) ?? null : null
+
+    const resolvedLogo = normalizeStoredLogoUrl(directLogo ?? providerLogo ?? distributorLogo ?? null)
+    resolved.set(organizationId, resolvedLogo ?? null)
+  }
+
+  return resolved
+}
+
+async function loadProviderDistributors(db: DrizzleDb, providerIds: string[]) {
+  const map = new Map<string, string>()
+  if (providerIds.length === 0) {
+    return map
+  }
+
+  const rows = await db
+    .select({
+      providerId: distributorProviders.providerId,
+      distributorId: distributorProviders.distributorId
+    })
+    .from(distributorProviders)
+    .where(inArray(distributorProviders.providerId, providerIds))
+    .orderBy(asc(distributorProviders.createdAt))
+
+  for (const row of rows) {
+    if (!map.has(row.providerId)) {
+      map.set(row.providerId, row.distributorId)
+    }
+  }
+
+  return map
 }
 
 export interface CreateUserWithOrgInput {

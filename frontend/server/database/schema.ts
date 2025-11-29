@@ -11,6 +11,8 @@ import {
 import type { RbacRole } from '~/constants/rbac'
 import type { OrganizationMemberStatus } from '~/types/admin'
 
+export type BrandingTargetType = 'organization' | 'provider' | 'distributor'
+
 const timestampColumns = () => ({
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
@@ -113,6 +115,39 @@ export const organizationMemberships = sqliteTable(
       table.organizationId,
       table.userId
     )
+  })
+)
+
+export const brandingThemes = sqliteTable(
+  'branding_themes',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    targetType: text('target_type')
+      .notNull()
+      .$type<BrandingTargetType>(),
+    tenantId: text('tenant_id').references(() => tenants.id, {
+      onDelete: 'cascade'
+    }),
+    organizationId: text('organization_id').references(() => organizations.id, {
+      onDelete: 'cascade'
+    }),
+    logoUrl: text('logo_url'),
+    accentColor: text('accent_color', { length: 16 }),
+    paletteKey: text('palette_key', { length: 64 }),
+    createdByUserId: text('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    updatedByUserId: text('updated_by_user_id').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    ...timestampColumns()
+  },
+  table => ({
+    brandingTenantUnique: uniqueIndex('branding_theme_tenant_unique').on(
+      table.targetType,
+      table.tenantId
+    ),
+    brandingOrgUnique: uniqueIndex('branding_theme_org_unique').on(table.organizationId)
   })
 )
 
@@ -806,6 +841,25 @@ export const organizationModulePolicyRelations = relations(
     })
   })
 )
+
+export const brandingThemeRelations = relations(brandingThemes, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [brandingThemes.organizationId],
+    references: [organizations.id]
+  }),
+  tenant: one(tenants, {
+    fields: [brandingThemes.tenantId],
+    references: [tenants.id]
+  }),
+  createdBy: one(users, {
+    fields: [brandingThemes.createdByUserId],
+    references: [users.id]
+  }),
+  updatedBy: one(users, {
+    fields: [brandingThemes.updatedByUserId],
+    references: [users.id]
+  })
+}))
 
 /**
  * Module-specific roles that can be assigned per module

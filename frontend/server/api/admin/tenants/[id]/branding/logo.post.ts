@@ -1,13 +1,12 @@
-﻿import { createError, defineEventHandler, getRouterParam, readMultipartFormData } from 'h3'
+import { createError, defineEventHandler, getRouterParam, readMultipartFormData } from 'h3'
 import { setBrandingLogo } from '~~/server/utils/branding'
-import { requirePermission } from '~~/server/utils/rbac'
+import { requireTenantPermission } from '~~/server/utils/rbac'
+import { ensureBrandableTenant } from './utils'
 
 export default defineEventHandler(async (event) => {
-  const { orgId, auth } = await requirePermission(event, 'org:manage')
-  const paramOrgId = getRouterParam(event, 'orgId')
-  if (paramOrgId !== orgId) {
-    throw createError({ statusCode: 403, message: 'Kan inte ladda upp logotyp för denna organisation.' })
-  }
+  const tenantId = getRouterParam(event, 'id')
+  const permission = await requireTenantPermission(event, 'tenants:manage', tenantId ?? undefined)
+  const tenant = await ensureBrandableTenant(tenantId as string)
 
   const formData = await readMultipartFormData(event)
   if (!formData || formData.length === 0) {
@@ -19,15 +18,17 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Logotypfil krävs.' })
   }
 
-  const result = await setBrandingLogo(
-    { targetType: 'organization', organizationId: orgId },
+  return setBrandingLogo(
+    {
+      targetType: tenant.type,
+      tenantId: tenant.id
+    },
     {
       filename: logoField.filename,
       mimeType: logoField.type,
       data: logoField.data
     },
-    auth.user.id
+    permission.auth.user.id
   )
-
-  return result
 })
+

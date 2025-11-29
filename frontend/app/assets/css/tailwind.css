@@ -7,6 +7,10 @@
     --surface-page: #f4f7fb;
     --surface-topbar: rgba(255, 255, 255, 0.9);
     --surface-border: #e2e8f0;
+    --brand: 28 109 208;
+    --brand-dark: 15 59 115;
+    --brand-light: 234 242 255;
+    --brand-hex: #1C6DD0;
     color: #0e1b2c;
     background-color: var(--surface-page);
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
