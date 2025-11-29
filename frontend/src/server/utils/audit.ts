@@ -26,6 +26,7 @@ export type AuditEventType =
   | 'USER_DELETED'
   | 'USER_INVITED'
   | 'INVITE_ACCEPTED'
+  | 'INVITE_CANCELLED'
   | 'INVITE_EXPIRED'
   | 'USER_REMOVED'
   | 'ROLE_CHANGED'
@@ -124,22 +125,43 @@ export const logAuditEvent = async (
   const sanitizedMeta = sanitizeMetadata(meta)
   
   // Insert into audit_logs table
-  await db.insert(auditLogs).values({
-    id: createId(),
-    userId: userId || null,
-    eventType,
-    severity,
-    requestId,
-    endpoint: url.pathname,
-    method,
-    orgId: orgId || null,
-    tenantId: tenantId || null,
-    fromContext: fromContext ? JSON.stringify(fromContext) : null,
-    toContext: toContext ? JSON.stringify(toContext) : null,
-    ip: ip || undefined,
-    userAgent: userAgent || undefined,
-    meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
-  })
+  const isSqlite = (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
+  
+  if (isSqlite) {
+    db.insert(auditLogs).values({
+      id: createId(),
+      userId: userId || null,
+      eventType,
+      severity,
+      requestId,
+      endpoint: url.pathname,
+      method,
+      orgId: orgId || null,
+      tenantId: tenantId || null,
+      fromContext: fromContext ? JSON.stringify(fromContext) : null,
+      toContext: toContext ? JSON.stringify(toContext) : null,
+      ip: ip || undefined,
+      userAgent: userAgent || undefined,
+      meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
+    }).run()
+  } else {
+    await db.insert(auditLogs).values({
+      id: createId(),
+      userId: userId || null,
+      eventType,
+      severity,
+      requestId,
+      endpoint: url.pathname,
+      method,
+      orgId: orgId || null,
+      tenantId: tenantId || null,
+      fromContext: fromContext ? JSON.stringify(fromContext) : null,
+      toContext: toContext ? JSON.stringify(toContext) : null,
+      ip: ip || undefined,
+      userAgent: userAgent || undefined,
+      meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
+    })
+  }
   
   // Also log to structured logger for correlation
   const logMessage = `Audit event: ${eventType}`
@@ -173,7 +195,8 @@ const getDefaultSeverity = (eventType: AuditEventType): AuditSeverity => {
     case 'ORGANIZATION_DELETED':
     case 'TENANT_DELETED':
     case 'API_TOKEN_REVOKED':
-      return 'error'
+    case 'INVITE_CANCELLED':
+      return 'warning'
     case 'SENSITIVE_DATA_ACCESSED':
       return 'info'
     default:
@@ -290,7 +313,8 @@ export const logTenantAction = async (
   tenantId?: string
 ) => {
   await logAuditEvent(event, eventType, meta, undefined, undefined, {
-    tenantId: tenantId || undefined
+    tenantId: tenantId || undefined,
+    orgId: null // Explicitly set orgId to null for tenant actions to avoid confusion
   })
 }
 

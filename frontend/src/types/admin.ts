@@ -342,3 +342,55 @@ export interface AdminCreateTenantResponse {
   }
 }
 
+export interface AdminTenantMember {
+  membershipId: string
+  userId: string
+  email: string
+  fullName?: string | null
+  role: TenantRole
+  status: string
+  includeChildren: boolean
+  addedAt: string | null
+}
+
+export interface AdminTenantInvite {
+  id: string
+  email: string
+  role: TenantRole
+  status: 'pending' | 'accepted' | 'cancelled' | 'expired'
+  invitedAt: string | null
+  expiresAt: string | null
+  willCreateOrganization: boolean
+  organizationName?: string
+  invitedBy: {
+    id: string
+    email: string
+    fullName?: string | null
+  } | null
+}
+
+export interface AdminTenantInvitePayload {
+  email: string
+  role: TenantRole
+  includeChildren?: boolean
+  createOrganization?: boolean
+  organization?: {
+    name: string
+    slug?: string
+    billingEmail?: string
+    coreId?: string
+  }
+}
+
+export interface AdminTenantMembersResponse {
+  tenant: {
+    id: string
+    name: string
+    slug: string
+    type: TenantType
+    status: string
+  }
+  members: AdminTenantMember[]
+  invites: AdminTenantInvite[]
+}
+

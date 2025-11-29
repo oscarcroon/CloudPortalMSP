@@ -81,13 +81,9 @@ export const ensureAuthState = async (event: H3Event) => {
       payload.currentTenantId,
       payload.orgRoles
     )
-    // Merge tenant roles and includeChildren from token if available
-    if (payload.tenantRoles) {
-      auth.tenantRoles = { ...auth.tenantRoles, ...payload.tenantRoles }
-    }
-    if (payload.tenantIncludeChildren) {
-      auth.tenantIncludeChildren = { ...auth.tenantIncludeChildren, ...payload.tenantIncludeChildren }
-    }
+    // Don't merge tenant roles from token - always use fresh data from database
+    // Token roles may be stale if roles were changed after token was issued
+    // Database roles are always up-to-date and take precedence
     // Override currentTenantId/currentOrgId from token if present
     if (payload.currentTenantId !== undefined) {
       auth.currentTenantId = payload.currentTenantId

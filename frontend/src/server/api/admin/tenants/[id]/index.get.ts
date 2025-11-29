@@ -1,6 +1,6 @@
-import { eq, sql, and } from 'drizzle-orm'
-import { defineEventHandler, getRouterParam } from 'h3'
-import { tenants, tenantMemberships, users, organizations, emailProviderProfiles, distributorProviders } from '../../../../database/schema'
+import { eq, sql, and, inArray } from 'drizzle-orm'
+import { defineEventHandler, getRouterParam, createError } from 'h3'
+import { tenants, tenantMemberships, tenantInvitations, users, organizations, emailProviderProfiles, distributorProviders } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
 import { ensureAuthState } from '../../../../utils/session'
 import { canAccessTenant } from '../../../../utils/rbac'
@@ -163,12 +163,125 @@ export default defineEventHandler(async (event) => {
         .where(eq(organizations.tenantId, tenantId))
     : []
 
-  return {
+  // Get tenant invitations
+  const isSqlite = (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
+  const inviteRows = isSqlite
+    ? await db
+        .select({
+          id: tenantInvitations.id,
+          email: tenantInvitations.email,
+          role: tenantInvitations.role,
+          status: tenantInvitations.status,
+          invitedAt: tenantInvitations.createdAt,
+          expiresAt: tenantInvitations.expiresAt,
+          invitedById: tenantInvitations.invitedByUserId,
+          invitedByEmail: users.email,
+          invitedByName: users.fullName,
+          organizationData: tenantInvitations.organizationData
+        })
+        .from(tenantInvitations)
+        .leftJoin(users, eq(users.id, tenantInvitations.invitedByUserId))
+        .where(eq(tenantInvitations.tenantId, tenantId))
+        .all()
+    : await db
+        .select({
+          id: tenantInvitations.id,
+          email: tenantInvitations.email,
+          role: tenantInvitations.role,
+          status: tenantInvitations.status,
+          invitedAt: tenantInvitations.createdAt,
+          expiresAt: tenantInvitations.expiresAt,
+          invitedById: tenantInvitations.invitedByUserId,
+          invitedByEmail: users.email,
+          invitedByName: users.fullName,
+          organizationData: tenantInvitations.organizationData
+        })
+        .from(tenantInvitations)
+        .leftJoin(users, eq(users.id, tenantInvitations.invitedByUserId))
+        .where(eq(tenantInvitations.tenantId, tenantId))
+
+  // Check for expired invitations
+  const now = new Date()
+  const expiredInviteIds: string[] = []
+
+  const invitations = inviteRows.map((row) => {
+    const expiresAtDate = row.expiresAt ? new Date(row.expiresAt) : null
+    const isExpired =
+      row.status === 'pending' &&
+      expiresAtDate &&
+      !Number.isNaN(expiresAtDate.getTime()) &&
+      expiresAtDate.getTime() < now.getTime()
+    if (isExpired) {
+      expiredInviteIds.push(row.id)
+    }
+    const status = isExpired ? 'expired' : (row.status as 'pending' | 'accepted' | 'cancelled' | 'expired')
+    
+    // Parse organization data if present
+    let willCreateOrganization = false
+    let organizationName: string | undefined = undefined
+    
+    if (row.organizationData) {
+      try {
+        const organizationData = JSON.parse(row.organizationData)
+        willCreateOrganization = true
+        organizationName = organizationData?.name
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+
+    return {
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      status,
+      invitedAt: row.invitedAt ? new Date(row.invitedAt).toISOString() : null,
+      expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null,
+      willCreateOrganization,
+      organizationName,
+      invitedBy:
+        row.invitedById && row.invitedByEmail
+          ? {
+              id: row.invitedById,
+              email: row.invitedByEmail,
+              fullName: row.invitedByName
+            }
+          : null
+    }
+  })
+
+  // Update expired invitations
+  if (expiredInviteIds.length > 0) {
+    await db
+      .update(tenantInvitations)
+      .set({ status: 'expired', updatedAt: new Date() })
+      .where(inArray(tenantInvitations.id, expiredInviteIds))
+  }
+
+  const response = {
     tenant,
     members,
     childTenants,
     linkedTenants, // Providers for Distributors, Distributors for Providers
-    organizations: orgs
+    organizations: orgs,
+    invites: invitations
   }
+
+  // Debug logging in development
+  if (import.meta.dev) {
+    console.log('[API] Tenant members response:', {
+      tenantId,
+      memberCount: members.length,
+      members: members.map(m => ({
+        id: m.id,
+        userId: m.userId,
+        role: m.role,
+        status: m.status,
+        email: m.user?.email
+      }))
+    })
+  }
+
+  return response
 })
 

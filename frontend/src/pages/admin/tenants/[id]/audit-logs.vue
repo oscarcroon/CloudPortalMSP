@@ -2,14 +2,27 @@
   <section class="space-y-8">
     <header class="space-y-1">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Audit Loggar - {{ tenant?.name ?? 'Laddar...' }}</h1>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Audit Loggar - {{ tenant?.name ?? (tenantLoading ? 'Laddar...' : 'Okänd tenant') }}</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
         Visa säkerhetshändelser och administrativa aktiviteter för denna tenant och dess organisationer.
       </p>
     </header>
 
+    <!-- Access Denied -->
+    <div v-if="accessDenied" class="rounded-xl border border-red-200 bg-red-50 p-6 shadow-sm dark:border-red-900/50 dark:bg-red-900/10">
+      <div class="flex items-start gap-4">
+        <Icon icon="mdi:lock-alert" class="h-6 w-6 text-red-600 dark:text-red-400" />
+        <div>
+          <h2 class="text-lg font-semibold text-red-900 dark:text-red-100">Åtkomst nekad</h2>
+          <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+            Du har inte behörighet att visa audit logs för denna tenant. Endast användare med admin- eller support-roll kan läsa audit logs.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Filters -->
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+    <div v-if="!accessDenied" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
       <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5" @submit.prevent="loadLogs">
         <div>
           <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Event Type</label>
@@ -73,17 +86,17 @@
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading" class="text-center text-slate-600 dark:text-slate-400">Laddar...</div>
+    <div v-if="loading && !accessDenied" class="text-center text-slate-600 dark:text-slate-400">Laddar...</div>
 
     <!-- Logs table -->
-    <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+    <div v-else-if="!accessDenied" class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
       <table class="w-full">
         <thead class="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
           <tr>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Tidpunkt</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Event</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Användare</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Organisation</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Kontext</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Severity</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">IP</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Detaljer</th>
@@ -101,7 +114,15 @@
               {{ log.userEmail || log.userName || 'N/A' }}
             </td>
             <td class="px-4 py-3 text-sm text-slate-900 dark:text-white">
-              {{ log.orgName || 'N/A' }}
+              <span v-if="log.tenantId && log.tenantName">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Tenant:</span>
+                {{ log.tenantName }}
+              </span>
+              <span v-else-if="log.orgId && log.orgName">
+                <span class="text-xs text-slate-500 dark:text-slate-400">Organisation:</span>
+                {{ log.orgName }}
+              </span>
+              <span v-else class="text-slate-400 dark:text-slate-500">—</span>
             </td>
             <td class="px-4 py-3 text-sm">
               <span
@@ -194,10 +215,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from '#imports'
+import { Icon } from '@iconify/vue'
 import type { AuditEventType } from '~/server/utils/audit'
 
 definePageMeta({
-  superAdmin: true
+  // Tenant admins can access audit logs for their tenant
+  // Permission is checked in the API endpoint
 })
 
 const route = useRoute()
@@ -223,11 +246,13 @@ interface AuditLog {
   createdAt: Date | string
 }
 
-const tenant = ref<any>(null)
+const tenant = ref<{ name: string } | null>(null)
+const tenantLoading = ref(true)
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
 const pagination = ref<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
+const accessDenied = ref(false)
 
 const eventTypes: AuditEventType[] = [
   'LOGIN_SUCCESS',
@@ -237,6 +262,9 @@ const eventTypes: AuditEventType[] = [
   'USER_UPDATED',
   'USER_DELETED',
   'USER_INVITED',
+  'INVITE_ACCEPTED',
+  'INVITE_CANCELLED',
+  'INVITE_EXPIRED',
   'USER_REMOVED',
   'ROLE_CHANGED',
   'ORGANIZATION_CREATED',
@@ -251,14 +279,14 @@ const eventTypes: AuditEventType[] = [
   'MODULE_DISABLED'
 ]
 
-// Set default dates: 1 day back to today
+// Set default dates: 7 days back to today
 const getDefaultDates = () => {
   const today = new Date()
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
+  const weekAgo = new Date(today)
+  weekAgo.setDate(weekAgo.getDate() - 7)
   
   return {
-    startDate: yesterday.toISOString().split('T')[0],
+    startDate: weekAgo.toISOString().split('T')[0],
     endDate: today.toISOString().split('T')[0]
   }
 }
@@ -273,15 +301,23 @@ const filters = ref({
 })
 
 const loadTenant = async () => {
+  tenantLoading.value = true
   try {
-    tenant.value = await $fetch(`/api/admin/tenants/${tenantId}`)
-  } catch (error) {
+    const data = await $fetch<{ tenant: { name: string } }>(`/api/admin/tenants/${tenantId}`)
+    tenant.value = data.tenant
+  } catch (error: any) {
     console.error('Failed to load tenant', error)
+    if (error.statusCode === 403 || error.status === 403) {
+      accessDenied.value = true
+    }
+  } finally {
+    tenantLoading.value = false
   }
 }
 
 const loadLogs = async (page = 1) => {
   loading.value = true
+  accessDenied.value = false
   try {
     const params = new URLSearchParams({
       page: page.toString(),
@@ -296,8 +332,11 @@ const loadLogs = async (page = 1) => {
     const response = await $fetch<{ logs: AuditLog[]; pagination: any }>(`/api/admin/tenants/${tenantId}/audit-logs?${params}`)
     logs.value = response.logs
     pagination.value = response.pagination
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to load audit logs', error)
+    if (error.statusCode === 403 || error.status === 403) {
+      accessDenied.value = true
+    }
   } finally {
     loading.value = false
   }

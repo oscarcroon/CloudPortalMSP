@@ -4,40 +4,28 @@ import { z } from 'zod'
 import { users } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { normalizeEmail } from '../../../utils/crypto'
-import { requireSuperAdmin } from '../../../utils/rbac'
+import { ensureAuthState } from '../../../utils/session'
 
 const checkEmailSchema = z.object({
   email: z.string().email()
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const auth = await ensureAuthState(event)
+  if (!auth) {
+    throw createError({ statusCode: 401, message: 'Not authenticated' })
+  }
   const payload = checkEmailSchema.parse(await readBody(event))
   const db = getDb()
-  const normalizedEmail = normalizeEmail(payload.email)
+  const isSqlite =
+    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
+  const normalizedEmail = normalizeEmail(payload.email)
   const [user] = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      fullName: users.fullName,
-      status: users.status
-    })
+    .select({ id: users.id })
     .from(users)
     .where(eq(users.email, normalizedEmail))
     .limit(1)
 
-  if (!user) {
-    return { exists: false }
-  }
-
-  return {
-    exists: true,
-    user: {
-      email: user.email,
-      fullName: user.fullName,
-      status: user.status
-    }
-  }
+  return { exists: !!user }
 })
-

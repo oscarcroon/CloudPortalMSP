@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam } from 'h3'
-import { organizationInvitations, organizations, users } from '~/server/database/schema'
+import { organizationInvitations, organizations, tenantInvitations, tenants, users } from '~/server/database/schema'
 import { getDb } from '~/server/utils/db'
 import { ensureAuthState } from '~/server/utils/session'
 import { normalizeEmail } from '~/server/utils/crypto'
@@ -14,7 +14,115 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getDb()
+  const now = new Date()
 
+  // Try tenant invitation first
+  const [tenantInviteRow] = await db
+    .select({
+      id: tenantInvitations.id,
+      tenantId: tenantInvitations.tenantId,
+      email: tenantInvitations.email,
+      role: tenantInvitations.role,
+      status: tenantInvitations.status,
+      token: tenantInvitations.token,
+      expiresAt: tenantInvitations.expiresAt,
+      createdAt: tenantInvitations.createdAt,
+      invitedByUserId: tenantInvitations.invitedByUserId,
+      organizationData: tenantInvitations.organizationData,
+      tenantName: tenants.name,
+      tenantType: tenants.type,
+      invitedByEmail: users.email,
+      invitedByName: users.fullName
+    })
+    .from(tenantInvitations)
+    .leftJoin(tenants, eq(tenants.id, tenantInvitations.tenantId))
+    .leftJoin(users, eq(users.id, tenantInvitations.invitedByUserId))
+    .where(eq(tenantInvitations.token, token))
+
+  if (tenantInviteRow) {
+    // Handle tenant invitation
+    let effectiveStatus = tenantInviteRow.status
+    const expiresAtMs =
+      tenantInviteRow.expiresAt instanceof Date
+        ? tenantInviteRow.expiresAt.getTime()
+        : typeof tenantInviteRow.expiresAt === 'number'
+          ? tenantInviteRow.expiresAt
+          : new Date(tenantInviteRow.expiresAt).getTime()
+
+    if (effectiveStatus === 'pending' && !isNaN(expiresAtMs) && expiresAtMs < now.getTime()) {
+      await db
+        .update(tenantInvitations)
+        .set({ status: 'expired', updatedAt: now })
+        .where(eq(tenantInvitations.id, tenantInviteRow.id))
+      effectiveStatus = 'expired'
+    }
+
+    const normalizedEmail = normalizeEmail(tenantInviteRow.email)
+    const existingUser = await db
+      .select({
+        id: users.id,
+        hasPassword: users.passwordHash
+      })
+      .from(users)
+      .where(eq(users.email, normalizedEmail))
+      .limit(1)
+      .get()
+
+    const auth = await ensureAuthState(event)
+    const isSessionMatching =
+      Boolean(auth?.user?.email) &&
+      normalizeEmail(auth.user.email) === normalizedEmail &&
+      effectiveStatus === 'pending'
+
+    // Parse organization data if present
+    let organizationData: any = null
+    let willCreateOrganization = false
+    if (tenantInviteRow.organizationData) {
+      try {
+        organizationData = JSON.parse(tenantInviteRow.organizationData)
+        willCreateOrganization = true
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+
+    // Get branding from global email provider (tenants don't have their own branding)
+    const brandingProfile = await getOrganisationEmailProviderProfile(null)
+    const branding = brandingProfile?.branding || null
+
+    return {
+      invitation: {
+        id: tenantInviteRow.id,
+        tenantId: tenantInviteRow.tenantId,
+        email: tenantInviteRow.email,
+        role: tenantInviteRow.role,
+        status: effectiveStatus,
+        expiresAt:
+          tenantInviteRow.expiresAt instanceof Date
+            ? tenantInviteRow.expiresAt.toISOString()
+            : typeof tenantInviteRow.expiresAt === 'number'
+              ? new Date(tenantInviteRow.expiresAt).toISOString()
+              : new Date(tenantInviteRow.expiresAt).toISOString(),
+        invitedBy: tenantInviteRow.invitedByEmail || tenantInviteRow.invitedByName || '',
+        createdAt: tenantInviteRow.createdAt.toISOString(),
+        branding,
+        willCreateOrganization,
+        organizationName: organizationData?.name
+      },
+      tenant: tenantInviteRow.tenantId
+        ? {
+            id: tenantInviteRow.tenantId,
+            name: tenantInviteRow.tenantName ?? 'Tenant',
+            type: tenantInviteRow.tenantType
+          }
+        : null,
+      emailExists: Boolean(existingUser),
+      hasPassword: Boolean(existingUser?.hasPassword),
+      autoAccept: isSessionMatching
+    }
+  }
+
+  // Fall back to organization invitation (backward compatibility)
   const [row] = await db
     .select({
       id: organizationInvitations.id,
@@ -40,7 +148,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Inbjudan hittades inte.' })
   }
 
-  const now = new Date()
   let effectiveStatus = row.status
   // Handle both Date object and number (milliseconds) from database
   const expiresAtMs =
@@ -49,7 +156,7 @@ export default defineEventHandler(async (event) => {
       : typeof row.expiresAt === 'number'
         ? row.expiresAt
         : new Date(row.expiresAt).getTime()
-  
+
   if (effectiveStatus === 'pending' && !isNaN(expiresAtMs) && expiresAtMs < now.getTime()) {
     await db
       .update(organizationInvitations)
@@ -130,5 +237,3 @@ export default defineEventHandler(async (event) => {
     autoAccept: isSessionMatching
   }
 })
-
-

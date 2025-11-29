@@ -382,6 +382,8 @@ export const sendInviteAcceptedNotification = async (input: {
 }
 
 export const sendDistributorInvitationEmail = async (input: {
+  willCreateOrganization?: boolean
+  organizationName?: string
   tenantId: string
   tenantName: string
   tenantType: 'provider' | 'distributor'
@@ -403,16 +405,25 @@ export const sendDistributorInvitationEmail = async (input: {
     : undefined
 
   const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
+  const bodyLines = [
+    `🎊 Grattis! Du har blivit utsedd till ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
+    `Detta är ett stort ansvar och vi är glada att ha dig med oss.`,
+    `Inbjudan är giltig till ${expiresLabel}.`
+  ]
+  
+  if (input.willCreateOrganization && input.organizationName) {
+    bodyLines.push(
+      '',
+      `När du slutför registreringen kommer organisationen "${input.organizationName}" att skapas åt dig automatiskt.`
+    )
+  }
+  
   const content = renderBrandedTemplate(
     {
       pretitle: `🎉 Grattis! Du är nu ${tenantTypeLabel}! 🎉`,
       title: input.tenantName,
       intro: 'Hej!',
-      body: [
-        `🎊 Grattis! Du har blivit utsedd till ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
-        `Detta är ett stort ansvar och vi är glada att ha dig med oss.`,
-        `Inbjudan är giltig till ${expiresLabel}.`
-      ],
+      body: bodyLines,
       action: { label: 'Acceptera inbjudan', url: acceptUrl },
       outro: [
         'Med denna roll får du hantera och administrera alla organisationer under din distributör.',

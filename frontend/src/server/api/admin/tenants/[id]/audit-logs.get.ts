@@ -23,7 +23,12 @@ export default defineEventHandler(async (event) => {
   const eventType = query.eventType as AuditEventType | undefined
   const severity = query.severity as string | undefined
   const startDate = query.startDate ? new Date(query.startDate as string) : undefined
-  const endDate = query.endDate ? new Date(query.endDate as string) : undefined
+  // Set endDate to end of day (23:59:59.999) to include the entire day
+  const endDate = query.endDate ? (() => {
+    const date = new Date(query.endDate as string)
+    date.setHours(23, 59, 59, 999)
+    return date
+  })() : undefined
   
   // Pagination
   const { page, pageSize, offset } = validatePagination({
