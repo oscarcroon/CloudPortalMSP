@@ -20,6 +20,21 @@ export type ModuleId = (typeof moduleIds)[number]
  */
 export type ModuleCategory = 'dns' | 'infrastructure' | 'monitoring' | 'cms' | 'rmm' | 'admin'
 
+export type ModuleVisibilityMode = 'everyone' | 'moduleRoles'
+
+export type ModuleRoleKey = string
+
+export interface ModuleRoleDefinition {
+  key: ModuleRoleKey
+  label: string
+  description?: string
+  capabilities?: {
+    read?: boolean
+    write?: boolean
+    manage?: boolean
+  }
+}
+
 /**
  * Module definition structure
  * Each module must define its ID, metadata, and which RBAC permissions it uses
@@ -33,6 +48,21 @@ export interface ModuleDefinition {
   routePath: string
   icon: string
   badge?: string
+  /**
+   * Controls whether module visibility is RBAC-only or guarded by module-specific roles
+   */
+  visibilityMode?: ModuleVisibilityMode
+  /**
+   * Optional module-specific roles definition exposed in policy/admin UI
+   */
+  roles?: ModuleRoleDefinition[]
+  /**
+   * Default module roles that should have visibility when no policy overrides exist
+   * - null => inherit/allow everyone with base permission
+   * - [] => nobody sees the module by default
+   * - ['dns-admin'] => only specific module roles see the module
+   */
+  defaultAllowedRoles?: ModuleRoleKey[] | null
 }
 
 /**

@@ -147,6 +147,96 @@
             </label>
           </div>
         </div>
+
+        <div v-if="policy.roleDefinitions.length > 0" class="border-t border-slate-200 px-6 py-4 dark:border-white/5">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Modulspecifika roller</p>
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Definiera vilka modulroller som är tillåtna på denna nivå. Underliggande nivåer kan endast begränsa vidare.
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs">
+              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                <input
+                  type="radio"
+                  :name="`role-mode-${policy.moduleId}`"
+                  value="inherit"
+                  :checked="getRoleMode(policy) === 'inherit'"
+                  :disabled="isParentRoleBlock(policy)"
+                  @change="updateRoleMode(policy, 'inherit')"
+                />
+                Ärver
+              </label>
+              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                <input
+                  type="radio"
+                  :name="`role-mode-${policy.moduleId}`"
+                  value="custom"
+                  :checked="getRoleMode(policy) === 'custom'"
+                  :disabled="isParentRoleBlock(policy)"
+                  @change="updateRoleMode(policy, 'custom')"
+                />
+                Anpassad
+              </label>
+              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                <input
+                  type="radio"
+                  :name="`role-mode-${policy.moduleId}`"
+                  value="block"
+                  :checked="getRoleMode(policy) === 'block'"
+                  :disabled="isParentRoleBlock(policy)"
+                  @change="updateRoleMode(policy, 'block')"
+                />
+                Blockera
+              </label>
+            </div>
+          </div>
+
+          <div
+            v-if="getRoleMode(policy) === 'custom' && !isParentRoleBlock(policy)"
+            class="mt-4 grid gap-3 md:grid-cols-2"
+          >
+            <label
+              v-for="role in policy.roleDefinitions"
+              :key="role.key"
+              class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10"
+            >
+              <div class="pr-3">
+                <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ role.label }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  {{ role.description || 'Ingen beskrivning' }}
+                </p>
+              </div>
+              <label class="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  class="peer sr-only"
+                  :checked="policy.allowedRoles?.includes(role.key) ?? false"
+                  :disabled="isParentRoleBlock(policy)"
+                  @change="toggleModuleRoleSelection(policy, role.key, ($event.target as HTMLInputElement).checked)"
+                />
+                <div
+                  class="peer h-5 w-9 rounded-full bg-slate-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-brand peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-brand dark:bg-slate-600"
+                />
+              </label>
+            </label>
+          </div>
+
+          <p
+            v-else-if="isParentRoleBlock(policy)"
+            class="mt-3 text-xs font-medium text-yellow-600 dark:text-yellow-400"
+          >
+            Modulroller blockeras på {{ getRoleSourceLabel(policy.parentRolesSource ?? null) }}.
+          </p>
+
+          <p
+            v-else-if="getRoleMode(policy) === 'block'"
+            class="mt-3 text-xs font-medium text-red-600 dark:text-red-400"
+          >
+            Alla modulroller blockeras på denna nivå.
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -156,6 +246,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useRoute } from 'vue-router'
+import type { ModuleRoleDefinition } from '~/constants/modules'
 
 definePageMeta({
   layout: 'default',
@@ -178,8 +269,52 @@ interface ModulePolicy {
   enabled: boolean
   disabled: boolean
   permissionOverrides: Record<string, boolean>
+  allowedRoles: string[] | null
+  visibilityMode: 'everyone' | 'moduleRoles'
+  roleDefinitions: ModuleRoleDefinition[]
+  defaultAllowedRoles: string[] | null
   distributorLevelEnabled?: boolean // Whether the module is enabled at distributor level
   distributorLevelDisabled?: boolean // Whether the module is disabled (grayed out) at distributor level
+  parentRolesBlocked?: boolean
+  parentRolesSource?: 'distributor' | null
+}
+
+type ModuleRoleMode = 'inherit' | 'custom' | 'block'
+
+const getRoleMode = (policy: ModulePolicy): ModuleRoleMode => {
+  if (policy.allowedRoles === null) {
+    return 'inherit'
+  }
+  if (Array.isArray(policy.allowedRoles) && policy.allowedRoles.length === 0) {
+    return 'block'
+  }
+  return 'custom'
+}
+
+const determineCustomRoles = (policy: ModulePolicy): string[] => {
+  if (policy.allowedRoles && policy.allowedRoles.length > 0) {
+    return [...policy.allowedRoles]
+  }
+  if (policy.defaultAllowedRoles && policy.defaultAllowedRoles.length > 0) {
+    return [...policy.defaultAllowedRoles]
+  }
+  if (policy.roleDefinitions.length > 0) {
+    return policy.roleDefinitions.map((role) => role.key)
+  }
+  return []
+}
+
+const isParentRoleBlock = (policy: ModulePolicy): boolean => Boolean(policy.parentRolesBlocked)
+
+const roleSourceLabels: Record<'distributor', string> = {
+  distributor: 'distributörsnivå'
+}
+
+const getRoleSourceLabel = (source?: 'distributor' | null): string => {
+  if (!source) {
+    return 'högre nivå'
+  }
+  return roleSourceLabels[source] ?? 'högre nivå'
 }
 
 const tenant = ref<any>(null)
@@ -259,7 +394,8 @@ const updateModulePolicy = async (
   moduleId: string,
   enabled: boolean | undefined,
   disabled: boolean | undefined,
-  permissionOverrides: Record<string, boolean>
+  permissionOverrides: Record<string, boolean>,
+  allowedRoles?: string[] | null
 ) => {
   const policy = policies.value.find((p) => p.moduleId === moduleId)
   if (!policy) return
@@ -268,6 +404,7 @@ const updateModulePolicy = async (
   const originalEnabled = policy.enabled
   const originalDisabled = policy.disabled
   const originalOverrides = { ...policy.permissionOverrides }
+  const originalAllowedRoles = policy.allowedRoles
 
   // Optimistically update UI
   if (enabled !== undefined) {
@@ -281,6 +418,9 @@ const updateModulePolicy = async (
     policy.disabled = disabled
   }
   policy.permissionOverrides = { ...permissionOverrides }
+  if (allowedRoles !== undefined) {
+    policy.allowedRoles = allowedRoles
+  }
 
   try {
     const body: any = {
@@ -294,6 +434,9 @@ const updateModulePolicy = async (
     if (disabled !== undefined) {
       body.disabled = disabled
     }
+    if (allowedRoles !== undefined) {
+      body.allowedRoles = allowedRoles
+    }
 
     const response = await $fetch(`/api/admin/tenants/${tenantId}/modules`, {
       method: 'PUT',
@@ -305,6 +448,7 @@ const updateModulePolicy = async (
       policy.enabled = response.enabled
       policy.disabled = response.disabled ?? false
       policy.permissionOverrides = response.permissionOverrides || {}
+      policy.allowedRoles = response.allowedRoles ?? policy.allowedRoles ?? null
     }
     
     return response
@@ -313,6 +457,7 @@ const updateModulePolicy = async (
     policy.enabled = originalEnabled
     policy.disabled = originalDisabled
     policy.permissionOverrides = originalOverrides
+    policy.allowedRoles = originalAllowedRoles
     error.value = err.message || 'Kunde inte uppdatera modulrättigheter'
     console.error('Failed to update module policy:', err)
     throw err
@@ -362,6 +507,53 @@ const togglePermission = async (moduleId: string, permission: string, allowed: b
     error.value = err.message || 'Kunde inte uppdatera rättighet'
     console.error('Failed to toggle permission:', err)
   }
+}
+
+const updateRoleMode = async (policy: ModulePolicy, mode: ModuleRoleMode) => {
+  if (isParentRoleBlock(policy)) {
+    return
+  }
+  const currentMode = getRoleMode(policy)
+  if (currentMode === mode) {
+    return
+  }
+
+  if (mode === 'inherit') {
+    await updateModulePolicy(policy.moduleId, undefined, undefined, policy.permissionOverrides, null)
+    return
+  }
+
+  if (mode === 'block') {
+    await updateModulePolicy(policy.moduleId, undefined, undefined, policy.permissionOverrides, [])
+    return
+  }
+
+  const nextRoles = determineCustomRoles(policy)
+  await updateModulePolicy(policy.moduleId, undefined, undefined, policy.permissionOverrides, nextRoles)
+}
+
+const toggleModuleRoleSelection = async (
+  policy: ModulePolicy,
+  roleKey: string,
+  selected: boolean
+) => {
+  if (isParentRoleBlock(policy)) {
+    return
+  }
+  const currentRoles = new Set(policy.allowedRoles ?? [])
+  if (selected) {
+    currentRoles.add(roleKey)
+  } else {
+    currentRoles.delete(roleKey)
+  }
+
+  await updateModulePolicy(
+    policy.moduleId,
+    undefined,
+    undefined,
+    policy.permissionOverrides,
+    Array.from(currentRoles)
+  )
 }
 
 const getPermissionDescription = (permission: string): string => {

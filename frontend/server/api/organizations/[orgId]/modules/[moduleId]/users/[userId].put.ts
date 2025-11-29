@@ -7,10 +7,15 @@ import { setUserModulePermissions, getUserModulePermissions } from '~~/server/ut
 import { getModulePermissions } from '~/constants/modules'
 import { hasPermission } from '~~/server/utils/rbac'
 import type { ModuleId } from '~/constants/modules'
-import type { RbacPermission } from '~/constants/rbac'
+import type { RbacPermission, RbacRole } from '~/constants/rbac'
+import { getModuleById } from '~/lib/modules'
+import { setModuleRoleOverridesForModule } from '~~/server/utils/userModuleRoles'
+import { getModuleRoleDefaultsMap } from '~~/server/utils/moduleRoleDefaults'
+import { getEffectiveModulePolicyForOrg } from '~~/server/utils/modulePolicy'
 
 interface RequestBody {
   deniedPermissions: Record<string, boolean>
+  moduleRoles?: string[]
 }
 
 export default defineEventHandler(async (event) => {
@@ -38,6 +43,7 @@ export default defineEventHandler(async (event) => {
   if (!body || typeof body.deniedPermissions !== 'object') {
     throw createError({ statusCode: 400, message: 'Invalid request body' })
   }
+  const moduleRoles = body.moduleRoles
 
   const db = getDb()
 
@@ -56,6 +62,12 @@ export default defineEventHandler(async (event) => {
   if (!membership) {
     throw createError({ statusCode: 404, message: 'User not found in organization' })
   }
+
+  const moduleDefinition = getModuleById(moduleId)
+  if (!moduleDefinition) {
+    throw createError({ statusCode: 400, message: `Invalid module ID: ${moduleId}` })
+  }
+  const modulePolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId)
 
   // Get module permissions to validate
   const modulePermissions = getModulePermissions(moduleId)
@@ -92,6 +104,44 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (moduleRoles !== undefined) {
+    if (!moduleDefinition.roles || moduleDefinition.roles.length === 0) {
+      if (moduleRoles.length > 0) {
+        throw createError({
+          statusCode: 400,
+          message: `Module ${moduleId} does not define module-specific roles`
+        })
+      }
+    } else if (moduleRoles.length > 0) {
+      const validRoleKeys = new Set(moduleDefinition.roles.map((role) => role.key))
+      const invalidRoles = moduleRoles.filter((role) => !validRoleKeys.has(role))
+      if (invalidRoles.length > 0) {
+        throw createError({
+          statusCode: 400,
+          message: `Invalid module roles for ${moduleId}: ${invalidRoles.join(', ')}`
+        })
+      }
+    }
+
+    if (Array.isArray(modulePolicy.allowedRoles) && modulePolicy.allowedRoles.length === 0) {
+      throw createError({
+        statusCode: 403,
+        message: 'Module roles are blocked for this module at a higher level'
+      })
+    }
+
+    if (Array.isArray(modulePolicy.allowedRoles) && modulePolicy.allowedRoles.length > 0) {
+      const allowedSet = new Set(modulePolicy.allowedRoles)
+      const disallowed = moduleRoles.filter((role) => !allowedSet.has(role))
+      if (disallowed.length > 0) {
+        throw createError({
+          statusCode: 403,
+          message: `Module roles are restricted by policy: ${disallowed.join(', ')}`
+        })
+      }
+    }
+  }
+
   // Build the denied permissions object (only include permissions that are explicitly denied)
   const deniedPermissionsObj: Record<string, boolean> = {}
   for (const perm of deniedPermissions) {
@@ -101,14 +151,30 @@ export default defineEventHandler(async (event) => {
   // Update user module permissions
   await setUserModulePermissions(orgId, userId, moduleId, deniedPermissionsObj)
 
+  if (moduleRoles !== undefined) {
+    const moduleRoleDefaults = await getModuleRoleDefaultsMap(moduleId)
+    const defaultRoles = moduleRoleDefaults.get(membership.role as RbacRole) ?? []
+    const desiredSet = new Set(moduleRoles)
+    const grants = Array.from(desiredSet).filter((role) => !defaultRoles.includes(role))
+    const denies = defaultRoles.filter((role) => !desiredSet.has(role))
+
+    await setModuleRoleOverridesForModule({
+      organizationId: orgId,
+      userId,
+      moduleId,
+      grantKeys: grants,
+      denyKeys: denies
+    })
+  }
+
   // Return updated permissions
   const updated = await getUserModulePermissions(orgId, userId, moduleId)
-
   return {
     organizationId: orgId,
     moduleId,
     userId,
-    deniedPermissions: updated || {}
+    deniedPermissions: updated || {},
+    moduleRoles: moduleRoles ?? []
   }
 })
 

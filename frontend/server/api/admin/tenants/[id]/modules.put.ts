@@ -11,7 +11,8 @@ const bodySchema = z.object({
   moduleId: z.string(),
   enabled: z.boolean().optional(),
   disabled: z.boolean().optional(),
-  permissionOverrides: z.record(z.boolean()).optional()
+  permissionOverrides: z.record(z.boolean()).optional(),
+  allowedRoles: z.array(z.string()).nullable().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleId, enabled, disabled, permissionOverrides } = body
+  const { moduleId, enabled, disabled, permissionOverrides, allowedRoles } = body
 
   // Require tenant:manage permission
   await requireTenantPermission(event, 'tenants:manage', tenantId)
@@ -68,13 +69,34 @@ export default defineEventHandler(async (event) => {
   const oldEnabled = oldPolicy?.enabled ?? true
   const oldDisabled = oldPolicy?.disabled ?? false
 
+  if (allowedRoles !== undefined) {
+    if (!module.roles || module.roles.length === 0) {
+      if (allowedRoles && allowedRoles.length > 0) {
+        throw createError({
+          statusCode: 400,
+          message: `Module ${moduleId} does not define module-specific roles`
+        })
+      }
+    } else if (allowedRoles) {
+      const validRoleKeys = new Set(module.roles.map((role) => role.key))
+      const invalidRoles = allowedRoles.filter((role) => !validRoleKeys.has(role))
+      if (invalidRoles.length > 0) {
+        throw createError({
+          statusCode: 400,
+          message: `Invalid module roles for ${moduleId}: ${invalidRoles.join(', ')}`
+        })
+      }
+    }
+  }
+
   // Update policy
   await setTenantModulePolicy(
     tenantId,
     moduleId as ModuleId,
     finalEnabled,
     finalPermissionOverrides as ModulePermissionOverrides | undefined,
-    finalDisabled
+    finalDisabled,
+    allowedRoles === undefined ? undefined : allowedRoles
   )
 
   // Log audit event
@@ -101,7 +123,8 @@ export default defineEventHandler(async (event) => {
     moduleId,
     enabled: resultEnabled,
     disabled: resultDisabled,
-    permissionOverrides: updatedPolicy?.permissionOverrides ?? {}
+    permissionOverrides: updatedPolicy?.permissionOverrides ?? {},
+    allowedRoles: updatedPolicy?.allowedRoles ?? null
   }
 })
 

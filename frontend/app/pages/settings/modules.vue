@@ -194,6 +194,97 @@
           </div>
         </div>
 
+        <!-- Module-specific roles -->
+        <div v-if="policy.roleDefinitions.length > 0" class="border-t border-slate-200 px-6 py-4 dark:border-white/5">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Modulspecifika roller</p>
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Styr vilka modulroller som har tillgång till modulen och tilldela specifika roller per användare nedan.
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs">
+              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                <input
+                  type="radio"
+                  :name="`role-mode-${policy.moduleId}`"
+                  value="inherit"
+                  :checked="getRoleMode(policy) === 'inherit'"
+                  :disabled="isInheritedRoleBlock(policy)"
+                  @change="updateRoleMode(policy, 'inherit')"
+                />
+                Ärv
+              </label>
+              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                <input
+                  type="radio"
+                  :name="`role-mode-${policy.moduleId}`"
+                  value="custom"
+                  :checked="getRoleMode(policy) === 'custom'"
+                  :disabled="isInheritedRoleBlock(policy)"
+                  @change="updateRoleMode(policy, 'custom')"
+                />
+                Anpassa
+              </label>
+              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                <input
+                  type="radio"
+                  :name="`role-mode-${policy.moduleId}`"
+                  value="block"
+                  :checked="getRoleMode(policy) === 'block'"
+                  :disabled="isInheritedRoleBlock(policy)"
+                  @change="updateRoleMode(policy, 'block')"
+                />
+                Blockera
+              </label>
+            </div>
+          </div>
+
+          <div
+            v-if="getRoleMode(policy) === 'custom' && !isInheritedRoleBlock(policy)"
+            class="mt-4 grid gap-3 md:grid-cols-2"
+          >
+            <label
+              v-for="role in policy.roleDefinitions"
+              :key="role.key"
+              class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10"
+            >
+              <div class="pr-3">
+                <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ role.label }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  {{ role.description || 'Ingen beskrivning' }}
+                </p>
+              </div>
+              <label class="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  class="peer sr-only"
+                  :checked="policy.allowedRoles?.includes(role.key) ?? false"
+                  :disabled="isInheritedRoleBlock(policy)"
+                  @change="toggleModuleRoleSelection(policy, role.key, ($event.target as HTMLInputElement).checked)"
+                />
+                <div
+                  class="peer h-5 w-9 rounded-full bg-slate-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-brand peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-brand dark:bg-slate-600"
+                />
+              </label>
+            </label>
+          </div>
+
+          <p
+            v-else-if="isInheritedRoleBlock(policy)"
+            class="mt-3 text-xs font-medium text-yellow-600 dark:text-yellow-400"
+          >
+            Modulroller blockeras på {{ getRoleSourceLabel(policy.allowedRolesSource) }}.
+          </p>
+
+          <p
+            v-else-if="getRoleMode(policy) === 'block'"
+            class="mt-3 text-xs font-medium text-red-600 dark:text-red-400"
+          >
+            Alla modulroller blockeras i denna organisation.
+          </p>
+        </div>
+
         <!-- User-specific permissions section -->
         <div v-if="policy.enabled && !policy.disabled" class="border-t border-slate-200 px-6 py-4 dark:border-white/5">
           <button
@@ -213,6 +304,31 @@
           </button>
 
           <div v-if="expandedModules[policy.moduleId]" class="mt-4 space-y-4">
+              <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                  Så funkar modulroller
+                </p>
+                <p class="mt-2 text-slate-600 dark:text-slate-300">
+                  RBAC-rollen ger ett startvärde. Markera eller avmarkera rollerna nedan för att lägga till extra rättigheter eller ta bort standardrättigheter för en enskild användare. Knappen
+                  <span class="font-semibold">Återställ standard</span> tar bort alla manuella ändringar.
+                </p>
+                <div
+                  v-if="getRbacDefaultsForModule(policy.moduleId).length"
+                  class="mt-3 space-y-1 text-slate-600 dark:text-slate-300"
+                >
+                  <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    RBAC-standard
+                  </p>
+                  <div
+                    v-for="entry in getRbacDefaultsForModule(policy.moduleId)"
+                    :key="entry.rbacRole"
+                    class="flex flex-wrap gap-1"
+                  >
+                    <span class="font-semibold">{{ getRoleName(entry.rbacRole) }}:</span>
+                    <span>{{ formatModuleRoleLabels(entry.roles, policy).join(', ') }}</span>
+                  </div>
+                </div>
+              </div>
               <!-- Search input -->
               <div class="relative">
                 <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -244,6 +360,12 @@
                         Roll
                       </th>
                       <th
+                        v-if="policy.roleDefinitions.length > 0"
+                        class="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                      >
+                        Modulroller
+                      </th>
+                      <th
                         v-for="permission in policy.module.permissions"
                         :key="permission"
                         class="px-4 py-2 text-center text-xs font-medium uppercase tracking-wider text-slate-700 dark:text-slate-300"
@@ -271,6 +393,53 @@
                       </td>
                       <td class="px-4 py-3">
                         <span class="text-xs text-slate-600 dark:text-slate-400">{{ getRoleName(user.role) }}</span>
+                      </td>
+                      <td v-if="policy.roleDefinitions.length > 0" class="px-4 py-3">
+                        <div class="flex flex-wrap gap-2">
+                          <label
+                            v-for="role in policy.roleDefinitions"
+                            :key="role.key"
+                            class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600 dark:border-white/10 dark:text-slate-300"
+                            :class="{ 'opacity-50': !isRoleSelectable(policy, role.key) }"
+                          >
+                            <input
+                              type="checkbox"
+                              class="peer sr-only"
+                              :checked="user.moduleRoles?.includes(role.key)"
+                              :disabled="
+                                !isRoleSelectable(policy, role.key) ||
+                                updatingUsers[`${policy.moduleId}-${user.userId}`]
+                              "
+                              @change="toggleUserModuleRole(policy.moduleId, user.userId, role.key, ($event.target as HTMLInputElement).checked)"
+                            />
+                            <span>{{ role.label }}</span>
+                          </label>
+                        </div>
+                        <div class="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
+                          <span>{{ moduleRoleSourceLabel(user.moduleRoleSource || 'none', user.role) }}</span>
+                          <span
+                            v-if="user.moduleRoleGrants?.length"
+                            class="text-emerald-600 dark:text-emerald-400"
+                          >
+                            • +{{ user.moduleRoleGrants.length }}
+                            {{ user.moduleRoleGrants.length === 1 ? 'manuell tilldelning' : 'manuella tilldelningar' }}
+                          </span>
+                          <span
+                            v-if="user.moduleRoleDenies?.length"
+                            class="text-rose-600 dark:text-rose-400"
+                          >
+                            • −{{ user.moduleRoleDenies.length }}
+                            {{ user.moduleRoleDenies.length === 1 ? 'roll borttagen' : 'roller borttagna' }}
+                          </span>
+                        </div>
+                        <button
+                          v-if="user.moduleRoleSource === 'custom'"
+                          class="mt-2 rounded border border-slate-200 px-2 py-1 text-[11px] text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+                          :disabled="updatingUsers[`${policy.moduleId}-${user.userId}`]"
+                          @click="resetUserModuleRoles(policy.moduleId, user)"
+                        >
+                          Återställ standard
+                        </button>
                       </td>
                       <td
                         v-for="permission in policy.module.permissions"
@@ -309,6 +478,9 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'
+import type { ModuleRoleDefinition } from '~/constants/modules'
+import type { RbacRole } from '~/constants/rbac'
+import { rbacModuleRoleDefaults } from '~/constants/moduleRoleMappings'
 
 definePageMeta({
   layout: 'default'
@@ -316,6 +488,28 @@ definePageMeta({
 
 const auth = useAuth()
 const { hasPermission } = usePermission()
+
+const rbacDefaultsByModule = computed<
+  Record<string, Array<{ rbacRole: RbacRole; roles: string[] }>>
+>(() => {
+  const summary: Record<string, Array<{ rbacRole: RbacRole; roles: string[] }>> = {}
+  for (const [rbacRole, modules] of Object.entries(rbacModuleRoleDefaults) as Array<
+    [RbacRole, Record<string, string[]>]
+  >) {
+    for (const [moduleId, roleKeys] of Object.entries(modules)) {
+      if (!roleKeys || roleKeys.length === 0) {
+        continue
+      }
+      if (!summary[moduleId]) {
+        summary[moduleId] = []
+      }
+      summary[moduleId].push({ rbacRole, roles: roleKeys })
+    }
+  }
+  return summary
+})
+
+const getRbacDefaultsForModule = (moduleId: string) => rbacDefaultsByModule.value[moduleId] ?? []
 
 interface ModulePolicy {
   moduleId: string
@@ -330,6 +524,11 @@ interface ModulePolicy {
   enabled: boolean
   disabled: boolean
   permissionOverrides: Record<string, boolean>
+  allowedRoles: string[] | null
+  allowedRolesSource: ModuleRoleSource
+  visibilityMode: 'everyone' | 'moduleRoles'
+  roleDefinitions: ModuleRoleDefinition[]
+  defaultAllowedRoles: string[] | null
   tenantLevelEnabled?: boolean // Whether the module is enabled at tenant level
   tenantLevelDisabled?: boolean // Whether the module is disabled (grayed out) at tenant level
 }
@@ -342,6 +541,80 @@ interface UserPermission {
   rolePermissions: string[]
   deniedPermissions: string[]
   effectivePermissions: string[]
+  moduleRoles: string[]
+  moduleRoleDefaults: string[]
+  moduleRoleGrants: string[]
+  moduleRoleDenies: string[]
+  moduleRoleSource: 'custom' | 'rbac' | 'none'
+}
+
+type ModuleRoleSource = 'module-default' | 'distributor' | 'provider' | 'organization' | null
+
+type ModuleRoleMode = 'inherit' | 'custom' | 'block'
+
+const getRoleMode = (policy: ModulePolicy): ModuleRoleMode => {
+  if (policy.allowedRoles === null) {
+    return 'inherit'
+  }
+  if (Array.isArray(policy.allowedRoles) && policy.allowedRoles.length === 0) {
+    return 'block'
+  }
+  return 'custom'
+}
+
+const determineCustomRoles = (policy: ModulePolicy): string[] => {
+  if (policy.allowedRoles && policy.allowedRoles.length > 0) {
+    return [...policy.allowedRoles]
+  }
+  if (policy.defaultAllowedRoles && policy.defaultAllowedRoles.length > 0) {
+    return [...policy.defaultAllowedRoles]
+  }
+  if (policy.roleDefinitions.length > 0) {
+    return policy.roleDefinitions.map((role) => role.key)
+  }
+  return []
+}
+
+const formatModuleRoleLabels = (roleKeys: string[], policy: ModulePolicy): string[] => {
+  if (!roleKeys.length) {
+    return []
+  }
+  const labelMap = new Map(policy.roleDefinitions.map((role) => [role.key, role.label]))
+  return roleKeys.map((key) => labelMap.get(key) ?? key)
+}
+
+const isInheritedRoleBlock = (policy: ModulePolicy): boolean => {
+  return (
+    policy.roleDefinitions.length > 0 &&
+    Array.isArray(policy.allowedRoles) &&
+    policy.allowedRoles.length === 0 &&
+    policy.allowedRolesSource !== null &&
+    policy.allowedRolesSource !== 'organization'
+  )
+}
+
+const isRoleSelectable = (policy: ModulePolicy, roleKey: string): boolean => {
+  if (isInheritedRoleBlock(policy)) {
+    return false
+  }
+  if (Array.isArray(policy.allowedRoles) && policy.allowedRoles.length > 0) {
+    return policy.allowedRoles.includes(roleKey)
+  }
+  return true
+}
+
+const roleSourceLabels: Record<Exclude<ModuleRoleSource, null>, string> = {
+  'module-default': 'modulens standard',
+  distributor: 'distributörsnivå',
+  provider: 'leverantörsnivå',
+  organization: 'denna organisation'
+}
+
+const getRoleSourceLabel = (source: ModuleRoleSource): string => {
+  if (!source) {
+    return 'högre nivå'
+  }
+  return roleSourceLabels[source] ?? 'högre nivå'
 }
 
 const policies = ref<ModulePolicy[]>([])
@@ -442,7 +715,8 @@ const updateModulePolicy = async (
   moduleId: string,
   enabled: boolean | undefined,
   disabled: boolean | undefined,
-  permissionOverrides: Record<string, boolean> | undefined
+  permissionOverrides: Record<string, boolean> | undefined,
+  allowedRoles?: string[] | null
 ) => {
   const currentOrgId = auth.currentOrg.value?.id
   if (!currentOrgId) return
@@ -450,15 +724,13 @@ const updateModulePolicy = async (
   const policy = policies.value.find((p) => p.moduleId === moduleId)
   if (!policy) return
 
-  // Store original values for rollback
   const originalEnabled = policy.enabled
   const originalDisabled = policy.disabled
   const originalOverrides = { ...policy.permissionOverrides }
+  const originalAllowedRoles = policy.allowedRoles
 
-  // Optimistically update UI
   if (enabled !== undefined) {
     policy.enabled = enabled
-    // If disabling, also clear disabled state
     if (!enabled) {
       policy.disabled = false
     }
@@ -469,26 +741,37 @@ const updateModulePolicy = async (
   if (permissionOverrides !== undefined) {
     policy.permissionOverrides = { ...permissionOverrides }
   }
+  if (allowedRoles !== undefined) {
+    policy.allowedRoles = allowedRoles
+  }
+
+  const body: Record<string, any> = { moduleId }
+  if (enabled !== undefined) {
+    body.enabled = enabled
+  }
+  if (disabled !== undefined) {
+    body.disabled = disabled
+  }
+  if (permissionOverrides !== undefined) {
+    body.permissionOverrides = permissionOverrides
+  }
+  if (allowedRoles !== undefined) {
+    body.allowedRoles = allowedRoles
+  }
 
   try {
     await $fetch(`/api/organizations/${currentOrgId}/modules`, {
       method: 'PUT',
-      body: {
-        moduleId,
-        enabled: enabled !== undefined ? enabled : policy.enabled,
-        disabled: disabled !== undefined ? disabled : policy.disabled,
-        permissionOverrides: permissionOverrides !== undefined ? permissionOverrides : policy.permissionOverrides
-      }
+      body
     })
-    // Refresh policies to get updated effective values
     await fetchPolicies()
   } catch (err: any) {
     error.value = err.message || 'Kunde inte uppdatera modulrättigheter'
     console.error('Failed to update module policy:', err)
-    // Rollback on error
     policy.enabled = originalEnabled
     policy.disabled = originalDisabled
     policy.permissionOverrides = originalOverrides
+    policy.allowedRoles = originalAllowedRoles
   }
 }
 
@@ -516,6 +799,47 @@ const togglePermission = async (moduleId: string, permission: string, allowed: b
   }
 
   await updateModulePolicy(moduleId, undefined, undefined, newOverrides)
+}
+
+const updateRoleMode = async (policy: ModulePolicy, mode: ModuleRoleMode) => {
+  if (isInheritedRoleBlock(policy)) {
+    return
+  }
+  const currentMode = getRoleMode(policy)
+  if (currentMode === mode) {
+    return
+  }
+
+  if (mode === 'inherit') {
+    await updateModulePolicy(policy.moduleId, undefined, undefined, undefined, null)
+    return
+  }
+
+  if (mode === 'block') {
+    await updateModulePolicy(policy.moduleId, undefined, undefined, undefined, [])
+    return
+  }
+
+  const nextRoles = determineCustomRoles(policy)
+  await updateModulePolicy(policy.moduleId, undefined, undefined, undefined, nextRoles)
+}
+
+const toggleModuleRoleSelection = async (
+  policy: ModulePolicy,
+  roleKey: string,
+  selected: boolean
+) => {
+  if (isInheritedRoleBlock(policy)) {
+    return
+  }
+  const currentRoles = new Set(policy.allowedRoles ?? [])
+  if (selected) {
+    currentRoles.add(roleKey)
+  } else {
+    currentRoles.delete(roleKey)
+  }
+
+  await updateModulePolicy(policy.moduleId, undefined, undefined, undefined, Array.from(currentRoles))
 }
 
 const getPermissionDescription = (permission: string): string => {
@@ -602,7 +926,14 @@ const fetchUsersForModule = async (moduleId: string) => {
   try {
     loadingUsers.value[moduleId] = true
     const response = await $fetch(`/api/organizations/${currentOrgId}/modules/${moduleId}/users`)
-    userPermissions.value[moduleId] = response.users || []
+    userPermissions.value[moduleId] = (response.users || []).map((user: UserPermission) => ({
+      ...user,
+      moduleRoles: user.moduleRoles || [],
+      moduleRoleDefaults: user.moduleRoleDefaults || [],
+      moduleRoleGrants: user.moduleRoleGrants || [],
+      moduleRoleDenies: user.moduleRoleDenies || [],
+      moduleRoleSource: user.moduleRoleSource || 'none'
+    }))
   } catch (err: any) {
     console.error('Failed to fetch users for module:', err)
     error.value = err.message || 'Kunde inte hämta användare'
@@ -672,6 +1003,99 @@ const toggleUserPermission = async (
   } finally {
     updatingUsers.value[key] = false
   }
+}
+
+const toggleUserModuleRole = async (
+  moduleId: string,
+  userId: string,
+  roleKey: string,
+  selected: boolean
+) => {
+  const currentOrgId = auth.currentOrg.value?.id
+  if (!currentOrgId) return
+
+  const key = `${moduleId}-${userId}`
+  const user = userPermissions.value[moduleId]?.find((u) => u.userId === userId)
+  if (!user) return
+
+  const policy = policies.value.find((p) => p.moduleId === moduleId)
+  if (!policy || isInheritedRoleBlock(policy)) {
+    return
+  }
+
+  const originalRoles = [...user.moduleRoles]
+  const nextRoles = new Set(user.moduleRoles ?? [])
+  if (selected) {
+    nextRoles.add(roleKey)
+  } else {
+    nextRoles.delete(roleKey)
+  }
+  user.moduleRoles = Array.from(nextRoles)
+
+  try {
+    updatingUsers.value[key] = true
+
+    const deniedPermissions: Record<string, boolean> = {}
+    for (const perm of user.deniedPermissions) {
+      deniedPermissions[perm] = true
+    }
+
+    await $fetch(`/api/organizations/${currentOrgId}/modules/${moduleId}/users/${userId}`, {
+      method: 'PUT',
+      body: {
+        deniedPermissions,
+        moduleRoles: Array.from(nextRoles)
+      }
+    })
+
+    await fetchUsersForModule(moduleId)
+  } catch (err: any) {
+    console.error('Failed to update user module roles:', err)
+    error.value = err.message || 'Kunde inte uppdatera modulroller'
+    user.moduleRoles = originalRoles
+  } finally {
+    updatingUsers.value[key] = false
+  }
+}
+
+const resetUserModuleRoles = async (moduleId: string, user: UserPermission) => {
+  const currentOrgId = auth.currentOrg.value?.id
+  if (!currentOrgId) return
+
+  const key = `${moduleId}-${user.userId}`
+  updatingUsers.value[key] = true
+
+  try {
+    const deniedPermissions: Record<string, boolean> = {}
+    for (const perm of user.deniedPermissions) {
+      deniedPermissions[perm] = true
+    }
+
+    await $fetch(`/api/organizations/${currentOrgId}/modules/${moduleId}/users/${user.userId}`, {
+      method: 'PUT',
+      body: {
+        deniedPermissions,
+        moduleRoles: user.moduleRoleDefaults || []
+      }
+    })
+
+    await fetchUsersForModule(moduleId)
+  } catch (err: any) {
+    console.error('Failed to reset module roles:', err)
+    error.value = err.message || 'Kunde inte återställa modulroller'
+  } finally {
+    updatingUsers.value[key] = false
+  }
+}
+
+const moduleRoleSourceLabel = (source: 'custom' | 'rbac' | 'none', role: string) => {
+  if (source === 'custom') {
+    return 'Manuellt tilldelade roller'
+  }
+  if (source === 'rbac') {
+    return `Ärvda via RBAC (${getRoleName(role)})`
+  }
+  return 'Inga modulroller tilldelade'
 }
 
 onMounted(async () => {

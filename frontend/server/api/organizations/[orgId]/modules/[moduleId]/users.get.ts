@@ -7,7 +7,12 @@ import { getUserModulePermissions } from '~~/server/utils/userModulePermissions'
 import { getModulePermissions } from '~/constants/modules'
 import { hasPermission } from '~~/server/utils/rbac'
 import type { ModuleId } from '~/constants/modules'
-import type { RbacPermission } from '~/constants/rbac'
+import type { RbacPermission, RbacRole } from '~/constants/rbac'
+import { getModuleById } from '~/lib/modules'
+import { getModuleRoleOverridesForModule } from '~~/server/utils/userModuleRoles'
+import { getModuleRoleDefaultsMap } from '~~/server/utils/moduleRoleDefaults'
+import { resolveModuleRoleState } from '~~/server/utils/moduleRoleState'
+import { getEffectiveModulePolicyForOrg } from '~~/server/utils/modulePolicy'
 
 export default defineEventHandler(async (event) => {
   const orgId = getRouterParam(event, 'orgId')
@@ -23,6 +28,14 @@ export default defineEventHandler(async (event) => {
 
   // Require org:manage permission to view user module permissions
   await requirePermission(event, 'org:manage', orgId)
+
+  const moduleDefinition = getModuleById(moduleId)
+  if (!moduleDefinition) {
+    throw createError({
+      statusCode: 400,
+      message: `Invalid module ID: ${moduleId}`
+    })
+  }
 
   const db = getDb()
 
@@ -49,6 +62,9 @@ export default defineEventHandler(async (event) => {
 
   // Get module permissions
   const modulePermissions = getModulePermissions(moduleId)
+  const moduleRoleOverrides = await getModuleRoleOverridesForModule(orgId, moduleId)
+  const modulePolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId)
+  const moduleRoleDefaults = await getModuleRoleDefaultsMap(moduleId)
 
   // For each user, get their role permissions and user-specific denials
   const usersWithPermissions = await Promise.all(
@@ -69,6 +85,14 @@ export default defineEventHandler(async (event) => {
         (perm) => !deniedPermissions.includes(perm)
       )
 
+      const defaultRoles = moduleRoleDefaults.get(membership.role as RbacRole) ?? []
+      const overrides = moduleRoleOverrides.get(membership.userId)
+      const roleState = resolveModuleRoleState({
+        defaultRoles,
+        overrides,
+        allowedRoles: modulePolicy.allowedRoles
+      })
+
       return {
         userId: membership.userId,
         email: membership.user.email,
@@ -76,7 +100,12 @@ export default defineEventHandler(async (event) => {
         role: membership.role,
         rolePermissions,
         deniedPermissions,
-        effectivePermissions
+        effectivePermissions,
+        moduleRoles: roleState.effectiveRoles,
+        moduleRoleDefaults: roleState.defaultRoles,
+        moduleRoleGrants: roleState.grantOverrides,
+        moduleRoleDenies: roleState.denyOverrides,
+        moduleRoleSource: roleState.source
       }
     })
   )
@@ -84,6 +113,10 @@ export default defineEventHandler(async (event) => {
   return {
     organizationId: orgId,
     moduleId,
+    visibilityMode: moduleDefinition.visibilityMode ?? 'everyone',
+    roleDefinitions: moduleDefinition.roles ?? [],
+    allowedRoles: modulePolicy.allowedRoles,
+    allowedRolesSource: modulePolicy.allowedRolesSource,
     users: usersWithPermissions
   }
 })

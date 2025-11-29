@@ -5,7 +5,7 @@ import { getAllModules } from '~/lib/modules'
 import { getDb } from '~~/server/utils/db'
 import { tenants, distributorProviders } from '~~/server/database/schema'
 import { eq } from 'drizzle-orm'
-import type { ModuleId } from '~/constants/modules'
+import type { ModuleId, ModuleRoleKey } from '~/constants/modules'
 
 export default defineEventHandler(async (event) => {
   const tenantId = getRouterParam(event, 'id')
@@ -31,6 +31,9 @@ export default defineEventHandler(async (event) => {
       // Check distributor-level enabled/disabled status if tenant is a provider
       let distributorLevelEnabled = true
       let distributorLevelDisabled = false
+      let parentRolesBlocked = false
+      let parentRolesSource: 'distributor' | null = null
+      let parentAllowedRoles: ModuleRoleKey[] | null = null
       
       if (tenant?.type === 'provider') {
         // Check distributor policy
@@ -47,6 +50,14 @@ export default defineEventHandler(async (event) => {
             }
             if (distributorPolicy.disabled) {
               distributorLevelDisabled = true
+            }
+
+            if (distributorPolicy.allowedRoles !== null) {
+              parentAllowedRoles = distributorPolicy.allowedRoles
+              parentRolesSource = 'distributor'
+              if (Array.isArray(distributorPolicy.allowedRoles) && distributorPolicy.allowedRoles.length === 0) {
+                parentRolesBlocked = true
+              }
             }
           }
         }
@@ -66,6 +77,13 @@ export default defineEventHandler(async (event) => {
         enabled: policy === null ? true : policy.enabled,
         disabled: policy === null ? false : policy.disabled,
         permissionOverrides: policy?.permissionOverrides ?? {},
+        allowedRoles: policy?.allowedRoles ?? null,
+        parentRolesBlocked,
+        parentRolesSource,
+        parentAllowedRoles,
+        visibilityMode: module.visibilityMode ?? 'everyone',
+        roleDefinitions: module.roles ?? [],
+        defaultAllowedRoles: module.defaultAllowedRoles ?? null,
         distributorLevelEnabled, // Whether the module is enabled at distributor level
         distributorLevelDisabled // Whether the module is disabled (grayed out) at distributor level
       }

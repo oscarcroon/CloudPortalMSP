@@ -149,6 +149,35 @@ Modulpolicy hanteras automatiskt av systemet. När du använder `requirePermissi
 - Aktivera/inaktivera moduler (kan inte aktivera något som är inaktiverat på tenant-nivå)
 - Ytterligare begränsa permissions (kan inte aktivera något som är inaktiverat på tenant-nivå)
 
+## Modulspecifika roller
+
+Vissa moduler (t.ex. DNS och VMs) definierar egna roller, t.ex. `DNS Administratör` och `DNS Reader`. Dessa roller styr vilka användare som får se modulen och vilka möjligheter de har inuti modulen.
+
+### Datamodell
+- `module_roles`: definierar vilka modulroller som finns per modul (`sync-module-roles.ts` synkar definitionerna).
+- `role_module_role_mappings`: kopplar RBAC-roller (owner/admin/operator/...) till modulroller. Basvärden kommer från `frontend/app/constants/moduleRoleMappings.ts` men tabellen kan senare utökas via UI.
+- `member_module_role_overrides`: lagrar manuella *grants* och *denies* per användare/modul. `grant` lägger till extra modulroller, `deny` tar bort roller som annars skulle ges via RBAC.
+
+Effektiv rollberäkning sker enligt:
+
+```
+effective = (rbac_defaults ∪ explicit_grants) \ explicit_denies
+```
+
+Explicit deny har alltid högre prioritet än RBAC/default.
+
+### Standardvärden från RBAC
+- Filen `frontend/app/constants/moduleRoleMappings.ts` beskriver vilka modulroller som gäller för respektive organisationsroll (`owner`, `admin`, `operator`, m.fl.) och används för att seed:a databasen.
+- Om en användare inte har några manuella overrides visas alltid standardmappningen baserad på deras RBAC-roll. När man tar bort en manuell tilldelning återgår användaren automatiskt till RBAC-standard.
+
+### Hantering via UI
+- **Per modul (`/settings/modules`)**: Expandera en modul och använd kolon­nen *Modulroller* för att toggla roller per användare. Varning visas om rollerna är låsta högre upp i hierarkin (distributör eller leverantör). Knappen “Återställ standard” tar bort alla manuella roller för den modulen.
+- **Per medlem (`/settings/members`)**: Via åtgärden *Modulroller* öppnas en panel där alla moduler för en specifik användare listas. Här visas vilka roller som gäller, om de kommer från RBAC eller är manuellt satta samt vilka roller som är tillåtna. Ändringarna sparas i bulk via `PUT /members/{memberId}/module-roles`.
+- UI:n visar också om roller kommer från RBAC (badge “Ärvd via RBAC”), om det finns manuella overrides (+/- räknare) och erbjuder snabb “Återställ standard”.
+
+### Blockeringar
+- Om distributör- eller leverantörsnivån har blockerat en moduls roller visas detta tydligt i både tenant-UI och organisations-UI. Alla kontroll­element är då inaktiverade och det går inte att tilldela roller på lägre nivåer.
+
 ## Exempel: Cloudflare DNS-modulen
 
 Cloudflare DNS-modulen är ett komplett exempel på hur en modul implementeras:

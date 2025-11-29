@@ -1,4 +1,5 @@
 import type { RbacRole } from '~/constants/rbac'
+import type { ModuleRoleDefinition, ModuleRoleKey } from '~/constants/modules'
 
 export type OrganizationMemberRole = RbacRole
 
@@ -71,6 +72,37 @@ export interface InvitationLookupResponse {
   emailExists: boolean
   hasPassword: boolean
   autoAccept: boolean
+}
+
+export type ModuleRoleSource = 'module-default' | 'distributor' | 'provider' | 'organization' | null
+
+export interface MemberModuleRoleEntry {
+  moduleId: string
+  name: string
+  description: string
+  roleDefinitions: ModuleRoleDefinition[]
+  allowedRoles: ModuleRoleKey[] | null
+  allowedRolesSource: ModuleRoleSource
+  defaultRoles: ModuleRoleKey[]
+  grantOverrides: ModuleRoleKey[]
+  denyOverrides: ModuleRoleKey[]
+  effectiveRoles: ModuleRoleKey[]
+  editable: boolean
+  roleSource: 'custom' | 'rbac' | 'none'
+}
+
+export interface MemberModuleRolesResponse {
+  organizationId: string
+  memberId: string
+  userId: string
+  modules: MemberModuleRoleEntry[]
+}
+
+export interface UpdateMemberModuleRolesPayload {
+  modules: Array<{
+    moduleId: string
+    roleKeys: ModuleRoleKey[]
+  }>
 }
 
 

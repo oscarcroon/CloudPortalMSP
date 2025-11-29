@@ -4,7 +4,11 @@ import { isModuleEnabledForOrg, getEffectiveModulePolicyForOrg } from '~~/server
 import { getAllModules } from '~/lib/modules'
 import { getModulePermissions } from '~/constants/modules'
 import { hasPermission } from '~~/server/utils/rbac'
+import type { RbacRole } from '~/constants/rbac'
 import { ensureAuthState } from '~~/server/utils/session'
+import { getModuleRoleOverridesForMember } from '~~/server/utils/userModuleRoles'
+import { createModuleRoleDefaultResolver } from '~~/server/utils/moduleRoleDefaults'
+import { resolveModuleRoleState } from '~~/server/utils/moduleRoleState'
 
 export default defineEventHandler(async (event) => {
   const orgId = getRouterParam(event, 'orgId')
@@ -19,6 +23,9 @@ export default defineEventHandler(async (event) => {
   if (!auth) {
     throw createError({ statusCode: 401, message: 'Not authenticated' })
   }
+
+  const moduleRoleOverrides = await getModuleRoleOverridesForMember(orgId, auth.user.id)
+  const resolveDefaultRoles = createModuleRoleDefaultResolver()
 
   // Get all modules
   const modules = getAllModules()
@@ -46,6 +53,35 @@ export default defineEventHandler(async (event) => {
 
       if (!hasAnyPermission) {
         return null
+      }
+
+      const requiresModuleRoles =
+        module.visibilityMode === 'moduleRoles' && (module.roles?.length ?? 0) > 0
+
+      if (requiresModuleRoles && !auth.user.isSuperAdmin) {
+        const allowedRoles = policy.allowedRoles
+
+        if (Array.isArray(allowedRoles) && allowedRoles.length === 0) {
+          return null
+        }
+
+        if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+          if (!userRole) {
+            return null
+          }
+          const defaultRoles = await resolveDefaultRoles(module.id, userRole as RbacRole)
+          const overrides = moduleRoleOverrides.get(module.id)
+          const state = resolveModuleRoleState({
+            defaultRoles,
+            overrides,
+            allowedRoles
+          })
+          const hasModuleRole = state.effectiveRoles.some((role) => allowedRoles.includes(role))
+
+          if (!hasModuleRole) {
+            return null
+          }
+        }
       }
 
       return {

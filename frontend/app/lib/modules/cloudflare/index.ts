@@ -12,6 +12,22 @@ export const cloudflareModule: ModuleDefinition = {
   permissions: ['cloudflare:read', 'cloudflare:write'],
   routePath: '/dns',
   icon: 'mdi:web',
-  badge: 'Cloudflare'
+  badge: 'Cloudflare',
+  visibilityMode: 'moduleRoles',
+  roles: [
+    {
+      key: 'dns-admin',
+      label: 'DNS Administratör',
+      description: 'Full kontroll över DNS-zoner och poster.',
+      capabilities: { read: true, write: true, manage: true }
+    },
+    {
+      key: 'dns-reader',
+      label: 'DNS Reader',
+      description: 'Kan läsa DNS-zoner och poster.',
+      capabilities: { read: true }
+    }
+  ],
+  defaultAllowedRoles: ['dns-admin', 'dns-reader']
 }
 

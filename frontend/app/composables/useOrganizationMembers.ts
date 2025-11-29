@@ -5,7 +5,9 @@ import type {
   InviteMemberPayload,
   OrganizationMembersResponse,
   OrganizationMemberRole,
-  OrganizationMemberStatus
+  OrganizationMemberStatus,
+  MemberModuleRolesResponse,
+  UpdateMemberModuleRolesPayload
 } from '~/types/members'
 
 export const useOrganizationMembers = () => {
@@ -65,6 +67,27 @@ export const useOrganizationMembers = () => {
     })
   }
 
+  const fetchMemberModuleRoles = async (memberId: string) => {
+    const organisationId = assertOrganisationId()
+    return $fetch<MemberModuleRolesResponse>(
+      `/api/organizations/${organisationId}/members/${memberId}/module-roles`
+    )
+  }
+
+  const updateMemberModuleRoles = async (
+    memberId: string,
+    payload: UpdateMemberModuleRolesPayload
+  ) => {
+    const organisationId = assertOrganisationId()
+    return $fetch<MemberModuleRolesResponse>(
+      `/api/organizations/${organisationId}/members/${memberId}/module-roles`,
+      {
+        method: 'PUT',
+        body: payload
+      }
+    )
+  }
+
   return {
     currentOrganisationId,
     fetchMembers,
@@ -72,7 +95,9 @@ export const useOrganizationMembers = () => {
     updateMemberRole,
     updateMemberStatus,
     removeMember,
-    cancelInvitation
+    cancelInvitation,
+    fetchMemberModuleRoles,
+    updateMemberModuleRoles
   }
 }
 

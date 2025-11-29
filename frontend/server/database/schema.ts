@@ -716,6 +716,9 @@ export const tenantModulePolicies = sqliteTable(
     // JSON object storing permission overrides
     // Example: { "cloudflare:write": false } to disable write access
     permissionOverrides: text('permission_overrides', { length: 2048 }),
+    // JSON array storing allowed module roles for this tenant
+    // null => inherit defaults, [] => block, ["dns-admin"] => override
+    allowedRoles: text('allowed_roles', { length: 2048 }),
     ...timestampColumns()
   },
   table => ({
@@ -747,6 +750,8 @@ export const organizationModulePolicies = sqliteTable(
     // JSON object storing permission overrides
     // Example: { "cloudflare:write": false } to disable write access
     permissionOverrides: text('permission_overrides', { length: 2048 }),
+    // JSON array storing allowed module roles for this organization
+    allowedRoles: text('allowed_roles', { length: 2048 }),
     ...timestampColumns()
   },
   table => ({
@@ -802,6 +807,86 @@ export const organizationModulePolicyRelations = relations(
   })
 )
 
+/**
+ * Module-specific roles that can be assigned per module
+ */
+export const moduleRoles = sqliteTable(
+  'module_roles',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    moduleId: text('module_id').notNull(),
+    roleKey: text('role_key').notNull(),
+    roleName: text('role_name').notNull(),
+    description: text('description', { length: 512 }),
+    // JSON encoded capabilities for UI/logic hints
+    capabilities: text('capabilities', { length: 2048 }),
+    ...timestampColumns()
+  },
+  table => ({
+    moduleRoleUnique: uniqueIndex('module_roles_module_role_idx').on(table.moduleId, table.roleKey),
+    moduleRoleModuleIdx: index('module_roles_module_idx').on(table.moduleId)
+  })
+)
+
+export const roleModuleRoleMappings = sqliteTable(
+  'role_module_role_mappings',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    moduleId: text('module_id').notNull(),
+    moduleRoleKey: text('module_role_key').notNull(),
+    rbacRole: text('rbac_role').notNull(),
+    ...timestampColumns()
+  },
+  table => ({
+    roleModuleRoleMappingUnique: uniqueIndex('role_module_role_mapping_unique').on(
+      table.rbacRole,
+      table.moduleId,
+      table.moduleRoleKey
+    ),
+    roleModuleRoleMappingModuleIdx: index('role_module_role_mapping_module_idx').on(table.moduleId)
+  })
+)
+
+/**
+ * User-specific module role overrides per organization
+ */
+export const memberModuleRoleOverrides = sqliteTable(
+  'member_module_role_overrides',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    moduleId: text('module_id').notNull(),
+    roleKey: text('role_key').notNull(),
+    effect: text('effect')
+      .notNull()
+      .$type<'grant' | 'deny'>(),
+    createdByUserId: text('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    updatedByUserId: text('updated_by_user_id').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    ...timestampColumns()
+  },
+  table => ({
+    memberModuleRoleOverrideUnique: uniqueIndex('member_module_role_overrides_unique').on(
+      table.organizationId,
+      table.userId,
+      table.moduleId,
+      table.roleKey
+    ),
+    memberModuleRoleOverrideOrgIdx: index('member_module_role_overrides_org_idx').on(
+      table.organizationId,
+      table.moduleId
+    )
+  })
+)
+
 export const cloudflareCredentialsRelations = relations(cloudflareCredentials, ({ one }) => ({
   organization: one(organizations, {
     fields: [cloudflareCredentials.organizationId],
@@ -851,6 +936,17 @@ export const userModulePermissionRelations = relations(userModulePermissions, ({
   }),
   user: one(users, {
     fields: [userModulePermissions.userId],
+    references: [users.id]
+  })
+}))
+
+export const memberModuleRoleOverrideRelations = relations(memberModuleRoleOverrides, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [memberModuleRoleOverrides.organizationId],
+    references: [organizations.id]
+  }),
+  user: one(users, {
+    fields: [memberModuleRoleOverrides.userId],
     references: [users.id]
   })
 }))

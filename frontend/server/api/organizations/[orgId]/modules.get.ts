@@ -88,6 +88,11 @@ export default defineEventHandler(async (event) => {
         enabled: policy.enabled,
         disabled: policy.disabled,
         permissionOverrides: policy.permissionOverrides,
+        allowedRoles: policy.allowedRoles,
+        allowedRolesSource: policy.allowedRolesSource,
+        visibilityMode: module.visibilityMode ?? 'everyone',
+        roleDefinitions: module.roles ?? [],
+        defaultAllowedRoles: module.defaultAllowedRoles ?? null,
         tenantLevelEnabled, // Whether the module is enabled at tenant level
         tenantLevelDisabled // Whether the module is disabled (grayed out) at tenant level
       }
