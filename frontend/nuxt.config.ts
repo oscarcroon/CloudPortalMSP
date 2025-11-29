@@ -3,7 +3,6 @@ const backendApiBase = process.env.API_BASE || 'http://localhost:4000/api'
 const backendProxyBase = backendApiBase
 
 export default defineNuxtConfig({
-  srcDir: 'src/',
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode'],
   css: ['~/assets/css/tailwind.css'],
@@ -38,7 +37,7 @@ export default defineNuxtConfig({
     }
   },
   nitro: {
-    compatibilityDate: '2025-11-21',
+    compatibilityDate: '2025-11-29',
     devProxy: {
       '/backend': {
         target: process.env.NUXT_DEV_PROXY_API || backendProxyBase,

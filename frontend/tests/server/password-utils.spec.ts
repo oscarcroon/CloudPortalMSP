@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { passwordSchema } from '~/server/utils/password'
+import { passwordSchema } from '~~/server/utils/password'
 
 describe('passwordSchema', () => {
   it('accepts strong passwords', () => {

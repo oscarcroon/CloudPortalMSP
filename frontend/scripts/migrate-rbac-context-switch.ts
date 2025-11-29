@@ -21,7 +21,7 @@ import {
   tenantMemberships,
   organizationAuthSettings,
   tenantAuthSettings
-} from '../src/server/database/schema'
+} from '../server/database/schema'
 import { eq, sql } from 'drizzle-orm'
 
 const isCloudflare = process.env.DATABASE_URL?.startsWith('wss://') || false

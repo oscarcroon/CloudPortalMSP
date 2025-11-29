@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { hasPermission, hasTenantPermission } from '../../src/server/utils/rbac'
-import type { RbacRole, TenantRole, RbacPermission } from '../../src/constants/rbac'
+import { hasPermission, hasTenantPermission } from '../../server/utils/rbac'
+import type { RbacRole, TenantRole, RbacPermission } from '../../app/constants/rbac'
 
 describe('RBAC Permission Checks', () => {
   describe('hasPermission', () => {

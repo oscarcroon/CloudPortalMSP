@@ -1,6 +1,6 @@
-import { getDb } from '../src/server/utils/db'
-import { getEffectiveModulePolicyForOrg } from '../src/server/utils/modulePolicy'
-import { organizations } from '../src/server/database/schema'
+import { getDb } from '../server/utils/db'
+import { getEffectiveModulePolicyForOrg } from '../server/utils/modulePolicy'
+import { organizations } from '../server/database/schema'
 import { eq } from 'drizzle-orm'
 
 async function debugModulePolicy() {

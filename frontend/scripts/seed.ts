@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { createId } from '@paralleldrive/cuid2'
-import { getDb, resetDbInstance } from '../src/server/utils/db'
+import { getDb, resetDbInstance } from '../server/utils/db'
 import {
   containerInstances,
   containerProjects,
@@ -17,8 +17,8 @@ import {
   users,
   vmInstances,
   wordpressSites
-} from '../src/server/database/schema'
-import { hashPassword } from '../src/server/utils/crypto'
+} from '../server/database/schema'
+import { hashPassword } from '../server/utils/crypto'
 
 const ownerOrgId = 'org-coreit'
 const internalOrgId = 'org-internal'

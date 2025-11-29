@@ -3,7 +3,7 @@ import {
   assertRequireSsoAllowed,
   hasConfiguredIdp,
   prepareIdpConfigForStorage
-} from '../../src/server/utils/idp'
+} from '../../server/utils/idp'
 
 describe('IdP helpers', () => {
   it('sanitizes Entra ID config with issuer and metadata defaults', () => {

@@ -1,13 +1,13 @@
 import 'dotenv/config'
 import { createId } from '@paralleldrive/cuid2'
 import { eq, and } from 'drizzle-orm'
-import { getDb } from '../src/server/utils/db'
+import { getDb } from '../server/utils/db'
 import {
   tenants,
   tenantMemberships,
   organizations,
   users
-} from '../src/server/database/schema'
+} from '../server/database/schema'
 
 async function migrateToTenants() {
   const db = getDb()

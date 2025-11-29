@@ -3,11 +3,11 @@ import type { Config } from 'tailwindcss'
 export default <Partial<Config>>{
   darkMode: 'class',
   content: [
-    './src/components/**/*.{vue,js,ts}',
-    './src/layouts/**/*.vue',
-    './src/pages/**/*.vue',
-    './src/plugins/**/*.{js,ts}',
-    './src/app.vue'
+    './app/components/**/*.{vue,js,ts}',
+    './app/layouts/**/*.vue',
+    './app/pages/**/*.vue',
+    './app/plugins/**/*.{js,ts}',
+    './app/app.vue'
   ],
   theme: {
     extend: {

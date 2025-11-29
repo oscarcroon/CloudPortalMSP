@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { getDb } from '../src/server/utils/db'
+import { getDb } from '../server/utils/db'
 import {
   organizationAuthSettings,
   organizationInvitations,
@@ -8,7 +8,7 @@ import {
   tenantMemberships,
   tenants,
   users
-} from '../src/server/database/schema'
+} from '../server/database/schema'
 
 async function clearAllData() {
   const db = getDb()

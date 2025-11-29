@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import { eq } from 'drizzle-orm'
-import { getDb } from '../src/server/utils/db'
-import { tenants } from '../src/server/database/schema'
+import { getDb } from '../server/utils/db'
+import { tenants } from '../server/database/schema'
 
 async function fixTenantTypes() {
   const db = getDb()

@@ -24,8 +24,8 @@ const emailProviderMock = vi.hoisted(() => ({
 vi.mock('@coreit/email-kit', () => emailKitMock)
 vi.mock('~/server/utils/emailProvider', () => emailProviderMock)
 
-import { sendInvitationEmail } from '~/server/utils/mailer'
-import { outboxDir } from '~/server/utils/outbox'
+import { sendInvitationEmail } from '~~/server/utils/mailer'
+import { outboxDir } from '~~/server/utils/outbox'
 
 describe('sendInvitationEmail', () => {
   beforeEach(() => {

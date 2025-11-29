@@ -1,5 +1,5 @@
-import { getDb } from '../src/server/utils/db'
-import { organizationModulePolicies, organizations } from '../src/server/database/schema'
+import { getDb } from '../server/utils/db'
+import { organizationModulePolicies, organizations } from '../server/database/schema'
 import { eq, and } from 'drizzle-orm'
 
 async function fixModulePolicies() {

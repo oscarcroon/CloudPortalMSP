@@ -1,11 +1,11 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { createId } from '@paralleldrive/cuid2'
-import { getDb, resetDbInstance } from '../src/server/utils/db'
+import { getDb, resetDbInstance } from '../server/utils/db'
 import {
   organizationMemberships,
   organizations,
   users
-} from '../src/server/database/schema'
+} from '../server/database/schema'
 
 const backfillOwners = async () => {
   const db = getDb()

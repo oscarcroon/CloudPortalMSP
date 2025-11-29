@@ -1,12 +1,12 @@
 import 'dotenv/config'
 import { createId } from '@paralleldrive/cuid2'
 import { eq, and, isNull, isNotNull } from 'drizzle-orm'
-import { getDb } from '../src/server/utils/db'
+import { getDb } from '../server/utils/db'
 import {
   tenants,
   distributorProviders,
   organizations
-} from '../src/server/database/schema'
+} from '../server/database/schema'
 
 /**
  * Migrates from old structure (Provider -> Distributor -> Organization)
