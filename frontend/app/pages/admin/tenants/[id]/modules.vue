@@ -1,14 +1,22 @@
 <template>
   <section class="space-y-8">
-    <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
-        Modulrättigheter - {{ tenant?.name ?? 'Laddar...' }}
-      </h1>
-      <p class="text-sm text-slate-600 dark:text-slate-400">
-        Hantera vilka moduler som är tillgängliga och vilka rättigheter som är tillåtna för denna tenant.
-        Dessa inställningar ärvs av underordnade tenants och organisationer.
-      </p>
+    <header class="space-y-2">
+      <NuxtLink
+        :to="`/admin/tenants/${tenantId}`"
+        class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
+      >
+        ← Tillbaka till tenant
+      </NuxtLink>
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+          Modulrättigheter - {{ tenant?.name ?? 'Laddar...' }}
+        </h1>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          Hantera vilka moduler som är tillgängliga och vilka rättigheter som är tillåtna för denna tenant.
+          Dessa inställningar ärvs av underordnade tenants och organisationer.
+        </p>
+      </div>
     </header>
 
     <div v-if="error" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">

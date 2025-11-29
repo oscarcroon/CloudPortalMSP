@@ -1,18 +1,26 @@
 <template>
   <section class="space-y-6">
-    <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
-        E-postinställningar - {{ tenant?.name ?? 'Laddar...' }}
-      </h1>
-      <p class="text-sm text-slate-600 dark:text-slate-400">
-        <span v-if="tenant?.type === 'provider'">
-          Leverantör - Dessa inställningar ärvs av alla distributörer och organisationer under denna leverantör.
-        </span>
-        <span v-else-if="tenant?.type === 'distributor'">
-          Distributör - Dessa inställningar ärvs av alla organisationer under denna distributör.
-        </span>
-      </p>
+    <header class="space-y-2">
+      <NuxtLink
+        :to="`/admin/tenants/${tenantId}`"
+        class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
+      >
+        ← Tillbaka till tenant
+      </NuxtLink>
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+          E-postinställningar - {{ tenant?.name ?? 'Laddar...' }}
+        </h1>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          <span v-if="tenant?.type === 'provider'">
+            Leverantör - Dessa inställningar ärvs av alla distributörer och organisationer under denna leverantör.
+          </span>
+          <span v-else-if="tenant?.type === 'distributor'">
+            Distributör - Dessa inställningar ärvs av alla organisationer under denna distributör.
+          </span>
+        </p>
+      </div>
     </header>
 
     <!-- Hierarchy info -->

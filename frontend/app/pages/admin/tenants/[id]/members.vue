@@ -1,12 +1,17 @@
 <template>
   <section class="space-y-8">
-    <header class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-      <div>
-        <NuxtLink to="/admin/tenants" class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500">
-          ← Tillbaka till listan
+    <header class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+      <div class="space-y-2">
+        <NuxtLink
+          :to="`/admin/tenants/${tenantId}`"
+          class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
+        >
+          ← Tillbaka till tenant
         </NuxtLink>
-        <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Medlemmar</h1>
-        <p class="text-sm text-slate-600 dark:text-slate-400">Hantera roller, bjud in nya användare och se väntande inbjudningar.</p>
+        <div>
+          <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Medlemmar</h1>
+          <p class="text-sm text-slate-600 dark:text-slate-400">Hantera roller, bjud in nya användare och se väntande inbjudningar.</p>
+        </div>
       </div>
       <div class="flex gap-2">
         <button

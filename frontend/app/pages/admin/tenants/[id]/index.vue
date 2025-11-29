@@ -1,13 +1,21 @@
 <template>
   <section class="space-y-8">
-    <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ tenant?.name ?? 'Laddar...' }}</h1>
-      <p class="text-sm text-slate-600 dark:text-slate-400">
-        <span v-if="tenant?.type === 'distributor'">Distributör - kan skapa leverantörer</span>
-        <span v-else-if="tenant?.type === 'provider'">Leverantör - kan skapa organisationer</span>
-        <span v-else-if="tenant?.type === 'organization'">Organisation</span>
-      </p>
+    <header class="space-y-2">
+      <NuxtLink
+        to="/admin/tenants"
+        class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
+      >
+        ← Tillbaka till listan
+      </NuxtLink>
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ tenant?.name ?? 'Laddar...' }}</h1>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          <span v-if="tenant?.type === 'distributor'">Distributör - kan skapa leverantörer</span>
+          <span v-else-if="tenant?.type === 'provider'">Leverantör - kan skapa organisationer</span>
+          <span v-else-if="tenant?.type === 'organization'">Organisation</span>
+        </p>
+      </div>
     </header>
 
     <div v-if="error" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">

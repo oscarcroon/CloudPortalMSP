@@ -1,11 +1,19 @@
 <template>
   <section class="space-y-8">
-    <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Audit Loggar - {{ tenant?.name ?? (tenantLoading ? 'Laddar...' : 'Okänd tenant') }}</h1>
-      <p class="text-sm text-slate-600 dark:text-slate-400">
-        Visa säkerhetshändelser och administrativa aktiviteter för denna tenant och dess organisationer.
-      </p>
+    <header class="space-y-2">
+      <NuxtLink
+        :to="`/admin/tenants/${tenantId}`"
+        class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
+      >
+        ← Tillbaka till tenant
+      </NuxtLink>
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Audit Loggar - {{ tenant?.name ?? (tenantLoading ? 'Laddar...' : 'Okänd tenant') }}</h1>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          Visa säkerhetshändelser och administrativa aktiviteter för denna tenant och dess organisationer.
+        </p>
+      </div>
     </header>
 
     <!-- Access Denied -->
