@@ -179,26 +179,6 @@
                   </div>
                 </div>
               </div>
-
-              <div v-if="brandingLayers.length" class="border-t border-slate-200 pt-4 dark:border-white/10">
-                <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Ärvd kedja</p>
-                <div class="mt-3 grid gap-3 md:grid-cols-2">
-                  <div
-                    v-for="layer in brandingLayers"
-                    :key="layer.title"
-                    class="rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10"
-                  >
-                    <p class="font-semibold text-slate-900 dark:text-slate-100">{{ layer.title }}</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ layer.name }}</p>
-                    <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                      Logo: <span class="font-semibold">{{ layer.hasLogo ? 'Egen' : 'Ärvs' }}</span>
-                    </p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">
-                      Accent: <span class="font-semibold">{{ layer.hasAccent ? 'Egen' : 'Ärvs' }}</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -307,29 +287,6 @@ const accentSourceLabel = computed(() =>
 const organizationHasCustomAccent = computed(() =>
   Boolean(brandingDetails.value?.organizationTheme?.accentColor || brandingDetails.value?.organizationTheme?.paletteKey)
 )
-
-const brandingLayers = computed(() => {
-  const active = brandingDetails.value ?? auth.branding.value ?? null
-  if (!active) {
-    return []
-  }
-  const layers = [
-    { title: 'Organisation', layer: active.organizationTheme },
-    { title: 'Leverantör', layer: active.tenantTheme },
-    { title: 'Distributör', layer: active.distributorTheme }
-  ]
-  return layers
-    .filter((item) => Boolean(item.layer))
-    .map((item) => {
-      const layer = item.layer!
-      return {
-        title: item.title,
-        name: layer.name,
-        hasLogo: Boolean(layer.logoUrl),
-        hasAccent: Boolean(layer.accentColor || layer.paletteKey)
-      }
-    })
-})
 
 function triggerFilePicker() {
   uploadError.value = null
