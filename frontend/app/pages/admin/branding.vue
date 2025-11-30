@@ -79,17 +79,6 @@
             </div>
 
             <div class="space-y-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="h-12 w-12 rounded-full border border-slate-200 shadow-inner dark:border-white/10"
-                  :style="{ backgroundColor: activeAccentColor }"
-                />
-                <div>
-                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Accentfärg</p>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">Källa: {{ accentSourceLabel }}</p>
-                </div>
-              </div>
-
               <div class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
                 <div class="flex items-center justify-between gap-4">
                   <div>
@@ -316,7 +305,6 @@ const navColorInput = computed({
 const navigationPreviewColor = computed(() => navColor.value || activeNavBackgroundColor.value)
 
 const logoSourceLabel = computed(() => formatBrandingSource(brandingDetails.value?.activeTheme.logoSource))
-const accentSourceLabel = computed(() => formatBrandingSource(brandingDetails.value?.activeTheme.accentSource))
 
 const globalHasCustomAccent = computed(() => Boolean(globalTheme.value?.accentColor))
 

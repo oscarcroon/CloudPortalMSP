@@ -1,7 +1,8 @@
 <template>
   <div ref="container" class="relative">
     <button
-      class="flex min-w-0 items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-brand"
+      class="flex min-w-0 items-center gap-2 rounded-md border border-white/10 px-3 py-1.5 text-sm font-medium text-white transition focus:outline-none focus:ring-2 focus:ring-brand"
+      :style="contextButtonStyle"
       @click="toggle"
     >
       <span class="truncate max-w-[120px] sm:max-w-[180px]">{{ currentContextName }}</span>
@@ -10,12 +11,14 @@
 
     <div
       v-if="open"
-      class="absolute right-0 z-40 mt-2 w-80 max-h-[600px] overflow-y-auto rounded-lg border border-slate-700 bg-slate-900/95 p-2 shadow-xl backdrop-blur"
+      class="z-50 overflow-y-auto border border-white/10 p-2 shadow-xl backdrop-blur"
+      :class="dropdownClass"
+      :style="dropdownStyle"
     >
       <!-- Error message -->
       <div
         v-if="auth.state.value.error"
-        class="mb-2 rounded-md bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400"
+        class="mb-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400"
       >
         {{ auth.state.value.error }}
       </div>
@@ -37,11 +40,9 @@
           class="mt-1 rounded-md"
         >
           <button
-            class="flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm text-white transition"
-            :class="{
-              'bg-white/10': auth.state.value.data?.currentTenantId === tenant.id,
-              'hover:bg-white/10': auth.state.value.data?.currentTenantId !== tenant.id
-            }"
+            class="flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm transition"
+            :class="tenantButtonClass(tenant.id)"
+            :style="{ '--nav-hover-color': navHoverColor }"
             @click="selectTenant(tenant.id)"
           >
             <div class="min-w-0 flex-1">
@@ -71,10 +72,9 @@
             <button
               v-for="org in tenantOrganizations[tenant.id]"
               :key="org.id"
-              class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-1.5 text-left text-xs text-slate-300 transition hover:bg-white/5"
-              :class="{
-                'bg-white/10': auth.state.value.data?.currentOrgId === org.id
-              }"
+              class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-1.5 text-left text-xs transition"
+              :class="organizationButtonClass(org.id)"
+              :style="{ '--nav-hover-color': navHoverColor }"
               @click.stop="selectContext({ tenantId: tenant.id, organizationId: org.id })"
             >
               <div class="min-w-0 flex-1">
@@ -97,12 +97,9 @@
         <button
           v-for="org in standaloneOrganizations"
           :key="org.id"
-          class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm text-white transition"
-          :class="{
-            'bg-white/10': auth.state.value.data?.currentOrgId === org.id,
-            'cursor-not-allowed opacity-40': isOrgLocked(org),
-            'hover:bg-white/10': !isOrgLocked(org)
-          }"
+          class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm transition"
+          :class="standaloneOrgButtonClass(org)"
+          :style="{ '--nav-hover-color': navHoverColor }"
           :disabled="isOrgLocked(org)"
           @click="trySelectOrg(org)"
         >
@@ -129,15 +126,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useRouter } from '#imports'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useRouter, watch } from '#imports'
 import { Icon } from '@iconify/vue'
+import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import { useAuth } from '~/composables/useAuth'
 import type { AuthOrganization, AuthTenant } from '~/types/auth'
+import { DEFAULT_NAV_BACKGROUND } from '~~/shared/branding'
 
 const auth = useAuth()
 const router = useRouter()
 const open = ref(false)
 const container = ref<HTMLElement>()
+const dropdownTop = ref(0)
 const contextTenants = ref<AuthTenant[] | null>(null)
 const contextOrganizations = ref<AuthOrganization[] | null>(null)
 const tenantOrganizationsRaw = ref<Record<string, AuthOrganization[]> | null>(null)
@@ -145,6 +145,29 @@ const searchInput = ref('')
 
 const tenants = computed(() => contextTenants.value ?? auth.tenants.value)
 const organizations = computed(() => contextOrganizations.value ?? auth.organizations.value)
+const navBackgroundColor = computed(
+  () => auth.branding.value?.activeTheme.navBackgroundColor ?? DEFAULT_NAV_BACKGROUND
+)
+const breakpoints = useBreakpoints(breakpointsTailwind)
+const isMobileDropdown = breakpoints.smaller('md')
+const contextButtonStyle = computed(() => ({
+  backgroundColor: navBackgroundColor.value
+}))
+const navHoverColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0.12))
+const dropdownClass = computed(() =>
+  isMobileDropdown.value
+    ? 'fixed inset-x-0 top-0 w-screen rounded-none border-t px-4 pb-6 pt-4 md:hidden max-h-[calc(100vh-120px)]'
+    : 'absolute right-0 mt-2 hidden w-80 rounded-lg md:block max-h-[600px]'
+)
+const dropdownStyle = computed(() => {
+  const base: Record<string, string> = {
+    backgroundColor: navBackgroundColor.value
+  }
+  if (isMobileDropdown.value) {
+    base.top = `${dropdownTop.value}px`
+  }
+  return base
+})
 
 const normalizedSearch = computed(() => normalizeText(searchInput.value))
 
@@ -398,6 +421,92 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleGlobalClick)
 })
+onBeforeUnmount(() => {
+  removeMobileDropdownListeners()
+})
+
+watch(
+  () => open.value && isMobileDropdown.value,
+  async (active) => {
+    if (active) {
+      await nextTick()
+      updateDropdownPosition()
+      ensureMobileDropdownListeners()
+    } else {
+      removeMobileDropdownListeners()
+    }
+  }
+)
+
+function tenantButtonClass(tenantId: string) {
+  return auth.state.value.data?.currentTenantId === tenantId
+    ? 'bg-[color:var(--nav-hover-color)] text-brand-light'
+    : 'text-white hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+}
+
+function organizationButtonClass(orgId: string) {
+  return auth.state.value.data?.currentOrgId === orgId
+    ? 'bg-[color:var(--nav-hover-color)] text-brand-light'
+    : 'text-slate-300 hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+}
+
+function standaloneOrgButtonClass(org: AuthOrganization) {
+  if (isOrgLocked(org)) {
+    return 'cursor-not-allowed opacity-40 text-white'
+  }
+  return auth.state.value.data?.currentOrgId === org.id
+    ? 'bg-[color:var(--nav-hover-color)] text-brand-light'
+    : 'text-white hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+}
+
+function updateDropdownPosition() {
+  if (!import.meta.client || !container.value) {
+    return
+  }
+  const rect = container.value.getBoundingClientRect()
+  dropdownTop.value = rect.bottom + window.scrollY
+}
+
+let mobileDropdownCleanup: (() => void) | null = null
+
+function ensureMobileDropdownListeners() {
+  if (!import.meta.client || mobileDropdownCleanup) {
+    return
+  }
+  const handler = () => updateDropdownPosition()
+  window.addEventListener('resize', handler)
+  window.addEventListener('scroll', handler, true)
+  mobileDropdownCleanup = () => {
+    window.removeEventListener('resize', handler)
+    window.removeEventListener('scroll', handler, true)
+    mobileDropdownCleanup = null
+  }
+}
+
+function removeMobileDropdownListeners() {
+  if (mobileDropdownCleanup) {
+    mobileDropdownCleanup()
+    mobileDropdownCleanup = null
+  }
+}
+
+function mixColor(baseHex: string, targetHex: string, amount: number) {
+  const base = hexToRgbArray(baseHex)
+  const target = hexToRgbArray(targetHex)
+  const mixed = base.map((channel, index) =>
+    Math.round(channel + (target[index] - channel) * amount)
+  )
+  return `rgb(${mixed.join(', ')})`
+}
+
+function hexToRgbArray(hex: string): [number, number, number] {
+  const clean = hex.replace('#', '')
+  const bigint = Number.parseInt(clean, 16)
+  if (Number.isNaN(bigint)) {
+    return hexToRgbArray(DEFAULT_NAV_BACKGROUND)
+  }
+  return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255]
+}
 
 function normalizeTenantOrganizations(
   source: Record<string, AuthOrganization[]>
