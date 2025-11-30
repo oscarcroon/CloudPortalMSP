@@ -25,6 +25,7 @@ export const BRANDING_PALETTE_MAP = BRANDING_PALETTE.reduce<Record<string, Brand
 
 export const DEFAULT_BRANDING_PALETTE_KEY = 'ocean'
 export const DEFAULT_BRANDING_ACCENT = BRANDING_PALETTE_MAP[DEFAULT_BRANDING_PALETTE_KEY].hex
+export const DEFAULT_NAV_BACKGROUND = '#0F1C2F'
 export const DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY = 0.85
 
 export function normalizeHexColor(value: string): string {

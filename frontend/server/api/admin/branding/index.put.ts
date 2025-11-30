@@ -8,14 +8,16 @@ const payloadSchema = z
     accentColor: z.string().trim().optional().nullable(),
     paletteKey: z.string().trim().optional().nullable(),
     loginBackgroundTint: z.string().trim().optional().nullable(),
-    loginBackgroundTintOpacity: z.number().min(0).max(1).optional().nullable()
+    loginBackgroundTintOpacity: z.number().min(0).max(1).optional().nullable(),
+    navigationBackgroundColor: z.string().trim().optional().nullable()
   })
   .refine(
     (data) =>
       data.accentColor !== undefined ||
       data.paletteKey !== undefined ||
       data.loginBackgroundTint !== undefined ||
-      data.loginBackgroundTintOpacity !== undefined,
+      data.loginBackgroundTintOpacity !== undefined ||
+      data.navigationBackgroundColor !== undefined,
     'Ange minst ett fält att uppdatera.'
   )
   .refine(
@@ -33,7 +35,8 @@ export default defineEventHandler(async (event) => {
       accentColor: body.accentColor,
       paletteKey: body.paletteKey,
       loginBackgroundTint: body.loginBackgroundTint,
-      loginBackgroundTintOpacity: body.loginBackgroundTintOpacity
+      loginBackgroundTintOpacity: body.loginBackgroundTintOpacity,
+      navigationBackgroundColor: body.navigationBackgroundColor
     },
     auth.user.id
   )

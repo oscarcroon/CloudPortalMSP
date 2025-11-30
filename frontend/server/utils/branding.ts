@@ -17,6 +17,7 @@ import {
   BRANDING_PALETTE_MAP,
   DEFAULT_BRANDING_ACCENT,
   DEFAULT_BRANDING_PALETTE_KEY,
+  DEFAULT_NAV_BACKGROUND,
   DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY,
   normalizeHexColor
 } from '~~/shared/branding'
@@ -63,6 +64,7 @@ export interface BrandingMediaFields {
   loginBackgroundUrl: string | null
   loginBackgroundTint: string | null
   loginBackgroundTintOpacity: number | null
+  navigationBackgroundColor: string | null
 }
 
 export interface BrandingLayer extends BrandingMediaFields {
@@ -79,10 +81,12 @@ export interface BrandingActiveTheme extends BrandingMediaFields {
   accentColor: string
   paletteKey: string | null
   loginBackgroundTintOpacity: number
+  navBackgroundColor: string
   logoSource: BrandingSourceInfo
   accentSource: BrandingSourceInfo
   loginLogoSource: BrandingSourceInfo
   loginBackgroundSource: BrandingSourceInfo
+  navBackgroundSource: BrandingSourceInfo
 }
 
 export interface BrandingResolution {
@@ -98,6 +102,7 @@ export interface BrandingAttributeInput {
   paletteKey?: string | null
   loginBackgroundTint?: string | null
   loginBackgroundTintOpacity?: number | null
+  navigationBackgroundColor?: string | null
 }
 
 export interface LogoFilePayload {
@@ -450,6 +455,7 @@ function buildLayer(input: {
     loginBackgroundUrl: normalizedLoginBackground,
     loginBackgroundTint: input.theme?.loginBackgroundTint ?? null,
     loginBackgroundTintOpacity: input.theme?.loginBackgroundTintOpacity ?? null,
+    navigationBackgroundColor: input.theme?.navigationBackgroundColor ?? null,
     accentColor: input.theme?.accentColor ?? null,
     paletteKey: input.theme?.paletteKey ?? null,
     updatedAt: getTimestampValue(input.theme?.updatedAt),
@@ -495,6 +501,11 @@ function buildResolution(
     layer => layer.loginBackgroundTintOpacity,
     DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY
   )
+  const navBackground = determineLayerValue(
+    layers,
+    [layer => layer.navigationBackgroundColor],
+    DEFAULT_NAV_BACKGROUND
+  )
   const accentSource = determineAccentSource(layers)
 
   const activeTheme: BrandingActiveTheme = {
@@ -506,12 +517,14 @@ function buildResolution(
     loginBackgroundUrl: loginBackground.value,
     loginBackgroundTint: loginBackgroundTint.value,
     loginBackgroundTintOpacity: loginBackgroundTintOpacity.value,
+    navBackgroundColor: navBackground.value ?? DEFAULT_NAV_BACKGROUND,
     accentColor: accentSource.color,
     paletteKey: accentSource.paletteKey,
     logoSource: appLogoLight.source,
     accentSource: accentSource.source,
     loginLogoSource: loginLogoLight.source,
-    loginBackgroundSource: loginBackground.source
+    loginBackgroundSource: loginBackground.source,
+    navBackgroundSource: navBackground.source
   }
 
   return {
@@ -625,12 +638,14 @@ export function getDefaultBrandingResolution(): BrandingResolution {
     loginBackgroundUrl: null,
     loginBackgroundTint: null,
     loginBackgroundTintOpacity: DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY,
+    navBackgroundColor: DEFAULT_NAV_BACKGROUND,
     accentColor: DEFAULT_BRANDING_ACCENT,
     paletteKey: DEFAULT_BRANDING_PALETTE_KEY,
     logoSource: DEFAULT_BRANDING_SOURCE,
     accentSource: DEFAULT_BRANDING_SOURCE,
     loginLogoSource: DEFAULT_BRANDING_SOURCE,
-    loginBackgroundSource: DEFAULT_BRANDING_SOURCE
+    loginBackgroundSource: DEFAULT_BRANDING_SOURCE,
+    navBackgroundSource: DEFAULT_BRANDING_SOURCE
   }
   return {
     organizationTheme: null,
@@ -652,8 +667,18 @@ function normalizeAttributeInput(attributes: BrandingAttributeInput) {
     attributes,
     'loginBackgroundTintOpacity'
   )
+  const hasNavigationBackground = Object.prototype.hasOwnProperty.call(
+    attributes,
+    'navigationBackgroundColor'
+  )
 
-  if (!hasAccent && !hasPalette && !hasBackgroundTint && !hasBackgroundTintOpacity) {
+  if (
+    !hasAccent &&
+    !hasPalette &&
+    !hasBackgroundTint &&
+    !hasBackgroundTintOpacity &&
+    !hasNavigationBackground
+  ) {
     return null
   }
 
@@ -705,6 +730,14 @@ function normalizeAttributeInput(attributes: BrandingAttributeInput) {
       const clamped = Math.min(Math.max(numeric, 0), 1)
       payload.loginBackgroundTintOpacity = clamped
     }
+  }
+
+  if (hasNavigationBackground) {
+    payload.navigationBackgroundColor =
+      attributes.navigationBackgroundColor &&
+      attributes.navigationBackgroundColor.trim().length > 0
+        ? normalizeHexColor(attributes.navigationBackgroundColor)
+        : null
   }
 
   return payload
@@ -761,7 +794,8 @@ async function writeBrandingRecord(
     'loginLogoDarkUrl',
     'loginBackgroundUrl',
     'loginBackgroundTint',
-    'loginBackgroundTintOpacity'
+    'loginBackgroundTintOpacity',
+    'navigationBackgroundColor'
   ] as const
   const existing = await findBrandingRow(db, target)
   const timestamp = new Date()
@@ -813,6 +847,12 @@ async function writeBrandingRecord(
       'loginBackgroundTintOpacity'
     )
       ? (changes.loginBackgroundTintOpacity as number | null)
+      : null,
+    navigationBackgroundColor: Object.prototype.hasOwnProperty.call(
+      changes,
+      'navigationBackgroundColor'
+    )
+      ? changes.navigationBackgroundColor ?? null
       : null,
     accentColor: Object.prototype.hasOwnProperty.call(changes, 'accentColor')
       ? changes.accentColor ?? null

@@ -75,6 +75,7 @@ export interface BrandingThemeLayer {
   loginBackgroundUrl: string | null
   loginBackgroundTint: string | null
   loginBackgroundTintOpacity: number | null
+  navigationBackgroundColor: string | null
   accentColor: string | null
   paletteKey: string | null
   updatedAt: number | null
@@ -90,12 +91,14 @@ export interface BrandingActiveTheme {
   loginBackgroundUrl: string | null
   loginBackgroundTint: string | null
   loginBackgroundTintOpacity: number
+  navBackgroundColor: string
   accentColor: string
   paletteKey: string | null
   logoSource: BrandingThemeSource
   accentSource: BrandingThemeSource
   loginLogoSource: BrandingThemeSource
   loginBackgroundSource: BrandingThemeSource
+  navBackgroundSource: BrandingThemeSource
 }
 
 export interface BrandingThemeSource {

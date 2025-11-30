@@ -60,7 +60,8 @@
               <div class="grid gap-6 lg:grid-cols-2">
                 <div class="space-y-4">
                   <div
-                    class="flex h-32 w-full max-w-sm items-center justify-center rounded-xl border border-dashed border-white/10 bg-[#0f1c2f] px-4 text-white"
+                    class="flex h-32 w-full max-w-sm items-center justify-center rounded-xl border border-dashed border-white/10 px-4 text-white"
+                    :style="{ backgroundColor: navigationPreviewColor }"
                   >
                     <img :src="currentLogo" :alt="`Logo preview for ${activeOrganisationName}`" class="max-h-20 w-auto object-contain" />
                   </div>
@@ -112,71 +113,137 @@
                     </div>
                   </div>
 
-                  <div>
-                    <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Palett</p>
-                    <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <button
-                        v-for="option in paletteOptions"
-                        :key="option.key"
-                        class="flex flex-col items-center rounded-xl border px-3 py-2 text-xs font-semibold transition"
-                        :class="[
-                          brandingDetails?.organizationTheme?.paletteKey === option.key
-                            ? 'border-brand text-brand'
-                            : 'border-slate-200 text-slate-600 hover:border-brand/50 hover:text-brand',
-                          accentSaving ? 'opacity-50 cursor-not-allowed' : ''
-                        ]"
-                        :disabled="accentSaving"
-                        @click="applyPalette(option.key)"
-                      >
-                        <span
-                          class="mb-2 flex h-10 w-10 items-center justify-center rounded-full"
-                          :style="{ backgroundColor: option.hex }"
-                        />
-                        {{ option.label }}
-                      </button>
+                <div class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Accentfärg</p>
+                      <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Använd en egen färg eller återställ till arv.
+                      </p>
                     </div>
-                  </div>
-
-                  <div class="space-y-2">
-                    <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Egen färg</p>
-                    <div class="flex flex-wrap items-center gap-3">
-                      <input
-                        v-model="accentForm.customColor"
-                        type="color"
-                        class="h-10 w-14 rounded-lg border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-transparent"
-                      />
-                      <input
-                        v-model="accentForm.customColor"
-                        type="text"
-                        class="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-transparent dark:text-slate-100"
-                        placeholder="#005BFF"
-                      />
-                      <button
-                        class="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:bg-brand/40"
-                        type="button"
-                        :disabled="accentSaving"
-                        @click="saveCustomAccent"
-                      >
-                        {{ accentSaving ? 'Sparar...' : 'Spara' }}
-                      </button>
-                      <button
-                        v-if="organizationHasCustomAccent"
-                        class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
-                        type="button"
-                        :disabled="accentSaving"
-                        @click="resetAccent"
-                      >
-                        Återställ
-                      </button>
-                    </div>
-                    <p
-                      v-if="accentStatus"
-                      class="text-xs font-semibold"
-                      :class="accentStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'"
+                    <div
+                      class="flex h-10 w-24 items-center justify-center rounded-lg text-xs font-semibold text-white"
+                      :style="{ backgroundColor: activeAccentColor }"
                     >
-                      {{ accentStatus.text }}
-                    </p>
+                      Accent
+                    </div>
                   </div>
+                  <div class="flex flex-wrap items-center gap-3">
+                    <input
+                      v-model="accentForm.customColor"
+                      type="color"
+                      class="h-10 w-14 rounded-lg border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-transparent"
+                    />
+                    <input
+                      v-model="accentForm.customColor"
+                      type="text"
+                      class="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-transparent dark:text-slate-100"
+                      placeholder="#005BFF"
+                    />
+                    <button
+                      class="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:bg-brand/40"
+                      type="button"
+                      :disabled="accentSaving"
+                      @click="saveCustomAccent"
+                    >
+                      {{ accentSaving ? 'Sparar...' : 'Spara' }}
+                    </button>
+                    <button
+                      v-if="organizationHasCustomAccent"
+                      class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+                      type="button"
+                      :disabled="accentSaving"
+                      @click="resetAccent"
+                    >
+                      Återställ
+                    </button>
+                  </div>
+                  <p
+                    v-if="accentStatus"
+                    class="text-xs font-semibold"
+                    :class="accentStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'"
+                  >
+                    {{ accentStatus.text }}
+                  </p>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button
+                      v-for="option in paletteOptions"
+                      :key="option.key"
+                      class="h-8 w-8 rounded-full border border-slate-200 transition hover:-translate-y-0.5 dark:border-white/10"
+                      :style="{ backgroundColor: option.hex }"
+                      :disabled="accentSaving"
+                      @click="applyAccentPreset(option.hex)"
+                    >
+                      <span class="sr-only">Välj {{ option.label }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Navigation</p>
+                      <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Bakgrundsfärgen som används i huvudmenyn.
+                      </p>
+                    </div>
+                    <div
+                      class="flex h-10 w-24 items-center justify-center rounded-lg text-xs font-semibold text-white"
+                      :style="{ backgroundColor: navigationPreviewColor }"
+                    >
+                      Nav
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-3">
+                    <input
+                      v-model="navColorInput"
+                      type="color"
+                      class="h-10 w-14 rounded-lg border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-transparent"
+                    />
+                    <input
+                      v-model="navColor"
+                      type="text"
+                      class="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-transparent dark:text-slate-100"
+                      placeholder="#0F1C2F"
+                    />
+                    <button
+                      class="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:bg-brand/40"
+                      type="button"
+                      :disabled="navSaving"
+                      @click="saveNavigationColor"
+                    >
+                      {{ navSaving ? 'Sparar...' : 'Spara' }}
+                    </button>
+                    <button
+                      v-if="navColor"
+                      class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+                      type="button"
+                      :disabled="navSaving"
+                      @click="resetNavigationColor"
+                    >
+                      Återställ
+                    </button>
+                  </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button
+                    v-for="option in paletteOptions"
+                    :key="`nav-${option.key}`"
+                    class="h-8 w-8 rounded-full border border-slate-200 transition hover:-translate-y-0.5 dark:border-white/10"
+                    :style="{ backgroundColor: option.hex }"
+                    :disabled="navSaving"
+                    @click="applyNavPreset(option.hex)"
+                  >
+                    <span class="sr-only">Välj {{ option.label }}</span>
+                  </button>
+                </div>
+                  <p
+                    v-if="navStatus"
+                    class="text-xs font-semibold"
+                    :class="navStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'"
+                  >
+                    {{ navStatus.text }}
+                  </p>
+                </div>
                 </div>
               </div>
             </div>
@@ -220,7 +287,12 @@ import { useAuth } from '~/composables/useAuth'
 import LoginBrandingAssets from '~/components/branding/LoginBrandingAssets.vue'
 import { normalizeLogoUrl } from '~/utils/logo'
 import type { BrandingState, BrandingThemeSource } from '~/types/auth'
-import { BRANDING_PALETTE, DEFAULT_BRANDING_ACCENT, normalizeHexColor } from '~~/shared/branding'
+import {
+  BRANDING_PALETTE,
+  DEFAULT_BRANDING_ACCENT,
+  DEFAULT_NAV_BACKGROUND,
+  normalizeHexColor
+} from '~~/shared/branding'
 
 const auth = useAuth()
 
@@ -248,8 +320,10 @@ const brandingLoading = ref(false)
 const brandingError = ref<string | null>(null)
 const accentSaving = ref(false)
 const accentStatus = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+const navColor = ref('')
+const navSaving = ref(false)
+const navStatus = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const accentForm = reactive({
-  paletteKey: '',
   customColor: ''
 })
 const paletteOptions = BRANDING_PALETTE
@@ -276,7 +350,19 @@ const activeAccentColor = computed(
     auth.branding.value?.activeTheme.accentColor ??
     DEFAULT_BRANDING_ACCENT
 )
-
+const activeNavBackgroundColor = computed(
+  () =>
+    brandingDetails.value?.activeTheme.navBackgroundColor ??
+    auth.branding.value?.activeTheme.navBackgroundColor ??
+    DEFAULT_NAV_BACKGROUND
+)
+const navColorInput = computed({
+  get: () => navColor.value || activeNavBackgroundColor.value,
+  set: value => {
+    navColor.value = value
+  }
+})
+const navigationPreviewColor = computed(() => navColor.value || activeNavBackgroundColor.value)
 const logoSourceLabel = computed(() =>
   formatBrandingSource(brandingDetails.value?.activeTheme.logoSource ?? auth.branding.value?.activeTheme.logoSource)
 )
@@ -285,7 +371,15 @@ const accentSourceLabel = computed(() =>
 )
 
 const organizationHasCustomAccent = computed(() =>
-  Boolean(brandingDetails.value?.organizationTheme?.accentColor || brandingDetails.value?.organizationTheme?.paletteKey)
+  Boolean(brandingDetails.value?.organizationTheme?.accentColor)
+)
+
+watch(
+  () => brandingDetails.value?.organizationTheme?.navigationBackgroundColor,
+  value => {
+    navColor.value = value ?? ''
+  },
+  { immediate: true }
 )
 
 function triggerFilePicker() {
@@ -411,39 +505,11 @@ async function refreshBranding() {
       credentials: 'include'
     })
     const theme = brandingDetails.value?.organizationTheme
-    accentForm.paletteKey = theme?.paletteKey ?? ''
     accentForm.customColor = theme?.accentColor ?? ''
   } catch (error: any) {
     brandingError.value = error?.data?.message || error?.message || 'Kunde inte hämta brandinginformation.'
   } finally {
     brandingLoading.value = false
-  }
-}
-
-async function applyPalette(paletteKey: string) {
-  const activeOrgId = currentOrgId.value
-  if (!activeOrgId || accentSaving.value) {
-    return
-  }
-  accentSaving.value = true
-  accentStatus.value = null
-  try {
-    await $fetch(`/api/organizations/${activeOrgId}/branding`, {
-      method: 'PUT',
-      credentials: 'include',
-      body: { paletteKey }
-    })
-    await auth.fetchMe()
-    await refreshBranding()
-    accentStatus.value = { type: 'success', text: 'Accentfärgen uppdaterades.' }
-  } catch (error: any) {
-    accentStatus.value = {
-      type: 'error',
-      text: error?.data?.message || error?.message || 'Kunde inte uppdatera accentfärgen.'
-    }
-  } finally {
-    accentSaving.value = false
-    scheduleAccentStatusClear()
   }
 }
 
@@ -497,7 +563,7 @@ async function resetAccent() {
     await $fetch(`/api/organizations/${activeOrgId}/branding`, {
       method: 'PUT',
       credentials: 'include',
-      body: { accentColor: null, paletteKey: null }
+      body: { accentColor: null }
     })
     await auth.fetchMe()
     await refreshBranding()
@@ -521,6 +587,59 @@ function scheduleAccentStatusClear() {
   setTimeout(() => {
     accentStatus.value = null
   }, timeout)
+}
+
+async function applyAccentPreset(hex: string) {
+  accentForm.customColor = hex
+  await saveCustomAccent()
+}
+
+async function saveNavigationColor() {
+  const activeOrgId = auth.state.value.data?.currentOrgId
+  if (!activeOrgId || navSaving.value) {
+    return
+  }
+  navSaving.value = true
+  navStatus.value = null
+  try {
+    await $fetch(`/api/organizations/${activeOrgId}/branding`, {
+      method: 'PUT',
+      credentials: 'include',
+      body: { navigationBackgroundColor: navColor.value || null }
+    })
+    await auth.fetchMe()
+    await refreshBranding()
+    navStatus.value = { type: 'success', text: 'Navigationsbakgrunden uppdaterades.' }
+  } catch (error: any) {
+    navStatus.value = {
+      type: 'error',
+      text:
+        error?.data?.message || error?.message || 'Kunde inte uppdatera navigationsbakgrunden.'
+    }
+  } finally {
+    navSaving.value = false
+    scheduleNavStatusClear()
+  }
+}
+
+async function resetNavigationColor() {
+  navColor.value = ''
+  await saveNavigationColor()
+}
+
+function scheduleNavStatusClear() {
+  if (!navStatus.value) {
+    return
+  }
+  const timeout = navStatus.value.type === 'success' ? 4000 : 6000
+  setTimeout(() => {
+    navStatus.value = null
+  }, timeout)
+}
+
+async function applyNavPreset(hex: string) {
+  navColor.value = hex
+  await saveNavigationColor()
 }
 
 function formatBrandingSource(source?: BrandingThemeSource | null) {

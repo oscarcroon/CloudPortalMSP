@@ -55,12 +55,12 @@ const accentVariables = computed(() => {
 
 const backgroundStyle = computed(() => {
   const bg = loginBranding.background.value
-  const tint = bg?.color || '#0f172a'
   if (!bg?.url) {
     return {
-      backgroundColor: tint
+      backgroundColor: bg?.fallbackColor ?? bg?.color ?? '#0f172a'
     }
   }
+  const tint = bg.color
   const primaryOpacity = bg.opacity ?? 0.85
   const secondaryOpacity = bg.secondaryOpacity ?? Math.max(primaryOpacity * 0.75, 0)
   return {

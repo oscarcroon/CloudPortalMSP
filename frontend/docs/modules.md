@@ -220,6 +220,7 @@ Login-sidan brändas nu med samma arv som appen:
 - Varje nivå (distributör, leverantör, organisation) kan ladda upp egna login-logotyper (ljus/mörk) och bakgrundsbilder via logo-endpoints med `variant` (t.ex. `variant=login-light`, `variant=login-dark`, `variant=login-background`).
 - `GET /api/login-branding` avgör aktiv branding baserat på host. Slug-subdomäner definieras via `LOGIN_BRANDING_SLUG_SUFFIXES` (t.ex. `.portal.coreit.cloud`). Verifierade custom domains ersätter slug-lösningen.
 - Bakgrundstint och intensitet sparas via `loginBackgroundTint` + `loginBackgroundTintOpacity` i `PUT /api/organizations/:id/branding`, `PUT /api/admin/tenants/:id/branding` samt `PUT /api/admin/branding` (global default).
+- Navigationsbakgrunden i huvudmenyn styrs via `navigationBackgroundColor`; lämna `null` för mörk standard. UI finns på `/settings/branding` (organisation) och `/admin/branding` (global).
 
 Custom domains hanteras via:
 

@@ -2,7 +2,8 @@ import { computed, useAsyncData, useColorMode } from '#imports'
 import type { BrandingState } from '~/types/auth'
 import { DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY } from '~~/shared/branding'
 
-const DEFAULT_BACKGROUND_COLOR = '#0f172a'
+const DEFAULT_DARK_BACKGROUND = '#0f172a'
+const DEFAULT_LIGHT_BACKGROUND = '#f5f7fb'
 
 export const useLoginBranding = () => {
   const { data, pending, error, refresh } = useAsyncData('login-branding', () =>
@@ -39,16 +40,24 @@ export const useLoginBranding = () => {
 
   const background = computed(() => {
     const theme = activeTheme.value
-    const color = theme?.loginBackgroundTint ?? DEFAULT_BACKGROUND_COLOR
-    const opacity = clampOpacity(
-      theme?.loginBackgroundTintOpacity ?? DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY
-    )
-    const secondaryOpacity = clampOpacity(opacity * 0.75)
+    const hasImage = Boolean(theme?.loginBackgroundUrl)
+    const fallbackColor =
+      colorMode.value === 'dark' ? DEFAULT_DARK_BACKGROUND : DEFAULT_LIGHT_BACKGROUND
+    const color = hasImage
+      ? theme?.loginBackgroundTint ?? DEFAULT_DARK_BACKGROUND
+      : fallbackColor
+    const opacity = hasImage
+      ? clampOpacity(
+          theme?.loginBackgroundTintOpacity ?? DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY
+        )
+      : 0
+    const secondaryOpacity = hasImage ? clampOpacity(opacity * 0.75) : 0
     return {
       color,
-      url: theme?.loginBackgroundUrl ?? null,
+      url: hasImage ? theme?.loginBackgroundUrl ?? null : null,
       opacity,
-      secondaryOpacity
+      secondaryOpacity,
+      fallbackColor
     }
   })
 

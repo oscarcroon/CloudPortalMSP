@@ -1,5 +1,5 @@
 <template>
-  <nav class="bg-[#0f1c2f] text-white">
+  <nav class="text-white" :style="{ backgroundColor: navBackgroundColor }">
     <div class="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
       <div class="flex items-center gap-4">
         <NuxtLink to="/" class="flex items-center gap-2">
@@ -94,6 +94,7 @@ import ContextSwitcher from '~/components/navigation/ContextSwitcher.vue'
 import { useAuth } from '~/composables/useAuth'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
 import { normalizeLogoUrl } from '~/utils/logo'
+import { DEFAULT_NAV_BACKGROUND } from '~~/shared/branding'
 
 const route = useRoute()
 const mobileOpen = ref(false)
@@ -107,6 +108,9 @@ const activeLogo = computed(() => {
 })
 const activeOrganisationName = computed(
   () => auth.currentOrg.value?.name ?? 'CoreIT Cloud Portal'
+)
+const navBackgroundColor = computed(
+  () => auth.branding.value?.activeTheme.navBackgroundColor ?? DEFAULT_NAV_BACKGROUND
 )
 
 const baseNavItems = [

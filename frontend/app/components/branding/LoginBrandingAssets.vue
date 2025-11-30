@@ -81,17 +81,22 @@
           Ange hex-färg för överlägg på bakgrundsbilden. Lämna tomt för standard.
         </p>
       </div>
-      <div class="mt-4 flex flex-wrap items-center gap-3">
+      <div
+        class="mt-4 flex flex-wrap items-center gap-3"
+        :class="{ 'pointer-events-none opacity-50': !hasBackgroundImage }"
+      >
         <input
           v-model="backgroundTint"
           type="color"
           class="h-12 w-14 rounded-lg border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-transparent"
+          :disabled="!hasBackgroundImage || tintSaving"
         />
         <input
           v-model="backgroundTint"
           type="text"
           placeholder="#0f172a"
           class="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-transparent dark:text-slate-100"
+          :disabled="!hasBackgroundImage || tintSaving"
         />
         <div class="flex flex-col gap-2">
           <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -105,6 +110,7 @@
               max="100"
               step="5"
               class="h-2 w-32 flex-1 appearance-none rounded bg-slate-200 accent-brand dark:bg-slate-700"
+              :disabled="!hasBackgroundImage || tintSaving"
             />
             <span class="text-xs text-slate-500 dark:text-slate-400">
               {{ backgroundTintOpacityPercent }}%
@@ -114,21 +120,23 @@
         <button
           class="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:bg-brand/40"
           type="button"
-          :disabled="tintSaving"
+          :disabled="tintSaving || !hasBackgroundImage"
           @click="saveBackgroundTint"
         >
           {{ tintSaving ? 'Sparar...' : 'Spara' }}
         </button>
         <button
-          v-if="hasCustomTint"
           class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
           type="button"
-          :disabled="tintSaving"
+          :disabled="tintSaving || !canResetTint"
           @click="resetBackgroundTint"
         >
           Återställ
         </button>
       </div>
+      <p v-if="!hasBackgroundImage" class="mt-2 text-xs text-slate-400">
+        Ladda upp en bakgrundsbild för att kunna justera tint.
+      </p>
       <p v-if="tintStatus" class="mt-2 text-xs font-semibold" :class="tintStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'">
         {{ tintStatus.message }}
       </p>
@@ -210,6 +218,7 @@ const fileInputs = ref<Record<AssetVariant, HTMLInputElement | null>>({
 const tintSaving = ref(false)
 const tintStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 const backgroundTint = ref('')
+const originalTint = ref('')
 
 const baseLogoPath = computed(() => {
   if (props.mode === 'organization') {
@@ -249,14 +258,35 @@ const hasCustomTint = computed(() => {
     Math.abs(opacity - DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY) > 0.001
   return Boolean(tint) || hasOpacity
 })
+const canResetTint = computed(() => {
+  if (!hasBackgroundImage.value) {
+    return false
+  }
+  if (hasCustomTint.value) {
+    return true
+  }
+  return (
+    backgroundTint.value !== originalTint.value ||
+    backgroundTintOpacityPercent.value !== originalTintOpacityPercent.value
+  )
+})
 const backgroundLabel = computed(() =>
   props.branding?.activeTheme.loginBackgroundUrl ? 'Förhandsvisning' : 'Ingen bakgrund'
 )
+const hasBackgroundImage = computed(() => Boolean(localTheme.value?.loginBackgroundUrl))
+const effectiveTintColor = computed(
+  () =>
+    backgroundTint.value ||
+    props.branding?.activeTheme.loginBackgroundTint ||
+    '#0f172a'
+)
+const effectiveTintOpacity = computed(() => backgroundTintOpacityPercent.value / 100)
 
 watch(
   () => localTheme.value?.loginBackgroundTint,
   (value) => {
     backgroundTint.value = value ?? ''
+    originalTint.value = backgroundTint.value
   },
   { immediate: true }
 )
@@ -264,13 +294,18 @@ watch(
 const backgroundTintOpacityPercent = ref(
   Math.round(DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY * 100)
 )
+const originalTintOpacityPercent = ref(
+  Math.round(DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY * 100)
+)
 
 watch(
-  () => props.branding?.activeTheme.loginBackgroundTintOpacity,
+  () => localTheme.value?.loginBackgroundTintOpacity,
   (value) => {
     const numeric =
       typeof value === 'number' ? value : DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY
-    backgroundTintOpacityPercent.value = Math.round(numeric * 100)
+    const percent = Math.round(numeric * 100)
+    backgroundTintOpacityPercent.value = percent
+    originalTintOpacityPercent.value = percent
   },
   { immediate: true }
 )
@@ -345,13 +380,21 @@ function assetPreviewStyle(variant: AssetVariant) {
     return {}
   }
   const url = previewUrl(variant)
-  if (!url) {
-    return {}
+  const tint = effectiveTintColor.value
+  const opacity = effectiveTintOpacity.value
+  const secondaryOpacity = Math.max(opacity * 0.75, 0)
+  if (url && hasBackgroundImage.value) {
+    return {
+      backgroundImage: `linear-gradient(135deg, ${applyAlpha(tint, opacity)}, ${applyAlpha(
+        tint,
+        secondaryOpacity
+      )}), url(${url})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center'
+    }
   }
   return {
-    backgroundImage: `url(${url})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center'
+    backgroundColor: tint
   }
 }
 
@@ -467,6 +510,15 @@ async function resetBackgroundTint() {
     DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY * 100
   )
   await saveBackgroundTint()
+}
+
+function applyAlpha(hexColor: string, alpha: number) {
+  const hex = hexColor.replace('#', '')
+  const bigint = parseInt(hex, 16)
+  const r = (bigint >> 16) & 255
+  const g = (bigint >> 8) & 255
+  const b = bigint & 255
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 </script>

@@ -144,6 +144,7 @@ export const brandingThemes = sqliteTable(
     loginLogoDarkUrl: text('login_logo_dark_url'),
     loginBackgroundUrl: text('login_background_url'),
     loginBackgroundTint: text('login_background_tint', { length: 16 }),
+    navigationBackgroundColor: text('navigation_background_color', { length: 16 }),
     loginBackgroundTintOpacity: real('login_background_tint_opacity'),
     accentColor: text('accent_color', { length: 16 }),
     paletteKey: text('palette_key', { length: 64 }),
