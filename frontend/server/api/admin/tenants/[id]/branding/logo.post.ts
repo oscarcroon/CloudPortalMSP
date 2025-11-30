@@ -1,5 +1,14 @@
-import { createError, defineEventHandler, getRouterParam, readMultipartFormData } from 'h3'
-import { setBrandingLogo } from '~~/server/utils/branding'
+import {
+  createError,
+  defineEventHandler,
+  getQuery,
+  getRouterParam,
+  readMultipartFormData
+} from 'h3'
+import {
+  setBrandingMediaAsset,
+  type BrandingMediaType
+} from '~~/server/utils/branding'
 import { requireTenantPermission } from '~~/server/utils/rbac'
 import { ensureBrandableTenant } from './utils'
 
@@ -18,7 +27,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Logotypfil krävs.' })
   }
 
-  return setBrandingLogo(
+  const query = getQuery(event)
+  const mediaType = resolveVariantMediaType(
+    typeof query.variant === 'string' ? (query.variant as string) : null
+  )
+  const { url } = await setBrandingMediaAsset(
     {
       targetType: tenant.type,
       tenantId: tenant.id
@@ -30,5 +43,28 @@ export default defineEventHandler(async (event) => {
     },
     permission.auth.user.id
   )
+
+  if (mediaType === 'appLogoLight') {
+    return { logoUrl: url }
+  }
+  return { url, type: mediaType }
 })
+
+function resolveVariantMediaType(value: string | null): BrandingMediaType {
+  switch ((value ?? '').toLowerCase()) {
+    case 'app-dark':
+    case 'app-logo-dark':
+      return 'appLogoDark'
+    case 'login-light':
+    case 'login-logo-light':
+      return 'loginLogoLight'
+    case 'login-dark':
+    case 'login-logo-dark':
+      return 'loginLogoDark'
+    case 'login-background':
+      return 'loginBackground'
+    default:
+      return 'appLogoLight'
+  }
+}
 

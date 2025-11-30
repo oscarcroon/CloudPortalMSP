@@ -64,6 +64,7 @@ export interface BrandingState {
   organizationTheme: BrandingThemeLayer | null
   tenantTheme: BrandingThemeLayer | null
   distributorTheme: BrandingThemeLayer | null
+  globalTheme?: BrandingThemeLayer | null
   activeTheme: BrandingActiveTheme
 }
 
@@ -72,6 +73,13 @@ export interface BrandingThemeLayer {
   targetId: string
   name: string
   logoUrl: string | null
+  appLogoLightUrl: string | null
+  appLogoDarkUrl: string | null
+  loginLogoLightUrl: string | null
+  loginLogoDarkUrl: string | null
+  loginBackgroundUrl: string | null
+  loginBackgroundTint: string | null
+  loginBackgroundTintOpacity: number | null
   accentColor: string | null
   paletteKey: string | null
   updatedAt: number | null
@@ -86,9 +94,18 @@ export interface BrandingThemeSource {
 
 export interface BrandingActiveTheme {
   logoUrl: string | null
+  appLogoLightUrl: string | null
+  appLogoDarkUrl: string | null
+  loginLogoLightUrl: string | null
+  loginLogoDarkUrl: string | null
+  loginBackgroundUrl: string | null
+  loginBackgroundTint: string | null
+  loginBackgroundTintOpacity: number
   accentColor: string
   paletteKey: string | null
   logoSource: BrandingThemeSource
   accentSource: BrandingThemeSource
+  loginLogoSource: BrandingThemeSource
+  loginBackgroundSource: BrandingThemeSource
 }
 

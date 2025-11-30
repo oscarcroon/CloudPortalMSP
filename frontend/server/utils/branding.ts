@@ -17,6 +17,7 @@ import {
   BRANDING_PALETTE_MAP,
   DEFAULT_BRANDING_ACCENT,
   DEFAULT_BRANDING_PALETTE_KEY,
+  DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY,
   normalizeHexColor
 } from '~~/shared/branding'
 
@@ -53,41 +54,93 @@ export interface BrandingSourceInfo {
   name: string | null
 }
 
-export interface BrandingLayer {
+export interface BrandingMediaFields {
+  logoUrl: string | null
+  appLogoLightUrl: string | null
+  appLogoDarkUrl: string | null
+  loginLogoLightUrl: string | null
+  loginLogoDarkUrl: string | null
+  loginBackgroundUrl: string | null
+  loginBackgroundTint: string | null
+  loginBackgroundTintOpacity: number | null
+}
+
+export interface BrandingLayer extends BrandingMediaFields {
   targetType: BrandingTargetType
   targetId: string
   name: string
-  logoUrl: string | null
   accentColor: string | null
   paletteKey: string | null
   updatedAt: number | null
   source: 'custom' | 'inherited'
 }
 
-export interface BrandingActiveTheme {
-  logoUrl: string | null
+export interface BrandingActiveTheme extends BrandingMediaFields {
   accentColor: string
   paletteKey: string | null
+  loginBackgroundTintOpacity: number
   logoSource: BrandingSourceInfo
   accentSource: BrandingSourceInfo
+  loginLogoSource: BrandingSourceInfo
+  loginBackgroundSource: BrandingSourceInfo
 }
 
 export interface BrandingResolution {
   organizationTheme: BrandingLayer | null
   tenantTheme: BrandingLayer | null
   distributorTheme: BrandingLayer | null
+  globalTheme?: BrandingLayer | null
   activeTheme: BrandingActiveTheme
 }
 
 export interface BrandingAttributeInput {
   accentColor?: string | null
   paletteKey?: string | null
+  loginBackgroundTint?: string | null
+  loginBackgroundTintOpacity?: number | null
 }
 
 export interface LogoFilePayload {
   filename: string
   mimeType?: string | null
   data: Buffer
+}
+
+export type BrandingMediaType =
+  | 'appLogoLight'
+  | 'appLogoDark'
+  | 'loginLogoLight'
+  | 'loginLogoDark'
+  | 'loginBackground'
+
+interface BrandingMediaConfig {
+  column: keyof BrandingThemeRow
+  filenameSuffix: string
+  syncOrganizationLogo?: boolean
+}
+
+const BRANDING_MEDIA_CONFIG: Record<BrandingMediaType, BrandingMediaConfig> = {
+  appLogoLight: {
+    column: 'appLogoLightUrl',
+    filenameSuffix: 'app-logo-light',
+    syncOrganizationLogo: true
+  },
+  appLogoDark: {
+    column: 'appLogoDarkUrl',
+    filenameSuffix: 'app-logo-dark'
+  },
+  loginLogoLight: {
+    column: 'loginLogoLightUrl',
+    filenameSuffix: 'login-logo-light'
+  },
+  loginLogoDark: {
+    column: 'loginLogoDarkUrl',
+    filenameSuffix: 'login-logo-dark'
+  },
+  loginBackground: {
+    column: 'loginBackgroundUrl',
+    filenameSuffix: 'login-background'
+  }
 }
 
 export interface OrganizationBrandingTarget {
@@ -100,7 +153,11 @@ export interface TenantBrandingTarget {
   tenantId: string
 }
 
-export type BrandingTarget = OrganizationBrandingTarget | TenantBrandingTarget
+export interface GlobalBrandingTarget {
+  targetType: 'global'
+}
+
+export type BrandingTarget = OrganizationBrandingTarget | TenantBrandingTarget | GlobalBrandingTarget
 
 const logoFilenamePattern = /\/(?:api\/)?uploads\/logos\/([^/?#]+)/i
 
@@ -142,6 +199,15 @@ export async function resolveBrandingChain(params: {
   })
 }
 
+export async function resolveGlobalBranding(): Promise<BrandingResolution> {
+  const db = getDb()
+  const layer = await loadGlobalLayer(db)
+  if (!layer) {
+    return getDefaultBrandingResolution()
+  }
+  return buildResolution(null, null, null, layer)
+}
+
 export async function getBrandingTheme(target: BrandingTarget, db = getDb()) {
   return findBrandingRow(db, target)
 }
@@ -166,23 +232,8 @@ export async function setBrandingLogo(
   userId?: string,
   db = getDb()
 ) {
-  const existing = await findBrandingRow(db, target)
-  const previousLogo = existing?.logoUrl
-  const logoUrl = await persistLogoFile(target, payload, previousLogo)
-  await writeBrandingRecord(
-    db,
-    target,
-    {
-      logoUrl
-    },
-    userId
-  )
-
-  if (target.targetType === 'organization') {
-    await syncOrganizationLogoColumn(db, target.organizationId, logoUrl)
-  }
-
-  return { logoUrl }
+  const { url } = await setBrandingMediaAsset(target, 'appLogoLight', payload, userId, db)
+  return { logoUrl: url }
 }
 
 export async function removeBrandingLogo(
@@ -190,26 +241,7 @@ export async function removeBrandingLogo(
   userId?: string,
   db = getDb()
 ) {
-  const existing = await findBrandingRow(db, target)
-  if (!existing?.logoUrl) {
-    return { removed: false }
-  }
-
-  deleteLogoFile(existing.logoUrl)
-  await writeBrandingRecord(
-    db,
-    target,
-    {
-      logoUrl: null
-    },
-    userId
-  )
-
-  if (target.targetType === 'organization') {
-    await syncOrganizationLogoColumn(db, target.organizationId, null)
-  }
-
-  return { removed: true }
+  return removeBrandingMediaAsset(target, 'appLogoLight', userId, db)
 }
 
 export async function deleteBrandingTheme(target: BrandingTarget, db = getDb()) {
@@ -218,7 +250,17 @@ export async function deleteBrandingTheme(target: BrandingTarget, db = getDb()) 
     return
   }
 
-  deleteLogoFile(existing.logoUrl)
+  const assetUrls = [
+    existing.logoUrl,
+    existing.appLogoLightUrl,
+    existing.appLogoDarkUrl,
+    existing.loginLogoLightUrl,
+    existing.loginLogoDarkUrl,
+    existing.loginBackgroundUrl
+  ]
+  for (const assetUrl of assetUrls) {
+    deleteLogoFile(assetUrl)
+  }
   const where = buildTargetWhere(target)
   await db.delete(brandingThemes).where(where)
 
@@ -227,6 +269,63 @@ export async function deleteBrandingTheme(target: BrandingTarget, db = getDb()) 
   }
 }
 
+export async function setBrandingMediaAsset(
+  target: BrandingTarget,
+  mediaType: BrandingMediaType,
+  payload: LogoFilePayload,
+  userId?: string,
+  db = getDb()
+) {
+  const config = BRANDING_MEDIA_CONFIG[mediaType]
+  const existing = await findBrandingRow(db, target)
+  const previousUrl = existing ? ((existing as Record<string, string | null>)[config.column] ?? null) : null
+  const url = await persistLogoFile(target, payload, previousUrl, config.filenameSuffix)
+  const changes: Record<string, string | null> = {
+    [config.column]: url
+  }
+  if (config.column === 'appLogoLightUrl') {
+    changes.logoUrl = url
+  }
+  await writeBrandingRecord(db, target, changes, userId)
+
+  if (config.syncOrganizationLogo && target.targetType === 'organization') {
+    await syncOrganizationLogoColumn(db, target.organizationId, url)
+  }
+
+  return { url }
+}
+
+export async function removeBrandingMediaAsset(
+  target: BrandingTarget,
+  mediaType: BrandingMediaType,
+  userId?: string,
+  db = getDb()
+) {
+  const config = BRANDING_MEDIA_CONFIG[mediaType]
+  const existing = await findBrandingRow(db, target)
+  if (!existing) {
+    return { removed: false }
+  }
+  const currentUrl = (existing as Record<string, string | null>)[config.column] ?? null
+  if (!currentUrl) {
+    return { removed: false }
+  }
+
+  deleteLogoFile(currentUrl)
+  const changes: Record<string, string | null> = {
+    [config.column]: null
+  }
+  if (config.column === 'appLogoLightUrl') {
+    changes.logoUrl = null
+  }
+  await writeBrandingRecord(db, target, changes, userId)
+
+  if (config.syncOrganizationLogo && target.targetType === 'organization') {
+    await syncOrganizationLogoColumn(db, target.organizationId, null)
+  }
+
+  return { removed: true }
+}
 async function resolveForOrganization(organizationId: string): Promise<BrandingResolution> {
   const db = getDb()
   const organization = await loadOrganization(db, organizationId)
@@ -250,7 +349,8 @@ async function resolveForOrganization(organizationId: string): Promise<BrandingR
     }
   }
 
-  return buildResolution(organizationTheme, providerTheme, distributorTheme)
+  const globalTheme = await loadGlobalLayer(db)
+  return buildResolution(organizationTheme, providerTheme, distributorTheme, globalTheme)
 }
 
 async function resolveForTenant(tenantId: string): Promise<BrandingResolution> {
@@ -278,7 +378,8 @@ async function resolveForTenant(tenantId: string): Promise<BrandingResolution> {
     }
   }
 
-  return buildResolution(organizationTheme, tenantTheme, distributorTheme)
+  const globalTheme = await loadGlobalLayer(db)
+  return buildResolution(organizationTheme, tenantTheme, distributorTheme, globalTheme)
 }
 
 async function buildLayerForOrganization(db: DrizzleDb, organization: OrganizationRow) {
@@ -328,11 +429,27 @@ function buildLayer(input: {
   name: string
   theme: BrandingThemeRow | null
 }): BrandingLayer {
+  const normalizedAppLogoLight = normalizeStoredLogoUrl(
+    input.theme?.appLogoLightUrl ?? input.theme?.logoUrl ?? null
+  )
+  const normalizedAppLogoDark = normalizeStoredLogoUrl(input.theme?.appLogoDarkUrl ?? null)
+  const normalizedLoginLogoLight = normalizeStoredLogoUrl(input.theme?.loginLogoLightUrl ?? null)
+  const normalizedLoginLogoDark = normalizeStoredLogoUrl(input.theme?.loginLogoDarkUrl ?? null)
+  const normalizedLoginBackground = normalizeStoredLogoUrl(
+    input.theme?.loginBackgroundUrl ?? null
+  )
   return {
     targetType: input.targetType,
     targetId: input.targetId,
     name: input.name,
-    logoUrl: normalizeStoredLogoUrl(input.theme?.logoUrl),
+    logoUrl: normalizedAppLogoLight,
+    appLogoLightUrl: normalizedAppLogoLight,
+    appLogoDarkUrl: normalizedAppLogoDark,
+    loginLogoLightUrl: normalizedLoginLogoLight,
+    loginLogoDarkUrl: normalizedLoginLogoDark,
+    loginBackgroundUrl: normalizedLoginBackground,
+    loginBackgroundTint: input.theme?.loginBackgroundTint ?? null,
+    loginBackgroundTintOpacity: input.theme?.loginBackgroundTintOpacity ?? null,
     accentColor: input.theme?.accentColor ?? null,
     paletteKey: input.theme?.paletteKey ?? null,
     updatedAt: getTimestampValue(input.theme?.updatedAt),
@@ -343,52 +460,66 @@ function buildLayer(input: {
 function buildResolution(
   organizationTheme: BrandingLayer | null,
   tenantTheme: BrandingLayer | null,
-  distributorTheme: BrandingLayer | null
+  distributorTheme: BrandingLayer | null,
+  globalTheme: BrandingLayer | null = null
 ): BrandingResolution {
-  const layers = [organizationTheme, tenantTheme, distributorTheme].filter(
+  const layers = [organizationTheme, tenantTheme, distributorTheme, globalTheme].filter(
     Boolean
   ) as BrandingLayer[]
 
-  const logoSource = determineLogoSource(layers)
+  const appLogoLight = determineLayerValue(layers, [
+    layer => layer.appLogoLightUrl,
+    layer => layer.logoUrl
+  ])
+  const appLogoDark = determineLayerValue(layers, [
+    layer => layer.appLogoDarkUrl,
+    layer => layer.appLogoLightUrl,
+    layer => layer.logoUrl
+  ])
+  const loginLogoLight = determineLayerValue(layers, [
+    layer => layer.loginLogoLightUrl,
+    layer => layer.appLogoLightUrl,
+    layer => layer.logoUrl
+  ])
+  const loginLogoDark = determineLayerValue(layers, [
+    layer => layer.loginLogoDarkUrl,
+    layer => layer.loginLogoLightUrl,
+    layer => layer.appLogoDarkUrl,
+    layer => layer.appLogoLightUrl,
+    layer => layer.logoUrl
+  ])
+  const loginBackground = determineLayerValue(layers, [layer => layer.loginBackgroundUrl])
+  const loginBackgroundTint = determineLayerValue(layers, [layer => layer.loginBackgroundTint])
+  const loginBackgroundTintOpacity = determineNumericValue(
+    layers,
+    layer => layer.loginBackgroundTintOpacity,
+    DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY
+  )
   const accentSource = determineAccentSource(layers)
 
   const activeTheme: BrandingActiveTheme = {
-    logoUrl: logoSource.value,
+    logoUrl: appLogoLight.value,
+    appLogoLightUrl: appLogoLight.value,
+    appLogoDarkUrl: appLogoDark.value,
+    loginLogoLightUrl: loginLogoLight.value,
+    loginLogoDarkUrl: loginLogoDark.value,
+    loginBackgroundUrl: loginBackground.value,
+    loginBackgroundTint: loginBackgroundTint.value,
+    loginBackgroundTintOpacity: loginBackgroundTintOpacity.value,
     accentColor: accentSource.color,
     paletteKey: accentSource.paletteKey,
-    logoSource: logoSource.source,
-    accentSource: accentSource.source
+    logoSource: appLogoLight.source,
+    accentSource: accentSource.source,
+    loginLogoSource: loginLogoLight.source,
+    loginBackgroundSource: loginBackground.source
   }
 
   return {
     organizationTheme,
     tenantTheme,
     distributorTheme,
+    globalTheme,
     activeTheme
-  }
-}
-
-function determineLogoSource(layers: BrandingLayer[]) {
-  for (const layer of layers) {
-    if (layer.logoUrl) {
-      return {
-        value: layer.logoUrl,
-        source: {
-          targetType: layer.targetType,
-          targetId: layer.targetId,
-          name: layer.name
-        }
-      }
-    }
-  }
-
-  return {
-    value: null,
-    source: {
-      targetType: 'default',
-      targetId: null,
-      name: null
-    }
   }
 }
 
@@ -424,23 +555,109 @@ function determineAccentSource(layers: BrandingLayer[]) {
   return {
     color: DEFAULT_BRANDING_ACCENT,
     paletteKey: DEFAULT_BRANDING_PALETTE_KEY,
-    source: {
-      targetType: 'default',
-      targetId: null,
-      name: null
+    source: DEFAULT_BRANDING_SOURCE
+  }
+}
+
+export const DEFAULT_BRANDING_SOURCE: BrandingSourceInfo = {
+  targetType: 'default',
+  targetId: null,
+  name: null
+}
+
+function determineLayerValue(
+  layers: BrandingLayer[],
+  selectors: Array<(layer: BrandingLayer) => string | null>,
+  fallbackValue: string | null = null
+) {
+  for (const layer of layers) {
+    for (const selector of selectors) {
+      const candidate = selector(layer)
+      if (candidate) {
+        return {
+          value: candidate,
+          source: {
+            targetType: layer.targetType,
+            targetId: layer.targetId,
+            name: layer.name
+          }
+        }
+      }
     }
+  }
+  return {
+    value: fallbackValue,
+    source: DEFAULT_BRANDING_SOURCE
+  }
+}
+
+function determineNumericValue(
+  layers: BrandingLayer[],
+  selector: (layer: BrandingLayer) => number | null,
+  fallbackValue: number
+) {
+  for (const layer of layers) {
+    const candidate = selector(layer)
+    if (typeof candidate === 'number' && !Number.isNaN(candidate)) {
+      return {
+        value: candidate,
+        source: {
+          targetType: layer.targetType,
+          targetId: layer.targetId,
+          name: layer.name
+        }
+      }
+    }
+  }
+  return {
+    value: fallbackValue,
+    source: DEFAULT_BRANDING_SOURCE
+  }
+}
+
+export function getDefaultBrandingResolution(): BrandingResolution {
+  const activeTheme: BrandingActiveTheme = {
+    logoUrl: null,
+    appLogoLightUrl: null,
+    appLogoDarkUrl: null,
+    loginLogoLightUrl: null,
+    loginLogoDarkUrl: null,
+    loginBackgroundUrl: null,
+    loginBackgroundTint: null,
+    loginBackgroundTintOpacity: DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY,
+    accentColor: DEFAULT_BRANDING_ACCENT,
+    paletteKey: DEFAULT_BRANDING_PALETTE_KEY,
+    logoSource: DEFAULT_BRANDING_SOURCE,
+    accentSource: DEFAULT_BRANDING_SOURCE,
+    loginLogoSource: DEFAULT_BRANDING_SOURCE,
+    loginBackgroundSource: DEFAULT_BRANDING_SOURCE
+  }
+  return {
+    organizationTheme: null,
+    tenantTheme: null,
+    distributorTheme: null,
+    globalTheme: null,
+    activeTheme
   }
 }
 
 function normalizeAttributeInput(attributes: BrandingAttributeInput) {
   const hasAccent = Object.prototype.hasOwnProperty.call(attributes, 'accentColor')
   const hasPalette = Object.prototype.hasOwnProperty.call(attributes, 'paletteKey')
+  const hasBackgroundTint = Object.prototype.hasOwnProperty.call(
+    attributes,
+    'loginBackgroundTint'
+  )
+  const hasBackgroundTintOpacity = Object.prototype.hasOwnProperty.call(
+    attributes,
+    'loginBackgroundTintOpacity'
+  )
 
-  if (!hasAccent && !hasPalette) {
+  if (!hasAccent && !hasPalette && !hasBackgroundTint && !hasBackgroundTintOpacity) {
     return null
   }
 
-  const payload: Record<string, string | null> = {}
+  const payload: Record<string, string | number | null> = {}
 
   if (hasAccent) {
     payload.accentColor =
@@ -465,6 +682,31 @@ function normalizeAttributeInput(attributes: BrandingAttributeInput) {
     }
   }
 
+  if (hasBackgroundTint) {
+    payload.loginBackgroundTint =
+      attributes.loginBackgroundTint && attributes.loginBackgroundTint.trim().length > 0
+        ? normalizeHexColor(attributes.loginBackgroundTint)
+        : null
+  }
+
+  if (hasBackgroundTintOpacity) {
+    const rawValue = (attributes.loginBackgroundTintOpacity ?? null) as number | string | null
+    if (rawValue === null || rawValue === undefined || rawValue === '') {
+      payload.loginBackgroundTintOpacity = null
+    } else {
+      const numeric =
+        typeof rawValue === 'number' ? rawValue : Number.parseFloat(String(rawValue))
+      if (Number.isNaN(numeric)) {
+        throw createError({
+          statusCode: 400,
+          message: 'Ogiltig bakgrundstint-procent.'
+        })
+      }
+      const clamped = Math.min(Math.max(numeric, 0), 1)
+      payload.loginBackgroundTintOpacity = clamped
+    }
+  }
+
   return payload
 }
 
@@ -474,9 +716,30 @@ async function findBrandingRow(db: DrizzleDb, target: BrandingTarget) {
   return rows[0] ?? null
 }
 
+async function loadGlobalLayer(db: DrizzleDb): Promise<BrandingLayer | null> {
+  const rows = await db
+    .select()
+    .from(brandingThemes)
+    .where(eq(brandingThemes.targetType, 'global'))
+    .limit(1)
+  const theme = rows[0] ?? null
+  if (!theme) {
+    return null
+  }
+  return buildLayer({
+    targetType: 'global',
+    targetId: 'global',
+    name: 'Global standard',
+    theme
+  })
+}
+
 function buildTargetWhere(target: BrandingTarget) {
   if (target.targetType === 'organization') {
     return eq(brandingThemes.organizationId, target.organizationId)
+  }
+  if (target.targetType === 'global') {
+    return eq(brandingThemes.targetType, 'global')
   }
   return and(
     eq(brandingThemes.targetType, target.targetType),
@@ -487,9 +750,19 @@ function buildTargetWhere(target: BrandingTarget) {
 async function writeBrandingRecord(
   db: DrizzleDb,
   target: BrandingTarget,
-  changes: Record<string, string | null>,
+  changes: Record<string, string | number | null>,
   userId?: string
 ) {
+  const mediaColumns = [
+    'logoUrl',
+    'appLogoLightUrl',
+    'appLogoDarkUrl',
+    'loginLogoLightUrl',
+    'loginLogoDarkUrl',
+    'loginBackgroundUrl',
+    'loginBackgroundTint',
+    'loginBackgroundTintOpacity'
+  ] as const
   const existing = await findBrandingRow(db, target)
   const timestamp = new Date()
   if (existing) {
@@ -498,14 +771,10 @@ async function writeBrandingRecord(
       updatedByUserId: userId ?? existing.updatedByUserId ?? null
     }
 
-    if (Object.prototype.hasOwnProperty.call(changes, 'logoUrl')) {
-      update.logoUrl = changes.logoUrl
-    }
-    if (Object.prototype.hasOwnProperty.call(changes, 'accentColor')) {
-      update.accentColor = changes.accentColor
-    }
-    if (Object.prototype.hasOwnProperty.call(changes, 'paletteKey')) {
-      update.paletteKey = changes.paletteKey
+    for (const column of [...mediaColumns, 'accentColor', 'paletteKey']) {
+      if (Object.prototype.hasOwnProperty.call(changes, column)) {
+        ;(update as Record<string, unknown>)[column] = changes[column] ?? null
+      }
     }
 
     await db.update(brandingThemes).set(update).where(eq(brandingThemes.id, existing.id))
@@ -515,9 +784,36 @@ async function writeBrandingRecord(
   const insertPayload: typeof brandingThemes.$inferInsert = {
     id: createId(),
     targetType: target.targetType,
-    tenantId: target.targetType === 'organization' ? null : target.tenantId,
+    tenantId:
+      target.targetType === 'provider' || target.targetType === 'distributor'
+        ? target.tenantId
+        : null,
     organizationId: target.targetType === 'organization' ? target.organizationId : null,
     logoUrl: Object.prototype.hasOwnProperty.call(changes, 'logoUrl') ? changes.logoUrl ?? null : null,
+    appLogoLightUrl: Object.prototype.hasOwnProperty.call(changes, 'appLogoLightUrl')
+      ? changes.appLogoLightUrl ?? null
+      : null,
+    appLogoDarkUrl: Object.prototype.hasOwnProperty.call(changes, 'appLogoDarkUrl')
+      ? changes.appLogoDarkUrl ?? null
+      : null,
+    loginLogoLightUrl: Object.prototype.hasOwnProperty.call(changes, 'loginLogoLightUrl')
+      ? changes.loginLogoLightUrl ?? null
+      : null,
+    loginLogoDarkUrl: Object.prototype.hasOwnProperty.call(changes, 'loginLogoDarkUrl')
+      ? changes.loginLogoDarkUrl ?? null
+      : null,
+    loginBackgroundUrl: Object.prototype.hasOwnProperty.call(changes, 'loginBackgroundUrl')
+      ? changes.loginBackgroundUrl ?? null
+      : null,
+    loginBackgroundTint: Object.prototype.hasOwnProperty.call(changes, 'loginBackgroundTint')
+      ? changes.loginBackgroundTint ?? null
+      : null,
+    loginBackgroundTintOpacity: Object.prototype.hasOwnProperty.call(
+      changes,
+      'loginBackgroundTintOpacity'
+    )
+      ? (changes.loginBackgroundTintOpacity as number | null)
+      : null,
     accentColor: Object.prototype.hasOwnProperty.call(changes, 'accentColor')
       ? changes.accentColor ?? null
       : null,
@@ -592,7 +888,8 @@ function buildLogoUrlFromFilename(filename: string) {
 async function persistLogoFile(
   target: BrandingTarget,
   payload: LogoFilePayload,
-  previousLogo?: string | null
+  previousLogo?: string | null,
+  variant = 'logo'
 ) {
   const extension = getSafeExtension(payload.filename)
   if (!ALLOWED_EXTENSIONS.has(extension)) {
@@ -605,7 +902,7 @@ async function persistLogoFile(
     throw createError({ statusCode: 400, message: 'Filen får vara max 2 MB.' })
   }
 
-  const filename = `${target.targetType}-${getTargetId(target)}-${Date.now()}${extension}`
+  const filename = `${target.targetType}-${getTargetId(target)}-${variant}-${Date.now()}${extension}`
   const filePath = path.join(logosDir, filename)
   await fs.promises.writeFile(filePath, payload.data)
 
@@ -619,6 +916,9 @@ async function persistLogoFile(
 function getTargetId(target: BrandingTarget) {
   if (target.targetType === 'organization') {
     return target.organizationId
+  }
+  if (target.targetType === 'global') {
+    return 'global'
   }
   return target.tenantId
 }

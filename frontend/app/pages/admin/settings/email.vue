@@ -12,7 +12,7 @@
     <!-- Hierarchy info -->
     <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
       <p class="font-semibold">Hierarki:</p>
-      <p class="mt-1">Global → Leverantör → Distributör → Organisation</p>
+      <p class="mt-1">Global → Distributör → Leverantör → Organisation</p>
       <p class="mt-2 text-xs">
         E-postinställningar ärvs från högre nivåer om de inte är satta på lägre nivåer.
       </p>

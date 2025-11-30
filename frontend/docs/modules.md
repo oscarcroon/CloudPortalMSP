@@ -213,3 +213,32 @@ Cloudflare DNS-modulen är ett komplett exempel på hur en modul implementeras:
 - Verifiera att distributör-leverantör-kopplingar är korrekta
 - Kontrollera att policy är satt på rätt nivå i hierarkin
 
+## Login-branding och domäner
+
+Login-sidan brändas nu med samma arv som appen:
+
+- Varje nivå (distributör, leverantör, organisation) kan ladda upp egna login-logotyper (ljus/mörk) och bakgrundsbilder via logo-endpoints med `variant` (t.ex. `variant=login-light`, `variant=login-dark`, `variant=login-background`).
+- `GET /api/login-branding` avgör aktiv branding baserat på host. Slug-subdomäner definieras via `LOGIN_BRANDING_SLUG_SUFFIXES` (t.ex. `.portal.coreit.cloud`). Verifierade custom domains ersätter slug-lösningen.
+- Bakgrundstint och intensitet sparas via `loginBackgroundTint` + `loginBackgroundTintOpacity` i `PUT /api/organizations/:id/branding`, `PUT /api/admin/tenants/:id/branding` samt `PUT /api/admin/branding` (global default).
+
+Custom domains hanteras via:
+
+- `PUT /api/admin/tenants/:id/domain` – normaliserar domänen (utan schema/port/path) och sätter status `unverified`.
+- `POST /api/admin/tenants/:id/domain/verify` – mock-verifierar (sätter `verified` + `customDomainVerifiedAt`).
+
+UI:
+
+- Organisationer: `/settings/branding` → fliken *Login-branding*.
+- Tenants (admins): `/admin/tenants/[id]/branding` → *Login-branding* samt kortet **Login-domän** för CNAME/verification.
+- SuperAdmins: `/admin/branding` för att sätta global default-branding (app + login).
+
+Miljövariabler:
+
+```
+LOGIN_BRANDING_SLUG_SUFFIXES=.portal.coreit.cloud
+LOGIN_BRANDING_ALLOW_UNVERIFIED=false
+```
+
+- Sätt `LOGIN_BRANDING_ALLOW_UNVERIFIED=true` i dev för att tillåta custom domains utan verifiering.
+- Publik runtime (`runtimeConfig.public.loginBranding.slugSuffixes`) används för att visa standarddomänen i UI.
+

@@ -1,6 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 const backendApiBase = process.env.API_BASE || 'http://localhost:4000/api'
 const backendProxyBase = backendApiBase
+const loginBrandingSlugSuffixes = (process.env.LOGIN_BRANDING_SLUG_SUFFIXES || '.portal.coreit.cloud')
+  .split(',')
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean)
 
 export default defineNuxtConfig({
   devtools: { enabled: true },
@@ -30,10 +34,18 @@ export default defineNuxtConfig({
       cloudflareZeroTrustSecret: process.env.CLOUDFLARE_ZT_JWT_SECRET || '',
       allowSelfRegistration: process.env.AUTH_ALLOW_SELF_REGISTRATION === 'true'
     },
+    loginBranding: {
+      slugSuffixes: loginBrandingSlugSuffixes,
+      allowUnverifiedCustomDomains: process.env.LOGIN_BRANDING_ALLOW_UNVERIFIED === 'true'
+    },
     apiBase: backendApiBase,
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || '/backend',
-      appName: 'Cloud Portal'
+      appName: 'Cloud Portal',
+      appUrl: process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      loginBranding: {
+        slugSuffixes: loginBrandingSlugSuffixes
+      }
     }
   },
   nitro: {

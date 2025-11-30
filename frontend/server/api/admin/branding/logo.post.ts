@@ -1,22 +1,17 @@
-﻿import {
+import {
   createError,
   defineEventHandler,
   getQuery,
-  getRouterParam,
   readMultipartFormData
 } from 'h3'
 import {
   setBrandingMediaAsset,
   type BrandingMediaType
 } from '~~/server/utils/branding'
-import { requirePermission } from '~~/server/utils/rbac'
+import { requireSuperAdmin } from '~~/server/utils/rbac'
 
 export default defineEventHandler(async (event) => {
-  const { orgId, auth } = await requirePermission(event, 'org:manage')
-  const paramOrgId = getRouterParam(event, 'orgId')
-  if (paramOrgId !== orgId) {
-    throw createError({ statusCode: 403, message: 'Kan inte ladda upp logotyp för denna organisation.' })
-  }
+  const auth = await requireSuperAdmin(event)
 
   const formData = await readMultipartFormData(event)
   if (!formData || formData.length === 0) {
@@ -32,8 +27,9 @@ export default defineEventHandler(async (event) => {
   const mediaType = resolveVariantMediaType(
     typeof query.variant === 'string' ? (query.variant as string) : null
   )
+
   const { url } = await setBrandingMediaAsset(
-    { targetType: 'organization', organizationId: orgId },
+    { targetType: 'global' },
     mediaType,
     {
       filename: logoField.filename,
@@ -66,3 +62,4 @@ function resolveVariantMediaType(value: string | null): BrandingMediaType {
       return 'appLogoLight'
   }
 }
+

@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
-    "preview": "nuxt preview",
+    "preview": "nuxt preview --port 3001 --host 0.0.0.0",
     "lint": "eslint . --ext .ts,.js,.vue",
     "seed": "tsx scripts/seed.ts",
     "db:backfill-owners": "tsx scripts/backfill-owners.ts",

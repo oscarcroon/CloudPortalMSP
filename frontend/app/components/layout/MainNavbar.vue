@@ -122,22 +122,15 @@ const mainNavItems = computed(() => {
 })
 
 const adminNavItems = computed(() => {
-  const items = [
-    { label: 'Inställningar', to: '/settings', icon: 'mdi:cog' }
-  ]
+  const items = [{ label: 'Inställningar', to: '/settings', icon: 'mdi:cog' }]
   const hasTenantAccess =
     auth.isSuperAdmin.value ||
     Object.keys(auth.state.value.data?.tenantRoles ?? {}).length > 0
   if (hasTenantAccess) {
-    items.push(
-      { label: 'Tenants', to: '/admin/tenants', icon: 'mdi:account-group' },
-      { label: 'Organisationer', to: '/admin/organizations', icon: 'mdi:office-building' }
-    )
-  } else if (auth.isSuperAdmin.value) {
-    items.push({ label: 'Admin', to: '/admin/organizations', icon: 'mdi:shield-crown' })
+    items.push({ label: 'Tenants', to: '/admin/tenants', icon: 'mdi:account-group' })
   }
   if (auth.isSuperAdmin.value) {
-    items.push({ label: 'RBAC Matris', to: '/admin/rbac-matrix', icon: 'mdi:shield-key' })
+    items.push({ label: 'Superadmin', to: '/admin/settings', icon: 'mdi:shield-crown' })
   }
   return items
 })

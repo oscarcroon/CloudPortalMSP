@@ -1,7 +1,7 @@
-import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
+import { defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
-import { resolveBrandingChain, updateBrandingAttributes } from '~~/server/utils/branding'
-import { requirePermission } from '~~/server/utils/rbac'
+import { resolveGlobalBranding, updateBrandingAttributes } from '~~/server/utils/branding'
+import { requireSuperAdmin } from '~~/server/utils/rbac'
 
 const payloadSchema = z
   .object({
@@ -19,24 +19,16 @@ const payloadSchema = z
     'Ange minst ett fält att uppdatera.'
   )
   .refine(
-    (data) => !(data.accentColor && data.paletteKey),
+    (data) => !(data.accentColor !== undefined && data.paletteKey !== undefined),
     'Ange antingen accentColor eller paletteKey, inte båda samtidigt.'
   )
 
 export default defineEventHandler(async (event) => {
-  const { orgId, auth } = await requirePermission(event, 'org:manage')
-  const paramOrgId = getRouterParam(event, 'orgId')
-  if (paramOrgId !== orgId) {
-    throw createError({
-      statusCode: 403,
-      message: 'Kan inte uppdatera branding för denna organisation.'
-    })
-  }
-
+  const auth = await requireSuperAdmin(event)
   const body = payloadSchema.parse(await readBody(event))
 
   await updateBrandingAttributes(
-    { targetType: 'organization', organizationId: orgId },
+    { targetType: 'global' },
     {
       accentColor: body.accentColor,
       paletteKey: body.paletteKey,
@@ -46,6 +38,6 @@ export default defineEventHandler(async (event) => {
     auth.user.id
   )
 
-  return resolveBrandingChain({ organizationId: orgId })
+  return resolveGlobalBranding()
 })
 

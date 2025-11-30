@@ -7,11 +7,17 @@ import { ensureBrandableTenant } from './branding/utils'
 const payloadSchema = z
   .object({
     accentColor: z.string().trim().optional().nullable(),
-    paletteKey: z.string().trim().optional().nullable()
+    paletteKey: z.string().trim().optional().nullable(),
+    loginBackgroundTint: z.string().trim().optional().nullable(),
+    loginBackgroundTintOpacity: z.number().min(0).max(1).optional().nullable()
   })
   .refine(
-    (data) => data.accentColor !== undefined || data.paletteKey !== undefined,
-    'Ange accentColor eller paletteKey.'
+    (data) =>
+      data.accentColor !== undefined ||
+      data.paletteKey !== undefined ||
+      data.loginBackgroundTint !== undefined ||
+      data.loginBackgroundTintOpacity !== undefined,
+    'Ange minst ett fält att uppdatera.'
   )
   .refine(
     (data) => !(data.accentColor && data.paletteKey),
@@ -31,7 +37,9 @@ export default defineEventHandler(async (event) => {
     },
     {
       accentColor: body.accentColor,
-      paletteKey: body.paletteKey
+      paletteKey: body.paletteKey,
+      loginBackgroundTint: body.loginBackgroundTint,
+      loginBackgroundTintOpacity: body.loginBackgroundTintOpacity
     },
     permission.auth.user.id
   )

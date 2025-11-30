@@ -1,26 +1,29 @@
-﻿import { createError, defineEventHandler, getQuery, getRouterParam } from 'h3'
+import { createError, defineEventHandler, getQuery } from 'h3'
 import {
   removeBrandingMediaAsset,
   type BrandingMediaType
 } from '~~/server/utils/branding'
-import { requirePermission } from '~~/server/utils/rbac'
+import { requireSuperAdmin } from '~~/server/utils/rbac'
 
 export default defineEventHandler(async (event) => {
-  const { orgId, auth } = await requirePermission(event, 'org:manage')
-  const paramOrgId = getRouterParam(event, 'orgId')
-  if (paramOrgId !== orgId) {
-    throw createError({ statusCode: 403, message: 'Kan inte ta bort logotyp för denna organisation.' })
-  }
+  const auth = await requireSuperAdmin(event)
 
   const query = getQuery(event)
   const mediaType = resolveVariantMediaType(
     typeof query.variant === 'string' ? (query.variant as string) : null
   )
-  return removeBrandingMediaAsset(
-    { targetType: 'organization', organizationId: orgId },
+
+  const result = await removeBrandingMediaAsset(
+    { targetType: 'global' },
     mediaType,
     auth.user.id
   )
+
+  if (!result.removed) {
+    throw createError({ statusCode: 404, message: 'Ingen media att ta bort.' })
+  }
+
+  return result
 })
 
 function resolveVariantMediaType(value: string | null): BrandingMediaType {

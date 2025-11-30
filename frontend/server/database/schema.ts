@@ -11,7 +11,7 @@ import {
 import type { RbacRole } from '~/constants/rbac'
 import type { OrganizationMemberStatus } from '~/types/admin'
 
-export type BrandingTargetType = 'organization' | 'provider' | 'distributor'
+export type BrandingTargetType = 'organization' | 'provider' | 'distributor' | 'global'
 
 const timestampColumns = () => ({
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
@@ -31,13 +31,19 @@ export const tenants = sqliteTable(
     id: text('id').primaryKey().$defaultFn(createId),
     name: text('name').notNull(),
     slug: text('slug').notNull(),
+    customDomain: text('custom_domain'),
+    customDomainVerificationStatus: text('custom_domain_verification_status')
+      .notNull()
+      .default('unverified'),
+    customDomainVerifiedAt: integer('custom_domain_verified_at', { mode: 'timestamp_ms' }),
     type: text('type').notNull().$type<'provider' | 'distributor' | 'organization'>(),
     parentTenantId: text('parent_tenant_id'),
     status: text('status').notNull().default('active'),
     ...timestampColumns()
   },
   table => ({
-    slugIdx: uniqueIndex('tenants_slug_idx').on(table.slug)
+    slugIdx: uniqueIndex('tenants_slug_idx').on(table.slug),
+    customDomainIdx: uniqueIndex('tenants_custom_domain_idx').on(table.customDomain)
   })
 )
 
@@ -132,6 +138,13 @@ export const brandingThemes = sqliteTable(
       onDelete: 'cascade'
     }),
     logoUrl: text('logo_url'),
+    appLogoLightUrl: text('app_logo_light_url'),
+    appLogoDarkUrl: text('app_logo_dark_url'),
+    loginLogoLightUrl: text('login_logo_light_url'),
+    loginLogoDarkUrl: text('login_logo_dark_url'),
+    loginBackgroundUrl: text('login_background_url'),
+    loginBackgroundTint: text('login_background_tint', { length: 16 }),
+    loginBackgroundTintOpacity: real('login_background_tint_opacity'),
     accentColor: text('accent_color', { length: 16 }),
     paletteKey: text('palette_key', { length: 64 }),
     createdByUserId: text('created_by_user_id').references(() => users.id, {

@@ -99,6 +99,9 @@
       >
       för sömlös SSO.
     </p>
+    <p v-if="brandingSourceLabel" class="text-center text-xs text-slate-400 dark:text-slate-500">
+      Login-branding: {{ brandingSourceLabel }}
+    </p>
   </section>
 </template>
 
@@ -106,6 +109,7 @@
 import { computed, ref } from '#imports'
 import type { FetchError } from 'ofetch'
 import { useAuth } from '~/composables/useAuth'
+import { useLoginBranding } from '~/composables/useLoginBranding'
 
 definePageMeta({
   layout: 'auth',
@@ -113,6 +117,7 @@ definePageMeta({
 })
 
 const auth = useAuth()
+const loginBranding = useLoginBranding()
 const route = useRoute()
 const step = ref<'email' | 'password'>('email')
 const email = ref('')
@@ -214,6 +219,23 @@ const resetToEmailStep = () => {
   providers.value.restrictSso = false
   providers.value.identityProviders = []
   errorMessage.value = ''
+}
+
+const brandingSourceLabel = computed(() =>
+  formatBrandingSource(
+    loginBranding.branding.value?.activeTheme.loginLogoSource ??
+      loginBranding.branding.value?.activeTheme.logoSource
+  )
+)
+
+function formatBrandingSource(source?: { name: string | null; targetType: string } | null) {
+  if (!source) {
+    return ''
+  }
+  if (source.targetType === 'default' || !source.name) {
+    return 'Global standard'
+  }
+  return source.name
 }
 </script>
 

@@ -275,17 +275,26 @@ async function resolveOrganizationLogos(db: DrizzleDb, rows: MembershipRow[]) {
 
   for (const row of orgBrandRows) {
     if (row.organizationId) {
-      orgBrandMap.set(row.organizationId, row.logoUrl ?? null)
+      orgBrandMap.set(
+        row.organizationId,
+        row.appLogoLightUrl ?? row.logoUrl ?? null
+      )
     }
   }
   for (const row of providerBrandRows) {
     if (row.tenantId) {
-      providerBrandMap.set(row.tenantId, row.logoUrl ?? null)
+      providerBrandMap.set(
+        row.tenantId,
+        row.appLogoLightUrl ?? row.logoUrl ?? null
+      )
     }
   }
   for (const row of distributorBrandRows) {
     if (row.tenantId) {
-      distributorBrandMap.set(row.tenantId, row.logoUrl ?? null)
+      distributorBrandMap.set(
+        row.tenantId,
+        row.appLogoLightUrl ?? row.logoUrl ?? null
+      )
     }
   }
 
