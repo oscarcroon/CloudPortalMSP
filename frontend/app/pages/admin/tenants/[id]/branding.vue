@@ -700,10 +700,14 @@ async function saveCustomAccent() {
   accentSaving.value = true
   accentStatus.value = null
   try {
+    const currentNavColor = brandingDetails.value?.tenantTheme?.navigationBackgroundColor
     await $fetch(`/api/admin/tenants/${tenantId.value}/branding`, {
       method: 'PUT',
       credentials: 'include',
-      body: { accentColor: normalized }
+      body: { 
+        accentColor: normalized,
+        navigationBackgroundColor: currentNavColor ?? undefined
+      }
     })
     await fetchBranding()
     accentStatus.value = { type: 'success', text: 'Accentfärgen uppdaterades.' }
@@ -722,10 +726,15 @@ async function resetAccent() {
   accentSaving.value = true
   accentStatus.value = null
   try {
+    const currentNavColor = brandingDetails.value?.tenantTheme?.navigationBackgroundColor
     await $fetch(`/api/admin/tenants/${tenantId.value}/branding`, {
       method: 'PUT',
       credentials: 'include',
-      body: { accentColor: null }
+      body: { 
+        accentColor: null,
+        paletteKey: null,
+        navigationBackgroundColor: currentNavColor ?? undefined
+      }
     })
     await fetchBranding()
     accentStatus.value = { type: 'success', text: 'Accentfärgen återställdes.' }
@@ -762,10 +771,16 @@ async function saveNavigationColor() {
   navSaving.value = true
   navStatus.value = null
   try {
+    const currentAccentColor = brandingDetails.value?.tenantTheme?.accentColor
+    const currentPaletteKey = brandingDetails.value?.tenantTheme?.paletteKey
     await $fetch(`/api/admin/tenants/${tenantId.value}/branding`, {
       method: 'PUT',
       credentials: 'include',
-      body: { navigationBackgroundColor: navColor.value || null }
+      body: { 
+        navigationBackgroundColor: navColor.value || null,
+        accentColor: currentAccentColor ?? undefined,
+        paletteKey: currentPaletteKey ?? undefined
+      }
     })
     await fetchBranding()
     navStatus.value = { type: 'success', text: 'Navigationsbakgrunden uppdaterades.' }

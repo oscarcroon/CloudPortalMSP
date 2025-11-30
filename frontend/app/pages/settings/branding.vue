@@ -533,10 +533,14 @@ async function saveCustomAccent() {
   accentSaving.value = true
   accentStatus.value = null
   try {
+    const currentNavColor = brandingDetails.value?.organizationTheme?.navigationBackgroundColor
     await $fetch(`/api/organizations/${activeOrgId}/branding`, {
       method: 'PUT',
       credentials: 'include',
-      body: { accentColor: normalized }
+      body: { 
+        accentColor: normalized,
+        navigationBackgroundColor: currentNavColor ?? undefined
+      }
     })
     await auth.fetchMe()
     await refreshBranding()
@@ -560,10 +564,15 @@ async function resetAccent() {
   accentSaving.value = true
   accentStatus.value = null
   try {
+    const currentNavColor = brandingDetails.value?.organizationTheme?.navigationBackgroundColor
     await $fetch(`/api/organizations/${activeOrgId}/branding`, {
       method: 'PUT',
       credentials: 'include',
-      body: { accentColor: null }
+      body: { 
+        accentColor: null,
+        paletteKey: null,
+        navigationBackgroundColor: currentNavColor ?? undefined
+      }
     })
     await auth.fetchMe()
     await refreshBranding()
@@ -602,10 +611,16 @@ async function saveNavigationColor() {
   navSaving.value = true
   navStatus.value = null
   try {
+    const currentAccentColor = brandingDetails.value?.organizationTheme?.accentColor
+    const currentPaletteKey = brandingDetails.value?.organizationTheme?.paletteKey
     await $fetch(`/api/organizations/${activeOrgId}/branding`, {
       method: 'PUT',
       credentials: 'include',
-      body: { navigationBackgroundColor: navColor.value || null }
+      body: { 
+        navigationBackgroundColor: navColor.value || null,
+        accentColor: currentAccentColor ?? undefined,
+        paletteKey: currentPaletteKey ?? undefined
+      }
     })
     await auth.fetchMe()
     await refreshBranding()
