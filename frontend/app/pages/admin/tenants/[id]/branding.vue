@@ -93,19 +93,19 @@
             <div class="space-y-4">
               <div class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
                 <div class="flex items-center justify-between gap-4">
-                  <div>
-                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Accentfärg</p>
+                <div>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Accentfärg</p>
                     <p class="text-xs text-slate-500 dark:text-slate-400">
                       Ange egen färg eller välj en fördefinierad ton.
                     </p>
-                  </div>
+                </div>
                   <div
                     class="flex h-10 w-24 items-center justify-center rounded-lg text-xs font-semibold text-white"
                     :style="{ backgroundColor: activeAccentColor }"
                   >
                     Accent
-                  </div>
                 </div>
+              </div>
                 <div class="flex flex-wrap items-center gap-3">
                   <input
                     v-model="accentForm.customColor"

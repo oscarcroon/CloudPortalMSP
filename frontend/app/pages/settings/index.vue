@@ -294,7 +294,7 @@
               <Icon icon="mdi:palette-outline" class="h-6 w-6 text-brand" />
               <div>
                 <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Branding & login</h2>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Hantera logotyp, accentfärg och login-branding för {{ activeOrganisationName }}.
                 </p>
               </div>

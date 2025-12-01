@@ -573,10 +573,10 @@ function determineAccentSource(layers: BrandingLayer[]) {
 }
 
 export const DEFAULT_BRANDING_SOURCE: BrandingSourceInfo = {
-  targetType: 'default',
-  targetId: null,
-  name: null
-}
+      targetType: 'default',
+      targetId: null,
+      name: null
+    }
 
 function determineLayerValue(
   layers: BrandingLayer[],

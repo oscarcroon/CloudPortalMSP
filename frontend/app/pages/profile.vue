@@ -1,22 +1,24 @@
 <template>
   <section class="space-y-8">
-    <header class="flex items-start justify-between gap-4">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6 sm:justify-start">
       <div class="space-y-1">
         <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Profil</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400">Hantera ditt konto och lösenord.</p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-2 rounded-lg border border-transparent bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand/90 md:px-4 md:py-2 md:text-sm"
-        @click="handleLogout"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
-        <span class="whitespace-nowrap">Logga ut</span>
-      </button>
+      <div class="flex flex-wrap gap-3">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg border border-transparent bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand/90 md:px-4 md:py-2 md:text-sm"
+          @click="handleLogout"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span class="whitespace-nowrap">Logga ut</span>
+        </button>
+      </div>
     </header>
 
     <div

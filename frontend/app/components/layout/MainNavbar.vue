@@ -35,19 +35,20 @@
             {{ item.label }}
           </NuxtLink>
         </li>
-        <li v-if="adminNavItems.length > 0" class="relative group">
-          <button
-            class="flex items-center gap-2 py-2 hover:text-brand-light"
-            :class="isAnyAdminActive ? 'text-brand-light border-b border-brand-light' : 'text-white'"
-          >
-            <Icon icon="mdi:cog" class="h-4 w-4" />
-            Inställningar
-            <Icon icon="mdi:chevron-down" class="h-3 w-3 transition-transform group-hover:rotate-180" />
-          </button>
-          <ul
-            class="absolute top-full left-0 z-50 mt-1 min-w-[180px] rounded-lg border border-slate-700 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100"
-            :style="{ backgroundColor: navBackgroundColor }"
-          >
+        <li v-if="adminNavItems.length > 0">
+          <div class="relative group">
+            <button
+              class="flex items-center gap-2 py-2 hover:text-brand-light"
+              :class="isAnyAdminActive ? 'text-brand-light border-b border-brand-light' : 'text-white'"
+            >
+              <Icon icon="mdi:cog" class="h-4 w-4" />
+              Inställningar
+              <Icon icon="mdi:chevron-down" class="h-3 w-3 transition-transform group-hover:rotate-180" />
+            </button>
+            <ul
+              class="absolute top-full left-0 z-50 pt-1 min-w-[180px] rounded-lg border border-slate-700 opacity-0 shadow-lg transition-all pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto invisible group-hover:visible"
+              :style="{ backgroundColor: navBackgroundColor }"
+            >
             <li v-for="item in adminNavItems" :key="item.to">
               <NuxtLink
                 :to="item.to"
@@ -60,6 +61,7 @@
               </NuxtLink>
             </li>
           </ul>
+          </div>
         </li>
       </ul>
     </div>
