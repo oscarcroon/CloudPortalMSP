@@ -57,7 +57,9 @@ export const tenantRolePermissionMap: Record<TenantRole, string[]> = {
   admin: [
     'tenants:read',
     'tenants:manage',
+    'tenants:manage-members',
     'tenants:create-distributor',
+    'tenants:create-provider',
     'tenants:create-customer',
     'org:read',
     'org:manage',

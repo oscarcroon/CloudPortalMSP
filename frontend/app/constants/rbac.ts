@@ -93,6 +93,7 @@ export const tenantRolePermissionMap: Record<TenantRole, RbacPermission[]> = {
     'tenants:read',
     'tenants:manage',
     'tenants:manage-members',
+    'tenants:create-distributor',
     'tenants:create-provider',
     'tenants:create-customer',
     'org:read',

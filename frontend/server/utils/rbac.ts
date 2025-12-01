@@ -119,7 +119,11 @@ export const requirePermission = async (
 
   // 4. Check module policy (if permission belongs to a module)
   const moduleId = getModuleIdFromPermission(permission)
-  if (moduleId) {
+  const skipModulePolicy =
+    permission === 'org:read' ||
+    permission === 'org:manage'
+
+  if (moduleId && !skipModulePolicy) {
     const modulePolicyAllowed = await checkModulePolicy(orgId, moduleId, permission)
     if (!modulePolicyAllowed) {
       await logPermissionDenied(event, permission, 'module_policy_denied', orgId, undefined)
