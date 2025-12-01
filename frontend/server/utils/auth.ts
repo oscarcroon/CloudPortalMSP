@@ -15,10 +15,13 @@ import {
   distributorProviders,
   tenantMemberships,
   tenants,
-  users
+  users,
+  userModuleFavorites
 } from '../database/schema'
 import type { AuthOrganization, AuthState, AuthTenant } from '../types/auth'
 import type { RbacRole, TenantRole } from '~/constants/rbac'
+import type { ModuleId } from '~/constants/modules'
+import { moduleIds } from '~/constants/modules'
 import { normalizeEmail } from './crypto'
 import { normalizeStoredLogoUrl, resolveBrandingChain } from './branding'
 
@@ -119,6 +122,7 @@ export const buildAuthState = async (
   presetRoles?: Record<string, RbacRole>
 ): Promise<AuthState> => {
   const db = getDb()
+  const allowedModuleIds = new Set<ModuleId>(moduleIds as ModuleId[])
 
   const [user] = await db.select().from(users).where(eq(users.id, userId))
   if (!user) {
@@ -154,6 +158,23 @@ export const buildAuthState = async (
     tenantIncludeChildren[row.tenant.id] = Boolean(row.membership.includeChildren)
     return mapTenantRow(row)
   })
+
+  const favoriteRows = await db
+    .select({
+      moduleId: userModuleFavorites.moduleId,
+      displayOrder: userModuleFavorites.displayOrder
+    })
+    .from(userModuleFavorites)
+    .where(eq(userModuleFavorites.userId, userId))
+    .orderBy(asc(userModuleFavorites.displayOrder), asc(userModuleFavorites.createdAt))
+
+  const favoriteModules: ModuleId[] = []
+  for (const row of favoriteRows) {
+    const moduleId = row.moduleId as ModuleId
+    if (allowedModuleIds.has(moduleId) && !favoriteModules.includes(moduleId)) {
+      favoriteModules.push(moduleId)
+    }
+  }
 
   let resolvedOrgId: string | null
   if (forcedOrgId !== undefined) {
@@ -218,6 +239,7 @@ export const buildAuthState = async (
     tenantIncludeChildren,
     currentOrgId: resolvedOrgId,
     currentTenantId: resolvedTenantId,
+    favoriteModules,
     sessionIssuedAt: new Date().toISOString(),
     branding: brandingState
   }

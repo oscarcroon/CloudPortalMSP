@@ -773,8 +773,7 @@ import { tenantRoles, tenantRolePermissionMap } from '~/constants/rbac'
 import type { TenantRole } from '~/constants/rbac'
 
 definePageMeta({
-  layout: 'default',
-  superAdmin: true
+  layout: 'default'
 })
 
 const route = useRoute()

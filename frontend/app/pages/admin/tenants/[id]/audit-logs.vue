@@ -31,7 +31,19 @@
 
     <!-- Filters -->
     <div v-if="!accessDenied" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5" @submit.prevent="loadLogs">
+      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6" @submit.prevent="loadLogs">
+        <div>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Kontext</label>
+          <select
+            v-model="contextScope"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+          >
+            <option v-for="option in contextOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+
         <div>
           <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Event Type</label>
           <select
@@ -222,7 +234,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from '#imports'
+import { ref, onMounted, computed, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import type { AuditEventType } from '~~/server/utils/audit'
 
@@ -232,6 +244,7 @@ definePageMeta({
 })
 
 const route = useRoute()
+const router = useRouter()
 const tenantId = route.params.id as string
 
 interface AuditLog {
@@ -254,13 +267,36 @@ interface AuditLog {
   createdAt: Date | string
 }
 
-const tenant = ref<{ name: string } | null>(null)
+interface TenantSummary {
+  id: string
+  name: string
+  type: 'provider' | 'distributor' | 'organization'
+}
+
+type ContextScope = 'all' | 'tenant' | 'providers' | 'organizations'
+
+const CONTEXT_SCOPE_VALUES: ContextScope[] = ['all', 'tenant', 'providers', 'organizations']
+
+const parseContextScope = (value: unknown): ContextScope => {
+  if (Array.isArray(value)) {
+    return parseContextScope(value[0])
+  }
+  if (typeof value === 'string' && CONTEXT_SCOPE_VALUES.includes(value as ContextScope)) {
+    return value as ContextScope
+  }
+  return 'all'
+}
+
+const tenant = ref<TenantSummary | null>(null)
 const tenantLoading = ref(true)
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
 const pagination = ref<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
 const accessDenied = ref(false)
+const hasProviders = ref(false)
+const hasOrganizations = ref(false)
+const contextScope = ref<ContextScope>(parseContextScope(route.query.contextScope))
 
 const eventTypes: AuditEventType[] = [
   'LOGIN_SUCCESS',
@@ -287,6 +323,55 @@ const eventTypes: AuditEventType[] = [
   'MODULE_DISABLED'
 ]
 
+const contextOptions = computed(() => {
+  const options: { value: ContextScope; label: string }[] = [
+    { value: 'all', label: 'Alla kontexter' },
+    { value: 'tenant', label: 'Endast denna tenant' }
+  ]
+
+  if (tenant.value?.type === 'distributor') {
+    if (hasProviders.value) {
+      options.push({ value: 'providers', label: 'Endast leverantörer' })
+    }
+    if (hasOrganizations.value) {
+      options.push({ value: 'organizations', label: 'Endast organisationer' })
+    }
+  } else if (tenant.value?.type === 'provider' && hasOrganizations.value) {
+    options.push({ value: 'organizations', label: 'Endast organisationer' })
+  }
+
+  return options
+})
+
+const normalizeScopeForTenant = (value: ContextScope): ContextScope => {
+  const available = new Set(contextOptions.value.map(option => option.value))
+  if (available.has(value)) {
+    return value
+  }
+  if (available.has('tenant')) {
+    return 'tenant'
+  }
+  return 'all'
+}
+
+watch(contextOptions, () => {
+  const next = normalizeScopeForTenant(contextScope.value)
+  if (next !== contextScope.value) {
+    contextScope.value = next
+  }
+})
+
+watch(
+  () => route.query.contextScope,
+  value => {
+    const resolved = parseContextScope(value)
+    const normalized = normalizeScopeForTenant(resolved)
+    if (normalized !== contextScope.value) {
+      contextScope.value = normalized
+    }
+  }
+)
+
 // Set default dates: 7 days back to today
 const getDefaultDates = () => {
   const today = new Date()
@@ -311,8 +396,18 @@ const filters = ref({
 const loadTenant = async () => {
   tenantLoading.value = true
   try {
-    const data = await $fetch<{ tenant: { name: string } }>(`/api/admin/tenants/${tenantId}`)
+    const data = await $fetch<{
+      tenant: TenantSummary
+      linkedTenants?: { id: string; type: TenantSummary['type'] }[]
+      organizations?: { id: string }[]
+    }>(`/api/admin/tenants/${tenantId}`)
     tenant.value = data.tenant
+    hasProviders.value = (data.linkedTenants ?? []).some(link => link.type === 'provider')
+    hasOrganizations.value =
+      data.tenant.type === 'distributor'
+        ? hasProviders.value
+        : (data.organizations?.length ?? 0) > 0
+    contextScope.value = normalizeScopeForTenant(contextScope.value)
   } catch (error: any) {
     console.error('Failed to load tenant', error)
     if (error.statusCode === 403 || error.status === 403) {
@@ -321,6 +416,17 @@ const loadTenant = async () => {
   } finally {
     tenantLoading.value = false
   }
+}
+
+const syncRouteContextScope = () => {
+  if (!import.meta.client) return
+  const nextQuery: Record<string, any> = { ...route.query }
+  if (contextScope.value && contextScope.value !== 'all') {
+    nextQuery.contextScope = contextScope.value
+  } else {
+    delete nextQuery.contextScope
+  }
+  router.replace({ query: nextQuery })
 }
 
 const loadLogs = async (page = 1) => {
@@ -332,10 +438,12 @@ const loadLogs = async (page = 1) => {
       pageSize: '50'
     })
     
+    params.append('contextScope', contextScope.value)
     if (filters.value.eventType) params.append('eventType', filters.value.eventType)
     if (filters.value.severity) params.append('severity', filters.value.severity)
     if (filters.value.startDate) params.append('startDate', filters.value.startDate)
     if (filters.value.endDate) params.append('endDate', filters.value.endDate)
+    syncRouteContextScope()
     
     const response = await $fetch<{ logs: AuditLog[]; pagination: any }>(`/api/admin/tenants/${tenantId}/audit-logs?${params}`)
     logs.value = response.logs
@@ -358,6 +466,7 @@ const clearFilters = () => {
     startDate: dates.startDate,
     endDate: dates.endDate
   }
+  contextScope.value = normalizeScopeForTenant('all')
   loadLogs()
 }
 

@@ -257,8 +257,7 @@ import { useRoute } from 'vue-router'
 import type { ModuleRoleDefinition } from '~/constants/modules'
 
 definePageMeta({
-  layout: 'default',
-  superAdmin: true
+  layout: 'default'
 })
 
 const route = useRoute()

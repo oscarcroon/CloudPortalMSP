@@ -1,4 +1,5 @@
 import type { RbacRole, TenantRole } from '~/constants/rbac'
+import type { ModuleId } from '~/constants/modules'
 
 export interface AuthOrganization {
   id: string
@@ -46,6 +47,7 @@ export interface AuthPayload {
   currentTenantId: string | null
   sessionIssuedAt: string
   branding: BrandingState | null
+  favoriteModules: ModuleId[]
 }
 
 export type AuthState = AuthPayload

@@ -1,4 +1,4 @@
-import { defineEventHandler, getRouterParam, getQuery } from 'h3'
+import { defineEventHandler, getRouterParam, getQuery, createError } from 'h3'
 import { eq, and, gte, lte, desc, sql } from 'drizzle-orm'
 import { auditLogs, users } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
@@ -15,6 +15,12 @@ export default defineEventHandler(async (event) => {
   await requirePermission(event, 'audit:read', orgId)
   
   const query = getQuery(event)
+  if (query.contextScope) {
+    throw createError({
+      statusCode: 400,
+      message: 'contextScope is not supported for organization audit logs'
+    })
+  }
   const db = getDb()
   
   // Parse filters

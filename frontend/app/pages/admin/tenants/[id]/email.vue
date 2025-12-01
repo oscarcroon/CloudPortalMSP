@@ -68,8 +68,7 @@ import EmailProviderForm from '~/components/admin/EmailProviderForm.vue'
 import type { AdminEmailProviderSummary, AdminEmailProviderPayload, AdminEmailProviderTestPayload } from '~/types/admin'
 
 definePageMeta({
-  layout: 'default',
-  superAdmin: true
+  layout: 'default'
 })
 
 const route = useRoute()

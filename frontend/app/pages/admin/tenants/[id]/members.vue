@@ -342,8 +342,7 @@ import type {
 import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({
-  layout: 'default',
-  superAdmin: true
+  layout: 'default'
 })
 
 const route = useRoute()

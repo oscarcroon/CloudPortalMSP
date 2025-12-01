@@ -232,6 +232,23 @@ export const tenantInvitations = sqliteTable(
   })
 )
 
+export const userModuleFavorites = sqliteTable(
+  'user_module_favorites',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    moduleId: text('module_id').notNull(),
+    displayOrder: integer('display_order').notNull().default(0),
+    ...timestampColumns()
+  },
+  table => ({
+    uniqueFavorite: uniqueIndex('user_module_favorites_unique').on(table.userId, table.moduleId),
+    orderIdx: index('user_module_favorites_order_idx').on(table.userId, table.displayOrder)
+  })
+)
+
 export const distributorProviders = sqliteTable(
   'distributor_providers',
   {
@@ -633,7 +650,15 @@ export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(organizationMemberships),
   invitations: many(organizationInvitations),
   tenantMemberships: many(tenantMemberships),
-  tenantInvitations: many(tenantInvitations)
+  tenantInvitations: many(tenantInvitations),
+  favorites: many(userModuleFavorites)
+}))
+
+export const userModuleFavoriteRelations = relations(userModuleFavorites, ({ one }) => ({
+  user: one(users, {
+    fields: [userModuleFavorites.userId],
+    references: [users.id]
+  })
 }))
 
 export const tenantMembershipRelations = relations(tenantMemberships, ({ one }) => ({

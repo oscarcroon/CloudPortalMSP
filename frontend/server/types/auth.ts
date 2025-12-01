@@ -1,4 +1,5 @@
-import type { RbacRole } from '~/constants/rbac'
+import type { RbacRole, TenantRole } from '~/constants/rbac'
+import type { ModuleId } from '~/constants/modules'
 import type { BrandingTargetType } from '../database/schema'
 
 export interface AuthUser {
@@ -8,6 +9,7 @@ export interface AuthUser {
   status: string
   defaultOrgId?: string | null
   isSuperAdmin: boolean
+  forcePasswordReset: boolean
 }
 
 export interface AuthOrganization {
@@ -24,17 +26,30 @@ export interface AuthOrganization {
   lastAccessedAt?: number | null
 }
 
+export interface AuthTenant {
+  id: string
+  name: string
+  slug: string
+  type: 'provider' | 'distributor' | 'organization'
+  parentTenantId?: string | null
+  role: TenantRole
+  includeChildren: boolean
+  status: string
+}
+
 export interface AuthState {
   user: AuthUser
   organizations: AuthOrganization[]
+  tenants: AuthTenant[]
   orgRoles: Record<string, RbacRole>
+  tenantRoles: Record<string, TenantRole>
+  tenantIncludeChildren: Record<string, boolean>
   currentOrgId: string | null
+  currentTenantId: string | null
+  favoriteModules: ModuleId[]
   sessionIssuedAt: string
   branding: AuthBrandingState | null
-  branding: AuthBrandingState | null
 }
-
-import type { TenantRole } from '~/constants/rbac'
 
 export interface SessionTokenPayload {
   userId: string
@@ -42,6 +57,7 @@ export interface SessionTokenPayload {
   tenantRoles?: Record<string, TenantRole>
   tenantIncludeChildren?: Record<string, boolean>
   currentOrgId: string | null
+  currentTenantId?: string | null
   version: number
   iat?: number
   exp?: number

@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
       targetType: tenant.type,
       tenantId: tenant.id
     },
+    mediaType,
     {
       filename: logoField.filename,
       mimeType: logoField.type,

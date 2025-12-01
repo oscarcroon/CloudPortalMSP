@@ -1,10 +1,16 @@
 import { createError, defineEventHandler, getRouterParam, getQuery } from 'h3'
-import { eq, and, gte, lte, desc, sql, inArray, or } from 'drizzle-orm'
+import { eq, and, gte, lte, desc, sql, inArray, or, isNull } from 'drizzle-orm'
 import { auditLogs, users, organizations, tenants } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
 import { requireTenantPermission } from '../../../../utils/rbac'
 import { validatePagination } from '../../../../utils/validation'
 import type { AuditEventType } from '../../../../utils/audit'
+import { getTenantAuditScope } from '../../../../utils/auditScope'
+import {
+  auditContextScopeSchema,
+  DEFAULT_AUDIT_CONTEXT_SCOPE,
+  type AuditContextScope
+} from '../../../../validation/audit'
 
 export default defineEventHandler(async (event) => {
   const tenantId = getRouterParam(event, 'id')
@@ -37,36 +43,36 @@ export default defineEventHandler(async (event) => {
     maxPageSize: 100
   })
   
-  // Get all organizations under this tenant
-  const orgs = await db
-    .select({ id: organizations.id })
-    .from(organizations)
-    .where(eq(organizations.tenantId, tenantId))
-  
-  const orgIds = orgs.map(org => org.id)
-  
-  // Build where conditions
-  const conditions = []
-  
-  if (orgIds.length > 0) {
-    // Logs for tenant or any of its organizations
-    const tenantOrOrgs = or(
-      eq(auditLogs.tenantId, tenantId),
-      inArray(auditLogs.orgId, orgIds)
-    )
-    if (tenantOrOrgs) {
-      conditions.push(tenantOrOrgs)
+  const requestedScope = query.contextScope as string | undefined
+  let parsedScope: AuditContextScope = DEFAULT_AUDIT_CONTEXT_SCOPE
+  if (requestedScope) {
+    try {
+      parsedScope = auditContextScopeSchema.parse(requestedScope)
+    } catch {
+      throw createError({
+        statusCode: 400,
+        message: 'Invalid context scope'
+      })
     }
-  } else {
-    // Only tenant logs if no organizations
-    conditions.push(eq(auditLogs.tenantId, tenantId))
   }
+  
+  const scopeData = await getTenantAuditScope(tenantId)
+  const contextScope = normalizeContextScope(parsedScope, scopeData.tenantType)
+  
+  const scopeCondition = buildScopeCondition(contextScope, scopeData)
+  const conditions = [scopeCondition]
   
   if (userId) {
     conditions.push(eq(auditLogs.userId, userId))
   }
   
   if (orgId) {
+    if (!scopeData.orgIds.includes(orgId)) {
+      throw createError({
+        statusCode: 403,
+        message: 'Organization is outside the current tenant scope'
+      })
+    }
     conditions.push(eq(auditLogs.orgId, orgId))
   }
   
@@ -86,7 +92,7 @@ export default defineEventHandler(async (event) => {
     conditions.push(lte(auditLogs.createdAt, endDate))
   }
   
-  const whereClause = and(...conditions)
+  const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions)
   
   // Get total count
   const [countResult] = await db
@@ -126,10 +132,10 @@ export default defineEventHandler(async (event) => {
     .limit(pageSize)
     .offset(offset)
   
-  // Parse meta JSON
   const logsWithParsedMeta = logs.map(log => ({
     ...log,
-    meta: log.meta ? JSON.parse(log.meta) : null
+    meta: log.meta ? JSON.parse(log.meta) : null,
+    ip: maskIp(log.ip)
   }))
   
   return {
@@ -142,4 +148,58 @@ export default defineEventHandler(async (event) => {
     }
   }
 })
+
+const maskIp = (ip: string | null) => {
+  if (!ip) return null
+  const segments = ip.split('.')
+  if (segments.length !== 4) {
+    return ip
+  }
+  segments[3] = 'xxx'
+  return segments.join('.')
+}
+
+const normalizeContextScope = (
+  requested: AuditContextScope,
+  tenantType: 'provider' | 'distributor' | 'organization'
+): AuditContextScope => {
+  if (requested === 'providers' && tenantType !== 'distributor') {
+    return 'tenant'
+  }
+  return requested
+}
+
+const buildScopeCondition = (
+  scope: AuditContextScope,
+  data: Awaited<ReturnType<typeof getTenantAuditScope>>
+) => {
+  const noMatch = sql`1 = 0`
+  const tenantCondition = inArray(auditLogs.tenantId, data.selfTenantIds)
+  const selfTenantClause = and(tenantCondition, isNull(auditLogs.orgId))
+  
+  const providerClause =
+    data.providerTenantIds.length > 0
+      ? and(inArray(auditLogs.tenantId, data.providerTenantIds), isNull(auditLogs.orgId))
+      : null
+  
+  const organizationClause =
+    data.orgIds.length > 0 ? inArray(auditLogs.orgId, data.orgIds) : null
+  
+  switch (scope) {
+    case 'tenant':
+      return selfTenantClause
+    case 'providers':
+      return providerClause ?? noMatch
+    case 'organizations':
+      return organizationClause ?? noMatch
+    case 'all':
+    default: {
+      const clauses = [selfTenantClause, providerClause, organizationClause].filter(Boolean)
+      if (clauses.length === 0) {
+        return noMatch
+      }
+      return clauses.slice(1).reduce((acc, clause) => or(acc, clause!), clauses[0]!)
+    }
+  }
+}
 

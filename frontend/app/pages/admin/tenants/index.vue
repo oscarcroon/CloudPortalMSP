@@ -110,8 +110,7 @@ import type { AdminTenantSummary } from '~/types/admin'
 import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({
-  layout: 'default',
-  superAdmin: true
+  layout: 'default'
 })
 
 const router = useRouter()

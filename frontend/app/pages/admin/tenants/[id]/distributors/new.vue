@@ -91,8 +91,7 @@ import { computed, reactive, ref, useFetch, useRoute, useRouter } from '#imports
 import type { AdminTenantDetail } from '~/types/admin'
 
 definePageMeta({
-  layout: 'default',
-  superAdmin: true
+  layout: 'default'
 })
 
 const router = useRouter()

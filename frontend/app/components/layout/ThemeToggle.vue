@@ -8,11 +8,21 @@
       v-for="option in options"
       :key="option.value"
       type="button"
-      class="flex items-center rounded-full px-2.5 py-1 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      class="flex items-center rounded-full px-2.5 py-1 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
       :class="
         option.value === colorMode.preference
-          ? 'bg-brand text-white shadow-sm dark:bg-brand/90'
+          ? 'text-white shadow-sm'
           : 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
+      "
+      :style="
+        option.value === colorMode.preference
+          ? {
+              backgroundColor: accentColor,
+              outlineColor: accentColor
+            }
+          : {
+              outlineColor: accentColor
+            }
       "
       :aria-pressed="option.value === colorMode.preference"
       :aria-label="option.label"
@@ -26,11 +36,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useColorMode } from '#imports'
+import { useAuth } from '~/composables/useAuth'
 
 type ThemePreference = 'system' | 'light' | 'dark'
 
 const colorMode = useColorMode<ThemePreference>()
+const auth = useAuth()
+
+const accentColor = computed(() => {
+  return auth.branding.value?.activeTheme.accentColor || '#1C6DD0'
+})
 
 const options: Array<{ value: ThemePreference; label: string; icon: string }> = [
   { value: 'system', label: 'System', icon: '◑' },
