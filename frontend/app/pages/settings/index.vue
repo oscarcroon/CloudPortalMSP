@@ -89,8 +89,8 @@
         <div v-if="otherOrganizations.length > 0" class="mt-6">
           <h3 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Övriga organisationer</h3>
           
-          <!-- Search Input - Only show if more than 5 organizations -->
-          <div v-if="otherOrganizations.length > 5" class="mb-4">
+          <!-- Search Input - Only show if more than 3 organizations -->
+          <div v-if="otherOrganizations.length > 3" class="mb-4">
             <input
               v-model="searchTerm"
               type="text"
@@ -327,7 +327,7 @@
               { 'pointer-events-none opacity-50': isSettingsLocked }
             ]"
           >
-            Hantera
+            Öppna
           </NuxtLink>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
@@ -464,7 +464,7 @@ const tokens = [
 const currentTenantId = computed(() => auth.state.value.data?.currentTenantId ?? null)
 const hasActiveTenant = computed(() => Boolean(currentTenantId.value))
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 3
 const searchTerm = ref('')
 const currentPage = ref(1)
 

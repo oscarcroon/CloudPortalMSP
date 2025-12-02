@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { requireSession } from '../../utils/session'
 import { getDb } from '../../utils/db'
-import { users, organizationMemberships } from '../../database/schema'
-import { ensureMembership } from '../../utils/auth'
+import { users } from '../../database/schema'
+import { canAccessOrganization } from '../../utils/rbac'
 import { logSecurityEvent } from '../../utils/audit'
 
 const schema = z.object({
@@ -15,8 +15,14 @@ export default defineEventHandler(async (event) => {
   const { orgId } = schema.parse(await readBody(event))
   const auth = await requireSession(event)
   
-  // Validate that user is a member of the organization
-  await ensureMembership(auth.user.id, orgId)
+  // Validate that user can access the organization (direct membership OR via tenant hierarchy)
+  const canAccess = await canAccessOrganization(auth, orgId)
+  if (!canAccess) {
+    throw createError({
+      statusCode: 403,
+      message: 'Du har inte åtkomst till denna organisation.'
+    })
+  }
   
   const db = getDb()
   const oldDefaultOrgId = auth.user.defaultOrgId

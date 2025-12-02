@@ -287,8 +287,8 @@ export const buildAuthState = async (
       )
 
     for (const org of proxyOrgs) {
-      // Skip if already in organizationPayload or orgRoles
-      if (orgRoles[org.id] || organizationPayload.find((o) => o.id === org.id)) {
+      // Skip if already in organizationPayload
+      if (organizationPayload.find((o) => o.id === org.id)) {
         continue
       }
 
@@ -312,6 +312,8 @@ export const buildAuthState = async (
         accessType: 'msp'
       }
       organizationPayload.push(proxyOrg)
+      // Always update orgRoles with proxy role, even if it was in presetRoles
+      // This ensures proxy orgs are always included in the auth state
       orgRoles[proxyOrg.id] = proxyRole
     }
   }
