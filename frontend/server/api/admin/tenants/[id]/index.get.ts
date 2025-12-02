@@ -258,14 +258,14 @@ export default defineEventHandler(async (event) => {
       .where(inArray(tenantInvitations.id, expiredInviteIds))
   }
 
-  // Clean up accepted and cancelled invitations older than 24 hours
+  // Clean up accepted, cancelled, and expired invitations older than 24 hours
   const cleanupCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000) // 24 hours ago
   await db
     .delete(tenantInvitations)
     .where(
       and(
         eq(tenantInvitations.tenantId, tenantId),
-        inArray(tenantInvitations.status, ['accepted', 'cancelled']),
+        inArray(tenantInvitations.status, ['accepted', 'cancelled', 'expired']),
         lt(tenantInvitations.updatedAt, cleanupCutoff)
       )
     )
