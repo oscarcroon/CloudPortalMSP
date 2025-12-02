@@ -22,10 +22,6 @@
       {{ error }}
     </div>
 
-    <div v-if="memberError" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-      {{ memberError }}
-    </div>
-
     <div v-if="pending" class="text-sm text-slate-600 dark:text-slate-400">Laddar tenant-detaljer...</div>
 
     <div v-else-if="tenant" class="space-y-6">
@@ -145,6 +141,14 @@
         >
           <Icon icon="mdi:home" class="h-4 w-4" />
           Skapa organisation
+        </NuxtLink>
+        <NuxtLink
+          v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
+          :to="`/admin/tenants/${tenant.id}/members`"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+        >
+          <Icon icon="mdi:account-group" class="h-4 w-4" />
+          Medlemmar
         </NuxtLink>
         <NuxtLink
           v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
@@ -315,124 +319,18 @@
         </div>
       </div>
 
-      <!-- Members -->
-      <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
-        <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                <Icon icon="mdi:account-group" class="h-5 w-5" />
-              </div>
-              <div>
-                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Medlemmar</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ members.length }} medlemmar med {{ tenant.type === 'distributor' ? 'distributörs' : tenant.type === 'provider' ? 'leverantörs' : 'organisations' }}rättigheter
-                </p>
-              </div>
-            </div>
-            <button
-              v-if="canInviteMember"
-              class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
-              @click="openInviteModal"
-            >
-              <Icon icon="mdi:account-plus-outline" class="h-4 w-4" />
-              Bjud in medlem
-            </button>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
-            <thead class="bg-slate-50 dark:bg-white/5">
-              <tr>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Användare</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-                <th v-if="canInviteMember" class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Åtgärder</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-white/5">
-              <tr v-for="member in members" :key="member.id" class="text-slate-900 dark:text-white">
-                <td class="px-6 py-3">
-                  <div class="font-semibold">{{ member.user.email }}</div>
-                  <p v-if="member.user.fullName" class="text-xs text-slate-500 dark:text-slate-400">
-                    {{ member.user.fullName }}
-                  </p>
-                </td>
-                <td class="px-6 py-3">
-                  <select
-                    :key="`role-select-${member.id}-${member.role}`"
-                    :disabled="
-                      member.status !== 'active' ||
-                      roleLoadingId === member.id ||
-                      statusLoadingId === member.id ||
-                      removalLoadingId === member.id ||
-                      !canManageMembers
-                    "
-                    class="rounded border border-slate-200 bg-transparent px-2 py-1 text-sm dark:border-white/10"
-                    :value="String(member.role || '')"
-                    @change="handleRoleChange(member, ($event.target as HTMLSelectElement).value)"
-                  >
-                    <option
-                      v-for="role in tenantRoles"
-                      :key="role"
-                      :value="role"
-                      :disabled="
-                        member.role === 'admin' &&
-                        role !== 'admin' &&
-                        member.userId === auth.user.value?.id
-                      "
-                    >
-                      {{ role }}
-                    </option>
-                  </select>
-                </td>
-                <td class="px-6 py-3">
-                  <StatusPill :variant="member.status === 'active' ? 'success' : 'warning'">
-                    {{ member.status }}
-                  </StatusPill>
-                </td>
-                <td v-if="canInviteMember" class="px-6 py-3 text-right">
-                  <div class="flex flex-wrap justify-end gap-2 text-xs">
-                    <button
-                      v-if="member.status === 'active'"
-                      class="rounded border border-amber-200 px-3 py-1 text-amber-700 transition hover:border-amber-300 hover:text-amber-600 disabled:opacity-40 dark:border-amber-500/30 dark:text-amber-200"
-                      :disabled="statusLoadingId === member.id || removalLoadingId === member.id"
-                      @click="disableMember(member)"
-                    >
-                      {{ statusLoadingId === member.id ? 'Inaktiverar...' : 'Inaktivera' }}
-                    </button>
-                    <button
-                      v-if="member.status === 'suspended'"
-                      class="rounded border border-emerald-200 px-3 py-1 text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-600 disabled:opacity-40 dark:border-emerald-500/30 dark:text-emerald-200"
-                      :disabled="statusLoadingId === member.id || removalLoadingId === member.id"
-                      @click="enableMember(member)"
-                    >
-                      {{ statusLoadingId === member.id ? 'Aktiverar...' : 'Aktivera' }}
-                    </button>
-                    <button
-                      class="rounded border border-red-200 px-3 py-1 font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
-                      :disabled="removalLoadingId === member.id || statusLoadingId === member.id"
-                      @click="removeMember(member)"
-                    >
-                      {{ removalLoadingId === member.id ? 'Tar bort...' : 'Ta bort permanent' }}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-if="memberError" class="border-t border-slate-200 px-6 py-3 dark:border-white/5">
-          <div class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-            {{ memberError }}
-          </div>
-        </div>
-      </div>
-
       <!-- Pending Invitations -->
       <div v-if="tenant.type === 'provider' || tenant.type === 'distributor'" class="rounded-xl border border-dashed border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
-          <p class="text-sm font-semibold text-slate-900 dark:text-white">Väntande inbjudningar</p>
+          <div class="flex items-center justify-between">
+            <p class="text-sm font-semibold text-slate-900 dark:text-white">Väntande inbjudningar</p>
+            <NuxtLink
+              :to="`/admin/tenants/${tenant.id}/members`"
+              class="text-xs text-slate-500 transition hover:text-brand dark:text-slate-400"
+            >
+              Visa alla medlemmar →
+            </NuxtLink>
+          </div>
         </div>
         <div v-if="!invites.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
           Inga aktiva inbjudningar.
@@ -564,152 +462,6 @@
       </template>
     </Modal>
 
-    <!-- Invite Member Modal -->
-    <div
-      v-if="showInviteModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8 overflow-y-auto"
-      @click.self="closeInviteModal"
-    >
-      <form
-        class="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0f172a]"
-        @submit.prevent="submitInvite"
-      >
-        <div class="flex-1 overflow-y-auto p-6 space-y-4">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Bjud in medlem</h3>
-        <p class="text-sm text-slate-600 dark:text-slate-400">
-          Bjud in en användare att bli medlem i {{ tenant?.type === 'distributor' ? 'distributören' : 'leverantören' }} med rättigheter.
-        </p>
-        <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</label>
-          <input
-            v-model="inviteForm.email"
-            type="email"
-            required
-            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            placeholder="namn@example.com"
-            @blur="checkUserExists"
-          />
-          <p v-if="checkingUser" class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kontrollerar...</p>
-        </div>
-        <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</label>
-          <select
-            v-model="inviteForm.role"
-            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-          >
-            <option value="viewer">Viewer</option>
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-            <option value="support">Support</option>
-          </select>
-        </div>
-        <label
-          v-if="tenant?.type === 'distributor' && userExists"
-          class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300"
-        >
-          <input
-            v-model="inviteForm.includeChildren"
-            type="checkbox"
-            class="mt-1 rounded border-slate-300 dark:border-white/20"
-          />
-          <span>
-            Inkludera underordnade
-            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-              Ge åtkomst till alla leverantörer under denna distributör.
-            </span>
-          </span>
-        </label>
-        <label
-          class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm transition"
-          :class="userExists 
-            ? 'border-slate-200 bg-slate-50 text-slate-400 dark:border-white/5 dark:bg-white/5 dark:text-slate-500' 
-            : 'text-slate-600 dark:border-white/10 dark:text-slate-300'"
-        >
-          <input
-            v-model="inviteForm.createOrganization"
-            type="checkbox"
-            :disabled="userExists"
-            class="mt-1 rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/20"
-          />
-          <span>
-            Skapa organisation åt användaren
-            <span v-if="!userExists" class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-              Organisationen skapas när inbjudan accepteras.
-            </span>
-            <span v-else class="mt-0.5 block text-xs text-slate-400 dark:text-slate-500">
-              Användaren finns redan i systemet. Skapa organisation separat efter att medlemmen har lagts till.
-            </span>
-          </span>
-        </label>
-        <div v-if="!userExists && inviteForm.createOrganization" class="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
-          <h4 class="text-sm font-semibold text-slate-900 dark:text-white">Organisationsdetaljer</h4>
-          <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn *</label>
-            <input
-              v-model="inviteForm.organization.name"
-              type="text"
-              required
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug</label>
-            <input
-              v-model="inviteForm.organization.slug"
-              type="text"
-              pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Lämna tomt för att generera automatiskt från namn
-            </p>
-          </div>
-          <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">COREID *</label>
-            <input
-              v-model="inviteForm.organization.coreId"
-              type="text"
-              required
-              maxlength="4"
-              pattern="[A-Z0-9]{4}"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm uppercase text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Exakt 4 tecken, endast bokstäver och siffror</p>
-          </div>
-          <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Fakturerings-e-post</label>
-            <input
-              v-model="inviteForm.organization.billingEmail"
-              type="email"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            />
-          </div>
-        </div>
-        </div>
-        <div class="border-t border-slate-200 p-6 dark:border-white/10">
-          <div v-if="inviteError" class="mb-4 rounded bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
-            {{ inviteError }}
-          </div>
-          <div class="flex justify-end gap-2">
-            <button
-              type="button"
-              class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200"
-              @click="closeInviteModal"
-            >
-              Avbryt
-            </button>
-            <button
-              type="submit"
-              class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-60"
-              :disabled="inviteLoading"
-            >
-              {{ inviteLoading ? 'Skickar...' : 'Skicka inbjudan' }}
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-
     <!-- Delete Distributor Modal -->
     <div
       v-if="showDeleteModal"
@@ -769,8 +521,7 @@ import StatusPill from '~/components/shared/StatusPill.vue'
 import Modal from '~/components/shared/Modal.vue'
 import type { AdminTenantDetail, AdminTenantSummary } from '~/types/admin'
 import { useAuth } from '~/composables/useAuth'
-import { tenantRoles, tenantRolePermissionMap } from '~/constants/rbac'
-import type { TenantRole } from '~/constants/rbac'
+import { tenantRolePermissionMap } from '~/constants/rbac'
 
 definePageMeta({
   layout: 'default'
@@ -784,24 +535,6 @@ const tenantId = route.params.id as string
 const { data, pending, error, refresh } = await useFetch<AdminTenantDetail>(`/api/admin/tenants/${tenantId}`)
 
 const tenant = computed(() => data.value?.tenant)
-const members = computed(() => {
-  const mems = data.value?.members ?? []
-  if (import.meta.dev && import.meta.client) {
-    const serialized = mems.map(m => ({
-      id: m.id,
-      userId: m.userId,
-      email: m.user?.email,
-      fullName: m.user?.fullName,
-      role: m.role,
-      roleType: typeof m.role,
-      roleValue: String(m.role),
-      status: m.status
-    }))
-    console.log('[Tenant Members] Raw members data:', serialized)
-    console.log('[Tenant Members] Full data.value:', JSON.parse(JSON.stringify(data.value)))
-  }
-  return mems
-})
 const childTenants = computed(() => data.value?.childTenants ?? [])
 const linkedTenants = computed(() => data.value?.linkedTenants ?? [])
 const organizations = computed(() => data.value?.organizations ?? [])
@@ -824,30 +557,8 @@ const deleteForm = reactive({
   acknowledgeImpact: false
 })
 
-// Invite member state
-const showInviteModal = ref(false)
-const inviteLoading = ref(false)
-const inviteError = ref('')
-const userExists = ref(false)
-const checkingUser = ref(false)
-const inviteForm = reactive({
-  email: '',
-  role: 'viewer' as 'admin' | 'user' | 'viewer' | 'support',
-  includeChildren: false,
-  createOrganization: false,
-  organization: {
-    name: '',
-    slug: '',
-    billingEmail: '',
-    coreId: ''
-  }
-})
 
-// Member management state
-const statusLoadingId = ref<string>('')
-const removalLoadingId = ref<string>('')
-const roleLoadingId = ref<string | null>(null)
-const memberError = ref('')
+// Invite management state
 const inviteCancelLoadingId = ref<string>('')
 
 watch(tenant, (t) => {
@@ -857,17 +568,6 @@ watch(tenant, (t) => {
   }
 }, { immediate: true })
 
-// Debug: Watch members data changes
-watch(members, (newMembers) => {
-  if (import.meta.dev) {
-    console.log('[Tenant Members] Members changed:', newMembers.map(m => ({
-      id: m.id,
-      email: m.user?.email,
-      role: m.role,
-      roleType: typeof m.role
-    })))
-  }
-}, { deep: true })
 
 const canEdit = computed(() => {
   if (!tenant.value) return false
@@ -876,82 +576,6 @@ const canEdit = computed(() => {
   return role === 'admin'
 })
 
-const canInviteMember = computed(() => {
-  if (!tenant.value) return false
-  // For distributors, only superadmins can invite members
-  if (tenant.value.type === 'distributor') {
-    return auth.isSuperAdmin.value
-  }
-  // For providers, admins can invite members
-  if (tenant.value.type === 'provider') {
-    if (auth.isSuperAdmin.value) return true
-    const role = auth.state.value.data?.tenantRoles[tenant.value.id]
-    return role === 'admin'
-  }
-  return false
-})
-
-const canManageMembersClient = ref(false)
-
-// Initialize on client only to avoid SSR hydration mismatch
-onMounted(() => {
-  if (!tenant.value) {
-    canManageMembersClient.value = false
-    return
-  }
-  
-  // Superadmin ska alltid få hantera medlemmar
-  if (auth.state.value.data?.user?.isSuperAdmin) {
-    canManageMembersClient.value = true
-    return
-  }
-  
-  const tenantId = tenant.value.id
-  const role = auth.state.value.data?.tenantRoles?.[tenantId]
-  
-  if (!role) {
-    canManageMembersClient.value = false
-    return
-  }
-  
-  // Använd samma permission-key som API-endpointen
-  canManageMembersClient.value = tenantRolePermissionMap[role]?.includes('tenants:manage-members') ?? false
-})
-
-// Watch for changes in auth state or tenant
-watch([() => auth.state.value.data?.user?.isSuperAdmin, () => auth.state.value.data?.tenantRoles, tenant], () => {
-  if (!import.meta.client) return
-  
-  if (!tenant.value) {
-    canManageMembersClient.value = false
-    return
-  }
-  
-  // Superadmin ska alltid få hantera medlemmar
-  if (auth.state.value.data?.user?.isSuperAdmin) {
-    canManageMembersClient.value = true
-    return
-  }
-  
-  const tenantId = tenant.value.id
-  const role = auth.state.value.data?.tenantRoles?.[tenantId]
-  
-  if (!role) {
-    canManageMembersClient.value = false
-    return
-  }
-  
-  // Använd samma permission-key som API-endpointen
-  canManageMembersClient.value = tenantRolePermissionMap[role]?.includes('tenants:manage-members') ?? false
-}, { deep: true })
-
-const canManageMembers = computed(() => {
-  // On server, always return false to avoid hydration mismatch
-  if (import.meta.server) return false
-  
-  // On client, use the ref value
-  return canManageMembersClient.value
-})
 
 const canReadAuditLogs = computed(() => {
   if (!tenant.value) return false
@@ -1142,94 +766,6 @@ const submitDelete = async () => {
   }
 }
 
-const checkUserExists = async () => {
-  if (!inviteForm.email.trim()) {
-    userExists.value = false
-    return
-  }
-  checkingUser.value = true
-  try {
-    const response = await $fetch<{ exists: boolean }>(`/api/admin/users/check-email`, {
-      method: 'POST',
-      body: { email: inviteForm.email.trim() }
-    }).catch(() => ({ exists: false }))
-    userExists.value = response.exists ?? false
-    if (userExists.value) {
-      inviteForm.createOrganization = false
-    }
-  } catch {
-    userExists.value = false
-  } finally {
-    checkingUser.value = false
-  }
-}
-
-const openInviteModal = () => {
-  inviteForm.email = ''
-  inviteForm.role = 'viewer'
-  inviteForm.includeChildren = false
-  inviteForm.createOrganization = false
-  inviteForm.organization.name = ''
-  inviteForm.organization.slug = ''
-  inviteForm.organization.billingEmail = ''
-  inviteForm.organization.coreId = ''
-  userExists.value = false
-  checkingUser.value = false
-  inviteError.value = ''
-  showInviteModal.value = true
-}
-
-const closeInviteModal = () => {
-  showInviteModal.value = false
-  inviteError.value = ''
-}
-
-const submitInvite = async () => {
-  if (!tenant.value) return
-  inviteError.value = ''
-  
-  // Validate organization data if createOrganization is true
-  if (!userExists.value && inviteForm.createOrganization) {
-    if (!inviteForm.organization.name.trim()) {
-      inviteError.value = 'Organisationsnamn krävs.'
-      return
-    }
-    if (!inviteForm.organization.coreId || inviteForm.organization.coreId.length !== 4) {
-      inviteError.value = 'COREID måste vara exakt 4 tecken.'
-      return
-    }
-  }
-  
-  inviteLoading.value = true
-  try {
-    const payload: any = {
-      email: inviteForm.email.trim(),
-      role: inviteForm.role,
-      includeChildren: inviteForm.includeChildren
-    }
-    
-    if (!userExists.value && inviteForm.createOrganization) {
-      payload.createOrganization = true
-      payload.organization = {
-        name: inviteForm.organization.name.trim(),
-        slug: inviteForm.organization.slug.trim() || undefined,
-        billingEmail: inviteForm.organization.billingEmail.trim() || undefined,
-        coreId: inviteForm.organization.coreId.trim().toUpperCase()
-      }
-    }
-    
-    await $fetch(`/api/admin/tenants/${tenantId}/members/invite`, {
-      method: 'POST',
-      body: payload
-    })
-    closeInviteModal()
-    await refresh()
-  } catch (err: any) {
-    inviteError.value = err?.data?.message || err?.message || 'Kunde inte skicka inbjudan.'
-  } finally {
-    inviteLoading.value = false
-  }
-}
 
 const getTypeLabel = (type: string) => {
   switch (type) {
@@ -1257,97 +793,6 @@ const getTypeClass = (type: string) => {
   }
 }
 
-const setMemberStatus = async (
-  member: typeof members.value[0],
-  nextStatus: 'active' | 'suspended',
-  options: { confirm?: string } = {}
-) => {
-  if (member.status === nextStatus) return
-  if (options.confirm && !confirm(options.confirm)) {
-    return
-  }
-  statusLoadingId.value = member.id
-  memberError.value = ''
-  try {
-    await $fetch(`/api/admin/tenants/${tenantId}/members/${member.id}/status`, {
-      method: 'PATCH',
-      body: { status: nextStatus }
-    })
-    await refresh()
-  } catch (err: any) {
-    memberError.value = err?.data?.message || err?.message || 'Kunde inte uppdatera medlemsstatus.'
-  } finally {
-    statusLoadingId.value = ''
-  }
-}
-
-const disableMember = (member: typeof members.value[0]) =>
-  setMemberStatus(member, 'suspended', {
-    confirm: `Inaktivera ${member.user.email}? Personen kan inte logga in förrän kontot aktiveras igen.`
-  })
-
-const enableMember = (member: typeof members.value[0]) => setMemberStatus(member, 'active')
-
-const removeMember = async (member: typeof members.value[0]) => {
-  if (!confirm(`Ta bort ${member.user.email} permanent? Personen måste bjudas in igen för att återfå åtkomst.`)) {
-    return
-  }
-  removalLoadingId.value = member.id
-  memberError.value = ''
-  try {
-    await $fetch(`/api/admin/tenants/${tenantId}/members/${member.id}`, {
-      method: 'DELETE'
-    })
-    await refresh()
-  } catch (err: any) {
-    memberError.value = err?.data?.message || err?.message || 'Kunde inte ta bort medlemmen.'
-  } finally {
-    removalLoadingId.value = ''
-  }
-}
-
-const handleRoleChange = async (member: typeof members.value[0], newRole: string) => {
-  if (newRole === member.role) return
-  
-  const oldRole = member.role
-  const targetRole = newRole as TenantRole
-  
-  // Prevent self-demotion from admin to any other role
-  if (oldRole === 'admin' && targetRole !== 'admin' && member.userId === auth.user.value?.id) {
-    memberError.value = 'Du kan inte nedgradera dina egna admin-rättigheter. Endast andra admins kan göra denna ändring.'
-    return
-  }
-  
-  // Confirmation dialogs for admin role changes
-  if (oldRole === 'admin' && targetRole !== 'admin') {
-    if (!confirm(`Ändra roll för ${member.user.email} från admin till ${targetRole}?`)) {
-      return
-    }
-  } else if (oldRole !== 'admin' && targetRole === 'admin') {
-    if (!confirm(`Ge ${member.user.email} admin-rättigheter?`)) {
-      return
-    }
-  }
-  
-  // Optimistic update
-  member.role = targetRole
-  roleLoadingId.value = member.id
-  memberError.value = ''
-  
-  try {
-    await $fetch(`/api/admin/tenants/${tenantId}/members/${member.id}/role`, {
-      method: 'PATCH',
-      body: { role: targetRole }
-    })
-    await refresh()
-  } catch (err: any) {
-    // Revert optimistic update on error
-    member.role = oldRole
-    memberError.value = err?.data?.message || err?.message || 'Kunde inte uppdatera rollen.'
-  } finally {
-    roleLoadingId.value = null
-  }
-}
 
 const formatDate = (value: string | null) => {
   if (!value) return '—'
@@ -1383,7 +828,8 @@ const cancelInvite = async (inviteId: string) => {
     })
     await refresh()
   } catch (err: any) {
-    memberError.value = err?.data?.message || err?.message || 'Kunde inte avbryta inbjudan.'
+    // Error handling for invite cancellation
+    console.error('Failed to cancel invite:', err)
   } finally {
     inviteCancelLoadingId.value = ''
   }

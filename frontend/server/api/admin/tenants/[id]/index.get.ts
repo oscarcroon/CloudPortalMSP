@@ -1,4 +1,4 @@
-import { eq, sql, and, inArray } from 'drizzle-orm'
+import { eq, sql, and, inArray, lt } from 'drizzle-orm'
 import { defineEventHandler, getRouterParam, createError } from 'h3'
 import { tenants, tenantMemberships, tenantInvitations, users, organizations, emailProviderProfiles, distributorProviders } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
@@ -257,6 +257,18 @@ export default defineEventHandler(async (event) => {
       .set({ status: 'expired', updatedAt: new Date() })
       .where(inArray(tenantInvitations.id, expiredInviteIds))
   }
+
+  // Clean up accepted and cancelled invitations older than 24 hours
+  const cleanupCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000) // 24 hours ago
+  await db
+    .delete(tenantInvitations)
+    .where(
+      and(
+        eq(tenantInvitations.tenantId, tenantId),
+        inArray(tenantInvitations.status, ['accepted', 'cancelled']),
+        lt(tenantInvitations.updatedAt, cleanupCutoff)
+      )
+    )
 
   const response = {
     tenant,

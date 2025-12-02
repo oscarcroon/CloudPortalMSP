@@ -48,9 +48,23 @@
     <template v-else>
       <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
-          <p class="text-sm font-semibold text-slate-900 dark:text-white">Medlemmar</p>
+          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <p class="text-sm font-semibold text-slate-900 dark:text-white">Medlemmar</p>
+            <div class="relative w-full md:w-64">
+              <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Sök medlemmar..."
+                class="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white dark:placeholder-slate-500"
+              />
+            </div>
+          </div>
         </div>
-        <div v-if="!members.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+        <div v-if="!filteredMembers.length && searchQuery" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+          Inga medlemmar matchade sökningen "{{ searchQuery }}".
+        </div>
+        <div v-else-if="!filteredMembers.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
           Inga medlemmar hittades.
         </div>
         <div v-else class="overflow-x-auto overflow-y-visible">
@@ -68,7 +82,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5" style="position: relative;">
-              <tr v-for="member in members" :key="member.membershipId">
+              <tr v-for="member in filteredMembers" :key="member.membershipId">
                 <td class="px-6 py-3 text-slate-900 dark:text-white" style="position: relative; overflow: visible;">
                   <div class="flex items-center gap-2">
                     <div>
@@ -469,6 +483,7 @@ const mspRolesLoadingId = ref('')
 
 const userExists = ref(false)
 const checkingUser = ref(false)
+const searchQuery = ref('')
 
 // Tooltip state
 const visibleTooltips = reactive<Record<string, boolean>>({})
@@ -530,6 +545,21 @@ if (error.value) {
 const tenant = computed(() => data.value?.tenant)
 const members = computed(() => data.value?.members ?? [])
 const memberMspRoles = reactive<Record<string, TenantRole[]>>({})
+
+const filteredMembers = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return members.value
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return members.value.filter((member) => {
+    const email = member.email?.toLowerCase() ?? ''
+    const fullName = member.fullName?.toLowerCase() ?? ''
+    const userId = member.userId?.toLowerCase() ?? ''
+    
+    return email.includes(query) || fullName.includes(query) || userId.includes(query)
+  })
+})
 const invites = computed(() => {
   const result = data.value?.invites ?? []
   if (import.meta.dev) {

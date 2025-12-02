@@ -1,13 +1,13 @@
 <template>
   <nav class="text-white" :style="{ backgroundColor: navBackgroundColor }">
     <div class="max-w-6xl mx-auto flex items-center justify-between px-4 py-3">
-      <div class="flex items-center gap-4">
-        <NuxtLink to="/" class="flex items-center gap-2">
+      <div class="flex items-center gap-4 flex-shrink-0">
+        <NuxtLink to="/" class="flex items-center gap-2 flex-shrink-0">
           <ClientOnly>
             <img
               :src="activeLogo"
               :alt="`${activeOrganisationName} logo`"
-              class="h-10 w-auto max-h-10 object-contain"
+              class="h-10 w-auto max-h-10 object-contain flex-shrink-0"
             />
             <template #fallback>
               <div class="h-10 w-10 bg-slate-700 animate-pulse rounded" />
