@@ -32,9 +32,10 @@ export default defineEventHandler(async (event) => {
   
   const { role: newRole } = roleSchema.parse(await readBody(event))
   const db = getDb()
+  const database = db as any
 
   // Get tenant to verify it exists
-  const [tenant] = await db
+  const [tenant] = await database
     .select({
       id: tenants.id,
       name: tenants.name,
@@ -49,13 +50,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get membership with user info
-  const [membership] = await db
+  const [membership] = await database
     .select({
       id: tenantMemberships.id,
       tenantId: tenantMemberships.tenantId,
       userId: tenantMemberships.userId,
       role: tenantMemberships.role,
       status: tenantMemberships.status,
+      includeChildren: tenantMemberships.includeChildren,
       userEmail: users.email,
       userFullName: users.fullName
     })
@@ -86,7 +88,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Ensure at least one active admin remains after the change
-    const [remainingAdmins] = await db
+    const [remainingAdmins] = await database
       .select({
         count: sql<number>`count(${tenantMemberships.id})`
       })
@@ -112,12 +114,19 @@ export default defineEventHandler(async (event) => {
   }
 
   // Update role
-  await db
+  const newRoleIsMsp = newRole.startsWith('msp-')
+  const updates: Record<string, any> = {
+    role: newRole,
+    updatedAt: new Date()
+  }
+
+  if (membership.includeChildren && !newRoleIsMsp) {
+    updates.includeChildren = false
+  }
+
+  await database
     .update(tenantMemberships)
-    .set({ 
-      role: newRole,
-      updatedAt: new Date()
-    })
+    .set(updates)
     .where(eq(tenantMemberships.id, membership.id))
 
   const payload = await fetchTenantMemberPayload(db, membership.id)
@@ -132,7 +141,9 @@ export default defineEventHandler(async (event) => {
       targetUserFullName: membership.userFullName,
       tenantName: tenant.name,
       oldRole,
-      newRole
+      newRole,
+      includeChildrenRevoked:
+        membership.includeChildren && !newRoleIsMsp ? true : undefined
     },
     tenantId
   )

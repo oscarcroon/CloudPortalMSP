@@ -53,23 +53,50 @@
         <div v-if="!members.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
           Inga medlemmar hittades.
         </div>
-        <div v-else class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
+        <div v-else class="overflow-x-auto overflow-y-visible">
+          <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5" style="overflow: visible;">
             <thead class="bg-slate-50 dark:bg-white/5">
               <tr>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">MSP-roller</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Alla orgar</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tillagd</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Åtgärder</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+            <tbody class="divide-y divide-slate-100 dark:divide-white/5" style="position: relative;">
               <tr v-for="member in members" :key="member.membershipId">
-                <td class="px-6 py-3 text-slate-900 dark:text-white">
-                  <div class="font-medium">{{ member.fullName ?? '—' }}</div>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">{{ member.userId }}</p>
+                <td class="px-6 py-3 text-slate-900 dark:text-white" style="position: relative; overflow: visible;">
+                  <div class="flex items-center gap-2">
+                    <div>
+                      <div class="font-medium">{{ member.fullName ?? '—' }}</div>
+                      <p class="text-xs text-slate-500 dark:text-slate-400">{{ member.userId }}</p>
+                    </div>
+                    <div
+                      v-if="member.includeChildren"
+                      :ref="(el) => setTooltipRef(member.membershipId, el)"
+                      class="group relative inline-flex items-center"
+                      @mouseenter="showTooltip(member.membershipId, $event)"
+                      @mouseleave="hideTooltip(member.membershipId)"
+                    >
+                      <Icon
+                        icon="mdi:account-hard-hat"
+                        class="h-5 w-5 text-brand transition-colors dark:text-brand-light"
+                      />
+                      <Teleport to="body">
+                        <div
+                          v-if="visibleTooltips[member.membershipId]"
+                          class="pointer-events-none fixed z-[10000] whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs text-white shadow-xl dark:bg-slate-700"
+                          :style="tooltipStyles[member.membershipId]"
+                        >
+                          Har åtkomst till alla organisationer hos denna leverantör
+                        </div>
+                      </Teleport>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-6 py-3 text-slate-700 dark:text-slate-200">{{ member.email }}</td>
                 <td class="px-6 py-3">
@@ -94,9 +121,56 @@
                         member.userId === auth.user.value?.id
                       "
                     >
-                      {{ role }}
+                      {{ tenantRoleLabel(role) }}
                     </option>
                   </select>
+                </td>
+                <td class="px-6 py-3">
+                  <CheckboxDropdown
+                    v-if="mspRoleOptions.length && showMspRoleOptions"
+                    :options="mspRoleDropdownOptions"
+                    :model-value="memberMspRoles[member.membershipId] || []"
+                    :disabled="
+                      member.status !== 'active' ||
+                      mspRolesLoadingId === member.membershipId ||
+                      statusLoadingId === member.membershipId ||
+                      deleteLoadingId === member.membershipId
+                    "
+                    @save="(value) => handleMspRolesChange(member, value)"
+                  />
+                  <p v-else-if="!showMspRoleOptions" class="text-xs text-slate-400 dark:text-slate-500">
+                    —
+                  </p>
+                  <p v-else class="text-xs text-slate-400 dark:text-slate-500">
+                    Inga MSP-roller tillgängliga
+                  </p>
+                </td>
+                <td class="px-6 py-3">
+                  <div v-if="canEditIncludeChildren(member)" class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20"
+                      :checked="member.includeChildren"
+                      :disabled="includeChildrenLoadingId === member.membershipId"
+                      @change="toggleMemberIncludeChildren(member, ($event.target as HTMLInputElement).checked)"
+                    />
+                    <span class="text-xs text-slate-500 dark:text-slate-400">
+                      {{
+                        includeChildrenLoadingId === member.membershipId
+                          ? 'Uppdaterar...'
+                          : member.includeChildren
+                            ? 'Aktiverad'
+                            : 'Inte aktiv'
+                      }}
+                    </span>
+                  </div>
+                  <span
+                    v-else
+                    class="text-xs"
+                    :class="member.includeChildren ? 'text-brand font-semibold' : 'text-slate-400 dark:text-slate-500'"
+                  >
+                    {{ member.includeChildren ? 'Aktiverad' : '—' }}
+                  </span>
                 </td>
                 <td class="px-6 py-3">
                   <StatusPill :variant="statusVariant(member.status)">
@@ -167,7 +241,7 @@
             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
               <tr v-for="invite in invites" :key="invite.id">
                 <td class="px-6 py-3 text-slate-700 dark:text-slate-200">{{ invite.email }}</td>
-                <td class="px-6 py-3">{{ invite.role }}</td>
+                <td class="px-6 py-3">{{ tenantRoleLabel(invite.role) }}</td>
                 <td class="px-6 py-3">
                   <StatusPill :variant="invite.status === 'pending' ? 'warning' : invite.status === 'accepted' ? 'success' : 'info'">
                     {{ invitationStatusLabel(invite.status) }}
@@ -230,25 +304,39 @@
             v-model="inviteForm.role"
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           >
-            <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+            <optgroup label="Standardroller">
+              <option v-for="role in standardRoleOptions" :key="role" :value="role">
+                {{ tenantRoleLabel(role) }}
+              </option>
+            </optgroup>
+            <optgroup v-if="showMspRoleOptions" label="MSP-roller">
+              <option v-for="role in mspRoleOptions" :key="role" :value="role">
+                {{ tenantRoleLabel(role) }}
+              </option>
+            </optgroup>
           </select>
         </div>
-        <label
-          v-if="tenant?.type === 'distributor' && userExists"
-          class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300"
+        <div
+          v-if="canAssignIncludeChildren"
+          class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
         >
-          <input
-            v-model="inviteForm.includeChildren"
-            type="checkbox"
-            class="mt-1 rounded border-slate-300 dark:border-white/20"
-          />
-          <span>
-            Inkludera underordnade
-            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-              Ge åtkomst till alla leverantörer under denna distributör.
+          <label class="flex items-start gap-3">
+            <input
+              v-model="inviteForm.includeChildren"
+              type="checkbox"
+              class="mt-1 rounded border-slate-300 dark:border-white/20"
+            />
+            <span>
+              Tillgång till alla organisationer
+              <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
+                Ger användaren åtkomst till samtliga kunder under {{ tenant?.name }} via vald MSP-roll.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+          <p class="mt-2 text-xs text-amber-600 dark:text-amber-300">
+            Använd endast för betrodda MSP-konsulter. Alla organisationer visas då i context switcher.
+          </p>
+        </div>
         <label
           v-if="!userExists"
           class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300"
@@ -330,9 +418,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, useFetch, useRoute } from '#imports'
+import { computed, reactive, ref, useFetch, useRoute, watch, nextTick } from '#imports'
+import { Teleport } from 'vue'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
+import CheckboxDropdown from '~/components/shared/CheckboxDropdown.vue'
 import { tenantRoles } from '~/constants/rbac'
 import type {
   AdminTenantMembersResponse,
@@ -340,6 +430,11 @@ import type {
   TenantRole
 } from '~/types/admin'
 import { useAuth } from '~/composables/useAuth'
+import {
+  getTenantRoleLabel,
+  TENANT_ROLES_WITH_INCLUDE_CHILDREN,
+  MSP_TENANT_ROLES
+} from '~/utils/tenantRoles'
 
 definePageMeta({
   layout: 'default'
@@ -348,6 +443,16 @@ definePageMeta({
 const route = useRoute()
 const auth = useAuth()
 const roles = tenantRoles
+const standardRoleOptions = roles.filter((role) => !MSP_TENANT_ROLES.includes(role))
+const mspRoleOptions = roles.filter((role) => MSP_TENANT_ROLES.includes(role))
+const showMspRoleOptions = computed(() => {
+  if (!tenant.value) return false
+  if (tenant.value.type === 'provider') return true
+  if (tenant.value.type === 'distributor') {
+    return auth.isSuperAdmin.value
+  }
+  return false
+})
 const tenantId = computed(() => route.params.id as string)
 
 const showInvite = ref(false)
@@ -359,9 +464,44 @@ const roleLoadingId = ref('')
 const statusLoadingId = ref('')
 const deleteLoadingId = ref('')
 const inviteCancelLoadingId = ref('')
+const includeChildrenLoadingId = ref('')
+const mspRolesLoadingId = ref('')
 
 const userExists = ref(false)
 const checkingUser = ref(false)
+
+// Tooltip state
+const visibleTooltips = reactive<Record<string, boolean>>({})
+const tooltipStyles = reactive<Record<string, Record<string, string>>>({})
+const tooltipRefs = reactive<Record<string, HTMLElement | null>>({})
+
+const setTooltipRef = (memberId: string, el: any) => {
+  if (el) {
+    tooltipRefs[memberId] = el as HTMLElement
+  }
+}
+
+const showTooltip = (memberId: string, event: MouseEvent) => {
+  const iconElement = tooltipRefs[memberId]
+  if (!iconElement) return
+  
+  const rect = iconElement.getBoundingClientRect()
+  visibleTooltips[memberId] = true
+  
+  nextTick(() => {
+    tooltipStyles[memberId] = {
+      top: `${rect.top - 8}px`,
+      left: `${rect.right + window.scrollX - 8}px`,
+      transform: 'translateY(-100%)',
+      position: 'fixed'
+    }
+  })
+}
+
+const hideTooltip = (memberId: string) => {
+  visibleTooltips[memberId] = false
+  delete tooltipStyles[memberId]
+}
 
 const inviteForm = reactive({
   email: '',
@@ -389,6 +529,7 @@ if (error.value) {
 
 const tenant = computed(() => data.value?.tenant)
 const members = computed(() => data.value?.members ?? [])
+const memberMspRoles = reactive<Record<string, TenantRole[]>>({})
 const invites = computed(() => {
   const result = data.value?.invites ?? []
   if (import.meta.dev) {
@@ -397,6 +538,79 @@ const invites = computed(() => {
   }
   return result
 })
+
+const syncMemberRoleState = (list: AdminTenantMember[]) => {
+  const seen = new Set<string>()
+  for (const member of list) {
+    seen.add(member.membershipId)
+    memberMspRoles[member.membershipId] = [...(member.mspRoles ?? [])]
+  }
+  for (const key of Object.keys(memberMspRoles)) {
+    if (!seen.has(key)) {
+      delete memberMspRoles[key]
+    }
+  }
+}
+
+watch(
+  () => members.value,
+  (list) => {
+    if (Array.isArray(list)) {
+      syncMemberRoleState(list)
+    }
+  },
+  { immediate: true }
+)
+
+const currentTenantRole = computed(() => {
+  if (!tenant.value) return null
+  return auth.state.value.data?.tenantRoles?.[tenant.value.id] ?? null
+})
+
+const isMspRole = (role: string | TenantRole) => role.startsWith('msp-')
+
+const tenantRoleLabel = (role: string | TenantRole) => getTenantRoleLabel(role)
+
+const mspRoleDropdownOptions = computed(() =>
+  mspRoleOptions.map((role) => ({
+    value: role,
+    label: getTenantRoleLabel(role),
+    description: undefined
+  }))
+)
+
+const inviteAllowsIncludeChildren = computed(() => {
+  const tenantInfo = tenant.value
+  if (!tenantInfo) return false
+  const selectedRole = inviteForm.role
+  const selectedIsMsp = isMspRole(selectedRole)
+
+  if (tenantInfo.type === 'provider') {
+    if (!selectedIsMsp) return false
+    if (auth.isSuperAdmin.value) return true
+    return currentTenantRole.value === 'admin'
+  }
+
+  if (tenantInfo.type === 'distributor') {
+    if (!(selectedRole === 'admin' || selectedIsMsp)) {
+      return false
+    }
+    return auth.isSuperAdmin.value
+  }
+
+  return false
+})
+
+const canAssignIncludeChildren = computed(() => inviteAllowsIncludeChildren.value)
+
+watch(
+  () => inviteAllowsIncludeChildren.value,
+  (allowed) => {
+    if (!allowed && inviteForm.includeChildren) {
+      inviteForm.includeChildren = false
+    }
+  }
+)
 
 const canInvite = computed(() => {
   if (!tenant.value) return false
@@ -615,6 +829,90 @@ const setMemberStatus = async (
       err instanceof Error ? err.message : 'Kunde inte uppdatera medlemsstatus.'
   } finally {
     statusLoadingId.value = ''
+  }
+}
+
+const canEditIncludeChildren = (member: AdminTenantMember) => {
+  const tenantInfo = tenant.value
+  if (!tenantInfo) return false
+  const roleIsMsp = isMspRole(member.role)
+
+  if (tenantInfo.type === 'provider') {
+    if (!roleIsMsp) return false
+    if (auth.isSuperAdmin.value) return true
+    return currentTenantRole.value === 'admin'
+  }
+
+  if (tenantInfo.type === 'distributor') {
+    if (!(member.role === 'admin' || roleIsMsp)) {
+      return false
+    }
+    return auth.isSuperAdmin.value
+  }
+
+  return false
+}
+
+const toggleMemberIncludeChildren = async (member: AdminTenantMember, nextValue: boolean) => {
+  if (member.includeChildren === nextValue) return
+  includeChildrenLoadingId.value = member.membershipId
+  const previousValue = member.includeChildren
+  member.includeChildren = nextValue
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await $fetch(
+      `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/include-children`,
+      {
+        method: 'PATCH',
+        body: { includeChildren: nextValue }
+      }
+    )
+    await refresh()
+    successMessage.value = nextValue
+      ? 'Medlemmen har nu tillgång till alla organisationer.'
+      : 'Åtkomst till alla organisationer har tagits bort.'
+    setTimeout(() => (successMessage.value = ''), 3000)
+  } catch (err) {
+    member.includeChildren = previousValue
+    errorMessage.value =
+      err instanceof Error
+        ? err.message
+        : 'Kunde inte uppdatera åtkomst till alla organisationer.'
+  } finally {
+    includeChildrenLoadingId.value = ''
+  }
+}
+
+const handleMspRolesChange = async (member: AdminTenantMember, selectedRoles: string[]) => {
+  // Update local state immediately for better UX
+  memberMspRoles[member.membershipId] = selectedRoles as TenantRole[]
+  
+  mspRolesLoadingId.value = member.membershipId
+  errorMessage.value = ''
+  successMessage.value = ''
+  
+  const previousRoles = [...(member.mspRoles ?? [])]
+  
+  try {
+    await $fetch(
+      `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/roles`,
+      {
+        method: 'PATCH',
+        body: { mspRoles: selectedRoles }
+      }
+    )
+    await refresh()
+    successMessage.value = 'MSP-roller uppdaterades.'
+    setTimeout(() => (successMessage.value = ''), 3000)
+  } catch (err) {
+    // Revert on error
+    memberMspRoles[member.membershipId] = previousRoles
+    errorMessage.value =
+      err instanceof Error ? err.message : 'Kunde inte uppdatera MSP-roller.'
+    await refresh()
+  } finally {
+    mspRolesLoadingId.value = ''
   }
 }
 

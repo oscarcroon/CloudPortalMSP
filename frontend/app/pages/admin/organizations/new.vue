@@ -221,14 +221,25 @@ import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#
 import { rbacRoles } from '~/constants/rbac'
 import type { AdminCreateOrganizationResponse, AdminTenantSummary } from '~/types/admin'
 import TenantSelector from '~/components/admin/TenantSelector.vue'
+import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({
-  layout: 'default',
-  superAdmin: true
+  layout: 'default'
+  // superAdmin not required - API endpoint validates tenant permissions
 })
 
 const router = useRouter()
 const route = useRoute()
+const auth = useAuth()
+
+// Check if user has tenant access or is super admin
+if (import.meta.client) {
+  await auth.bootstrap()
+  const hasTenantAccess = auth.isSuperAdmin.value || Object.keys(auth.state.value.data?.tenantRoles ?? {}).length > 0
+  if (!hasTenantAccess) {
+    await router.replace('/settings?error=missing-permission')
+  }
+}
 const roles = rbacRoles
 const steps = [
   { id: 1, label: 'Organisationsdetaljer' },

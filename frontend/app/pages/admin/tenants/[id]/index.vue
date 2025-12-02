@@ -1022,8 +1022,9 @@ const canCreateOrganization = computed(() => {
   if (auth.isSuperAdmin.value) return true
   if (tenant.value.type !== 'provider') return false
   const role = auth.state.value.data?.tenantRoles[tenant.value.id]
-  const includeChildren = auth.state.value.data?.tenantIncludeChildren?.[tenant.value.id] ?? false
-  return role === 'admin' && includeChildren
+  // For creating organizations directly under a provider, admin role is sufficient
+  // includeChildren is only needed for accessing child tenants, not for creating orgs under your own tenant
+  return role === 'admin'
 })
 
 const canEditTenant = computed(() => {

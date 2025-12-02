@@ -3,6 +3,7 @@ import { eq, inArray } from 'drizzle-orm'
 import {
   tenantInvitations,
   tenantMemberships,
+  tenantMemberRoles,
   users,
   tenants
 } from '../../../../database/schema'
@@ -43,6 +44,27 @@ export default defineEventHandler(async (event) => {
     .from(tenantMemberships)
     .innerJoin(users, eq(users.id, tenantMemberships.userId))
     .where(eq(tenantMemberships.tenantId, tenantId))
+
+  const membershipIds = memberRows.map((row) => row.membershipId)
+  let membershipRoleMap: Record<string, string[]> = {}
+
+  if (membershipIds.length) {
+    const roleRows = await db
+      .select({
+        membershipId: tenantMemberRoles.membershipId,
+        roleKey: tenantMemberRoles.roleKey
+      })
+      .from(tenantMemberRoles)
+      .where(inArray(tenantMemberRoles.membershipId, membershipIds))
+
+    membershipRoleMap = roleRows.reduce<Record<string, string[]>>((acc, row) => {
+      if (!acc[row.membershipId]) {
+        acc[row.membershipId] = []
+      }
+      acc[row.membershipId].push(row.roleKey)
+      return acc
+    }, {})
+  }
 
   // Get tenant invitations
   const inviteRows = isSqlite
@@ -153,6 +175,7 @@ export default defineEventHandler(async (event) => {
       email: row.email,
       fullName: row.fullName,
       role: row.role,
+      mspRoles: membershipRoleMap[row.membershipId]?.map((role) => role as any) ?? [],
       status: row.status,
       includeChildren: Boolean(row.includeChildren),
       addedAt: row.addedAt ? new Date(row.addedAt).toISOString() : null

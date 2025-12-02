@@ -348,6 +348,7 @@ export interface AdminTenantMember {
   email: string
   fullName?: string | null
   role: TenantRole
+  mspRoles: TenantRole[]
   status: string
   includeChildren: boolean
   addedAt: string | null

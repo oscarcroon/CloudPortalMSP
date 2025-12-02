@@ -8,7 +8,7 @@ import {
   text,
   uniqueIndex
 } from 'drizzle-orm/sqlite-core'
-import type { RbacRole } from '~/constants/rbac'
+import type { RbacRole, TenantRole } from '~/constants/rbac'
 import type { OrganizationMemberStatus } from '~/types/admin'
 
 export type BrandingTargetType = 'organization' | 'provider' | 'distributor' | 'global'
@@ -177,7 +177,7 @@ export const tenantMemberships = sqliteTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     role: text('role')
       .notNull()
-      .$type<'admin' | 'user' | 'viewer' | 'support'>()
+      .$type<TenantRole>()
       .default('viewer'),
     includeChildren: integer('include_children', { mode: 'boolean' })
       .notNull()
@@ -193,6 +193,27 @@ export const tenantMemberships = sqliteTable(
       table.tenantId,
       table.userId
     )
+  })
+)
+
+export const tenantMemberRoles = sqliteTable(
+  'tenant_member_roles',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    membershipId: text('membership_id')
+      .notNull()
+      .references(() => tenantMemberships.id, { onDelete: 'cascade' }),
+    roleKey: text('role_key')
+      .notNull()
+      .$type<TenantRole>(),
+    ...timestampColumns()
+  },
+  (table) => ({
+    membershipRoleUnique: uniqueIndex('tenant_member_roles_membership_role_unique').on(
+      table.membershipId,
+      table.roleKey
+    ),
+    membershipIdx: index('tenant_member_roles_membership_idx').on(table.membershipId)
   })
 )
 
@@ -661,7 +682,7 @@ export const userModuleFavoriteRelations = relations(userModuleFavorites, ({ one
   })
 }))
 
-export const tenantMembershipRelations = relations(tenantMemberships, ({ one }) => ({
+export const tenantMembershipRelations = relations(tenantMemberships, ({ one, many }) => ({
   tenant: one(tenants, {
     fields: [tenantMemberships.tenantId],
     references: [tenants.id]
@@ -669,6 +690,14 @@ export const tenantMembershipRelations = relations(tenantMemberships, ({ one }) 
   user: one(users, {
     fields: [tenantMemberships.userId],
     references: [users.id]
+  }),
+  roles: many(tenantMemberRoles)
+}))
+
+export const tenantMemberRoleRelations = relations(tenantMemberRoles, ({ one }) => ({
+  membership: one(tenantMemberships, {
+    fields: [tenantMemberRoles.membershipId],
+    references: [tenantMemberships.id]
   })
 }))
 

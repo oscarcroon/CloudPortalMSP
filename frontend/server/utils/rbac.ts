@@ -33,21 +33,22 @@ export const requirePermission = async (
     throw createError({ statusCode: 400, message: 'Select an organization' })
   }
 
-  // Check if organization is active (unless super admin)
-  if (!auth.user.isSuperAdmin) {
-    const db = getDb()
-    const [org] = await db
-      .select({ status: organizations.status })
-      .from(organizations)
-      .where(eq(organizations.id, orgId))
-      .limit(1)
+  const db = getDb()
+  const [orgRecord] = await db
+    .select({ status: organizations.status, tenantId: organizations.tenantId })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1)
 
-    if (org && org.status !== 'active') {
-      throw createError({
-        statusCode: 403,
-        message: 'Organisationen är inaktiverad och kan inte användas.'
-      })
-    }
+  if (!orgRecord) {
+    throw createError({ statusCode: 404, message: 'Organisationen kunde inte hittas.' })
+  }
+
+  if (!auth.user.isSuperAdmin && orgRecord.status !== 'active') {
+    throw createError({
+      statusCode: 403,
+      message: 'Organisationen är inaktiverad och kan inte användas.'
+    })
   }
 
   if (auth.user.isSuperAdmin) {
@@ -64,10 +65,13 @@ export const requirePermission = async (
     effectiveRole = directRole
   }
 
-  // 2. Check if user can access organization via tenant hierarchy
+  let canReachOrganization = Boolean(directRole)
+  if (!canReachOrganization) {
+    canReachOrganization = await canAccessOrganization(auth, orgId)
+  }
+
   if (!hasRbacPermission) {
-    const hasAccess = await canAccessOrganization(auth, orgId)
-    if (!hasAccess) {
+    if (!canReachOrganization) {
       await logPermissionDenied(event, permission, 'no_organization_access', orgId)
       throw createError({
         statusCode: 403,
@@ -75,37 +79,24 @@ export const requirePermission = async (
       })
     }
 
-    // 3. Check tenant permissions for tenant-level permissions
-    if (permission.startsWith('tenants:') || permission.startsWith('org:manage')) {
-      // For tenant-level permissions, check tenant roles
-      const [org] = await getDb()
-        .select()
-        .from(organizations)
-        .where(eq(organizations.id, orgId))
+    if (orgRecord.tenantId) {
+      for (const [tenantId, tenantRole] of Object.entries(auth.tenantRoles)) {
+        const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
+        if (!includeChildren && tenantId !== orgRecord.tenantId) {
+          continue
+        }
 
-      if (org?.tenantId) {
-        for (const [tenantId, tenantRole] of Object.entries(auth.tenantRoles)) {
-          const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
-          if (!includeChildren && tenantId !== org.tenantId) {
-            continue
-          }
+        const canReachTenant = await canAccessTenant(auth, tenantId, orgRecord.tenantId)
+        if (!canReachTenant) {
+          continue
+        }
 
-          if (
-            (await canAccessTenant(auth, tenantId, org.tenantId)) &&
-            hasTenantPermission(tenantRole, permission)
-          ) {
-            // Grant owner-level access when accessing via tenant hierarchy
-            hasRbacPermission = true
-            effectiveRole = 'owner'
-            break
-          }
+        if (hasTenantPermission(tenantRole, permission)) {
+          hasRbacPermission = true
+          effectiveRole = 'owner'
+          break
         }
       }
-    } else {
-      // For organization-level permissions accessed via tenant, grant owner-level access
-      // User already has access via tenant hierarchy (checked above)
-      hasRbacPermission = true
-      effectiveRole = 'owner'
     }
   }
 

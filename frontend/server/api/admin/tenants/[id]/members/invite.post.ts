@@ -16,11 +16,12 @@ import { normalizeEmail, createInviteToken } from '../../../../../utils/crypto'
 import { requireTenantPermission, requireSuperAdmin } from '../../../../../utils/rbac'
 import { ensureAuthState } from '../../../../../utils/session'
 import { sendDistributorInvitationEmail, sendDistributorConfirmationEmail } from '../../../../../utils/mailer'
+import { tenantRoles, tenantRolesWithIncludeChildren } from '~/constants/rbac'
 import type { TenantRole } from '~/constants/rbac'
 
 const inviteSchema = z.object({
   email: z.string().email('Ogiltig e-postadress'),
-  role: z.enum(['admin', 'user', 'viewer', 'support']).default('viewer'),
+  role: z.enum(tenantRoles).default('viewer'),
   includeChildren: z.boolean().optional().default(false)
 })
 
@@ -77,6 +78,31 @@ export default defineEventHandler(async (event) => {
 
   const normalizedEmail = normalizeEmail(payload.email)
   const targetRole: TenantRole = payload.role
+  const includeChildrenAllowedRoles = new Set<TenantRole>(tenantRolesWithIncludeChildren)
+  const isMspRole = targetRole.startsWith('msp-')
+
+  if (payload.includeChildren) {
+    if (!includeChildrenAllowedRoles.has(targetRole)) {
+      throw createError({
+        statusCode: 400,
+        message: 'Endast administratörer och MSP-roller kan få tillgång till alla organisationer.'
+      })
+    }
+
+    if (tenant.type === 'provider' && !isMspRole) {
+      throw createError({
+        statusCode: 400,
+        message: 'Endast MSP-roller kan ges åtkomst till alla organisationer för en leverantör.'
+      })
+    }
+
+    if (tenant.type === 'distributor' && targetRole !== 'admin' && !isMspRole) {
+      throw createError({
+        statusCode: 400,
+        message: 'Endast admin eller MSP-roller kan få åtkomst till alla leverantörer under en distributör.'
+      })
+    }
+  }
 
   // SECURITY: Restrict roles for distributors (only superadmins can assign admin or includeChildren)
   if (tenant.type === 'distributor') {

@@ -1,7 +1,8 @@
 ﻿import { eq } from 'drizzle-orm'
 import { createError } from 'h3'
 import type { DrizzleDb } from '~~/server/utils/db'
-import { tenantMemberships, users } from '~~/server/database/schema'
+import { tenantMemberships, tenantMemberRoles, users } from '~~/server/database/schema'
+import type { TenantRole } from '~/constants/rbac'
 
 export const fetchTenantMemberPayload = async (db: DrizzleDb, membershipId: string) => {
   const [member] = await db
@@ -24,6 +25,11 @@ export const fetchTenantMemberPayload = async (db: DrizzleDb, membershipId: stri
     throw createError({ statusCode: 404, message: 'Medlemmen kunde inte hittas.' })
   }
 
+  const roleRows = await db
+    .select({ roleKey: tenantMemberRoles.roleKey })
+    .from(tenantMemberRoles)
+    .where(eq(tenantMemberRoles.membershipId, membershipId))
+
   return {
     member: {
       id: member.id,
@@ -31,6 +37,7 @@ export const fetchTenantMemberPayload = async (db: DrizzleDb, membershipId: stri
       email: member.email,
       fullName: member.fullName,
       role: member.role,
+      mspRoles: roleRows.map((role) => role.roleKey as TenantRole),
       status: member.status,
       includeChildren: member.includeChildren,
       createdAt: member.createdAt

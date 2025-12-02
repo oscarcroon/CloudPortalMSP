@@ -13,6 +13,7 @@ export interface AuthOrganization {
   hasLocalLoginOverride: boolean
   tenantId?: string | null
   lastAccessedAt?: number | null
+  accessType?: 'direct' | 'msp'
 }
 
 export interface AuthTenant {
