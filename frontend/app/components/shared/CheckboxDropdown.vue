@@ -195,16 +195,6 @@ watch(isOpen, (open) => {
   }
 })
 
-watch(isOpen, (open) => {
-  if (open) {
-    window.addEventListener('scroll', updatePosition, true)
-    window.addEventListener('resize', updatePosition)
-  } else {
-    window.removeEventListener('scroll', updatePosition, true)
-    window.removeEventListener('resize', updatePosition)
-  }
-})
-
 onUnmounted(() => {
   window.removeEventListener('scroll', updatePosition, true)
   window.removeEventListener('resize', updatePosition)

@@ -309,7 +309,7 @@ const logoSourceLabel = computed(() => formatBrandingSource(brandingDetails.valu
 const globalHasCustomAccent = computed(() => Boolean(globalTheme.value?.accentColor))
 
 watch(
-  () => globalTheme.value?.navigationBackgroundColor,
+  () => globalTheme.value?.navBackgroundColor,
   value => {
     navColor.value = value ?? ''
   },

@@ -15,7 +15,7 @@
             placeholder="Sök DNS, containers, VMs..."
             class="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition placeholder:text-slate-400 focus:outline-none focus:ring-1 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:placeholder:text-slate-500"
             :style="{ '--tw-ring-color': accentColor }"
-            @focus="(e: FocusEvent) => { const el = e.target as HTMLInputElement; el.style.borderColor = accentColor.value; el.style.setProperty('--tw-ring-color', accentColor.value) }"
+            @focus="(e: FocusEvent) => { const el = e.target as HTMLInputElement; el.style.borderColor = accentColor; el.style.setProperty('--tw-ring-color', accentColor) }"
             @blur="(e: FocusEvent) => { const el = e.target as HTMLInputElement; el.style.borderColor = '' }"
           />
       </div>
@@ -31,7 +31,7 @@
             :aria-label="mobileSearchOpen ? 'Stäng sök' : 'Öppna sök'"
             aria-controls="mobile-search-panel"
             @click="toggleMobileSearch"
-            @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor.value; el.style.color = accentColor.value }"
+            @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
             @mouseleave="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = ''; el.style.color = '' }"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -49,7 +49,7 @@
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             aria-label="Dokumentation"
             title="Dokumentation"
-            @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor.value; el.style.color = accentColor.value }"
+            @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
             @mouseleave="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = ''; el.style.color = '' }"
           >
             <svg
@@ -100,7 +100,7 @@
           class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           aria-label="Dokumentation"
           title="Dokumentation"
-          @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor.value; el.style.color = accentColor.value }"
+          @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
           @mouseleave="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = ''; el.style.color = '' }"
         >
           <svg
@@ -125,7 +125,7 @@
           class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           aria-label="Support"
           title="Support"
-          @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor.value; el.style.color = accentColor.value }"
+          @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
           @mouseleave="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = ''; el.style.color = '' }"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
