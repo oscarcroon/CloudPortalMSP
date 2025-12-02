@@ -66,6 +66,8 @@ export const tenantRoles = [
   'msp-full-admin'
 ] as const
 
+export const standardTenantRoles = ['admin', 'user', 'viewer', 'support'] as const
+
 export type TenantRole = (typeof tenantRoles)[number]
 
 export const tenantRolesWithIncludeChildren: TenantRole[] = [

@@ -2,26 +2,17 @@ import { createId } from '@paralleldrive/cuid2'
 import { and, eq, gte, sql } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
-import {
-  organizationInvitations,
-  organizationMemberships,
-  organizations,
-  organizationAuthSettings,
-  tenantMemberships,
-  tenants,
-  users
-} from '../../../../../database/schema'
+import { tenantInvitations, tenantMemberships, tenants, users } from '../../../../../database/schema'
 import { getDb } from '../../../../../utils/db'
 import { normalizeEmail, createInviteToken } from '../../../../../utils/crypto'
 import { requireTenantPermission, requireSuperAdmin } from '../../../../../utils/rbac'
-import { ensureAuthState } from '../../../../../utils/session'
 import { sendDistributorInvitationEmail, sendDistributorConfirmationEmail } from '../../../../../utils/mailer'
-import { tenantRoles, tenantRolesWithIncludeChildren } from '~/constants/rbac'
+import { standardTenantRoles, tenantRolesWithIncludeChildren } from '~/constants/rbac'
 import type { TenantRole } from '~/constants/rbac'
 
 const inviteSchema = z.object({
   email: z.string().email('Ogiltig e-postadress'),
-  role: z.enum(tenantRoles).default('viewer'),
+  role: z.enum(standardTenantRoles).default('viewer'),
   includeChildren: z.boolean().optional().default(false)
 })
 
@@ -113,21 +104,21 @@ export default defineEventHandler(async (event) => {
   const recentInvitesHour = isSqlite
     ? await db
         .select({ count: sql<number>`count(*)` })
-        .from(organizationInvitations)
+        .from(tenantInvitations)
         .where(
           and(
-            eq(organizationInvitations.invitedByUserId, auth.user.id),
-            gte(organizationInvitations.createdAt, new Date(oneHourAgo))
+            eq(tenantInvitations.invitedByUserId, auth.user.id),
+            gte(tenantInvitations.createdAt, new Date(oneHourAgo))
           )
         )
         .then((rows) => (rows[0]?.count as number) ?? 0)
     : await db
         .select({ count: sql<number>`count(*)` })
-        .from(organizationInvitations)
+        .from(tenantInvitations)
         .where(
           and(
-            eq(organizationInvitations.invitedByUserId, auth.user.id),
-            gte(organizationInvitations.createdAt, new Date(oneHourAgo))
+            eq(tenantInvitations.invitedByUserId, auth.user.id),
+            gte(tenantInvitations.createdAt, new Date(oneHourAgo))
           )
         )
         .then((rows) => Number(rows[0]?.count ?? 0))
@@ -143,21 +134,21 @@ export default defineEventHandler(async (event) => {
   const recentInvitesDay = isSqlite
     ? await db
         .select({ count: sql<number>`count(*)` })
-        .from(organizationInvitations)
+        .from(tenantInvitations)
         .where(
           and(
-            eq(organizationInvitations.invitedByUserId, auth.user.id),
-            gte(organizationInvitations.createdAt, new Date(oneDayAgo))
+            eq(tenantInvitations.invitedByUserId, auth.user.id),
+            gte(tenantInvitations.createdAt, new Date(oneDayAgo))
           )
         )
         .then((rows) => (rows[0]?.count as number) ?? 0)
     : await db
         .select({ count: sql<number>`count(*)` })
-        .from(organizationInvitations)
+        .from(tenantInvitations)
         .where(
           and(
-            eq(organizationInvitations.invitedByUserId, auth.user.id),
-            gte(organizationInvitations.createdAt, new Date(oneDayAgo))
+            eq(tenantInvitations.invitedByUserId, auth.user.id),
+            gte(tenantInvitations.createdAt, new Date(oneDayAgo))
           )
         )
         .then((rows) => Number(rows[0]?.count ?? 0))
@@ -202,58 +193,7 @@ export default defineEventHandler(async (event) => {
   // Check if user already exists
   const [existingUser] = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1)
 
-  // SECURITY: Check for existing pending invitation for this email to this tenant
-  // We need to check all temp orgs for this tenant (organizations with name ending in " - System")
-  const rows = isSqlite
-    ? await db
-        .select({ id: organizations.id })
-        .from(organizations)
-        .where(eq(organizations.tenantId, tenantId))
-        .all()
-    : await db
-        .select({ id: organizations.id })
-        .from(organizations)
-        .where(eq(organizations.tenantId, tenantId))
-  const tempOrgs = rows.filter((r) => r.id && r.id.includes('-system')).map((r) => r.id)
-
-  if (tempOrgs.length > 0) {
-    // Check for pending invitations in any of these temp orgs
-    for (const orgId of tempOrgs) {
-      const existingPendingInvite = isSqlite
-        ? await db
-            .select()
-            .from(organizationInvitations)
-            .where(
-              and(
-                eq(organizationInvitations.organizationId, orgId),
-                eq(organizationInvitations.email, normalizedEmail),
-                eq(organizationInvitations.status, 'pending')
-              )
-            )
-            .get()
-        : await db
-            .select()
-            .from(organizationInvitations)
-            .where(
-              and(
-                eq(organizationInvitations.organizationId, orgId),
-                eq(organizationInvitations.email, normalizedEmail),
-                eq(organizationInvitations.status, 'pending')
-              )
-            )
-            .limit(1)
-            .then((rows) => rows[0] ?? null)
-
-      if (existingPendingInvite) {
-        throw createError({
-          statusCode: 409,
-          message: 'Det finns redan en väntande inbjudan för denna e-postadress till denna tenant.'
-        })
-      }
-    }
-  }
-
-  // Check if user is already a member
+  let existingMembershipRecord: typeof tenantMemberships.$inferSelect | null = null
   if (existingUser) {
     const [existingMembership] = await db
       .select()
@@ -267,156 +207,135 @@ export default defineEventHandler(async (event) => {
         message: 'Användaren är redan medlem i denna tenant.'
       })
     }
+    existingMembershipRecord = existingMembership ?? null
   }
 
-  // Create temporary organization for invitation (same approach as when creating tenants)
-  const tempOrgId = createId()
+  const includeChildrenFlag = payload.includeChildren ? 1 : 0
   const inviteToken = createInviteToken()
   const inviteExpiresAtMs = Date.now() + INVITE_VALIDITY_MS
   const inviteExpiresAt = new Date(inviteExpiresAtMs)
 
   try {
-    if (isSqlite) {
-      await db.transaction((tx) => {
-        // Create temporary organization for invitation
-        tx.insert(organizations)
-          .values({
-            id: tempOrgId,
-            name: `${tenant.name} - System`,
-            slug: `${tenant.slug}-system`,
-            tenantId: tenant.id,
-            status: 'active',
-            defaultRole: 'owner',
-            requireSso: false,
-            allowSelfSignup: false
-          })
-          .run()
-
-        tx.insert(organizationAuthSettings)
-          .values({
-            organizationId: tempOrgId,
-            idpType: 'none',
-            ssoEnforced: false,
-            allowLocalLoginForOwners: true
-          })
-          .run()
-
-        // Create invitation
-        tx.insert(organizationInvitations)
-          .values({
-            id: createId(),
-            organizationId: tempOrgId,
-            email: normalizedEmail,
-            role: 'owner', // Always owner for temp org
-            token: inviteToken,
-            status: 'pending',
-            invitedByUserId: auth.user.id,
-            expiresAt: inviteExpiresAt
-          })
-          .run()
-
-        // If user exists and has active membership, update it
-        if (existingUser) {
-          const existingMemberships = tx
-            .select()
-            .from(tenantMemberships)
-            .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, existingUser.id)))
-            .all()
-
-          if (existingMemberships && existingMemberships.length > 0) {
-            tx.update(tenantMemberships)
-              .set({
-                role: targetRole,
-                includeChildren: payload.includeChildren ? 1 : 0,
-                status: 'active',
-                updatedAt: new Date()
-              })
-              .where(eq(tenantMemberships.id, existingMemberships[0].id))
-              .run()
-          } else {
-            // Create membership directly for existing user
-            tx.insert(tenantMemberships)
-              .values({
-                id: createId(),
-                tenantId,
-                userId: existingUser.id,
-                role: targetRole,
-                includeChildren: payload.includeChildren ? 1 : 0,
-                status: 'active'
-              })
-              .run()
-          }
+    if (existingUser) {
+      if (existingMembershipRecord) {
+        if (isSqlite) {
+          await db
+            .update(tenantMemberships)
+            .set({
+              role: targetRole,
+              includeChildren: includeChildrenFlag,
+              status: 'active',
+              updatedAt: new Date()
+            })
+            .where(eq(tenantMemberships.id, existingMembershipRecord.id))
+            .run()
+        } else {
+          await db
+            .update(tenantMemberships)
+            .set({
+              role: targetRole,
+              includeChildren: includeChildrenFlag,
+              status: 'active',
+              updatedAt: new Date()
+            })
+            .where(eq(tenantMemberships.id, existingMembershipRecord.id))
         }
-      })
-    } else {
-      await db.transaction(async (tx) => {
-        // Create temporary organization for invitation
-        await tx.insert(organizations).values({
-          id: tempOrgId,
-          name: `${tenant.name} - System`,
-          slug: `${tenant.slug}-system`,
-          tenantId: tenant.id,
-          status: 'active',
-          defaultRole: 'owner',
-          requireSso: false,
-          allowSelfSignup: false
-        })
-
-        await tx.insert(organizationAuthSettings).values({
-          organizationId: tempOrgId,
-          idpType: 'none',
-          ssoEnforced: false,
-          allowLocalLoginForOwners: true
-        })
-
-        // Create invitation
-        await tx.insert(organizationInvitations).values({
-          id: createId(),
-          organizationId: tempOrgId,
-          email: normalizedEmail,
-          role: 'owner', // Always owner for temp org
-          token: inviteToken,
-          status: 'pending',
-          invitedByUserId: auth.user.id,
-          expiresAt: inviteExpiresAt
-        })
-
-        // If user exists and has active membership, update it
-        if (existingUser) {
-          const existingMembership = await tx
-            .select()
-            .from(tenantMemberships)
-            .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, existingUser.id)))
-            .limit(1)
-
-          if (existingMembership && existingMembership.length > 0) {
-            await tx
-              .update(tenantMemberships)
-              .set({
-                role: targetRole,
-                includeChildren: payload.includeChildren ? 1 : 0,
-                status: 'active',
-                updatedAt: new Date()
-              })
-              .where(eq(tenantMemberships.id, existingMembership[0].id))
-          } else {
-            // Create membership directly for existing user
-            await tx.insert(tenantMemberships).values({
+      } else {
+        if (isSqlite) {
+          await db
+            .insert(tenantMemberships)
+            .values({
               id: createId(),
               tenantId,
               userId: existingUser.id,
               role: targetRole,
-              includeChildren: payload.includeChildren ? 1 : 0,
+              includeChildren: includeChildrenFlag,
               status: 'active'
             })
-          }
+            .run()
+        } else {
+          await db.insert(tenantMemberships).values({
+            id: createId(),
+            tenantId,
+            userId: existingUser.id,
+            role: targetRole,
+            includeChildren: includeChildrenFlag,
+            status: 'active'
+          })
         }
-      })
-    }
+      }
 
-    // Send invitation email
-    if (!existingUser) {
-      // New user - send invitation email
+      await sendDistributorConfirmationEmail({
+        tenantId: tenant.id,
+        tenantName: tenant.name,
+        tenantType: tenant.type,
+        to: normalizedEmail,
+        invitedBy: auth.user.email ?? 'System'
+      })
+    } else {
+      const existingPendingInvite = isSqlite
+        ? await db
+            .select()
+            .from(tenantInvitations)
+            .where(
+              and(
+                eq(tenantInvitations.tenantId, tenantId),
+                eq(tenantInvitations.email, normalizedEmail),
+                eq(tenantInvitations.status, 'pending')
+              )
+            )
+            .get()
+        : await db
+            .select()
+            .from(tenantInvitations)
+            .where(
+              and(
+                eq(tenantInvitations.tenantId, tenantId),
+                eq(tenantInvitations.email, normalizedEmail),
+                eq(tenantInvitations.status, 'pending')
+              )
+            )
+            .limit(1)
+            .then((rows) => rows[0] ?? null)
+
+      if (existingPendingInvite) {
+        throw createError({
+          statusCode: 409,
+          message: 'Det finns redan en väntande inbjudan för denna e-postadress till denna tenant.'
+        })
+      }
+
+      if (isSqlite) {
+        await db
+          .insert(tenantInvitations)
+          .values({
+            id: createId(),
+            tenantId,
+            email: normalizedEmail,
+            role: targetRole,
+            includeChildren: payload.includeChildren ?? false,
+            token: inviteToken,
+            status: 'pending',
+            invitedByUserId: auth.user.id,
+            expiresAt: inviteExpiresAt,
+            organizationData: null
+          })
+          .run()
+      } else {
+        await db.insert(tenantInvitations).values({
+          id: createId(),
+          tenantId,
+          email: normalizedEmail,
+          role: targetRole,
+          includeChildren: payload.includeChildren ?? false,
+          token: inviteToken,
+          status: 'pending',
+          invitedByUserId: auth.user.id,
+          expiresAt: inviteExpiresAt,
+          organizationData: null
+        })
+      }
+
       await sendDistributorInvitationEmail({
         tenantId: tenant.id,
         tenantName: tenant.name,
@@ -426,35 +345,6 @@ export default defineEventHandler(async (event) => {
         token: inviteToken,
         invitedBy: auth.user.email ?? 'System'
       })
-    } else {
-      // Existing user - check if they got membership
-      const [membership] = await db
-        .select()
-        .from(tenantMemberships)
-        .where(and(eq(tenantMemberships.tenantId, tenantId), eq(tenantMemberships.userId, existingUser.id)))
-        .limit(1)
-
-      if (membership && membership.status === 'active') {
-        // User was added directly - send confirmation email
-        await sendDistributorConfirmationEmail({
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          tenantType: tenant.type,
-          to: normalizedEmail,
-          invitedBy: auth.user.email ?? 'System'
-        })
-      } else {
-        // User needs to accept invitation
-        await sendDistributorInvitationEmail({
-          tenantId: tenant.id,
-          tenantName: tenant.name,
-          tenantType: tenant.type,
-          to: normalizedEmail,
-          expiresAt: inviteExpiresAtMs,
-          token: inviteToken,
-          invitedBy: auth.user.email ?? 'System'
-        })
-      }
     }
 
     // SECURITY: Log invitation for audit trail
@@ -474,7 +364,8 @@ export default defineEventHandler(async (event) => {
 
     if (
       typeof error?.message === 'string' &&
-      (error.message.includes('organization_invites_token_idx') ||
+      (error.message.includes('tenant_invites_token_idx') ||
+        error.message.includes('tenant_invites_tenant_email_status_idx') ||
         error.message.includes('UNIQUE constraint failed'))
     ) {
       throw createError({ statusCode: 409, message: 'En inbjudan för denna e-postadress finns redan.' })

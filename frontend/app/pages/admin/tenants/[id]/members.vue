@@ -326,16 +326,9 @@
             v-model="inviteForm.role"
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           >
-            <optgroup label="Standardroller">
-              <option v-for="role in standardRoleOptions" :key="role" :value="role">
-                {{ tenantRoleLabel(role) }}
-              </option>
-            </optgroup>
-            <optgroup v-if="showMspRoleOptions" label="MSP-roller">
-              <option v-for="role in mspRoleOptions" :key="role" :value="role">
-                {{ tenantRoleLabel(role) }}
-              </option>
-            </optgroup>
+            <option v-for="role in standardRoleOptions" :key="role" :value="role">
+              {{ tenantRoleLabel(role) }}
+            </option>
           </select>
         </div>
         <div
@@ -351,76 +344,23 @@
             <span>
               Tillgång till alla organisationer
               <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-                Ger användaren åtkomst till samtliga kunder under {{ tenant?.name }} via vald MSP-roll.
+                Ger användaren åtkomst till samtliga kunder under {{ tenant?.name }} via vald roll.
               </span>
             </span>
           </label>
           <p class="mt-2 text-xs text-amber-600 dark:text-amber-300">
-            Använd endast för betrodda MSP-konsulter. Alla organisationer visas då i context switcher.
+            Använd endast för betrodda administratörer. Alla organisationer visas då i context switcher.
           </p>
         </div>
-        <label
-          v-if="!userExists"
-          class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300"
+        <div
+          v-if="inviteError"
+          class="flex items-start gap-3 rounded-lg border border-red-200 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:text-red-200"
         >
-          <input
-            v-model="inviteForm.createOrganization"
-            type="checkbox"
-            class="mt-1 rounded border-slate-300 dark:border-white/20"
-          />
-          <span>
-            Skapa organisation åt användaren
-            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-              Organisationen skapas när inbjudan accepteras.
-            </span>
-          </span>
-        </label>
-        <div v-if="!userExists && inviteForm.createOrganization" class="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
-          <h4 class="text-sm font-semibold text-slate-900 dark:text-white">Organisationsdetaljer</h4>
+          <Icon icon="mdi:alert-circle-outline" class="mt-0.5 h-5 w-5" />
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn *</label>
-            <input
-              v-model="inviteForm.organization.name"
-              type="text"
-              required
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            />
+            <p class="font-semibold">Kunde inte skicka inbjudan</p>
+            <p class="text-sm">{{ inviteError }}</p>
           </div>
-          <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug</label>
-            <input
-              v-model="inviteForm.organization.slug"
-              type="text"
-              pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Lämna tomt för att generera automatiskt från namn
-            </p>
-          </div>
-          <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">COREID *</label>
-            <input
-              v-model="inviteForm.organization.coreId"
-              type="text"
-              required
-              maxlength="4"
-              pattern="[A-Z0-9]{4}"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm uppercase text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Exakt 4 tecken, endast bokstäver och siffror</p>
-          </div>
-          <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Fakturerings-e-post</label>
-            <input
-              v-model="inviteForm.organization.billingEmail"
-              type="email"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            />
-          </div>
-        </div>
-        <div v-if="inviteError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
-          {{ inviteError }}
         </div>
         <div class="flex justify-end gap-2">
           <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200" @click="closeInviteModal">
@@ -445,7 +385,7 @@ import { Teleport } from 'vue'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import CheckboxDropdown from '~/components/shared/CheckboxDropdown.vue'
-import { tenantRoles } from '~/constants/rbac'
+import { standardTenantRoles } from '~/constants/rbac'
 import type {
   AdminTenantMembersResponse,
   AdminTenantMember,
@@ -460,9 +400,8 @@ definePageMeta({
 
 const route = useRoute()
 const auth = useAuth()
-const roles = tenantRoles
-const standardRoleOptions = roles.filter((role) => !MSP_TENANT_ROLES.includes(role))
-const mspRoleOptions = roles.filter((role) => MSP_TENANT_ROLES.includes(role))
+const standardRoleOptions = [...standardTenantRoles]
+const mspRoleOptions = [...MSP_TENANT_ROLES]
 const showMspRoleOptions = computed(() => {
   if (!tenant.value) return false
   if (tenant.value.type === 'provider') return true
@@ -525,14 +464,7 @@ const hideTooltip = (memberId: string) => {
 const inviteForm = reactive({
   email: '',
   role: 'viewer' as TenantRole,
-  includeChildren: false,
-  createOrganization: false,
-  organization: {
-    name: '',
-    slug: '',
-    billingEmail: '',
-    coreId: ''
-  }
+  includeChildren: false
 })
 
 const { data, pending, refresh, error } = await useFetch<AdminTenantMembersResponse>(
@@ -700,9 +632,6 @@ const checkUserExists = async () => {
       body: { email: inviteForm.email.trim() }
     }).catch(() => ({ exists: false }))
     userExists.value = response.exists ?? false
-    if (userExists.value) {
-      inviteForm.createOrganization = false
-    }
   } catch {
     userExists.value = false
   } finally {
@@ -714,11 +643,6 @@ const openInviteModal = () => {
   inviteForm.email = ''
   inviteForm.role = 'viewer'
   inviteForm.includeChildren = false
-  inviteForm.createOrganization = false
-  inviteForm.organization.name = ''
-  inviteForm.organization.slug = ''
-  inviteForm.organization.billingEmail = ''
-  inviteForm.organization.coreId = ''
   userExists.value = false
   checkingUser.value = false
   inviteError.value = ''
@@ -733,38 +657,12 @@ const submitInvite = async () => {
   inviteError.value = ''
   successMessage.value = ''
   
-  // Validate organization data if createOrganization is true
-  if (!userExists && inviteForm.createOrganization) {
-    if (!inviteForm.organization.name.trim()) {
-      inviteError.value = 'Organisationsnamn krävs.'
-      return
-    }
-    if (!inviteForm.organization.coreId || inviteForm.organization.coreId.length !== 4) {
-      inviteError.value = 'COREID måste vara exakt 4 tecken.'
-      return
-    }
-  }
-  
   inviteSubmitting.value = true
   try {
     const payload: any = {
       email: inviteForm.email.trim(),
       role: inviteForm.role,
       includeChildren: inviteForm.includeChildren
-    }
-    
-    if (!userExists && inviteForm.createOrganization) {
-      payload.createOrganization = true
-      payload.organization = {
-        name: inviteForm.organization.name.trim(),
-        coreId: inviteForm.organization.coreId.toUpperCase().trim()
-      }
-      if (inviteForm.organization.slug.trim()) {
-        payload.organization.slug = inviteForm.organization.slug.trim()
-      }
-      if (inviteForm.organization.billingEmail.trim()) {
-        payload.organization.billingEmail = inviteForm.organization.billingEmail.trim()
-      }
     }
     
     await $fetch(`/api/admin/tenants/${tenantId.value}/members/invite`, {

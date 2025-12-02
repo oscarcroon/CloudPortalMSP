@@ -321,6 +321,14 @@ export const buildAuthState = async (
   const hasOrgInPayload = (orgId?: string | null) =>
     Boolean(orgId && organizationPayload.some((org) => org.id === orgId))
 
+  if (
+    forcedOrgId === undefined &&
+    user.defaultOrgId &&
+    hasOrgInPayload(user.defaultOrgId)
+  ) {
+    resolvedOrgId = user.defaultOrgId
+  }
+
   const resolvedOrgExists = hasOrgInPayload(resolvedOrgId)
   if (forcedOrgId !== undefined) {
     if (forcedOrgId === null) {

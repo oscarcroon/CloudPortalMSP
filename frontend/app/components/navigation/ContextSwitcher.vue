@@ -11,7 +11,7 @@
 
     <div
       v-if="open"
-      class="z-50 overflow-y-auto border border-white/10 p-2 shadow-xl backdrop-blur"
+      class="z-50 overflow-y-auto border border-white/10 p-2 shadow-xl backdrop-blur context-switcher-scroll"
       :class="dropdownClass"
       :style="dropdownStyle"
     >
@@ -67,7 +67,8 @@
 
           <div
             v-if="tenantOrganizations[tenant.id]?.length"
-            class="ml-4 mt-1 max-h-48 overflow-y-auto border-l-2 border-slate-700 pl-2 pr-1"
+            class="ml-4 mt-1 max-h-48 overflow-y-auto border-l-2 border-slate-700 pl-2 pr-1 context-switcher-scroll"
+            :style="{ '--scrollbar-thumb': scrollbarThumbColor }"
           >
             <button
               v-for="org in tenantOrganizations[tenant.id]"
@@ -154,6 +155,10 @@ const contextButtonStyle = computed(() => ({
   backgroundColor: navBackgroundColor.value
 }))
 const navHoverColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0.12))
+const scrollbarThumbColor = computed(() => {
+  const brandColor = auth.branding.value?.activeTheme.accentColor ?? '#1C6DD0'
+  return mixColor(navBackgroundColor.value, brandColor, 0.4)
+})
 const dropdownClass = computed(() =>
   isMobileDropdown.value
     ? 'fixed inset-x-0 top-0 w-screen rounded-none border-t px-4 pb-6 pt-4 md:hidden max-h-[calc(100vh-120px)]'
@@ -161,7 +166,8 @@ const dropdownClass = computed(() =>
 )
 const dropdownStyle = computed(() => {
   const base: Record<string, string> = {
-    backgroundColor: navBackgroundColor.value
+    backgroundColor: navBackgroundColor.value,
+    '--scrollbar-thumb': scrollbarThumbColor.value
   }
   if (isMobileDropdown.value) {
     base.top = `${dropdownTop.value}px`
@@ -574,4 +580,29 @@ function matchesSearch(value: string, query: string) {
   return normalizeText(value).includes(query)
 }
 </script>
+
+<style scoped>
+.context-switcher-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.2)) transparent;
+}
+
+.context-switcher-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.context-switcher-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.context-switcher-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.2));
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.context-switcher-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.3));
+}
+</style>
 

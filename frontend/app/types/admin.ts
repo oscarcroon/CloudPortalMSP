@@ -374,13 +374,6 @@ export interface AdminTenantInvitePayload {
   email: string
   role: TenantRole
   includeChildren?: boolean
-  createOrganization?: boolean
-  organization?: {
-    name: string
-    slug?: string
-    billingEmail?: string
-    coreId?: string
-  }
 }
 
 export interface AdminTenantMembersResponse {
