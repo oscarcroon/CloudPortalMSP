@@ -152,6 +152,15 @@ import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
 import { normalizeLogoUrl } from '~/utils/logo'
 import { DEFAULT_NAV_BACKGROUND } from '~~/shared/branding'
 
+const DEFAULT_NAV_RGB: [number, number, number] = (() => {
+  const clean = DEFAULT_NAV_BACKGROUND.replace('#', '')
+  const value = Number.parseInt(clean, 16)
+  if (Number.isNaN(value)) {
+    return [15, 28, 47]
+  }
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255]
+})()
+
 const route = useRoute()
 const mobileOpen = ref(false)
 const auth = useAuth()
@@ -266,11 +275,17 @@ function mixColor(baseHex: string, targetHex: string, amount: number) {
   return `rgb(${mixed.join(', ')})`
 }
 
-function hexToRgbArray(hex: string): [number, number, number] {
+function hexToRgbArray(hex: string | null | undefined): [number, number, number] {
+  if (!hex) {
+    return DEFAULT_NAV_RGB
+  }
   const clean = hex.replace('#', '')
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) {
+    return DEFAULT_NAV_RGB
+  }
   const bigint = Number.parseInt(clean, 16)
   if (Number.isNaN(bigint)) {
-    return hexToRgbArray(DEFAULT_NAV_BACKGROUND)
+    return DEFAULT_NAV_RGB
   }
   return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255]
 }

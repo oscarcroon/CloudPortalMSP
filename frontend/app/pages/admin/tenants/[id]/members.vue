@@ -168,14 +168,23 @@
                   </p>
                 </td>
                 <td class="px-6 py-3">
-                  <div v-if="canEditIncludeChildren(member)" class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20"
-                      :checked="member.includeChildren"
-                      :disabled="includeChildrenLoadingId === member.membershipId"
-                      @change="toggleMemberIncludeChildren(member, ($event.target as HTMLInputElement).checked)"
-                    />
+                  <div v-if="canEditIncludeChildren(member)" class="inline-flex flex-col gap-1 text-slate-600 dark:text-slate-300">
+                    <div class="inline-flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20"
+                        :checked="member.includeChildren"
+                        :disabled="
+                          includeChildrenLoadingId === member.membershipId ||
+                          !memberHasMspRole(member)
+                        "
+                        :title="
+                          !memberHasMspRole(member)
+                            ? 'Lägg till en MSP-roll i listan ovan för att kunna aktivera åtkomst till alla organisationer.'
+                            : undefined
+                        "
+                        @change="toggleMemberIncludeChildren(member, ($event.target as HTMLInputElement).checked)"
+                      />
                     <span class="text-xs text-slate-500 dark:text-slate-400">
                       {{
                         includeChildrenLoadingId === member.membershipId
@@ -183,8 +192,9 @@
                           : member.includeChildren
                             ? 'Aktiverad'
                             : 'Inte aktiv'
-                      }}
+                        }}
                     </span>
+                    </div>
                   </div>
                   <span
                     v-else
@@ -764,6 +774,14 @@ const setMemberStatus = async (
   } finally {
     statusLoadingId.value = ''
   }
+}
+
+const memberHasMspRole = (member: AdminTenantMember) => {
+  const assignedRoles = memberMspRoles[member.membershipId] ?? member.mspRoles ?? []
+  return (
+    member.role.startsWith('msp-') ||
+    assignedRoles.some((role) => role.startsWith('msp-'))
+  )
 }
 
 const canEditIncludeChildren = (member: AdminTenantMember) => {

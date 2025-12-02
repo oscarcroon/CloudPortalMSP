@@ -78,7 +78,8 @@ export default defineEventHandler(async (event) => {
       if (!hasMspRole) {
         throw createError({
           statusCode: 400,
-          message: 'Endast MSP-roller kan få åtkomst till alla organisationer för en leverantör.'
+          message:
+            'Lägg till en MSP-roll för medlemmen innan åtkomst till alla organisationer kan aktiveras.'
         })
       }
       if (!isSuperAdmin && actorRole !== 'admin') {
@@ -91,7 +92,8 @@ export default defineEventHandler(async (event) => {
       if (memberRole !== 'admin' && !hasMspRole) {
         throw createError({
           statusCode: 400,
-          message: 'Endast admin eller MSP-roller kan få åtkomst till alla leverantörer under en distributör.'
+          message:
+            'Endast admin eller medlemmar med MSP-roll kan få åtkomst till alla leverantörer under en distributör.'
         })
       }
       if (!isSuperAdmin) {
