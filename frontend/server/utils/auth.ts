@@ -20,6 +20,7 @@ import {
 } from '../database/schema'
 import type { AuthOrganization, AuthState, AuthTenant } from '../types/auth'
 import type { RbacRole, TenantRole } from '~/constants/rbac'
+import { tenantRoleOrgProxyPermissions } from '~/constants/rbac'
 import type { ModuleId } from '~/constants/modules'
 import { moduleIds } from '~/constants/modules'
 import { normalizeEmail } from './crypto'
@@ -72,7 +73,8 @@ const mapOrgRow = (row: MembershipRow, role: RbacRole, isSuperAdmin: boolean): A
     isSuperAdmin || (role === 'owner' && Boolean(row.auth?.allowLocalLoginForOwners)),
   role,
   tenantId: row.org.tenantId ?? null,
-  lastAccessedAt: row.membership.lastAccessedAt ?? null
+  lastAccessedAt: row.membership.lastAccessedAt ?? null,
+  accessType: 'direct'
 })
 
 export const findUserByEmail = async (email: string) => {
@@ -176,24 +178,161 @@ export const buildAuthState = async (
     }
   }
 
+  const selectOrgFromPayload = () => {
+    if (organizationPayload.length === 0) {
+      return null
+    }
+    const orgsWithAccess = organizationPayload
+      .filter((org) => org.lastAccessedAt !== null)
+      .sort((a, b) => (b.lastAccessedAt ?? 0) - (a.lastAccessedAt ?? 0))
+    if (orgsWithAccess.length > 0) {
+      return orgsWithAccess[0].id
+    }
+    const sortedOrgs = [...organizationPayload].sort((a, b) => a.name.localeCompare(b.name))
+    return sortedOrgs[0]?.id ?? null
+  }
+
   let resolvedOrgId: string | null
   if (forcedOrgId !== undefined) {
-    resolvedOrgId = forcedOrgId && orgRoles[forcedOrgId] ? forcedOrgId : null
-  } else if (user.defaultOrgId && orgRoles[user.defaultOrgId]) {
-    // 1. Try primary organization (defaultOrgId)
+    resolvedOrgId = forcedOrgId
+  } else if (user.defaultOrgId && organizationPayload.some((org) => org.id === user.defaultOrgId)) {
+    // 1. Try primary organization (defaultOrgId) if still accessible
     resolvedOrgId = user.defaultOrgId
   } else {
-    // 2. Try most recently accessed organization
-    const orgsWithAccess = organizationPayload
-      .filter(org => org.lastAccessedAt !== null)
-      .sort((a, b) => (b.lastAccessedAt ?? 0) - (a.lastAccessedAt ?? 0))
-    
-    if (orgsWithAccess.length > 0) {
-      resolvedOrgId = orgsWithAccess[0].id
+    resolvedOrgId = selectOrgFromPayload()
+  }
+
+  const allowedProxyTenantTypes = new Set(['provider', 'distributor'])
+  const deriveProxyRoleForTenant = (tenantId?: string | null): RbacRole | null => {
+    if (!tenantId) return null
+    const tenantRole = tenantRoles[tenantId]
+    const includeChildren = tenantIncludeChildren[tenantId]
+    const tenantInfo = tenantPayload.find((tenant) => tenant.id === tenantId)
+    if (!tenantRole || !includeChildren || !tenantInfo || !allowedProxyTenantTypes.has(tenantInfo.type)) {
+      return null
+    }
+    const proxyPermissions = tenantRoleOrgProxyPermissions[tenantRole] ?? []
+    if (proxyPermissions.includes('org:manage')) {
+      return 'admin'
+    }
+    if (proxyPermissions.includes('org:read')) {
+      return 'viewer'
+    }
+    return null
+  }
+
+  // Add proxy organizations for resolvedOrgId if user has access via tenant + includeChildren
+  if (resolvedOrgId && !orgRoles[resolvedOrgId]) {
+    const [resolvedOrg] = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        tenantId: organizations.tenantId,
+        status: organizations.status,
+        isSuspended: organizations.isSuspended,
+        logoUrl: organizations.logoUrl,
+        requireSso: organizations.requireSso
+      })
+      .from(organizations)
+      .where(eq(organizations.id, resolvedOrgId))
+
+    if (resolvedOrg) {
+      const proxyRole = deriveProxyRoleForTenant(resolvedOrg.tenantId)
+      if (proxyRole) {
+        const proxyOrg: AuthOrganization = {
+          id: resolvedOrg.id,
+          name: resolvedOrg.name,
+          slug: resolvedOrg.slug,
+          status: resolvedOrg.status,
+          isSuspended: Boolean(resolvedOrg.isSuspended),
+          logoUrl: normalizeStoredLogoUrl(resolvedOrg.logoUrl),
+          requireSso: Boolean(resolvedOrg.requireSso),
+          hasLocalLoginOverride: false,
+          role: proxyRole,
+          tenantId: resolvedOrg.tenantId ?? null,
+          lastAccessedAt: null,
+          accessType: 'msp'
+        }
+        organizationPayload.push(proxyOrg)
+        orgRoles[proxyOrg.id] = proxyRole
+      }
+    }
+  }
+
+  // Also add proxy organizations for all orgs that user has access to via tenant + includeChildren
+  // This ensures that orgs are available in the organizations list even if not yet selected
+  const tenantIdsWithIncludeChildren = Object.keys(tenantRoles).filter(
+    (tenantId) => tenantIncludeChildren[tenantId] && tenantPayload.find((t) => t.id === tenantId && allowedProxyTenantTypes.has(t.type))
+  )
+
+  if (tenantIdsWithIncludeChildren.length > 0) {
+    const proxyOrgs = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        tenantId: organizations.tenantId,
+        status: organizations.status,
+        isSuspended: organizations.isSuspended,
+        logoUrl: organizations.logoUrl,
+        requireSso: organizations.requireSso
+      })
+      .from(organizations)
+      .where(
+        and(
+          inArray(organizations.tenantId, tenantIdsWithIncludeChildren),
+          eq(organizations.status, 'active')
+        )
+      )
+
+    for (const org of proxyOrgs) {
+      // Skip if already in organizationPayload or orgRoles
+      if (orgRoles[org.id] || organizationPayload.find((o) => o.id === org.id)) {
+        continue
+      }
+
+      const proxyRole = deriveProxyRoleForTenant(org.tenantId)
+      if (!proxyRole) {
+        continue
+      }
+
+      const proxyOrg: AuthOrganization = {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        status: org.status,
+        isSuspended: Boolean(org.isSuspended),
+        logoUrl: normalizeStoredLogoUrl(org.logoUrl),
+        requireSso: Boolean(org.requireSso),
+        hasLocalLoginOverride: false,
+        role: proxyRole,
+        tenantId: org.tenantId ?? null,
+        lastAccessedAt: null,
+        accessType: 'msp'
+      }
+      organizationPayload.push(proxyOrg)
+      orgRoles[proxyOrg.id] = proxyRole
+    }
+  }
+  
+  const hasOrgInPayload = (orgId?: string | null) =>
+    Boolean(orgId && organizationPayload.some((org) => org.id === orgId))
+
+  const resolvedOrgExists = hasOrgInPayload(resolvedOrgId)
+  if (forcedOrgId !== undefined) {
+    if (forcedOrgId === null) {
+      resolvedOrgId = null
+    } else if (hasOrgInPayload(forcedOrgId)) {
+      resolvedOrgId = forcedOrgId
+    } else if (!resolvedOrgExists && organizationPayload.length > 0) {
+      resolvedOrgId = selectOrgFromPayload()
+    }
+  } else if (!resolvedOrgExists && organizationPayload.length > 0) {
+    if (user.defaultOrgId && hasOrgInPayload(user.defaultOrgId)) {
+      resolvedOrgId = user.defaultOrgId
     } else {
-      // 3. Fallback: first organization (alphabetically if multiple)
-      const sortedOrgs = [...organizationPayload].sort((a, b) => a.name.localeCompare(b.name))
-      resolvedOrgId = sortedOrgs[0]?.id ?? null
+      resolvedOrgId = selectOrgFromPayload()
     }
   }
   
@@ -222,7 +361,7 @@ export const buildAuthState = async (
     }
   }
 
-  return {
+  const result = {
     user: {
       id: user.id,
       email: user.email,
@@ -243,6 +382,8 @@ export const buildAuthState = async (
     sessionIssuedAt: new Date().toISOString(),
     branding: brandingState
   }
+  
+  return result
 }
 
 async function resolveOrganizationLogos(db: DrizzleDb, rows: MembershipRow[]) {

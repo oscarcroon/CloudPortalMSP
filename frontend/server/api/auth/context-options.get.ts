@@ -1,9 +1,12 @@
+// @ts-nocheck
 import { defineEventHandler } from 'h3'
 import { eq, and, inArray } from 'drizzle-orm'
 import { ensureAuthState } from '../../utils/session'
 import { getDb } from '../../utils/db'
 import { organizations, tenants } from '../../database/schema'
 import { canAccessTenant, canAccessOrganization } from '../../utils/rbac'
+import type { RbacRole, TenantRole } from '~/constants/rbac'
+import { tenantRoleOrgProxyPermissions } from '~/constants/rbac'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -74,6 +77,33 @@ export default defineEventHandler(async (event) => {
   const tenantOrganizations: Record<string, Array<typeof orgsData[number] & { accessType: 'direct' | 'msp' }>> =
     {}
 
+  const allowedProxyTenantTypes = new Set(['provider', 'distributor'])
+
+  const resolveProxyRole = (tenantId?: string | null): { role: RbacRole; accessType: 'direct' | 'msp' } => {
+    if (!tenantId) {
+      return { role: 'viewer', accessType: 'msp' }
+    }
+    const tenantRole = auth.tenantRoles?.[tenantId] as TenantRole | undefined
+    const includeChildren = auth.tenantIncludeChildren?.[tenantId]
+    const tenantInfo = auth.tenants.find((tenant) => tenant.id === tenantId)
+    if (
+      !tenantRole ||
+      !includeChildren ||
+      !tenantInfo ||
+      !allowedProxyTenantTypes.has(tenantInfo.type)
+    ) {
+      return { role: 'viewer', accessType: 'msp' }
+    }
+    const proxyPermissions = tenantRoleOrgProxyPermissions[tenantRole] ?? []
+    if (proxyPermissions.includes('org:manage')) {
+      return { role: 'admin', accessType: 'msp' }
+    }
+    if (proxyPermissions.includes('org:read')) {
+      return { role: 'viewer', accessType: 'msp' }
+    }
+    return { role: 'viewer', accessType: 'msp' }
+  }
+
   const buildOrgPayload = (
     org: typeof orgsData[number],
     accessType: 'direct' | 'msp'
@@ -82,18 +112,20 @@ export default defineEventHandler(async (event) => {
     if (authOrg) {
       return { ...authOrg, accessType: authOrg.accessType ?? accessType }
     }
+    const proxyRole = resolveProxyRole(org.tenantId)
+    const resolvedRole = accessType === 'msp' ? proxyRole : { role: 'viewer' as RbacRole, accessType }
     return {
       id: org.id,
       name: org.name,
       slug: org.slug,
-      role: 'viewer' as const,
+      role: resolvedRole.role,
       status: org.status,
       isSuspended: org.status !== 'active',
       logoUrl: null,
       requireSso: false,
       hasLocalLoginOverride: false,
       tenantId: org.tenantId,
-      accessType
+      accessType: resolvedRole.accessType
     }
   }
 

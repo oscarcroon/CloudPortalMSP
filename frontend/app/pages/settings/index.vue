@@ -43,7 +43,16 @@
                     Ej primär
                   </span>
                 </div>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Roll: {{ activeOrganization.role }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  Roll: {{ activeOrganization.role }}
+                  <span
+                    v-if="activeOrgAccessLabel"
+                    class="ml-2 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand dark:bg-brand/20 dark:text-brand-light"
+                  >
+                    <Icon icon="mdi:account-hard-hat" class="h-3 w-3" />
+                    {{ activeOrgAccessLabel }}
+                  </span>
+                </p>
                 <p class="mt-1 text-xs font-semibold text-brand">Aktiv nu</p>
               </div>
               <button
@@ -134,7 +143,16 @@
                       Inaktiv
                     </span>
                   </div>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">Roll: {{ org.role }}</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">
+                    Roll: {{ org.role }}
+                    <span
+                      v-if="org.accessType === 'msp'"
+                      class="ml-2 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand dark:bg-brand/20 dark:text-brand-light"
+                    >
+                      <Icon icon="mdi:account-hard-hat" class="h-3 w-3" />
+                      Via tenant
+                    </span>
+                  </p>
                 </div>
               </div>
               <button
@@ -417,10 +435,12 @@
 import { computed, ref, onMounted, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import { useAuth } from '~/composables/useAuth'
+import { usePermission } from '~/composables/usePermission'
 import { matchesSearch } from '~/utils/search'
 import type { AuthOrganization } from '~~/server/types/auth'
 
 const auth = useAuth()
+const { can } = usePermission()
 
 // Bootstrap auth state on mount if not already initialized
 onMounted(async () => {
@@ -498,6 +518,14 @@ const activeOrganization = computed(() => {
   return filteredOrganizations.value.find((org) => org.id === activeOrgId) ?? null
 })
 
+const activeOrgAccessLabel = computed(() => {
+  if (!activeOrganization.value) return null
+  if (activeOrganization.value.accessType === 'msp') {
+    return activeOrganization.value.role === 'admin' ? 'Admin via tenant' : 'Viewer via tenant'
+  }
+  return null
+})
+
 const otherOrganizations = computed(() => {
   const activeOrgId = auth.state.value.data?.currentOrgId
   return filteredOrganizations.value.filter((org) => org.id !== activeOrgId)
@@ -549,14 +577,16 @@ const organizationSectionTitle = computed(() =>
     ? `Organisationer för ${auth.currentTenant.value.name}`
     : 'Organisationer'
 )
-// Only lock settings if auth is initialized and there's no active org
-// This prevents locking during initial load/refresh
+const canManageOrg = can('org:manage')
+// Only lock settings if auth is initialized and det saknas rättigheter för aktiv org
 const isSettingsLocked = computed(() => {
-  // If auth is not initialized yet, don't lock (show loading state instead)
   if (!auth.state.value.initialized || auth.state.value.loading) {
     return false
   }
-  return !hasActiveOrg.value
+  if (!hasActiveOrg.value) {
+    return true
+  }
+  return !canManageOrg.value
 })
 
 const activeOrganisationName = computed(() => auth.currentOrg.value?.name ?? 'Ingen organisation vald')

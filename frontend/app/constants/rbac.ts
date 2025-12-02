@@ -26,6 +26,9 @@ export type TenantRole = (typeof tenantRoles)[number]
 
 export const tenantRolesWithIncludeChildren: TenantRole[] = [
   'admin',
+  'user',
+  'viewer',
+  'support',
   'msp-global-admin',
   'msp-global-reader',
   'msp-cloudflare-admin',
@@ -45,6 +48,7 @@ export const rbacPermissions = [
   'org:manage',
   'org:billing',
   'users:invite',
+  'users:read',
   'users:manage',
   'cloudflare:read',
   'cloudflare:write',
@@ -231,6 +235,25 @@ export const tenantRolePermissionMap: Record<TenantRole, RbacPermission[]> = {
     'wordpress:write',
     'audit:read'
   ]
+}
+
+export const tenantRoleOrgProxyPermissions: Record<TenantRole, RbacPermission[]> = {
+  admin: ['org:read', 'org:manage'],
+  user: ['org:read'],
+  viewer: ['org:read'],
+  support: ['org:read'],
+  'msp-global-admin': ['org:read', 'org:manage'],
+  'msp-global-reader': ['org:read'],
+  'msp-cloudflare-admin': ['org:read', 'org:manage'],
+  'msp-containers-admin': ['org:read', 'org:manage'],
+  'msp-vms-admin': ['org:read', 'org:manage'],
+  'msp-wordpress-admin': ['org:read', 'org:manage'],
+  'msp-ncentral-admin': ['org:read', 'org:manage'],
+  'msp-monitoring-admin': ['org:read', 'org:manage'],
+  'msp-managed-server-admin': ['org:read', 'org:manage'],
+  'msp-dns-containers-admin': ['org:read', 'org:manage'],
+  'msp-infrastructure-admin': ['org:read', 'org:manage'],
+  'msp-full-admin': ['org:read', 'org:manage']
 }
 
 

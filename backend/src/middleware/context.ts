@@ -1,6 +1,10 @@
 import type { NextFunction, Request, Response } from 'express'
 import type { UserContext } from '../types/domain.js'
-import { rolePermissionMap } from '../constants/rbac.js'
+import {
+  rolePermissionMap,
+  tenantRoleOrgProxyPermissions
+} from '../constants/rbac.js'
+import type { OrgPermission, TenantRole } from '../constants/rbac.js'
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -41,11 +45,18 @@ const fetchAuthState = async (token: string) => {
   }
   return (await response.json()) as {
     user: { id: string; email: string }
-    organizations: Array<{ id: string; name: string; role: keyof typeof rolePermissionMap }>
-    tenants?: Array<{ id: string; name: string; type: string; role: string }>
+    organizations: Array<{
+      id: string
+      name: string
+      role: keyof typeof rolePermissionMap
+      tenantId?: string | null
+    }>
+    tenants?: Array<{ id: string; name: string; type: string; role: string; includeChildren?: boolean }>
     currentOrgId: string
+    currentTenantId?: string | null
     orgRoles: Record<string, keyof typeof rolePermissionMap>
     tenantRoles?: Record<string, string>
+    tenantIncludeChildren?: Record<string, boolean>
   }
 }
 
@@ -59,7 +70,32 @@ export async function tenantContext(req: Request, res: Response, next: NextFunct
     const authState = await fetchAuthState(token)
     const currentOrgId = authState.currentOrgId
     const role = authState.orgRoles[currentOrgId]
-    const permissions = role ? [...rolePermissionMap[role]] : []
+    const permissions: OrgPermission[] = role ? [...rolePermissionMap[role]] : []
+    const currentOrg = authState.organizations.find((org) => org.id === currentOrgId)
+    if (currentOrg?.tenantId) {
+      const tenantMembership =
+        authState.tenants?.find((tenant) => tenant.id === currentOrg.tenantId) ?? null
+      const includeChildren =
+        authState.tenantIncludeChildren?.[currentOrg.tenantId] ??
+        tenantMembership?.includeChildren ??
+        false
+      const tenantRole =
+        authState.tenantRoles?.[currentOrg.tenantId] ?? tenantMembership?.role ?? null
+      const tenantType = tenantMembership?.type
+      const canProxy =
+        includeChildren && tenantType && ['provider', 'distributor'].includes(tenantType)
+      if (canProxy && tenantRole) {
+        const proxyPermissions =
+          tenantRoleOrgProxyPermissions[tenantRole as TenantRole]
+        if (proxyPermissions) {
+          for (const perm of proxyPermissions) {
+            if (!permissions.includes(perm)) {
+              permissions.push(perm)
+            }
+          }
+        }
+      }
+    }
     req.userContext = {
       id: authState.user.id,
       email: authState.user.email,

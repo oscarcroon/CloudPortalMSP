@@ -91,6 +91,7 @@ export const ensureAuthState = async (event: H3Event) => {
     if (payload.currentOrgId !== undefined) {
       auth.currentOrgId = payload.currentOrgId
     }
+    
     event.context.auth = auth
     return auth
   } catch (error) {

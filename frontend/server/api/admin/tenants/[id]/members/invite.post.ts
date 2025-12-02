@@ -79,27 +79,12 @@ export default defineEventHandler(async (event) => {
   const normalizedEmail = normalizeEmail(payload.email)
   const targetRole: TenantRole = payload.role
   const includeChildrenAllowedRoles = new Set<TenantRole>(tenantRolesWithIncludeChildren)
-  const isMspRole = targetRole.startsWith('msp-')
 
   if (payload.includeChildren) {
     if (!includeChildrenAllowedRoles.has(targetRole)) {
       throw createError({
         statusCode: 400,
-        message: 'Endast administratörer och MSP-roller kan få tillgång till alla organisationer.'
-      })
-    }
-
-    if (tenant.type === 'provider' && !isMspRole) {
-      throw createError({
-        statusCode: 400,
-        message: 'Endast MSP-roller kan ges åtkomst till alla organisationer för en leverantör.'
-      })
-    }
-
-    if (tenant.type === 'distributor' && targetRole !== 'admin' && !isMspRole) {
-      throw createError({
-        statusCode: 400,
-        message: 'Endast admin eller MSP-roller kan få åtkomst till alla leverantörer under en distributör.'
+        message: 'Den valda rollen kan inte få åtkomst till alla organisationer.'
       })
     }
   }

@@ -126,7 +126,7 @@
                     @change="handleRoleChange(member, ($event.target as HTMLSelectElement).value)"
                   >
                     <option
-                      v-for="role in roles"
+                      v-for="role in standardRoleOptions"
                       :key="role"
                       :value="role"
                       :disabled="
@@ -136,6 +136,14 @@
                       "
                     >
                       {{ tenantRoleLabel(role) }}
+                    </option>
+                    <option
+                      v-if="member.role && !isStandardRole(member.role)"
+                      :key="`legacy-role-${member.role}`"
+                      :value="member.role"
+                      disabled
+                    >
+                      {{ tenantRoleLabel(member.role) }}
                     </option>
                   </select>
                 </td>
@@ -444,11 +452,7 @@ import type {
   TenantRole
 } from '~/types/admin'
 import { useAuth } from '~/composables/useAuth'
-import {
-  getTenantRoleLabel,
-  TENANT_ROLES_WITH_INCLUDE_CHILDREN,
-  MSP_TENANT_ROLES
-} from '~/utils/tenantRoles'
+import { getTenantRoleLabel, MSP_TENANT_ROLES } from '~/utils/tenantRoles'
 
 definePageMeta({
   layout: 'default'
@@ -543,7 +547,7 @@ if (error.value) {
 }
 
 const tenant = computed(() => data.value?.tenant)
-const members = computed(() => data.value?.members ?? [])
+const members = computed<AdminTenantMember[]>(() => data.value?.members ?? [])
 const memberMspRoles = reactive<Record<string, TenantRole[]>>({})
 
 const filteredMembers = computed(() => {
@@ -598,6 +602,8 @@ const currentTenantRole = computed(() => {
 })
 
 const isMspRole = (role: string | TenantRole) => role.startsWith('msp-')
+const isStandardRole = (role: string | TenantRole) =>
+  standardRoleOptions.includes(role as TenantRole)
 
 const tenantRoleLabel = (role: string | TenantRole) => getTenantRoleLabel(role)
 
@@ -613,18 +619,18 @@ const inviteAllowsIncludeChildren = computed(() => {
   const tenantInfo = tenant.value
   if (!tenantInfo) return false
   const selectedRole = inviteForm.role
-  const selectedIsMsp = isMspRole(selectedRole)
+  const roleAllowsIncludeChildren = isStandardRole(selectedRole) || isMspRole(selectedRole)
+
+  if (!roleAllowsIncludeChildren) {
+    return false
+  }
 
   if (tenantInfo.type === 'provider') {
-    if (!selectedIsMsp) return false
     if (auth.isSuperAdmin.value) return true
     return currentTenantRole.value === 'admin'
   }
 
   if (tenantInfo.type === 'distributor') {
-    if (!(selectedRole === 'admin' || selectedIsMsp)) {
-      return false
-    }
     return auth.isSuperAdmin.value
   }
 
@@ -865,18 +871,18 @@ const setMemberStatus = async (
 const canEditIncludeChildren = (member: AdminTenantMember) => {
   const tenantInfo = tenant.value
   if (!tenantInfo) return false
-  const roleIsMsp = isMspRole(member.role)
+  const roleAllowsIncludeChildren = isStandardRole(member.role) || isMspRole(member.role)
+
+  if (!roleAllowsIncludeChildren) {
+    return false
+  }
 
   if (tenantInfo.type === 'provider') {
-    if (!roleIsMsp) return false
     if (auth.isSuperAdmin.value) return true
     return currentTenantRole.value === 'admin'
   }
 
   if (tenantInfo.type === 'distributor') {
-    if (!(member.role === 'admin' || roleIsMsp)) {
-      return false
-    }
     return auth.isSuperAdmin.value
   }
 
