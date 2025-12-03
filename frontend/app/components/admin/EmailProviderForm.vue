@@ -20,7 +20,7 @@
       <div v-if="mode === 'organization'" class="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
         <input id="use-override" v-model="useOverride" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
         <label for="use-override" class="text-sm text-slate-700 dark:text-slate-200">
-          Använd organisationsspecifik e-postprovider (annars ärvs inställningar från leverantör → distributör → global)
+          Använd organisationsspecifik e-postprovider
         </label>
       </div>
       <div class="grid gap-4 md:grid-cols-2" :class="{ 'opacity-60 pointer-events-none': !isEditable }">
@@ -302,22 +302,28 @@
         <div class="flex-1">
           <p class="text-sm font-semibold text-slate-900 dark:text-white">Status & Test</p>
           <div class="mt-2 space-y-1">
-            <p v-if="summary?.lastTestedAt" class="text-sm text-slate-500 dark:text-slate-400">
+            <!-- Only show test result if it was run for the currently selected provider type -->
+            <p v-if="summary?.lastTestedAt && summary?.settings?.type === form.providerType" class="text-sm text-slate-500 dark:text-slate-400">
               Senaste test: {{ formatTimestamp(summary.lastTestedAt) }} •
               <span :class="summary.lastTestStatus === 'success' ? 'text-emerald-600 dark:text-emerald-300' : 'text-red-500'">
                 {{ summary.lastTestStatus === 'success' ? 'Lyckades' : 'Misslyckades' }}
               </span>
             </p>
-            <p v-else class="text-sm text-slate-500 dark:text-slate-400">Inga tester körda ännu.</p>
-            <p v-if="summary?.lastTestError" class="text-xs text-red-500 dark:text-red-300">
+            <p v-else-if="!summary?.lastTestedAt || summary?.settings?.type !== form.providerType" class="text-sm text-slate-500 dark:text-slate-400">
+              Inga tester körda ännu för {{ form.providerType === 'graph' ? 'Microsoft Graph' : 'SMTP' }}.
+            </p>
+            <p v-if="summary?.lastTestError && summary?.settings?.type === form.providerType" class="text-xs text-red-500 dark:text-red-300">
               {{ summary.lastTestError }}
             </p>
-            <p v-if="form.providerType === 'graph' && summary?.lastTestStatus === 'success'" class="text-xs text-emerald-600 dark:text-emerald-300">
-              ✓ OAuth-token verifierad
-            </p>
-            <p v-if="form.providerType === 'graph' && summary?.lastTestedAt" class="text-xs text-slate-500 dark:text-slate-400">
-              Senast beviljad: {{ formatTimestamp(summary.lastTestedAt) }}
-            </p>
+            <!-- Only show OAuth status if Graph is selected AND the test was actually run for Graph -->
+            <template v-if="form.providerType === 'graph'">
+              <p v-if="summary?.settings?.type === 'graph' && summary?.lastTestStatus === 'success'" class="text-xs text-emerald-600 dark:text-emerald-300">
+                ✓ OAuth-token verifierad
+              </p>
+              <p v-if="summary?.settings?.type === 'graph' && summary?.lastTestedAt" class="text-xs text-slate-500 dark:text-slate-400">
+                Senast beviljad: {{ formatTimestamp(summary.lastTestedAt) }}
+              </p>
+            </template>
           </div>
         </div>
         <div class="flex flex-col gap-2 md:flex-row md:items-center">

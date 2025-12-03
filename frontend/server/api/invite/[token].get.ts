@@ -7,6 +7,33 @@ import { normalizeEmail } from '~~/server/utils/crypto'
 import { getOrganisationEmailProviderProfile } from '~~/server/utils/emailProvider'
 import { normalizeLogoUrl } from '~/utils/logo'
 
+const cleanOrganisationName = (value?: string | null): string => {
+  if (!value) return ''
+  let normalized = value.trim()
+  if (!normalized) return ''
+
+  const tempPrefix = /^temp\s+org\s+for\s+/i
+  if (tempPrefix.test(normalized)) {
+    normalized = normalized.replace(tempPrefix, '').trim()
+  }
+
+  const systemSuffix = /\s+-\s*system$/i
+  if (systemSuffix.test(normalized)) {
+    normalized = normalized.replace(systemSuffix, '').trim()
+  }
+
+  return normalized
+}
+
+const resolveOrganisationName = (primary?: string | null, fallback?: string | null): string | null => {
+  const primaryResult = cleanOrganisationName(primary)
+  if (primaryResult) {
+    return primaryResult
+  }
+  const fallbackResult = cleanOrganisationName(fallback)
+  return fallbackResult || null
+}
+
 export default defineEventHandler(async (event) => {
   const token = getRouterParam(event, 'token')
   if (!token) {
@@ -127,6 +154,7 @@ export default defineEventHandler(async (event) => {
     .select({
       id: organizationInvitations.id,
       organizationId: organizationInvitations.organizationId,
+      tenantId: organizations.tenantId,
       email: organizationInvitations.email,
       role: organizationInvitations.role,
       status: organizationInvitations.status,
@@ -136,11 +164,14 @@ export default defineEventHandler(async (event) => {
       invitedByUserId: organizationInvitations.invitedByUserId,
       organisationName: organizations.name,
       organisationLogoUrl: organizations.logoUrl,
+      tenantName: tenants.name,
+      tenantType: tenants.type,
       invitedByEmail: users.email,
       invitedByName: users.fullName
     })
     .from(organizationInvitations)
     .leftJoin(organizations, eq(organizations.id, organizationInvitations.organizationId))
+    .leftJoin(tenants, eq(tenants.id, organizations.tenantId))
     .leftJoin(users, eq(users.id, organizationInvitations.invitedByUserId))
     .where(eq(organizationInvitations.token, token))
 
@@ -209,6 +240,13 @@ export default defineEventHandler(async (event) => {
     console.log('[invite] Final branding object:', JSON.stringify(branding, null, 2))
   }
 
+  const friendlyOrganisationName =
+    resolveOrganisationName(row.organisationName, row.tenantName ?? null) ?? row.organisationName ?? null
+  const invitedByLabel =
+    row.invitedByName?.trim() ||
+    row.invitedByEmail?.trim() ||
+    (row.tenantName ? `${row.tenantName} (System)` : 'System')
+
   return {
     invitation: {
       id: row.id,
@@ -222,14 +260,22 @@ export default defineEventHandler(async (event) => {
           : typeof row.expiresAt === 'number'
             ? new Date(row.expiresAt).toISOString()
             : new Date(row.expiresAt).toISOString(),
-      invitedBy: row.invitedByEmail || row.invitedByName || '',
+      invitedBy: invitedByLabel,
       createdAt: row.createdAt.toISOString(),
-      branding
+      branding,
+      organizationName: friendlyOrganisationName
     },
     organisation: row.organizationId
       ? {
           id: row.organizationId,
-          name: row.organisationName ?? 'Organisation'
+          name: friendlyOrganisationName ?? 'Organisation'
+        }
+      : null,
+    tenant: row.tenantId
+      ? {
+          id: row.tenantId,
+          name: row.tenantName ?? 'Tenant',
+          type: row.tenantType ?? null
         }
       : null,
     emailExists: Boolean(existingUser),

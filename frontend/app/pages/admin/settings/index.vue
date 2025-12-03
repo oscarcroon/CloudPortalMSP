@@ -110,8 +110,8 @@ const adminSections = [
     to: '/admin/settings/email'
   },
   {
-    title: 'Superadmin-användare',
-    description: 'Visa och uppdatera superadminkonton, status och lösenordsreset.',
+    title: 'Användare (globalt)',
+    description: 'Granska hela användarregistret, hantera status, roller och tvinga lösenordsbyten.',
     badge: 'Identitet',
     category: 'Användare',
     icon: 'mdi:shield-crown',

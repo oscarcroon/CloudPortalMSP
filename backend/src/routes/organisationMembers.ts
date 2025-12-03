@@ -436,6 +436,107 @@ organisationMembersRouter.delete('/:organisationId/members/:memberId', async (re
   }
 })
 
+organisationMembersRouter.post('/:organisationId/invitations/:invitationId/resend', async (req, res) => {
+  if (!ensurePermission(req, res, 'users:invite')) {
+    return
+  }
+  const { organisationId, invitationId } = req.params
+  const organisation = await assertOrganisationScope(req, res, organisationId)
+  if (!organisation) {
+    return
+  }
+
+  const invitation = await db
+    .select({
+      id: organisationInvitationsTable.id,
+      email: organisationInvitationsTable.email,
+      role: organisationInvitationsTable.role,
+      status: organisationInvitationsTable.status,
+      token: organisationInvitationsTable.token,
+      expiresAt: organisationInvitationsTable.expiresAt
+    })
+    .from(organisationInvitationsTable)
+    .where(
+      and(
+        eq(organisationInvitationsTable.id, invitationId),
+        eq(organisationInvitationsTable.organizationId, organisationId)
+      )
+    )
+    .get()
+
+  if (!invitation) {
+    res.status(404).json({ message: 'Inbjudan hittades inte.' })
+    return
+  }
+
+  if (invitation.status !== 'pending') {
+    res.status(409).json({ message: 'Endast väntande inbjudningar kan skickas om.' })
+    return
+  }
+
+  const expiresAtMs =
+    invitation.expiresAt instanceof Date
+      ? invitation.expiresAt.getTime()
+      : typeof invitation.expiresAt === 'number'
+        ? invitation.expiresAt
+        : new Date(invitation.expiresAt).getTime()
+
+  if (!Number.isFinite(expiresAtMs)) {
+    res.status(400).json({ message: 'Inbjudan saknar giltigt utgångsdatum. Skapa en ny inbjudan istället.' })
+    return
+  }
+
+  if (expiresAtMs < Date.now()) {
+    await db
+      .update(organisationInvitationsTable)
+      .set({ status: 'expired', updatedAt: new Date() })
+      .where(eq(organisationInvitationsTable.id, invitation.id))
+    res.status(410).json({ message: 'Inbjudan har gått ut. Skapa en ny inbjudan.' })
+    return
+  }
+
+  const invitedBy = req.userContext?.email ?? req.userContext?.id ?? 'system'
+
+  try {
+    const deliveryResult = await sendInvitationEmail({
+      to: invitation.email,
+      organisationId: organisation.id,
+      invitedBy,
+      organisationName: organisation.name,
+      role: invitation.role,
+      expiresAt: expiresAtMs,
+      token: invitation.token,
+      organisationLogo: organisation.branding?.logoUrl ?? null
+    })
+
+    const emailDelivery =
+      'delivery' in deliveryResult
+        ? {
+            delivered: deliveryResult.delivery.delivered ?? true,
+            channel: deliveryResult.delivery.channel ?? null
+          }
+        : {
+            delivered: false,
+            storedAt: deliveryResult.storedAt
+          }
+
+    res
+      .status(emailDelivery.delivered ? 200 : 202)
+      .json({
+        message: emailDelivery.delivered
+          ? `Inbjudan skickades igen till ${invitation.email}.`
+          : 'Inbjudan skickades men kunde inte levereras via e-post. Kontrollera avsändarinställningarna.',
+        emailDelivery
+      })
+  } catch (error) {
+    console.error('[invite] Failed to resend invitation email', error)
+    const friendly = describeEmailSendError(error)
+    res.status(502).json({
+      message: `Kunde inte skicka inbjudan igen. ${friendly}`
+    })
+  }
+})
+
 organisationMembersRouter.delete('/:organisationId/invitations/:invitationId', async (req, res) => {
   if (!ensurePermission(req, res, 'users:invite')) {
     return

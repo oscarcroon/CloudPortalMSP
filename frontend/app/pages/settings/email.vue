@@ -10,8 +10,7 @@
       <div>
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">E-postinställningar</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Hantera organisationens egna utskick. Aktivera override för att använda egna SMTP-/Graph-inställningar,
-          annars ärvs inställningarna från leverantör → distributör → global.
+          Hantera organisationens egna utskick. Aktivera override för att använda egna SMTP-/Graph-inställningar.
         </p>
       </div>
     </header>

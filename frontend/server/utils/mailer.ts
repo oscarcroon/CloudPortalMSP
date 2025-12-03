@@ -526,7 +526,7 @@ export const sendDistributorInvitationEmail = async (input: {
 
   const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
   const bodyLines = [
-    `🎊 Grattis! Du har blivit utsedd till ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
+    `Grattis! Du har blivit utsedd till ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}!`,
     `Detta är ett stort ansvar och vi är glada att ha dig med oss.`,
     `Inbjudan är giltig till ${expiresLabel}.`
   ]
@@ -540,7 +540,7 @@ export const sendDistributorInvitationEmail = async (input: {
   
   const content = renderBrandedTemplate(
     {
-      pretitle: `🎉 Grattis! Du är nu ${tenantTypeLabel}! 🎉`,
+      pretitle: `Grattis! Du är nu ${tenantTypeLabel}! 🎉`,
       title: input.tenantName,
       intro: 'Hej!',
       body: bodyLines,
@@ -555,7 +555,7 @@ export const sendDistributorInvitationEmail = async (input: {
   const finalContent = {
     ...content,
     subject: formatSubject(
-      `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`,
+      `Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}!`,
       senderContext.subjectPrefix
     )
   }
@@ -607,11 +607,11 @@ export const sendDistributorConfirmationEmail = async (input: {
   const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
   const content = renderBrandedTemplate(
     {
-      pretitle: `🎉 Grattis! Du är nu ${tenantTypeLabel}! 🎉`,
+      pretitle: `Grattis! Du är nu ${tenantTypeLabel}!`,
       title: input.tenantName,
       intro: 'Hej!',
       body: [
-        `🎊 Grattis! Du har nu fått rollen som ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
+        `Grattis! Du har nu fått rollen som ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
         `Detta är ett stort ansvar och vi är glada att ha dig med oss.`,
         `Med denna roll får du hantera och administrera alla organisationer under din ${tenantTypeLabel.toLowerCase()}.`
       ],
@@ -626,7 +626,7 @@ export const sendDistributorConfirmationEmail = async (input: {
   const finalContent = {
     ...content,
     subject: formatSubject(
-      `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`,
+      `Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}!`,
       senderContext.subjectPrefix
     )
   }

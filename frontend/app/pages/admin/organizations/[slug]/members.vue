@@ -244,7 +244,7 @@
                     Status
                   </th>
                   <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Bjuden av
+                    Inbjuden av
                   </th>
                   <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Gäller till

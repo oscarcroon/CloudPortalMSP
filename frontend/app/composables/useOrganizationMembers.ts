@@ -44,6 +44,13 @@ export const useOrganizationMembers = () => {
     })
   }
 
+  const resendInvitation = async (invitationId: string) => {
+    const organisationId = assertOrganisationId()
+    return api(`/organisations/${organisationId}/invitations/${invitationId}/resend`, {
+      method: 'POST'
+    })
+  }
+
   const updateMemberRole = async (memberId: string, role: OrganizationMemberRole) => {
     const organisationId = assertOrganisationId()
     return api(`/organisations/${organisationId}/members/${memberId}`, {
@@ -96,6 +103,7 @@ export const useOrganizationMembers = () => {
     updateMemberStatus,
     removeMember,
     cancelInvitation,
+    resendInvitation,
     fetchMemberModuleRoles,
     updateMemberModuleRoles
   }

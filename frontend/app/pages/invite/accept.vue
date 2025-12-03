@@ -2,8 +2,8 @@
   <section class="space-y-6">
     <header class="text-center space-y-2">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Inbjudan</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Acceptera organisationsinbjudan</h1>
-      <p class="text-sm text-slate-500 dark:text-slate-400">Anslut dig till organisationen genom att bekräfta nedan.</p>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ invitePageTitle }}</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">{{ invitePageSubtitle }}</p>
     </header>
 
     <div v-if="!token" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
@@ -25,9 +25,14 @@
             class="h-12 w-auto max-w-[150px]"
           />
         </div>
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
-          {{ organisationName || 'Organisation' }}
-        </h2>
+        <div class="text-center space-y-1">
+          <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
+            {{ inviteEntityName }}
+          </h2>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ inviteEntityBadge }}
+          </p>
+        </div>
         <p class="text-sm text-slate-500 dark:text-slate-400">
           Inbjudan skickad till <span class="font-semibold">{{ invitation?.email }}</span>
         </p>
@@ -64,8 +69,8 @@
             <dd class="text-sm text-slate-700 dark:text-slate-200">{{ formatDate(invitation?.expiresAt) }}</dd>
           </div>
           <div class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-white/5">
-            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Bjuden av</dt>
-            <dd class="text-sm text-slate-700 dark:text-slate-200">{{ invitation?.invitedBy || 'Okänd' }}</dd>
+            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Inbjuden av</dt>
+            <dd class="text-sm text-slate-700 dark:text-slate-200">{{ invitation?.invitedBy || 'System' }}</dd>
           </div>
         </dl>
         <div
@@ -87,7 +92,7 @@
           @submit.prevent="submitRegistration"
         >
           <p class="text-slate-600 dark:text-slate-300">
-            En administratör har skapat en organisation och bjudit in dig som ägare. Skapa ett lösenord nedan för att acceptera inbjudan och gå med i organisationen.
+            {{ registrationIntro }}
           </p>
           <div>
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Fullständigt namn</label>
@@ -189,8 +194,44 @@ if (import.meta.client) {
   await auth.bootstrap()
 }
 
+const stripSystemNameArtifacts = (value?: string | null): string => {
+  if (!value) return ''
+  let normalized = value.trim()
+  if (!normalized) return ''
+
+  const tempPrefix = /^temp\s+org\s+for\s+/i
+  if (tempPrefix.test(normalized)) {
+    normalized = normalized.replace(tempPrefix, '').trim()
+  }
+
+  const systemSuffix = /\s+-\s*system$/i
+  if (systemSuffix.test(normalized)) {
+    normalized = normalized.replace(systemSuffix, '').trim()
+  }
+
+  return normalized
+}
+
+const resolveInviteOrganisationName = ({
+  organisationName,
+  invitationOrganisationName,
+  tenantName
+}: {
+  organisationName?: string | null
+  invitationOrganisationName?: string | null
+  tenantName?: string | null
+}) => {
+  const candidates = [
+    stripSystemNameArtifacts(organisationName),
+    stripSystemNameArtifacts(invitationOrganisationName),
+    tenantName?.trim() ?? ''
+  ]
+  return candidates.find((name) => Boolean(name)) ?? ''
+}
+
 const invitation = ref<InvitationDetails | null>(null)
 const organisationName = ref('')
+const tenantInfo = ref<InvitationLookupResponse['tenant'] | null>(null)
 const loading = ref(false)
 const acceptLoading = ref(false)
 const registrationLoading = ref(false)
@@ -232,6 +273,45 @@ const statusLabel = computed(() => {
 const normalizedLogoUrl = computed(() => {
   const logoUrl = invitation.value?.branding?.logoUrl
   return normalizeLogoUrl(logoUrl)
+})
+const inviteTargetKind = computed<'organization' | 'provider' | 'distributor'>(() => {
+  if (tenantInfo.value?.type === 'provider') return 'provider'
+  if (tenantInfo.value?.type === 'distributor') return 'distributor'
+  return 'organization'
+})
+const inviteKindLabel = computed(() => {
+  if (inviteTargetKind.value === 'provider') return 'Leverantör'
+  if (inviteTargetKind.value === 'distributor') return 'Distributör'
+  return 'Organisation'
+})
+const invitePageTitle = computed(() => {
+  if (inviteTargetKind.value === 'provider') return 'Acceptera leverantörsinbjudan'
+  if (inviteTargetKind.value === 'distributor') return 'Acceptera distributörsinbjudan'
+  return 'Acceptera organisationsinbjudan'
+})
+const invitePageSubtitle = computed(() => {
+  if (inviteTargetKind.value === 'provider') return 'Anslut dig till leverantören genom att bekräfta nedan.'
+  if (inviteTargetKind.value === 'distributor') return 'Anslut dig till distributören genom att bekräfta nedan.'
+  return 'Anslut dig till organisationen genom att bekräfta nedan.'
+})
+const inviteEntityName = computed(() => organisationName.value || tenantInfo.value?.name || 'Organisation')
+const inviteEntityBadge = computed(() => {
+  if (inviteTargetKind.value === 'organization' && invitation.value?.willCreateOrganization) {
+    return 'Organisation · Skapas vid accept'
+  }
+  return inviteKindLabel.value
+})
+const registrationIntro = computed(() => {
+  const base =
+    inviteTargetKind.value === 'organization'
+      ? 'En administratör har skapat en organisation och bjudit in dig som ägare.'
+      : `En administratör har skapat en ${inviteKindLabel.value.toLowerCase()} och bjudit in dig som ägare.`
+
+  if (invitation.value?.willCreateOrganization && invitation.value?.organizationName) {
+    return `${base} När du slutför registreringen skapas organisationen "${invitation.value.organizationName}".`
+  }
+
+  return `${base} Skapa ett lösenord nedan för att gå med.`
 })
 const requiresAccountCreation = computed(
   () => 
@@ -291,7 +371,12 @@ const loadInvitation = async () => {
   try {
     const response = await $fetch<InvitationLookupResponse>(`/api/invite/${token.value}`)
     invitation.value = response.invitation
-    organisationName.value = response.organisation?.name ?? ''
+    tenantInfo.value = response.tenant ?? null
+    organisationName.value = resolveInviteOrganisationName({
+      organisationName: response.organisation?.name ?? null,
+      invitationOrganisationName: response.invitation?.organizationName ?? null,
+      tenantName: response.tenant?.name ?? null
+    })
     inviteMeta.value = {
       emailExists: response.emailExists,
       hasPassword: response.hasPassword,
@@ -304,6 +389,7 @@ const loadInvitation = async () => {
     }
   } catch (error) {
     invitation.value = null
+    tenantInfo.value = null
     inviteMeta.value = null
     const status = extractStatus(error)
     if (status === 410) {

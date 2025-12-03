@@ -264,7 +264,7 @@
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Bjuden av</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Inbjuden av</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Gäller till</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Organisation</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">Åtgärder</th>
@@ -292,14 +292,24 @@
                   <span v-else class="text-slate-400 dark:text-slate-500">—</span>
                 </td>
                 <td class="px-6 py-3 text-right">
-                  <button
-                    v-if="invite.status === 'pending'"
-                    class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
-                    :disabled="inviteCancelLoadingId === invite.id"
-                    @click="cancelInvite(invite.id)"
-                  >
-                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
-                  </button>
+                  <div v-if="invite.status === 'pending'" class="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      class="rounded border border-brand/40 px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/10 disabled:opacity-40 dark:border-brand/60 dark:text-brand"
+                      :disabled="inviteResendLoadingId === invite.id || inviteCancelLoadingId === invite.id"
+                      @click="resendInvite(invite)"
+                    >
+                      {{ inviteResendLoadingId === invite.id ? 'Skickar...' : 'Skicka igen' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
+                      :disabled="inviteCancelLoadingId === invite.id || inviteResendLoadingId === invite.id"
+                      @click="cancelInvite(invite.id)"
+                    >
+                      {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                    </button>
+                  </div>
                   <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
                 </td>
               </tr>
@@ -399,6 +409,7 @@ import { standardTenantRoles } from '~/constants/rbac'
 import type {
   AdminTenantMembersResponse,
   AdminTenantMember,
+  AdminTenantInvite,
   TenantRole
 } from '~/types/admin'
 import { useAuth } from '~/composables/useAuth'
@@ -431,6 +442,7 @@ const roleLoadingId = ref('')
 const statusLoadingId = ref('')
 const deleteLoadingId = ref('')
 const inviteCancelLoadingId = ref('')
+const inviteResendLoadingId = ref('')
 const includeChildrenLoadingId = ref('')
 const mspRolesLoadingId = ref('')
 
@@ -712,6 +724,26 @@ const cancelInvite = async (inviteId: string) => {
     errorMessage.value = err instanceof Error ? err.message : 'Kunde inte avbryta inbjudan.'
   } finally {
     inviteCancelLoadingId.value = ''
+  }
+}
+
+const resendInvite = async (invite: AdminTenantInvite) => {
+  inviteResendLoadingId.value = invite.id
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId.value}/invitations/${invite.id}/resend`, {
+      method: 'POST'
+    })
+    await refresh()
+    successMessage.value = `Inbjudan till ${invite.email} skickades igen.`
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte skicka om inbjudan.'
+  } finally {
+    inviteResendLoadingId.value = ''
   }
 }
 

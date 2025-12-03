@@ -2,7 +2,7 @@ import { createId } from '@paralleldrive/cuid2'
 import { createError, defineEventHandler, readBody } from 'h3'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { tenants, tenantMemberships, users, organizations, organizationInvitations, organizationAuthSettings, distributorProviders } from '../../../database/schema'
+import { tenants, tenantMemberships, users, tenantInvitations, distributorProviders } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { normalizeEmail, createInviteToken } from '../../../utils/crypto'
 import { slugify } from '../../../utils/auth'
@@ -250,95 +250,37 @@ export default defineEventHandler(async (event) => {
   // Send email to owner
   try {
     if (!existingUser) {
-      // New user - create a temporary organization for invitation and send invitation email
-      const tempOrgId = createId()
       const inviteToken = createInviteToken()
-      const inviteExpiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-      const inviteExpiresAtDate = new Date(inviteExpiresAt)
-      
+      const inviteExpiresAtMs = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+      const inviteExpiresAt = new Date(inviteExpiresAtMs)
       const isSqliteForInvite =
         (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-      
-      if (isSqliteForInvite) {
-        await db.transaction((tx) => {
-          // Create temporary organization for invitation
-          tx.insert(organizations)
-            .values({
-              id: tempOrgId,
-              name: `${tenant.name} - System`,
-              slug: `${tenant.slug}-system`,
-              tenantId: tenant.id,
-              status: 'active',
-              defaultRole: 'owner',
-              requireSso: 0,
-              allowSelfSignup: 0
-            })
-            .run()
-          
-          tx.insert(organizationAuthSettings)
-            .values({
-              organizationId: tempOrgId,
-              idpType: 'none',
-              ssoEnforced: false,
-              allowLocalLoginForOwners: true
-            })
-            .run()
-          
-          // Create invitation
-          tx.insert(organizationInvitations)
-            .values({
-              id: createId(),
-              organizationId: tempOrgId,
-              email: normalizedOwnerEmail,
-              role: 'owner',
-              token: inviteToken,
-              status: 'pending',
-              invitedByUserId: null,
-              expiresAt: inviteExpiresAtDate
-            })
-            .run()
-        })
-      } else {
-        await db.transaction(async (tx) => {
-          // Create temporary organization for invitation
-          await tx.insert(organizations).values({
-            id: tempOrgId,
-            name: `${tenant.name} - System`,
-            slug: `${tenant.slug}-system`,
-            tenantId: tenant.id,
-            status: 'active',
-            defaultRole: 'owner',
-            requireSso: false,
-            allowSelfSignup: false
-          })
-          
-          await tx.insert(organizationAuthSettings).values({
-            organizationId: tempOrgId,
-            idpType: 'none',
-            ssoEnforced: false,
-            allowLocalLoginForOwners: true
-          })
-          
-          // Create invitation
-          await tx.insert(organizationInvitations).values({
-            id: createId(),
-            organizationId: tempOrgId,
-            email: normalizedOwnerEmail,
-            role: 'owner',
-            token: inviteToken,
-            status: 'pending',
-            invitedByUserId: null,
-            expiresAt: inviteExpiresAtDate
-          })
-        })
+
+      const invitationValues = {
+        id: createId(),
+        tenantId: tenant.id,
+        email: normalizedOwnerEmail,
+        role: 'admin' as TenantRole,
+        includeChildren: true,
+        token: inviteToken,
+        status: 'pending',
+        invitedByUserId: null,
+        expiresAt: inviteExpiresAt,
+        organizationData: null
       }
-      
+
+      if (isSqliteForInvite) {
+        await db.insert(tenantInvitations).values(invitationValues).run()
+      } else {
+        await db.insert(tenantInvitations).values(invitationValues)
+      }
+
       await sendDistributorInvitationEmail({
         tenantId: tenant.id,
         tenantName: tenant.name,
         tenantType: payload.type,
         to: normalizedOwnerEmail,
-        expiresAt: inviteExpiresAt,
+        expiresAt: inviteExpiresAtMs,
         token: inviteToken,
         invitedBy: 'System'
       })

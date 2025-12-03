@@ -187,7 +187,7 @@
           type="button"
           class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
           :disabled="currentStep === 1"
-          @click="currentStep = Math.max(1, currentStep - 1)"
+          @click="goToPreviousStep"
         >
           Föregående
         </button>
@@ -198,7 +198,7 @@
             type="button"
             class="rounded-lg bg-brand/10 px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand/20"
             :disabled="!canContinue"
-            @click="currentStep = 2"
+            @click="goToNextStep"
           >
             Nästa steg
           </button>
@@ -362,6 +362,17 @@ watch(
 const confirmExistingUser = () => {
   userConfirmed.value = true
   showConfirmDialog.value = false
+}
+
+const goToPreviousStep = () => {
+  if (currentStep.value <= 1) return
+  currentStep.value = Math.max(1, currentStep.value - 1)
+  showConfirmDialog.value = false
+}
+
+const goToNextStep = () => {
+  if (currentStep.value >= steps.length || !canContinue.value) return
+  currentStep.value = Math.min(steps.length, currentStep.value + 1)
 }
 
 const handleSubmit = async () => {

@@ -270,14 +270,24 @@
                   {{ formatDate(invite.expiresAt) }}
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <button
-                    v-if="invite.status === 'pending'"
-                    class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
-                    :disabled="inviteCancelLoadingId === invite.id"
-                    @click="cancelPendingInvitation(invite)"
-                  >
-                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
-                  </button>
+                  <div v-if="invite.status === 'pending'" class="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      class="rounded border border-brand/40 px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/10 disabled:opacity-50 dark:border-brand/60 dark:text-brand"
+                      :disabled="inviteResendLoadingId === invite.id || inviteCancelLoadingId === invite.id"
+                      @click="resendPendingInvitation(invite)"
+                    >
+                      {{ inviteResendLoadingId === invite.id ? 'Skickar...' : 'Skicka igen' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
+                      :disabled="inviteCancelLoadingId === invite.id || inviteResendLoadingId === invite.id"
+                      @click="cancelPendingInvitation(invite)"
+                    >
+                      {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                    </button>
+                  </div>
                   <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
                 </td>
               </tr>
@@ -490,6 +500,7 @@ const roleLoadingId = ref('')
 const statusLoadingId = ref('')
 const removalLoadingId = ref('')
 const inviteCancelLoadingId = ref('')
+const inviteResendLoadingId = ref('')
 const showInviteModal = ref(false)
 const inviteLoading = ref(false)
 const inviteError = ref('')
@@ -1021,6 +1032,27 @@ const handleInviteSubmit = async (payload: InviteMemberPayload) => {
     }
   } finally {
     inviteLoading.value = false
+  }
+}
+
+const resendPendingInvitation = async (invite: OrganizationInvitationSummary) => {
+  if (invite.status !== 'pending') return
+  inviteResendLoadingId.value = invite.id
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    const response = await membersApi.resendInvitation(invite.id)
+    const backendMessage = (response as { message?: string })?.message
+    successMessage.value =
+      backendMessage || `Inbjudan skickades igen till ${invite.email}.`
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+    await loadMembers()
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error) || 'Kunde inte skicka om inbjudan.'
+  } finally {
+    inviteResendLoadingId.value = ''
   }
 }
 

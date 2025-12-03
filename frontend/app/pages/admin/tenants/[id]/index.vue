@@ -332,6 +332,12 @@
             </NuxtLink>
           </div>
         </div>
+        <div v-if="inviteActionMessage" class="mx-6 mt-4 rounded-lg bg-emerald-500/10 px-4 py-2 text-sm text-emerald-600 dark:text-emerald-200">
+          {{ inviteActionMessage }}
+        </div>
+        <div v-else-if="inviteActionError" class="mx-6 mt-4 rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-600 dark:text-red-300">
+          {{ inviteActionError }}
+        </div>
         <div v-if="!invites.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
           Inga aktiva inbjudningar.
         </div>
@@ -342,7 +348,7 @@
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Bjuden av</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Inbjuden av</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Gäller till</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Organisation</th>
                 <th v-if="canInviteMember" class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">Åtgärder</th>
@@ -370,14 +376,24 @@
                   <span v-else class="text-slate-400 dark:text-slate-500">—</span>
                 </td>
                 <td v-if="canInviteMember" class="px-6 py-3 text-right">
-                  <button
-                    v-if="invite.status === 'pending'"
-                    class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
-                    :disabled="inviteCancelLoadingId === invite.id"
-                    @click="cancelInvite(invite.id)"
-                  >
-                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
-                  </button>
+                  <div v-if="invite.status === 'pending'" class="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      class="rounded border border-brand/40 px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/10 disabled:opacity-40 dark:border-brand/60 dark:text-brand"
+                      :disabled="inviteResendLoadingId === invite.id || inviteCancelLoadingId === invite.id"
+                      @click="resendInvite(invite.id)"
+                    >
+                      {{ inviteResendLoadingId === invite.id ? 'Skickar...' : 'Skicka igen' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
+                      :disabled="inviteCancelLoadingId === invite.id || inviteResendLoadingId === invite.id"
+                      @click="cancelInvite(invite.id)"
+                    >
+                      {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                    </button>
+                  </div>
                   <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
                 </td>
               </tr>
@@ -386,16 +402,16 @@
         </div>
       </div>
 
-      <!-- Danger Zone (for distributors only) -->
+      <!-- Danger Zone (providers & distributors) -->
       <section
-        v-if="tenant.type === 'distributor' && auth.isSuperAdmin.value"
+        v-if="showTenantDangerZone"
         class="rounded-xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-500/40 dark:bg-[#1a0f14]"
       >
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 class="text-lg font-semibold text-red-700 dark:text-red-200">Danger zone</h2>
             <p class="text-sm text-red-600 dark:text-red-300">
-              Radering tar bort distributören och all kopplad data. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna. Detta kan inte ångras.
+              {{ deleteCopy.dangerDescription }}
             </p>
           </div>
           <button
@@ -403,7 +419,7 @@
             :disabled="!tenant"
             @click="openDeleteModal"
           >
-            Ta bort distributör
+            {{ deleteCopy.buttonLabel }}
           </button>
         </div>
       </section>
@@ -472,9 +488,11 @@
         class="w-full max-w-lg space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#0f172a]"
         @submit.prevent="submitDelete"
       >
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Ta bort distributör</h3>
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ deleteCopy.modalTitle }}</h3>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Bekräfta åtgärden genom att skriva in distributörens slug (<strong>{{ tenant?.slug }}</strong>) och markera att du förstår konsekvenserna. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.
+          Bekräfta åtgärden genom att skriva in {{ deleteCopy.subjectPossessive }} slug
+          (<strong>{{ tenant?.slug }}</strong>) och markera att du förstår konsekvenserna.
+          {{ deleteCopy.modalExtra }}
         </p>
         <div>
           <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Bekräfta slug</label>
@@ -488,7 +506,7 @@
         </div>
         <label class="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200">
           <input v-model="deleteForm.acknowledgeImpact" type="checkbox" class="mt-1 rounded border-slate-300 dark:border-white/20" />
-          <span>Jag förstår att distributören och all kopplad data (leverantörs-kopplingar, medlemskap m.m.) raderas permanent. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.</span>
+          <span>{{ deleteCopy.acknowledgementText }}</span>
         </label>
         <div v-if="deleteError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300 whitespace-pre-line">
           {{ deleteError }}
@@ -531,12 +549,13 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuth()
 const tenantId = route.params.id as string
+type TenantRoleKey = keyof typeof tenantRolePermissionMap
 
 const { data, pending, error, refresh } = await useFetch<AdminTenantDetail>(`/api/admin/tenants/${tenantId}`)
 
 const tenant = computed(() => data.value?.tenant)
 const childTenants = computed(() => data.value?.childTenants ?? [])
-const linkedTenants = computed(() => data.value?.linkedTenants ?? [])
+const linkedTenants = computed<AdminTenantSummary[]>(() => data.value?.linkedTenants ?? [])
 const organizations = computed(() => data.value?.organizations ?? [])
 const invites = computed(() => data.value?.invites ?? [])
 
@@ -548,7 +567,7 @@ const editForm = ref({
   slug: ''
 })
 
-// Delete distributor state
+// Delete tenant state
 const showDeleteModal = ref(false)
 const deleteLoading = ref(false)
 const deleteError = ref('')
@@ -557,16 +576,72 @@ const deleteForm = reactive({
   acknowledgeImpact: false
 })
 
+const deletableTenantTypes = ['distributor', 'provider'] as const
+type DeletableTenantType = (typeof deletableTenantTypes)[number]
+
+const isTenantDeletable = computed(() => {
+  if (!tenant.value) return false
+  return deletableTenantTypes.includes(tenant.value.type as DeletableTenantType)
+})
+
+const showTenantDangerZone = computed(() => auth.isSuperAdmin.value && isTenantDeletable.value)
+
+interface DeleteCopy {
+  dangerDescription: string
+  buttonLabel: string
+  modalTitle: string
+  subjectPossessive: string
+  modalExtra: string
+  acknowledgementText: string
+  errorFallback: string
+}
+
+const distributorDeleteCopy: DeleteCopy = {
+  dangerDescription:
+    'Radering tar bort distributören och all kopplad data. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna. Detta kan inte ångras.',
+  buttonLabel: 'Ta bort distributör',
+  modalTitle: 'Ta bort distributör',
+  subjectPossessive: 'distributörens',
+  modalExtra:
+    'Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.',
+  acknowledgementText:
+    'Jag förstår att distributören och all kopplad data (leverantörskopplingar, medlemskap m.m.) raderas permanent. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.',
+  errorFallback: 'Kunde inte radera distributören.'
+}
+
+const providerDeleteCopy: DeleteCopy = {
+  dangerDescription:
+    'Radering tar bort leverantören och all kopplad data. Leverantören kan endast raderas om alla organisationer under den först är borttagna. Detta kan inte ångras.',
+  buttonLabel: 'Ta bort leverantör',
+  modalTitle: 'Ta bort leverantör',
+  subjectPossessive: 'leverantörens',
+  modalExtra: 'Leverantören kan endast raderas om alla organisationer under den först är borttagna.',
+  acknowledgementText:
+    'Jag förstår att leverantören och all kopplad data (organisationer, medlemskap m.m.) raderas permanent. Leverantören kan endast raderas om alla organisationer under den först är borttagna.',
+  errorFallback: 'Kunde inte radera leverantören.'
+}
+
+const deleteCopy = computed<DeleteCopy>(() =>
+  tenant.value?.type === 'provider' ? providerDeleteCopy : distributorDeleteCopy
+)
+
 
 // Invite management state
 const inviteCancelLoadingId = ref<string>('')
+const inviteResendLoadingId = ref<string>('')
+const inviteActionMessage = ref('')
+const inviteActionError = ref('')
 
-watch(tenant, (t) => {
-  if (t) {
-    editForm.value.name = t.name
-    editForm.value.slug = t.slug
-  }
-}, { immediate: true })
+watch(
+  () => tenant.value,
+  (t) => {
+    if (t) {
+      editForm.value.name = t.name
+      editForm.value.slug = t.slug
+    }
+  },
+  { immediate: true }
+)
 
 
 const canEdit = computed(() => {
@@ -580,24 +655,26 @@ const canEdit = computed(() => {
 const canReadAuditLogs = computed(() => {
   if (!tenant.value) return false
   if (auth.isSuperAdmin.value) return true
-  
-  // Check if user has audit:read permission for this tenant
-  const role = auth.state.value.data?.tenantRoles[tenant.value.id]
-  if (role) {
-    return tenantRolePermissionMap[role]?.includes('audit:read') ?? false
+
+  const tenantRolesRecord = (auth.state.value.data?.tenantRoles ?? {}) as Record<string, TenantRoleKey>
+  const includeChildrenRecord = (auth.state.value.data?.tenantIncludeChildren ?? {}) as Record<string, boolean>
+
+  const directRole = tenantRolesRecord[tenant.value.id]
+  if (directRole && tenantRolePermissionMap[directRole]?.includes('audit:read')) {
+    return true
   }
-  
-  // Check if user has audit:read permission via tenant hierarchy
-  for (const [tenantId, tenantRole] of Object.entries(auth.state.value.data?.tenantRoles ?? {})) {
-    if (tenantRolePermissionMap[tenantRole]?.includes('audit:read')) {
-      // If user has includeChildren, they can access child tenants
-      const includeChildren = auth.state.value.data?.tenantIncludeChildren?.[tenantId] ?? false
-      if (includeChildren || tenantId === tenant.value.id) {
+
+  for (const childTenantId of Object.keys(tenantRolesRecord)) {
+    const childRole = tenantRolesRecord[childTenantId]
+    if (!childRole) continue
+    if (tenantRolePermissionMap[childRole]?.includes('audit:read')) {
+      const includeChildren = includeChildrenRecord[childTenantId] ?? false
+      if (includeChildren || childTenantId === tenant.value.id) {
         return true
       }
     }
   }
-  
+
   return false
 })
 
@@ -649,6 +726,23 @@ const canCreateOrganization = computed(() => {
   // For creating organizations directly under a provider, admin role is sufficient
   // includeChildren is only needed for accessing child tenants, not for creating orgs under your own tenant
   return role === 'admin'
+})
+
+const canInviteMember = computed(() => {
+  if (!tenant.value) return false
+  if (auth.isSuperAdmin.value) return true
+  const role = auth.state.value.data?.tenantRoles?.[tenant.value.id]
+  const includeChildren = auth.state.value.data?.tenantIncludeChildren?.[tenant.value.id] ?? false
+
+  if (tenant.value.type === 'distributor') {
+    return role === 'admin' && includeChildren
+  }
+
+  if (tenant.value.type === 'provider') {
+    return role === 'admin'
+  }
+
+  return false
 })
 
 const canEditTenant = computed(() => {
@@ -724,7 +818,7 @@ const navigateToOrg = (slug: string) => {
 }
 
 const openDeleteModal = () => {
-  if (tenant.value?.type === 'distributor' && auth.isSuperAdmin.value) {
+  if (isTenantDeletable.value && auth.isSuperAdmin.value) {
     deleteForm.confirmSlug = ''
     deleteForm.acknowledgeImpact = false
     deleteError.value = ''
@@ -744,7 +838,7 @@ const deleteDisabled = computed(() => {
 })
 
 const submitDelete = async () => {
-  if (!tenant.value || tenant.value.type !== 'distributor') return
+  if (!tenant.value || !isTenantDeletable.value) return
   deleteError.value = ''
   deleteLoading.value = true
   try {
@@ -759,7 +853,7 @@ const submitDelete = async () => {
     router.replace({ path: '/admin/tenants', query: { deleted: tenant.value.slug } })
   } catch (err: any) {
     // Extract error message from API response
-    const errorMessage = err?.data?.message || err?.message || 'Kunde inte radera distributören.'
+    const errorMessage = err?.data?.message || err?.message || deleteCopy.value.errorFallback
     deleteError.value = errorMessage
   } finally {
     deleteLoading.value = false
@@ -822,16 +916,42 @@ const cancelInvite = async (inviteId: string) => {
     return
   }
   inviteCancelLoadingId.value = inviteId
+  inviteActionMessage.value = ''
+  inviteActionError.value = ''
   try {
     await $fetch(`/api/admin/tenants/${tenantId}/invitations/${inviteId}/cancel`, {
       method: 'DELETE'
     })
     await refresh()
+    inviteActionMessage.value = 'Inbjudan avbröts.'
+    setTimeout(() => (inviteActionMessage.value = ''), 3000)
   } catch (err: any) {
     // Error handling for invite cancellation
+    const message = err?.data?.message || err?.message || 'Kunde inte avbryta inbjudan.'
+    inviteActionError.value = message
     console.error('Failed to cancel invite:', err)
   } finally {
     inviteCancelLoadingId.value = ''
+  }
+}
+
+const resendInvite = async (inviteId: string) => {
+  inviteResendLoadingId.value = inviteId
+  inviteActionMessage.value = ''
+  inviteActionError.value = ''
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId}/invitations/${inviteId}/resend`, {
+      method: 'POST'
+    })
+    await refresh()
+    inviteActionMessage.value = 'Inbjudan skickades igen.'
+    setTimeout(() => (inviteActionMessage.value = ''), 3000)
+  } catch (err: any) {
+    const message = err?.data?.message || err?.message || 'Kunde inte skicka om inbjudan.'
+    inviteActionError.value = message
+    console.error('Failed to resend invite:', err)
+  } finally {
+    inviteResendLoadingId.value = ''
   }
 }
 </script>

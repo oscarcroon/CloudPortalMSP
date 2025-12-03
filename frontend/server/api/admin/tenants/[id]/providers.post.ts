@@ -2,7 +2,7 @@ import { createId } from '@paralleldrive/cuid2'
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
-import { tenants, tenantMemberships, users, organizations, organizationInvitations, organizationAuthSettings, distributorProviders } from '../../../../database/schema'
+import { tenants, tenantMemberships, users, tenantInvitations, distributorProviders } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
 import { normalizeEmail, createInviteToken } from '../../../../utils/crypto'
 import { slugify } from '../../../../utils/auth'
@@ -22,7 +22,25 @@ const createProviderSchema = z.object({
   owner: z.object({
     email: z.string().email(),
     fullName: z.string().min(2).max(120).optional()
-  })
+  }),
+  organization: z
+    .object({
+      name: z.string().min(2).max(120),
+      slug: z
+        .string()
+        .min(2)
+        .max(120)
+        .regex(/^[a-z0-9-]+$/, 'Slug may only contain lowercase letters, numbers and hyphens.')
+        .optional(),
+      billingEmail: z.string().email().optional(),
+      coreId: z
+        .string()
+        .trim()
+        .min(4)
+        .max(20)
+        .optional()
+    })
+    .optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -184,42 +202,52 @@ export default defineEventHandler(async (event) => {
   // Send email to owner
   try {
     if (!existingUser) {
-      // New user - send invitation email
       const inviteToken = createInviteToken()
-      const inviteExpiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+      const inviteExpiresAtMs = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+      const inviteExpiresAt = new Date(inviteExpiresAtMs)
 
-      // Create a temporary organization for the invitation flow
-      const tempOrgId = createId()
-      await db.insert(organizations).values({
-        id: tempOrgId,
-        name: `Temp Org for ${payload.name}`,
-        slug: `temp-org-${slugify(payload.name)}`,
-        tenantId: provider.id,
-        status: 'active',
-        defaultRole: 'viewer',
-        requireSso: false,
-        allowSelfSignup: false
-      }).run()
+      const shouldAttachOrganization = Boolean(payload.organization && payload.organization.name)
+      const organizationData =
+        shouldAttachOrganization
+          ? {
+              name: payload.organization!.name.trim(),
+              slug: payload.organization!.slug?.trim() || undefined,
+              billingEmail: payload.organization!.billingEmail?.trim() || undefined,
+              coreId: payload.organization!.coreId?.trim().toUpperCase() || undefined
+            }
+          : null
 
-      await db.insert(organizationInvitations).values({
+      const invitedByLabel = auth.user.email ?? auth.user.fullName ?? 'System'
+
+      const invitationValues = {
         id: createId(),
-        organizationId: tempOrgId,
+        tenantId: provider.id,
         email: normalizedOwnerEmail,
-        role: 'owner',
+        role: 'admin' as TenantRole,
+        includeChildren: true,
         token: inviteToken,
         status: 'pending',
-        invitedByUserId: null,
-        expiresAt: new Date(inviteExpiresAt)
-      }).run()
+        invitedByUserId: auth.user.id,
+        expiresAt: inviteExpiresAt,
+        organizationData: organizationData ? JSON.stringify(organizationData) : null
+      }
+
+      if (isSqlite) {
+        await db.insert(tenantInvitations).values(invitationValues).run()
+      } else {
+        await db.insert(tenantInvitations).values(invitationValues)
+      }
 
       await sendDistributorInvitationEmail({
         tenantId: provider.id,
         tenantName: provider.name,
         tenantType: 'provider',
         to: normalizedOwnerEmail,
-        expiresAt: inviteExpiresAt,
+        expiresAt: inviteExpiresAtMs,
         token: inviteToken,
-        invitedBy: 'System'
+        invitedBy: invitedByLabel,
+        willCreateOrganization: Boolean(organizationData),
+        organizationName: organizationData?.name
       })
     } else {
       // Existing user - send confirmation email
@@ -228,7 +256,7 @@ export default defineEventHandler(async (event) => {
         tenantName: provider.name,
         tenantType: 'provider',
         to: normalizedOwnerEmail,
-        invitedBy: 'System'
+        invitedBy: auth.user.email ?? 'System'
       })
     }
   } catch (error) {

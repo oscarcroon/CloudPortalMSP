@@ -49,11 +49,14 @@ export type InvitationStatus = 'pending' | 'accepted' | 'cancelled' | 'expired'
 
 export interface InvitationDetails {
   id: string
-  organisationId: string
+  organisationId?: string | null
+  tenantId?: string | null
   email: string
   role: OrganizationMemberRole
   status: InvitationStatus
   invitedBy: string
+  organizationName?: string | null
+  willCreateOrganization?: boolean
   expiresAt: string
   createdAt: string
   acceptedAt?: string
@@ -69,6 +72,11 @@ export interface InvitationLookupResponse {
     id: string
     name: string
   }
+  tenant?: {
+    id: string
+    name: string
+    type?: string | null
+  } | null
   emailExists: boolean
   hasPassword: boolean
   autoAccept: boolean
