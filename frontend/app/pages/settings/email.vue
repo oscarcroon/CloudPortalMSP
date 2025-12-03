@@ -11,7 +11,7 @@
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">E-postinställningar</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
           Hantera organisationens egna utskick. Aktivera override för att använda egna SMTP-/Graph-inställningar,
-          annars ärvs inställningarna från distributör → leverantör → global.
+          annars ärvs inställningarna från leverantör → distributör → global.
         </p>
       </div>
     </header>
@@ -29,28 +29,33 @@
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Hierarchy info -->
-      <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-        <p class="font-semibold">Hierarki:</p>
-        <p class="mt-1">Global → Leverantör → Distributör → Organisation ({{ organisationName }})</p>
-        <p class="mt-2 text-xs">
-          E-postinställningar ärvs från högre nivåer om de inte är satta på lägre nivåer.
-        </p>
-      </div>
-
       <div class="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
         Aktiv organisation: <span class="font-semibold text-slate-900 dark:text-white">{{ organisationName }}</span>.
         Alla utskick (inbjudningar, rapporter m.m.) använder dessa inställningar när override är aktiv.
       </div>
 
-      <div v-if="pending" class="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+      <div
+        v-if="pending"
+        class="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+      >
         Hämtar e-postinställningar...
       </div>
 
+      <div
+        v-if="!pending && !provider?.isActive"
+        class="rounded-lg border border-slate-200 bg-blue-50/80 px-4 py-3 text-sm text-slate-600 dark:border-blue-500/10 dark:bg-blue-500/5 dark:text-slate-300"
+      >
+        <p class="font-medium text-slate-900 dark:text-white">E-postinställningar ärvs från högre nivå</p>
+        <p class="mt-1 text-xs">
+          Om inga egna inställningar är aktiverade används inställningarna från leverantör → distributör → global.
+        </p>
+      </div>
+
       <EmailProviderForm
-        v-else
+        v-if="!pending"
         :summary="provider"
         mode="organization"
+        :organization-id="currentOrgId"
         :saving="saving"
         :testing="testing"
         :status-message="formStatusMessage"

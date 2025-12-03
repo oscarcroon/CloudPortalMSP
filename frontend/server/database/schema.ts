@@ -62,6 +62,7 @@ export const organizations = sqliteTable(
     logoUrl: text('logo_url'),
     billingEmail: text('billing_email'),
     coreId: text('core_id'),
+    emailDisclaimerMarkdown: text('email_disclaimer_markdown'),
     ...timestampColumns()
   },
   table => ({
@@ -432,6 +433,9 @@ export const emailProviderProfiles = sqliteTable(
     fromName: text('from_name'),
     fromEmail: text('from_email'),
     replyToEmail: text('reply_to_email'),
+    subjectPrefix: text('subject_prefix'),
+    supportContact: text('support_contact'),
+    emailDarkMode: integer('email_dark_mode', { mode: 'boolean' }).notNull().default(0),
     brandingConfig: text('branding_config', { length: 4096 }),
     encryptedConfig: text('encrypted_config', { length: 8192 }),
     encryptionIv: text('encryption_iv'),

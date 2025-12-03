@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const payload = testSchema.parse(body)
     const profile = buildProfileFromPayload(payload)
-    await sendProviderTestEmail(profile, payload.testEmail)
+    await sendProviderTestEmail(profile, payload.testEmail, undefined, payload.emailDarkMode)
     await recordTestResult('global', 'success')
     return { delivered: true }
   } catch (error) {

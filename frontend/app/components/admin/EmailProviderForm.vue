@@ -14,13 +14,13 @@
           }}
         </h2>
         <p class="text-sm text-slate-500 dark:text-slate-400">
-          Ange avsändaradress, svarsmail och eventuell branding som ska gälla för utskick.
+          Ange avsändaradress, svarsmail och leverantör som ska gälla för utskick.
         </p>
       </header>
       <div v-if="mode === 'organization'" class="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
         <input id="use-override" v-model="useOverride" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
         <label for="use-override" class="text-sm text-slate-700 dark:text-slate-200">
-          Använd organisationsspecifik e-postprovider (annars ärvs inställningar från distributör → leverantör → global)
+          Använd organisationsspecifik e-postprovider (annars ärvs inställningar från leverantör → distributör → global)
         </label>
       </div>
       <div class="grid gap-4 md:grid-cols-2" :class="{ 'opacity-60 pointer-events-none': !isEditable }">
@@ -42,6 +42,26 @@
             :disabled="!isEditable"
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             placeholder="no-reply@example.com"
+          />
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Ämnesprefix (valfritt)</label>
+          <input
+            v-model="form.subjectPrefix"
+            type="text"
+            :disabled="!isEditable"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            placeholder="[Cloud Portal]"
+          />
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Supportkontakt (valfritt)</label>
+          <input
+            v-model="form.supportContact"
+            type="text"
+            :disabled="!isEditable"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            placeholder="support@example.com"
           />
         </div>
         <div>
@@ -80,6 +100,24 @@
             </span>
           </div>
         </div>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">E-posttema</label>
+          <div class="mt-1 flex items-center gap-3">
+            <input
+              id="email-dark-mode"
+              v-model="form.emailDarkMode"
+              type="checkbox"
+              :disabled="!isEditable"
+              class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20 disabled:opacity-50"
+            />
+            <label for="email-dark-mode" class="text-sm font-medium text-slate-700 dark:text-slate-200">
+              Mörkt läge (standard är ljust läge)
+            </label>
+          </div>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            I mörkt läge används mörka färger för e-postinnehållet och bakgrunden. Bakgrunden bakom loggan använder NavBar-färgen från brandingen.
+          </p>
+        </div>
       </div>
     </section>
 
@@ -92,18 +130,20 @@
         <div class="flex gap-2">
           <button
             type="button"
-            class="rounded-full border px-4 py-1 text-sm font-semibold text-slate-600 transition dark:text-slate-200"
+            class="flex items-center gap-2 rounded-full border px-4 py-1 text-sm font-semibold text-slate-600 transition dark:text-slate-200"
             :class="form.providerType === 'smtp' ? activeTabClass : inactiveTabClass"
             @click="switchProvider('smtp')"
           >
+            <Icon icon="mdi:email-send" class="h-4 w-4" />
             SMTP
           </button>
           <button
             type="button"
-            class="rounded-full border px-4 py-1 text-sm font-semibold text-slate-600 transition dark:text-slate-200"
+            class="flex items-center gap-2 rounded-full border px-4 py-1 text-sm font-semibold text-slate-600 transition dark:text-slate-200"
             :class="form.providerType === 'graph' ? activeTabClass : inactiveTabClass"
             @click="switchProvider('graph')"
           >
+            <Icon icon="mdi:microsoft" class="h-4 w-4" />
             Microsoft Graph
           </button>
         </div>
@@ -225,71 +265,60 @@
       </div>
     </section>
 
-    <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
-      <header class="mb-4">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Branding (valfritt)</h3>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Ange logotyp, accentfärg och valfri footertext.</p>
+    <section
+      v-if="props.mode === 'organization'"
+      class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5"
+    >
+      <header class="mb-4 space-y-1">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Egen disclaimer</h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          Texten läggs längst ner i alla utskick (även om e-post provider ärvs). Markdown stöds för länkar, listor och betoning.
+        </p>
       </header>
-      <div class="grid gap-4 md:grid-cols-2" :class="{ 'opacity-60 pointer-events-none': !isEditable }">
+      <div class="grid gap-6 lg:grid-cols-2">
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Logotyp-URL</label>
-          <input
-            v-model="form.branding.logoUrl"
-            type="url"
-            :disabled="!isEditable"
-            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            placeholder="https://..."
-          />
-        </div>
-        <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Accentfärg (hex)</label>
-          <input
-            v-model="form.branding.accentColor"
-            type="text"
-            :disabled="!isEditable"
-            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            placeholder="#2563EB"
-          />
-        </div>
-        <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Bakgrundsfärg (hex)</label>
-          <input
-            v-model="form.branding.backgroundColor"
-            type="text"
-            :disabled="!isEditable"
-            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            placeholder="#f8fafc"
-          />
-        </div>
-        <div class="md:col-span-2">
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Footertext</label>
           <textarea
-            v-model="form.branding.footerText"
-            rows="2"
-            :disabled="!isEditable"
-            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            placeholder="Detta meddelande skickades av..."
+            v-model="form.disclaimerMarkdown"
+            rows="8"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            placeholder="Exempel: Detta meddelande är konfidentiellt..."
           />
+          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Lämna tomt för att använda kedjans standardtext.</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-4 text-sm dark:border-white/10 dark:bg-white/5">
+          <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Förhandsvisning</p>
+          <div
+            v-if="disclaimerPreview.html"
+            class="prose prose-sm mt-3 max-w-none text-slate-700 dark:prose-invert dark:text-slate-200"
+            v-html="disclaimerPreview.html"
+          />
+          <p v-else class="mt-3 text-slate-400 dark:text-slate-500">Ingen text angiven ännu.</p>
         </div>
       </div>
     </section>
 
     <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
       <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p class="text-sm font-semibold text-slate-900 dark:text-white">Senaste test</p>
-          <p class="text-sm text-slate-500 dark:text-slate-400">
-            <span v-if="summary?.lastTestedAt">
-              {{ formatTimestamp(summary.lastTestedAt) }} •
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 dark:text-white">Status & Test</p>
+          <div class="mt-2 space-y-1">
+            <p v-if="summary?.lastTestedAt" class="text-sm text-slate-500 dark:text-slate-400">
+              Senaste test: {{ formatTimestamp(summary.lastTestedAt) }} •
               <span :class="summary.lastTestStatus === 'success' ? 'text-emerald-600 dark:text-emerald-300' : 'text-red-500'">
                 {{ summary.lastTestStatus === 'success' ? 'Lyckades' : 'Misslyckades' }}
               </span>
-            </span>
-            <span v-else>Inga tester körda ännu.</span>
-          </p>
-          <p v-if="summary?.lastTestError" class="text-xs text-red-500 dark:text-red-300">
-            {{ summary.lastTestError }}
-          </p>
+            </p>
+            <p v-else class="text-sm text-slate-500 dark:text-slate-400">Inga tester körda ännu.</p>
+            <p v-if="summary?.lastTestError" class="text-xs text-red-500 dark:text-red-300">
+              {{ summary.lastTestError }}
+            </p>
+            <p v-if="form.providerType === 'graph' && summary?.lastTestStatus === 'success'" class="text-xs text-emerald-600 dark:text-emerald-300">
+              ✓ OAuth-token verifierad
+            </p>
+            <p v-if="form.providerType === 'graph' && summary?.lastTestedAt" class="text-xs text-slate-500 dark:text-slate-400">
+              Senast beviljad: {{ formatTimestamp(summary.lastTestedAt) }}
+            </p>
+          </div>
         </div>
         <div class="flex flex-col gap-2 md:flex-row md:items-center">
           <input
@@ -301,20 +330,31 @@
           />
           <button
             type="button"
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand disabled:opacity-60 dark:border-white/10 dark:text-slate-200"
+            class="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand disabled:opacity-60 dark:border-white/10 dark:text-slate-200"
             :disabled="!isEditable || testing"
             @click="handleTest"
           >
+            <Icon icon="mdi:email-send" class="h-4 w-4" />
             {{ testing ? 'Skickar...' : 'Skicka test' }}
           </button>
+          <button
+            v-if="form.providerType === 'graph'"
+            type="button"
+            class="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand disabled:opacity-60 dark:border-white/10 dark:text-slate-200"
+            :disabled="!isEditable"
+            @click="handleReconnect"
+          >
+            <Icon icon="mdi:refresh" class="h-4 w-4" />
+            Återanslut Microsoft 365
+          </button>
         </div>
-        <div
-          v-if="props.testMessage"
-          class="rounded-lg px-4 py-3 text-sm"
-          :class="variantClass(props.testVariant)"
-        >
-          {{ props.testMessage }}
-        </div>
+      </div>
+      <div
+        v-if="props.testMessage"
+        class="mt-4 rounded-lg px-4 py-3 text-sm"
+        :class="variantClass(props.testVariant)"
+      >
+        {{ props.testMessage }}
       </div>
     </section>
 
@@ -326,7 +366,27 @@
       {{ props.statusMessage }}
     </div>
 
-    <div class="flex justify-end gap-2">
+    <div class="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-if="props.mode === 'global' || props.mode === 'organization' || props.mode === 'provider' || props.mode === 'distributor'"
+          type="button"
+          class="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+          @click="showPreview('invitation')"
+        >
+          <Icon icon="mdi:email-open" class="h-4 w-4" />
+          Förhandsgranska inbjudningsmail
+        </button>
+        <button
+          v-if="props.mode === 'global' || props.mode === 'organization' || props.mode === 'provider' || props.mode === 'distributor'"
+          type="button"
+          class="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
+          @click="showPreview('password-reset')"
+        >
+          <Icon icon="mdi:lock-reset" class="h-4 w-4" />
+          Förhandsgranska återställningsmail
+        </button>
+      </div>
       <button
         type="submit"
         class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-60"
@@ -335,13 +395,26 @@
         {{ saving ? 'Sparar...' : 'Spara inställningar' }}
       </button>
     </div>
+
+    <EmailPreviewModal
+      :is-open="previewModalOpen"
+      :title="previewType === 'invitation' ? 'Förhandsgranska inbjudningsmail' : 'Förhandsgranska återställningsmail'"
+      :type="previewType"
+      :organization-id="previewOrganizationId"
+      :tenant-id="previewTenantId"
+      :disclaimer-markdown="props.mode === 'organization' ? form.disclaimerMarkdown : null"
+      :is-dark-mode="form.emailDarkMode"
+      @close="previewModalOpen = false"
+    />
   </form>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { Icon } from '@iconify/vue'
+import { renderMarkdown } from '~~/shared/markdown'
+import EmailPreviewModal from '~/components/email/EmailPreviewModal.vue'
 import type {
-  AdminEmailBranding,
   AdminEmailProviderPayload,
   AdminEmailProviderSummary,
   AdminEmailProviderTestPayload
@@ -356,6 +429,8 @@ const props = defineProps<{
   statusVariant?: 'success' | 'error' | ''
   testMessage?: string
   testVariant?: 'success' | 'error'
+  organizationId?: string | null
+  tenantId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -374,14 +449,12 @@ const form = reactive({
   fromName: '',
   fromEmail: '',
   replyToEmail: '',
-  branding: {
-    logoUrl: '',
-    accentColor: '',
-    backgroundColor: '',
-    footerText: ''
-  } as AdminEmailBranding,
   providerType: 'smtp' as 'smtp' | 'graph',
   isActive: false,
+  subjectPrefix: '',
+  supportContact: '',
+  emailDarkMode: false,
+  disclaimerMarkdown: '',
   smtp: {
     host: '',
     port: 587,
@@ -430,10 +503,10 @@ const applySummary = (summary: AdminEmailProviderSummary | null) => {
   form.fromName = summary?.fromName ?? ''
   form.fromEmail = summary?.fromEmail ?? ''
   form.replyToEmail = summary?.replyToEmail ?? ''
-  form.branding.logoUrl = summary?.branding?.logoUrl ?? ''
-  form.branding.accentColor = summary?.branding?.accentColor ?? ''
-  form.branding.backgroundColor = summary?.branding?.backgroundColor ?? ''
-  form.branding.footerText = summary?.branding?.footerText ?? ''
+  form.subjectPrefix = summary?.subjectPrefix ?? ''
+  form.supportContact = summary?.supportContact ?? ''
+  form.emailDarkMode = summary?.emailDarkMode ?? false
+  form.disclaimerMarkdown = summary?.disclaimerMarkdown ?? ''
   form.providerType = summary?.settings?.type ?? summary?.providerType ?? 'smtp'
   form.isActive = summary?.isActive ?? false
   form.smtp.host = summary?.settings?.type === 'smtp' ? summary.settings.host : ''
@@ -460,8 +533,10 @@ const applySummary = (summary: AdminEmailProviderSummary | null) => {
   if (props.mode === 'organization') {
     useOverride.value = summary?.isActive ?? false
   } else {
-    // Global, provider, and distributor are always active
+    // Global, provider, and distributor: useOverride is always true (they can always configure)
+    // But isActive should reflect the actual saved value
     useOverride.value = true
+    // Don't override form.isActive here - it's already set from summary above
   }
 }
 
@@ -478,10 +553,9 @@ watch(
   (value) => {
     if (props.mode === 'organization') {
       form.isActive = value ? (props.summary?.isActive ?? true) : false
-    } else {
-      // Global, provider, and distributor are always active when override is enabled
-      form.isActive = value
     }
+    // For global, provider, and distributor, don't automatically change isActive
+    // It's already set correctly from applySummary, and the user can control it via the toggle
   }
 )
 
@@ -493,13 +567,19 @@ const formatTimestamp = (value: string | number) => {
 const normalize = (value: string) => value.trim()
 
 const buildPayload = (): AdminEmailProviderPayload => {
-  const branding: AdminEmailBranding | null =
-    form.branding.logoUrl ||
-    form.branding.accentColor ||
-    form.branding.backgroundColor ||
-    form.branding.footerText
-      ? { ...form.branding }
-      : null
+  const baseFields: Partial<AdminEmailProviderPayload> = {
+    fromEmail: normalize(form.fromEmail),
+    fromName: form.fromName.trim() || undefined,
+    replyToEmail: form.replyToEmail.trim() || undefined,
+    subjectPrefix: form.subjectPrefix,
+    supportContact: form.supportContact,
+    emailDarkMode: form.emailDarkMode,
+    isActive: form.isActive
+  }
+
+  if (props.mode === 'organization') {
+    baseFields.disclaimerMarkdown = form.disclaimerMarkdown
+  }
 
   if (form.providerType === 'smtp') {
     const userInput = form.smtp.authUser.trim()
@@ -516,11 +596,7 @@ const buildPayload = (): AdminEmailProviderPayload => {
       auth = undefined
     }
     return {
-      fromEmail: normalize(form.fromEmail),
-      fromName: form.fromName.trim() || undefined,
-      replyToEmail: form.replyToEmail.trim() || undefined,
-      branding,
-      isActive: form.isActive,
+      ...(baseFields as AdminEmailProviderPayload),
       provider: {
         type: 'smtp',
         host: form.smtp.host.trim(),
@@ -533,11 +609,7 @@ const buildPayload = (): AdminEmailProviderPayload => {
   }
 
   return {
-    fromEmail: normalize(form.fromEmail),
-    fromName: form.fromName.trim() || undefined,
-    replyToEmail: form.replyToEmail.trim() || undefined,
-    branding,
-    isActive: form.isActive,
+    ...(baseFields as AdminEmailProviderPayload),
     provider: {
       type: 'graph',
       tenantId: form.graph.tenantId.trim(),
@@ -564,6 +636,44 @@ const handleTest = () => {
     testEmail: form.testEmail
   }
   emit('test', testPayload)
+}
+
+const disclaimerPreview = computed(() => renderMarkdown(form.disclaimerMarkdown))
+
+// Preview modal
+const previewModalOpen = ref(false)
+const previewType = ref<'invitation' | 'password-reset'>('invitation')
+const previewOrganizationId = ref<string | null>(null)
+const previewTenantId = ref<string | null>(null)
+
+const showPreview = (type: 'invitation' | 'password-reset') => {
+  previewType.value = type
+  // Get organization/tenant ID from props if available
+  // Prefer explicit props over summary values
+  if (props.mode === 'organization') {
+    previewOrganizationId.value = props.organizationId ?? props.summary?.organisationId ?? null
+    previewTenantId.value = null
+  } else if (props.mode === 'global') {
+    previewOrganizationId.value = null
+    previewTenantId.value = null
+  } else if (props.mode === 'provider' || props.mode === 'distributor') {
+    // For provider/distributor, use tenantId
+    previewOrganizationId.value = null
+    previewTenantId.value = props.tenantId ?? props.summary?.tenantId ?? null
+  } else {
+    previewOrganizationId.value = null
+    previewTenantId.value = null
+  }
+  previewModalOpen.value = true
+}
+
+const handleReconnect = async () => {
+  // Trigger a test to re-authenticate
+  if (!form.testEmail) {
+    alert('Ange en testmottagare för att återansluta.')
+    return
+  }
+  await handleTest()
 }
 </script>
 

@@ -4,7 +4,8 @@ import { tenants } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
 import {
   getProviderTenantEmailProviderSummary,
-  getDistributorTenantEmailProviderSummary
+  getDistributorTenantEmailProviderSummary,
+  resolveEmailProviderChain
 } from '../../../../utils/emailProvider'
 import { requireTenantPermission } from '../../../../utils/rbac'
 
@@ -24,11 +25,17 @@ export default defineEventHandler(async (event) => {
   }
 
   if (tenant.type === 'provider') {
-    const provider = await getProviderTenantEmailProviderSummary(tenantId)
-    return { provider }
+    const [provider, chain] = await Promise.all([
+      getProviderTenantEmailProviderSummary(tenantId),
+      resolveEmailProviderChain({ tenantId })
+    ])
+    return { provider, chain }
   } else if (tenant.type === 'distributor') {
-    const provider = await getDistributorTenantEmailProviderSummary(tenantId)
-    return { provider }
+    const [provider, chain] = await Promise.all([
+      getDistributorTenantEmailProviderSummary(tenantId),
+      resolveEmailProviderChain({ tenantId })
+    ])
+    return { provider, chain }
   } else {
     throw createError({ statusCode: 400, message: 'Email provider settings are only available for providers and distributors' })
   }

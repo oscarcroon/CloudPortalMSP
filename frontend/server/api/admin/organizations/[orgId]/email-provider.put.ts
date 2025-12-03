@@ -9,6 +9,8 @@ import {
   emailProviderPayloadSchema
 } from '~~/server/utils/emailProviderPayload'
 import { getDb } from '~~/server/utils/db'
+import { organizations } from '~~/server/database/schema'
+import { eq } from 'drizzle-orm'
 import { cryptoKeyHelpText, formatZodError, isMissingCryptoKeyError } from '~~/server/utils/errors'
 import { requireSuperAdmin } from '~~/server/utils/rbac'
 import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
@@ -22,14 +24,24 @@ export default defineEventHandler(async (event) => {
     const body = await readBody(event)
     const payload = emailProviderPayloadSchema.parse(body)
     const existing = await getOrganisationEmailProviderProfile(organization.id)
+    const disclaimer = payload.disclaimerMarkdown?.trim() || null
     const provider = await saveOrganisationEmailProvider(organization.id, {
       fromEmail: payload.fromEmail,
       fromName: payload.fromName,
       replyToEmail: payload.replyToEmail,
-      branding: payload.branding ?? null,
+      subjectPrefix: payload.subjectPrefix?.trim() || null,
+      supportContact: payload.supportContact?.trim() || null,
       isActive: payload.isActive ?? true,
       provider: buildSecretsFromPayload(payload.provider, payload.fromEmail, existing)
     })
+    await db
+      .update(organizations)
+      .set({
+        emailDisclaimerMarkdown: disclaimer,
+        updatedAt: new Date()
+      })
+      .where(eq(organizations.id, organization.id))
+    provider.disclaimerMarkdown = disclaimer
     return { organization, provider }
   } catch (error) {
     if (error instanceof z.ZodError) {

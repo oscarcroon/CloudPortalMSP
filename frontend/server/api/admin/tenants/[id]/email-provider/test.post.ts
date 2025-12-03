@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const profile = buildProfileFromPayload(payload)
 
   try {
-    await sendProviderTestEmail(profile, payload.testEmail)
+    await sendProviderTestEmail(profile, payload.testEmail, { tenantId }, payload.emailDarkMode)
     await recordTestResult(tenantId, 'success')
     return { success: true }
   } catch (error) {

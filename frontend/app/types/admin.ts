@@ -6,13 +6,6 @@ export type OrganizationIdpType = 'none' | 'saml' | 'oidc'
 
 export type AdminEmailProviderType = 'smtp' | 'graph'
 
-export interface AdminEmailBranding {
-  logoUrl?: string
-  accentColor?: string
-  backgroundColor?: string
-  footerText?: string
-}
-
 export interface AdminEmailProviderSummary {
   targetType: 'global' | 'provider' | 'distributor' | 'organization'
   organisationId?: string | null
@@ -21,7 +14,10 @@ export interface AdminEmailProviderSummary {
   fromEmail?: string
   fromName?: string | null
   replyToEmail?: string | null
-  branding?: AdminEmailBranding | null
+  subjectPrefix?: string | null
+  supportContact?: string | null
+  emailDarkMode?: boolean
+  disclaimerMarkdown?: string | null
   isActive: boolean
   hasConfig: boolean
   lastTestedAt?: number
@@ -51,8 +47,11 @@ export interface AdminEmailProviderPayload {
   fromEmail: string
   fromName?: string
   replyToEmail?: string
-  branding?: AdminEmailBranding | null
   isActive?: boolean
+  subjectPrefix?: string | null
+  supportContact?: string | null
+  emailDarkMode?: boolean
+  disclaimerMarkdown?: string | null
   provider:
     | {
         type: 'smtp'
@@ -78,6 +77,14 @@ export interface AdminEmailProviderPayload {
 
 export interface AdminEmailProviderTestPayload extends AdminEmailProviderPayload {
   testEmail: string
+}
+
+export interface EmailProviderChainEntry {
+  targetType: 'global' | 'provider' | 'distributor' | 'organization'
+  targetKey: string
+  targetName?: string | null
+  summary: AdminEmailProviderSummary
+  isEffective: boolean
 }
 
 export interface OrganizationAuthSettings {

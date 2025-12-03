@@ -147,7 +147,11 @@ const mapToProfile = (record: ProviderRecord, cryptoKey: string): EmailProviderP
       branding: parseBranding(record.brandingConfig) ?? undefined
     }
   } catch (error) {
-    console.error('[email-provider] Failed to decrypt provider config', error)
+    // Only log in development if using fallback key (expected behavior)
+    const isDevFallback = process.env.NODE_ENV !== 'production' && !process.env.EMAIL_CRYPTO_KEY
+    if (!isDevFallback) {
+      console.error('[email-provider] Failed to decrypt provider config', error)
+    }
     return null
   }
 }
@@ -166,10 +170,14 @@ const tryDecryptProfile = (record: ProviderRecord): EmailProviderProfile | null 
     const key = ensureCryptoKey()
     return mapToProfile(record, key)
   } catch (error) {
-    if (error instanceof Error && error.message.includes('EMAIL_CRYPTO_KEY')) {
-      console.warn('[email-provider] EMAIL_CRYPTO_KEY saknas – kan inte läsa krypterad konfiguration.')
-    } else {
-      console.warn('[email-provider] Kunde inte dekryptera konfigurationen.', error)
+    // Only log warnings if not using dev fallback key
+    const isDevFallback = process.env.NODE_ENV !== 'production' && !process.env.EMAIL_CRYPTO_KEY
+    if (!isDevFallback) {
+      if (error instanceof Error && error.message.includes('EMAIL_CRYPTO_KEY')) {
+        console.warn('[email-provider] EMAIL_CRYPTO_KEY saknas – kan inte läsa krypterad konfiguration.')
+      } else {
+        console.warn('[email-provider] Kunde inte dekryptera konfigurationen.', error)
+      }
     }
     return null
   }

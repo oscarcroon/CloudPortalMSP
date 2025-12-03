@@ -1,20 +1,24 @@
 ﻿import {
   decryptConfig,
   encryptConfig,
-  type EmailBranding,
   type EmailProviderProfile,
   type ProviderSecrets
 } from '@coreit/email-kit'
-import { eq } from 'drizzle-orm'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import crypto from 'node:crypto'
 import { emailProviderProfiles, organizations, tenants, distributorProviders } from '~~/server/database/schema'
 import { getDb } from './db'
-import type { AdminEmailProviderSummary } from '~/types/admin'
+import type { AdminEmailProviderSummary, EmailProviderChainEntry } from '~/types/admin'
 
 const GLOBAL_TARGET_KEY = 'global'
 
 type ProviderRecord = typeof emailProviderProfiles.$inferSelect
+type HierarchyNode = {
+  id: string
+  type: 'organization' | 'provider' | 'distributor'
+  name: string | null
+}
+type TargetDescriptor = HierarchyNode | { id: string; type: 'global'; name: string | null }
 
 let devFallbackKey: string | null = null
 
@@ -37,24 +41,6 @@ const ensureCryptoKey = () => {
     throw new Error('EMAIL_CRYPTO_KEY saknas.')
   }
   return key
-}
-
-const parseBranding = (value?: string | null): EmailBranding | null => {
-  if (!value) return null
-  try {
-    return JSON.parse(value) as EmailBranding
-  } catch {
-    return null
-  }
-}
-
-const serializeBranding = (value?: EmailBranding | null) => {
-  if (!value) return null
-  try {
-    return JSON.stringify(value)
-  } catch {
-    return null
-  }
 }
 
 export type EmailProviderSummary = AdminEmailProviderSummary
@@ -89,7 +75,9 @@ const toSummary = (record: ProviderRecord, profile?: EmailProviderProfile | null
   fromEmail: record.fromEmail ?? undefined,
   fromName: record.fromName ?? undefined,
   replyToEmail: record.replyToEmail ?? undefined,
-  branding: parseBranding(record.brandingConfig),
+  subjectPrefix: record.subjectPrefix ?? null,
+  supportContact: record.supportContact ?? null,
+  emailDarkMode: Boolean(record.emailDarkMode),
   isActive: Boolean(record.isActive),
   hasConfig: Boolean(record.encryptedConfig),
   lastTestedAt: record.lastTestedAt ?? undefined,
@@ -113,11 +101,14 @@ const mapToProfile = (record: ProviderRecord, cryptoKey: string): EmailProviderP
       ...secrets,
       fromEmail: record.fromEmail,
       fromName: record.fromName ?? undefined,
-      replyToEmail: record.replyToEmail ?? undefined,
-      branding: parseBranding(record.brandingConfig) ?? undefined
+      replyToEmail: record.replyToEmail ?? undefined
     }
   } catch (error) {
-    console.error('[email-provider] Kunde inte dekryptera konfiguration', error)
+    // Only log in development if using fallback key (expected behavior)
+    const isDevFallback = process.env.NODE_ENV !== 'production' && !process.env.EMAIL_CRYPTO_KEY
+    if (!isDevFallback) {
+      console.error('[email-provider] Kunde inte dekryptera konfiguration', error)
+    }
     return null
   }
 }
@@ -132,15 +123,19 @@ const fetchByTargetKey = async (targetKey: string) => {
   return record ?? null
 }
 
-const tryDecryptProfile = (record: ProviderRecord): EmailProviderProfile | null => {
+const tryDecryptProfile = (record: ProviderRecord, cryptoKey?: string): EmailProviderProfile | null => {
   try {
-    const key = ensureCryptoKey()
+    const key = cryptoKey ?? ensureCryptoKey()
     return mapToProfile(record, key)
   } catch (error) {
-    if (error instanceof Error && error.message.includes('EMAIL_CRYPTO_KEY')) {
-      console.warn('[email-provider] EMAIL_CRYPTO_KEY saknas – kan inte läsa krypterad konfiguration.')
-    } else {
-      console.warn('[email-provider] Kunde inte dekryptera konfigurationen.', error)
+    // Only log warnings if not using dev fallback key
+    const isDevFallback = process.env.NODE_ENV !== 'production' && !process.env.EMAIL_CRYPTO_KEY
+    if (!isDevFallback) {
+      if (error instanceof Error && error.message.includes('EMAIL_CRYPTO_KEY')) {
+        console.warn('[email-provider] EMAIL_CRYPTO_KEY saknas – kan inte läsa krypterad konfiguration.')
+      } else {
+        console.warn('[email-provider] Kunde inte dekryptera konfigurationen.', error)
+      }
     }
     return null
   }
@@ -150,6 +145,9 @@ const baseSummary = (targetType: 'global' | 'provider' | 'distributor' | 'organi
   targetType,
   organisationId: organisationId ?? null,
   tenantId: tenantId ?? null,
+  subjectPrefix: null,
+  supportContact: null,
+  disclaimerMarkdown: null,
   isActive: false,
   hasConfig: false
 })
@@ -194,9 +192,17 @@ export interface SaveEmailProviderInput {
   fromEmail: string
   fromName?: string
   replyToEmail?: string
-  branding?: EmailBranding | null
+  subjectPrefix?: string | null
+  supportContact?: string | null
+  emailDarkMode?: boolean
   isActive: boolean
   provider: ProviderSecrets
+}
+
+const normalizeOptionalString = (value?: string | null) => {
+  if (!value) return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 const upsertProvider = async (
@@ -221,7 +227,8 @@ const upsertProvider = async (
       fromEmail: payload.fromEmail,
       fromName: payload.fromName ?? null,
       replyToEmail: payload.replyToEmail ?? null,
-      brandingConfig: serializeBranding(payload.branding),
+      subjectPrefix: normalizeOptionalString(payload.subjectPrefix),
+      supportContact: normalizeOptionalString(payload.supportContact),
       encryptedConfig: encrypted.cipherText,
       encryptionIv: encrypted.iv,
       encryptionAuthTag: encrypted.authTag
@@ -237,7 +244,9 @@ const upsertProvider = async (
         fromEmail: payload.fromEmail,
         fromName: payload.fromName ?? null,
         replyToEmail: payload.replyToEmail ?? null,
-        brandingConfig: serializeBranding(payload.branding),
+        subjectPrefix: normalizeOptionalString(payload.subjectPrefix),
+        supportContact: normalizeOptionalString(payload.supportContact),
+        emailDarkMode: payload.emailDarkMode ?? false,
         encryptedConfig: encrypted.cipherText,
         encryptionIv: encrypted.iv,
         encryptionAuthTag: encrypted.authTag,
@@ -276,119 +285,214 @@ export const saveOrganisationEmailProvider = async (
   return getOrganisationEmailProviderSummary(organisationId)
 }
 
-/**
- * Get tenant hierarchy for an organization: [distributor, provider, organization]
- * New structure: Organization -> Provider -> Distributor (via junction table)
- * Returns empty array if organization not found
- */
-const getTenantHierarchy = async (organisationId: string): Promise<Array<{ id: string; type: 'organization' | 'distributor' | 'provider' }>> => {
+const getHierarchyForOrganization = async (organisationId: string): Promise<HierarchyNode[]> => {
   const db = getDb()
   const [org] = await db
-    .select({ tenantId: organizations.tenantId })
+    .select({
+      id: organizations.id,
+      tenantId: organizations.tenantId,
+      name: organizations.name
+    })
     .from(organizations)
     .where(eq(organizations.id, organisationId))
-  
-  if (!org?.tenantId) {
+    .limit(1)
+
+  if (!org) {
     return []
   }
 
-  const hierarchy: Array<{ id: string; type: 'organization' | 'distributor' | 'provider' }> = []
-  
-  // Add organization first
-  hierarchy.push({ id: organisationId, type: 'organization' })
-  
-  // Get provider (organization's tenantId should point to a provider)
-  const [provider] = await db
-    .select({ id: tenants.id, type: tenants.type })
-    .from(tenants)
-    .where(eq(tenants.id, org.tenantId))
-  
-  if (provider && provider.type === 'provider') {
-    hierarchy.push({
-      id: provider.id,
-      type: 'provider'
-    })
-    
-    // Get distributors linked to this provider via junction table
-    const distributorLinks = await db
-      .select({ distributorId: distributorProviders.distributorId })
-      .from(distributorProviders)
-      .where(eq(distributorProviders.providerId, provider.id))
-      .limit(1) // Take first distributor (for hierarchy purposes)
-    
-    if (distributorLinks.length > 0) {
-      const [distributor] = await db
-        .select({ id: tenants.id, type: tenants.type })
-        .from(tenants)
-        .where(eq(tenants.id, distributorLinks[0].distributorId))
-      
-      if (distributor && distributor.type === 'distributor') {
-        hierarchy.push({
-          id: distributor.id,
-          type: 'distributor'
-        })
-      }
-    }
+  const hierarchy: HierarchyNode[] = [{ id: org.id, type: 'organization', name: org.name }]
+
+  if (!org.tenantId) {
+    return hierarchy
   }
-  
-  return hierarchy.reverse() // Reverse to get [distributor, provider, organization]
+
+  const tenant = await loadTenant(org.tenantId)
+  if (tenant?.type === 'provider') {
+    hierarchy.push({ id: tenant.id, type: 'provider', name: tenant.name })
+    const distributor = await findDistributorForProvider(tenant.id)
+    if (distributor) {
+      hierarchy.push({ id: distributor.id, type: 'distributor', name: distributor.name })
+    }
+  } else if (tenant?.type === 'distributor') {
+    hierarchy.push({ id: tenant.id, type: 'distributor', name: tenant.name })
+  }
+
+  return hierarchy
 }
 
-export const getEffectiveEmailProviderProfile = async (organisationId?: string | null) => {
-  const cryptoKey = ensureCryptoKey()
-  
-  if (!organisationId) {
-    // No organization - use global (which is inherited by providers)
-    const globalRecord = await fetchByTargetKey(GLOBAL_TARGET_KEY)
-    if (globalRecord && globalRecord.isActive) {
-      return mapToProfile(globalRecord, cryptoKey)
+const getHierarchyForTenant = async (tenantId: string): Promise<HierarchyNode[]> => {
+  const tenant = await loadTenant(tenantId)
+  if (!tenant) {
+    return []
+  }
+
+  if (tenant.type === 'provider') {
+    const hierarchy: HierarchyNode[] = [{ id: tenant.id, type: 'provider', name: tenant.name }]
+    const distributor = await findDistributorForProvider(tenant.id)
+    if (distributor) {
+      hierarchy.push({ id: distributor.id, type: 'distributor', name: distributor.name })
     }
+    return hierarchy
+  }
+
+  if (tenant.type === 'distributor') {
+    return [{ id: tenant.id, type: 'distributor', name: tenant.name }]
+  }
+
+  return []
+}
+
+const loadTenant = async (tenantId: string) => {
+  const db = getDb()
+  const [tenant] = await db
+    .select({ id: tenants.id, type: tenants.type, name: tenants.name })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1)
+  return tenant ?? null
+}
+
+const findDistributorForProvider = async (providerId: string) => {
+  const db = getDb()
+  const distributorLinks = await db
+    .select({ distributorId: distributorProviders.distributorId })
+    .from(distributorProviders)
+    .where(eq(distributorProviders.providerId, providerId))
+    .limit(1)
+
+  const distributorId = distributorLinks[0]?.distributorId
+  if (!distributorId) {
     return null
   }
 
-  // Follow hierarchy: organization -> provider -> distributor -> global
-  const hierarchy = await getTenantHierarchy(organisationId)
-  
-  // Check organization first
-  const orgRecord = await fetchByTargetKey(organisationId)
-  if (orgRecord && orgRecord.isActive && orgRecord.targetType === 'organization') {
-    const profile = mapToProfile(orgRecord, cryptoKey)
-    if (profile) {
-      return profile
+  const [distributor] = await db
+    .select({ id: tenants.id, type: tenants.type })
+    .from(tenants)
+    .where(eq(tenants.id, distributorId))
+    .limit(1)
+
+  if (!distributor || distributor.type !== 'distributor') {
+    return null
+  }
+
+  return distributor
+}
+
+const normalizeLookupInput = (
+  input?: string | null | EmailProviderLookupContext
+): EmailProviderLookupContext => {
+  if (typeof input === 'string' || input === null || input === undefined) {
+    return { organizationId: typeof input === 'string' ? input : null }
+  }
+  return input
+}
+
+const buildTargetDescriptors = async (
+  context: EmailProviderLookupContext
+): Promise<TargetDescriptor[]> => {
+  const descriptors: TargetDescriptor[] = []
+  if (context.organizationId) {
+    const hierarchy = await getHierarchyForOrganization(context.organizationId)
+    descriptors.push(...hierarchy)
+  } else if (context.tenantId) {
+    const hierarchy = await getHierarchyForTenant(context.tenantId)
+    descriptors.push(...hierarchy)
+  }
+  descriptors.push({ id: GLOBAL_TARGET_KEY, type: 'global', name: 'Global standard' })
+  return descriptors
+}
+
+export const resolveEmailProviderChain = async (
+  input?: string | null | EmailProviderLookupContext
+) => {
+  const context = normalizeLookupInput(input)
+  const targets = await buildTargetDescriptors(context)
+  const chain: EmailProviderChainEntry[] = []
+  let effectiveFound = false
+
+  for (const target of targets) {
+    const record = await fetchByTargetKey(target.id)
+    const profile = record ? tryDecryptProfile(record) : null
+    const summary = record
+      ? toSummary(record, profile)
+      : target.type === 'organization'
+        ? baseSummary(target.type, target.id, null)
+        : target.type === 'global'
+          ? baseSummary('global')
+          : baseSummary(target.type, null, target.id)
+
+    if (record) {
+      summary.subjectPrefix = record.subjectPrefix ?? null
+      summary.supportContact = record.supportContact ?? null
+    }
+
+    const isEffective = Boolean(!effectiveFound && record && record.isActive && profile)
+    if (isEffective) {
+      effectiveFound = true
+    }
+
+    const entry: EmailProviderChainEntry = {
+      targetType: target.type,
+      targetKey: target.id,
+      targetName: target.name,
+      summary,
+      isEffective
+    }
+
+    chain.push(entry)
+  }
+
+  return chain
+}
+
+export interface EmailSenderContext {
+  profile: EmailProviderProfile | null
+  subjectPrefix: string | null
+  supportContact: string | null
+  emailDarkMode: boolean
+  source: TargetDescriptor | null
+}
+
+export const getEffectiveEmailSenderContext = async (
+  input?: string | null | EmailProviderLookupContext
+): Promise<EmailSenderContext> => {
+  const context = normalizeLookupInput(input)
+  const targets = await buildTargetDescriptors(context)
+  const cryptoKey = ensureCryptoKey()
+
+  for (const target of targets) {
+    const record = await fetchByTargetKey(target.id)
+    if (!record || !record.isActive || record.targetType !== target.type) {
+      continue
+    }
+    const profile = tryDecryptProfile(record, cryptoKey)
+    if (!profile) {
+      continue
+    }
+    return {
+      profile,
+      subjectPrefix: record.subjectPrefix ?? null,
+      supportContact: record.supportContact ?? null,
+      emailDarkMode: Boolean(record.emailDarkMode),
+      source: target
     }
   }
-  
-  // Check provider (if exists in hierarchy) - providers are now directly above organizations
-  const provider = hierarchy.find(t => t.type === 'provider')
-  if (provider) {
-    const providerRecord = await fetchByTargetKey(provider.id)
-    if (providerRecord && providerRecord.isActive && providerRecord.targetType === 'provider') {
-      const profile = mapToProfile(providerRecord, cryptoKey)
-      if (profile) {
-        return profile
-      }
-    }
+
+  return {
+    profile: null,
+    subjectPrefix: null,
+    supportContact: null,
+    emailDarkMode: false,
+    source: null
   }
-  
-  // Check distributor (if exists in hierarchy) - distributors are now above providers
-  const distributor = hierarchy.find(t => t.type === 'distributor')
-  if (distributor) {
-    const distributorRecord = await fetchByTargetKey(distributor.id)
-    if (distributorRecord && distributorRecord.isActive && distributorRecord.targetType === 'distributor') {
-      const profile = mapToProfile(distributorRecord, cryptoKey)
-      if (profile) {
-        return profile
-      }
-    }
-  }
-  
-  // Fallback to global (which is inherited by providers)
-  const globalRecord = await fetchByTargetKey(GLOBAL_TARGET_KEY)
-  if (globalRecord && globalRecord.isActive) {
-    return mapToProfile(globalRecord, cryptoKey)
-  }
-  
-  return null
+}
+
+export const getEffectiveEmailProviderProfile = async (
+  input?: string | null | EmailProviderLookupContext
+) => {
+  const context = await getEffectiveEmailSenderContext(input)
+  return context.profile
 }
 
 export const getGlobalEmailProviderProfile = async () => {
@@ -425,6 +529,11 @@ export const getOrganisationEmailProviderProfile = async (organisationId: string
     return mapToProfile(record, cryptoKey)
   }
   return null
+}
+
+export interface EmailProviderLookupContext {
+  organizationId?: string | null
+  tenantId?: string | null
 }
 
 export const recordTestResult = async (

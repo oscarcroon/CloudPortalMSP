@@ -1,5 +1,5 @@
 ﻿import { defineEventHandler } from 'h3'
-import { getOrganisationEmailProviderSummary } from '~~/server/utils/emailProvider'
+import { getOrganisationEmailProviderSummary, resolveEmailProviderChain } from '~~/server/utils/emailProvider'
 import { getDb } from '~~/server/utils/db'
 import { requireSuperAdmin } from '~~/server/utils/rbac'
 import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
@@ -9,7 +9,11 @@ export default defineEventHandler(async (event) => {
   const orgParam = parseOrgParam(event)
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
-  const provider = await getOrganisationEmailProviderSummary(organization.id)
-  return { organization, provider }
+  const [provider, chain] = await Promise.all([
+    getOrganisationEmailProviderSummary(organization.id),
+    resolveEmailProviderChain(organization.id)
+  ])
+  provider.disclaimerMarkdown = organization.emailDisclaimerMarkdown ?? null
+  return { organization, provider, chain }
 })
 

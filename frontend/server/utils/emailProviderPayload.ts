@@ -1,21 +1,10 @@
 import type { EmailProviderProfile, ProviderSecrets } from '@coreit/email-kit'
 import { z } from 'zod'
 
-const colorRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i
 const emailLike = z
   .string()
   .trim()
   .regex(/^[^@\s]+@[^@\s]+$/, 'Invalid email')
-
-export const brandingSchema = z
-  .object({
-    logoUrl: z.string().url().optional(),
-    accentColor: z.string().regex(colorRegex, 'Invalid hex color').optional(),
-    backgroundColor: z.string().regex(colorRegex, 'Invalid hex color').optional(),
-    footerText: z.string().max(500).optional()
-  })
-  .optional()
-  .nullable()
 
 const smtpSchema = z.object({
   type: z.literal('smtp'),
@@ -48,7 +37,10 @@ export const emailProviderPayloadSchema = z.object({
   fromEmail: emailLike,
   fromName: z.string().max(120).optional(),
   replyToEmail: emailLike.optional(),
-  branding: brandingSchema,
+  subjectPrefix: z.string().max(120).optional().nullable(),
+  supportContact: z.string().max(160).optional().nullable(),
+  emailDarkMode: z.boolean().optional().default(false),
+  disclaimerMarkdown: z.string().max(2000).optional().nullable(),
   isActive: z.boolean().optional().default(true),
   provider: providerSchema
 })
@@ -120,8 +112,7 @@ export const buildProfileFromPayload = (payload: EmailProviderPayload): EmailPro
     ...secrets,
     fromEmail: payload.fromEmail,
     fromName: payload.fromName ?? undefined,
-    replyToEmail: payload.replyToEmail ?? undefined,
-    branding: payload.branding ?? undefined
+    replyToEmail: payload.replyToEmail ?? undefined
   }
 }
 

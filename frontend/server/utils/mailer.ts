@@ -8,8 +8,13 @@ import {
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getEffectiveEmailProviderProfile, getGlobalEmailProviderProfile } from './emailProvider'
+import { eq } from 'drizzle-orm'
+import { getEffectiveEmailSenderContext } from '~~/server/utils/emailProvider'
 import { outboxDir } from './outbox'
+import { resolveBrandingChain, resolveGlobalBranding } from '~~/server/utils/branding'
+import { organizations } from '~~/server/database/schema'
+import { getDb } from './db'
+import { renderMarkdown } from '~~/shared/markdown'
 
 const DEFAULT_PORTAL_URL = 'http://localhost:3000'
 
@@ -27,13 +32,81 @@ const inviteBaseUrl = (
   DEFAULT_PORTAL_URL
 ).replace(/\/$/, '')
 
+const htmlEscapeMap: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+}
+
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => htmlEscapeMap[char] ?? char)
+
+interface FooterOptions {
+  disclaimerMarkdown?: string | null
+  supportContact?: string | null
+}
+
+const buildFooterContent = (options: FooterOptions) => {
+  const htmlParts: string[] = []
+  const textParts: string[] = []
+
+  if (options.disclaimerMarkdown) {
+    const rendered = renderMarkdown(options.disclaimerMarkdown)
+    if (rendered.html) {
+      htmlParts.push(rendered.html)
+    }
+    if (rendered.text) {
+      textParts.push(rendered.text)
+    }
+  }
+
+  if (options.supportContact?.trim()) {
+    const contact = options.supportContact.trim()
+    htmlParts.push(
+      `<p style="margin:0;">${escapeHtml(contact)}</p>`
+    )
+    textParts.push(contact)
+  }
+
+  return {
+    html: htmlParts.join(
+      '<hr style="border:none;border-top:1px solid rgba(148,163,184,0.35);margin:12px 0;" />'
+    ),
+    text: textParts.join('\n\n')
+  }
+}
+
+const formatSubject = (subject: string, prefix?: string | null) => {
+  if (!prefix) return subject
+  const trimmed = prefix.trim()
+  if (!trimmed) return subject
+  return `${trimmed} ${subject}`.trim()
+}
+
+export const fetchOrganizationDisclaimer = async (organizationId?: string | null) => {
+  if (!organizationId) return null
+  try {
+    const db = getDb()
+    const [record] = await db
+      .select({ disclaimer: organizations.emailDisclaimerMarkdown })
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1)
+    return record?.disclaimer ?? null
+  } catch (error) {
+    console.warn('[mailer] Failed to load organization disclaimer', error)
+    return null
+  }
+}
+
 /**
  * Hittar en logotyp baserat på organisationens ID genom att söka i uploads/logos
  */
 async function findLogoByOrgId(organisationId: string): Promise<string | null> {
   try {
     const currentDir = path.dirname(fileURLToPath(import.meta.url))
-    const frontendRoot = path.resolve(currentDir, '..', '..', '..', '..', '..')
+    const frontendRoot = path.resolve(currentDir, '..', '..')
     const uploadsDir = process.env.UPLOADS_DIR || path.join(frontendRoot, 'uploads')
     const logosDir = path.join(uploadsDir, 'logos')
 
@@ -42,9 +115,14 @@ async function findLogoByOrgId(organisationId: string): Promise<string | null> {
       return null
     }
 
-    // Sök efter filer som börjar med organisationId
+    // Sök efter filer som matchar organisationId
+    // Nya filer har formatet: organization-{orgId}-{variant}-{timestamp}.{ext}
+    // Gamla filer kan ha formatet: {orgId}-{timestamp}.{ext}
+    // Prioritera nya filer (organization-*) över gamla
     const files = fs.readdirSync(logosDir)
-    const matchingFile = files.find((file) => file.startsWith(`${organisationId}-`))
+    const newFormatFile = files.find((file) => file.startsWith(`organization-${organisationId}-`))
+    const matchingFile =
+      newFormatFile ?? files.find((file) => file.startsWith(`${organisationId}-`))
 
     if (!matchingFile) {
       console.warn('[mailer] No logo found for organisation:', organisationId)
@@ -150,9 +228,9 @@ async function convertLogoToDataUri(
 
     console.log('[mailer] Extracted filename:', filename)
 
-    // Hitta filen på disk (samma sökväg som logo.post.ts)
+    // Hitta filen på disk (samma sökväg som branding.ts)
     const currentDir = path.dirname(fileURLToPath(import.meta.url))
-    const frontendRoot = path.resolve(currentDir, '..', '..', '..', '..', '..')
+    const frontendRoot = path.resolve(currentDir, '..', '..')
     const uploadsDir = process.env.UPLOADS_DIR || path.join(frontendRoot, 'uploads')
     const logosDir = path.join(uploadsDir, 'logos')
     const filePath = path.join(logosDir, filename)
@@ -200,6 +278,57 @@ async function convertLogoToDataUri(
   }
 }
 
+interface EmailBrandingOptions {
+  organizationId?: string
+  tenantId?: string
+  overrideLogoUrl?: string | null
+  disclaimerMarkdown?: string | null
+  supportContact?: string | null
+  isDarkMode?: boolean
+}
+
+export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
+  const resolution = options.organizationId
+    ? await resolveBrandingChain({ organizationId: options.organizationId })
+    : options.tenantId
+      ? await resolveBrandingChain({ tenantId: options.tenantId })
+      : await resolveGlobalBranding()
+
+  const theme = resolution.activeTheme
+  const logoSource =
+    options.overrideLogoUrl ??
+    theme.logoUrl ??
+    theme.appLogoLightUrl ??
+    theme.appLogoDarkUrl ??
+    null
+  const logoDataUri = await convertLogoToDataUri(logoSource, options.organizationId)
+
+  const branding = {
+    logoUrl: logoDataUri ?? logoSource ?? undefined,
+    accentColor: theme.accentColor ?? undefined,
+    backgroundColor: undefined, // Bakgrunden på e-postet ändras baserat på dark mode
+    logoBackgroundColor: theme.navBackgroundColor ?? undefined, // Bakgrunden bakom loggan använder NavBar-färgen
+    isDarkMode: options.isDarkMode === true
+  }
+  const footer = buildFooterContent({
+    disclaimerMarkdown: options.disclaimerMarkdown,
+    supportContact: options.supportContact
+  })
+  if (footer.html) {
+    branding.footerText = footer.html
+    if (footer.text) {
+      // @ts-expect-error internal field for plain-text footer
+      branding.footerTextPlain = footer.text
+    }
+  }
+
+  if (!branding.logoUrl && !branding.accentColor && !branding.backgroundColor && !footer.html) {
+    return undefined
+  }
+
+  return branding
+}
+
 export const sendPasswordResetEmail = async (input: {
   to: string
   token: string
@@ -207,28 +336,28 @@ export const sendPasswordResetEmail = async (input: {
 }) => {
   const resetUrl = `${buildPortalUrl('/reset-password')}?token=${encodeURIComponent(input.token)}`
   const expiresLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
-  const provider = await getGlobalEmailProviderProfile()
-  
-  // Konvertera logotyp till base64-data URI för e-post
-  const logoDataUri = await convertLogoToDataUri(provider?.branding?.logoUrl)
-  const branding = provider?.branding
-    ? {
-        ...provider.branding,
-        ...(logoDataUri ? { logoUrl: logoDataUri } : {})
-      }
-    : undefined
-  
+  const senderContext = await getEffectiveEmailSenderContext()
+  const provider = senderContext.profile
+  const branding = await resolveEmailBranding({
+    supportContact: senderContext.supportContact,
+    isDarkMode: senderContext.emailDarkMode
+  })
+
   const content = buildPasswordResetEmail({
     resetUrl,
     expiresAt: expiresLabel,
     branding
   })
+  const finalContent = {
+    ...content,
+    subject: formatSubject(content.subject, senderContext.subjectPrefix)
+  }
 
   if (provider) {
     const delivery = await sendTemplatedEmail({
       profile: provider,
       to: [{ email: input.to }],
-      content,
+      content: finalContent,
       dryRunOutboxDir: outboxDir
     })
     return { resetUrl, delivery }
@@ -237,9 +366,9 @@ export const sendPasswordResetEmail = async (input: {
   const storedAt = await writeOutboxPreview(
     {
       to: [{ email: input.to }],
-      subject: content.subject,
-      html: content.html,
-      text: content.text,
+      subject: finalContent.subject,
+      html: finalContent.html,
+      text: finalContent.text,
       meta: { reason: 'missing-global-provider' }
     },
     outboxDir
@@ -260,30 +389,16 @@ export const sendInvitationEmail = async (input: {
 }) => {
   const acceptUrl = buildInviteAcceptUrl(input.token)
   const expiresLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
-  const provider = await getEffectiveEmailProviderProfile(input.organisationId)
-  
-  // Konvertera logotyp till base64-data URI för e-post
-  const logoUrl = input.organisationLogo || provider?.branding?.logoUrl
-  
-  console.log('[mailer] Logo URL from input:', input.organisationLogo)
-  console.log('[mailer] Logo URL from provider:', provider?.branding?.logoUrl)
-  console.log('[mailer] Final logo URL:', logoUrl)
-  console.log('[mailer] Organisation ID:', input.organisationId)
-  
-  const logoDataUri = await convertLogoToDataUri(logoUrl, input.organisationId)
-  
-  console.log('[mailer] Logo data URI created:', logoDataUri ? 'Yes (length: ' + logoDataUri.length + ')' : 'No')
-  if (!logoDataUri) {
-    console.warn('[mailer] Failed to convert logo to data URI. Logo URL was:', logoUrl)
-  }
-  
-  const branding =
-    provider?.branding || logoDataUri
-      ? {
-          ...(provider?.branding ?? {}),
-          ...(logoDataUri ? { logoUrl: logoDataUri } : {})
-        }
-      : undefined
+  const senderContext = await getEffectiveEmailSenderContext(input.organisationId)
+  const provider = senderContext.profile
+  const disclaimerMarkdown = await fetchOrganizationDisclaimer(input.organisationId)
+  const branding = await resolveEmailBranding({
+    organizationId: input.organisationId,
+    overrideLogoUrl: input.organisationLogo ?? null,
+    disclaimerMarkdown,
+    supportContact: senderContext.supportContact,
+    isDarkMode: senderContext.emailDarkMode
+  })
   const content = buildInvitationEmail({
     organisationName: input.organisationName,
     invitedBy: input.invitedBy,
@@ -292,12 +407,16 @@ export const sendInvitationEmail = async (input: {
     acceptUrl,
     branding
   })
+  const finalContent = {
+    ...content,
+    subject: formatSubject(content.subject, senderContext.subjectPrefix)
+  }
 
   if (provider) {
     const delivery = await sendTemplatedEmail({
       profile: provider,
       to: [{ email: input.to }],
-      content,
+      content: finalContent,
       dryRunOutboxDir: outboxDir
     })
     return { acceptUrl, delivery }
@@ -306,9 +425,9 @@ export const sendInvitationEmail = async (input: {
   const storedAt = await writeOutboxPreview(
     {
       to: [{ email: input.to }],
-      subject: content.subject,
-      html: content.html,
-      text: content.text,
+      subject: finalContent.subject,
+      html: finalContent.html,
+      text: finalContent.text,
       meta: {
         reason: 'missing-provider',
         organisationId: input.organisationId
@@ -328,17 +447,16 @@ export const sendInviteAcceptedNotification = async (input: {
   memberName?: string | null
   role: string
 }) => {
-  const provider = await getEffectiveEmailProviderProfile(input.organisationId)
-  
-  // Konvertera logotyp till base64-data URI för e-post
-  const logoDataUri = await convertLogoToDataUri(provider?.branding?.logoUrl)
-  const branding = provider?.branding
-    ? {
-        ...provider.branding,
-        ...(logoDataUri ? { logoUrl: logoDataUri } : {})
-      }
-    : undefined
-  
+  const senderContext = await getEffectiveEmailSenderContext(input.organisationId)
+  const provider = senderContext.profile
+  const disclaimerMarkdown = await fetchOrganizationDisclaimer(input.organisationId)
+  const branding = await resolveEmailBranding({
+    organizationId: input.organisationId,
+    disclaimerMarkdown,
+    supportContact: senderContext.supportContact,
+    isDarkMode: senderContext.emailDarkMode
+  })
+
   const content = renderBrandedTemplate(
     {
       pretitle: 'Inbjudan accepterad',
@@ -353,12 +471,16 @@ export const sendInviteAcceptedNotification = async (input: {
     },
     branding
   )
+  const finalContent = {
+    ...content,
+    subject: formatSubject(content.subject, senderContext.subjectPrefix)
+  }
 
   if (provider) {
     return sendTemplatedEmail({
       profile: provider,
       to: [{ email: input.invitedByEmail }],
-      content,
+      content: finalContent,
       dryRunOutboxDir: outboxDir
     })
   }
@@ -366,9 +488,9 @@ export const sendInviteAcceptedNotification = async (input: {
   const storedAt = await writeOutboxPreview(
     {
       to: [{ email: input.invitedByEmail }],
-      subject: content.subject,
-      html: content.html,
-      text: content.text,
+      subject: finalContent.subject,
+      html: finalContent.html,
+      text: finalContent.text,
       meta: {
         reason: 'missing-provider',
         organisationId: input.organisationId,
@@ -394,15 +516,13 @@ export const sendDistributorInvitationEmail = async (input: {
 }) => {
   const acceptUrl = buildInviteAcceptUrl(input.token)
   const expiresLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
-  const provider = await getGlobalEmailProviderProfile()
-  
-  const logoDataUri = await convertLogoToDataUri(provider?.branding?.logoUrl)
-  const branding = provider?.branding
-    ? {
-        ...provider.branding,
-        ...(logoDataUri ? { logoUrl: logoDataUri } : {})
-      }
-    : undefined
+  const senderContext = await getEffectiveEmailSenderContext({ tenantId: input.tenantId })
+  const provider = senderContext.profile
+  const branding = await resolveEmailBranding({
+    tenantId: input.tenantId,
+    supportContact: senderContext.supportContact,
+    isDarkMode: senderContext.emailDarkMode
+  })
 
   const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
   const bodyLines = [
@@ -432,15 +552,19 @@ export const sendDistributorInvitationEmail = async (input: {
     },
     branding
   )
+  const finalContent = {
+    ...content,
+    subject: formatSubject(
+      `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`,
+      senderContext.subjectPrefix
+    )
+  }
 
   if (provider) {
     const delivery = await sendTemplatedEmail({
       profile: provider,
       to: [{ email: input.to }],
-      content: {
-        ...content,
-        subject: `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`
-      },
+      content: finalContent,
       dryRunOutboxDir: outboxDir
     })
     return { acceptUrl, delivery }
@@ -449,9 +573,9 @@ export const sendDistributorInvitationEmail = async (input: {
   const storedAt = await writeOutboxPreview(
     {
       to: [{ email: input.to }],
-      subject: `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`,
-      html: content.html,
-      text: content.text,
+      subject: finalContent.subject,
+      html: finalContent.html,
+      text: finalContent.text,
       meta: {
         reason: 'missing-provider',
         tenantId: input.tenantId,
@@ -472,15 +596,13 @@ export const sendDistributorConfirmationEmail = async (input: {
   invitedBy?: string
 }) => {
   const portalUrl = buildPortalUrl('/admin/tenants')
-  const provider = await getGlobalEmailProviderProfile()
-  
-  const logoDataUri = await convertLogoToDataUri(provider?.branding?.logoUrl)
-  const branding = provider?.branding
-    ? {
-        ...provider.branding,
-        ...(logoDataUri ? { logoUrl: logoDataUri } : {})
-      }
-    : undefined
+  const senderContext = await getEffectiveEmailSenderContext({ tenantId: input.tenantId })
+  const provider = senderContext.profile
+  const branding = await resolveEmailBranding({
+    tenantId: input.tenantId,
+    supportContact: senderContext.supportContact,
+    isDarkMode: senderContext.emailDarkMode
+  })
 
   const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
   const content = renderBrandedTemplate(
@@ -501,15 +623,19 @@ export const sendDistributorConfirmationEmail = async (input: {
     },
     branding
   )
+  const finalContent = {
+    ...content,
+    subject: formatSubject(
+      `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`,
+      senderContext.subjectPrefix
+    )
+  }
 
   if (provider) {
     const delivery = await sendTemplatedEmail({
       profile: provider,
       to: [{ email: input.to }],
-      content: {
-        ...content,
-        subject: `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`
-      },
+      content: finalContent,
       dryRunOutboxDir: outboxDir
     })
     return { delivery }
@@ -518,9 +644,9 @@ export const sendDistributorConfirmationEmail = async (input: {
   const storedAt = await writeOutboxPreview(
     {
       to: [{ email: input.to }],
-      subject: `🎉 Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}! 🎉`,
-      html: content.html,
-      text: content.text,
+      subject: finalContent.subject,
+      html: finalContent.html,
+      text: finalContent.text,
       meta: {
         reason: 'missing-provider',
         tenantId: input.tenantId,

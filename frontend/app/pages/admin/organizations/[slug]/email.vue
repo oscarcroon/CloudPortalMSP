@@ -17,14 +17,20 @@
       {{ errorMessage }}
     </div>
 
-    <div v-if="pending" class="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+    <div
+      v-if="pending"
+      class="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+    >
       Hämtar inställningar...
     </div>
 
+    <EmailProviderChainCard v-if="!pending && chain.length" :chain="chain" />
+
     <EmailProviderForm
-      v-else
+      v-if="!pending"
       :summary="provider"
       mode="organization"
+      :organization-id="data?.organization?.id"
       :saving="saving"
       :testing="testing"
       @submit="handleSave"
@@ -36,11 +42,13 @@
 <script setup lang="ts">
 import { computed, ref, useFetch, useRoute } from '#imports'
 import EmailProviderForm from '~/components/admin/EmailProviderForm.vue'
+import EmailProviderChainCard from '~/components/email/EmailProviderChainCard.vue'
 import OrganizationTabs from '~/components/admin/OrganizationTabs.vue'
 import type {
   AdminEmailProviderPayload,
   AdminEmailProviderSummary,
-  AdminEmailProviderTestPayload
+  AdminEmailProviderTestPayload,
+  EmailProviderChainEntry
 } from '~/types/admin'
 
 definePageMeta({
@@ -55,7 +63,11 @@ const errorMessage = ref('')
 const saving = ref(false)
 const testing = ref(false)
 
-const { data, pending, refresh, error } = await useFetch<{ organization: { id: string; name: string }; provider: AdminEmailProviderSummary | null }>(
+const { data, pending, refresh, error } = await useFetch<{
+  organization: { id: string; name: string }
+  provider: AdminEmailProviderSummary | null
+  chain: EmailProviderChainEntry[]
+}>(
   `/api/admin/organizations/${slug.value}/email-provider`,
   { watch: [slug] }
 )
@@ -65,6 +77,7 @@ if (error.value) {
 }
 
 const provider = computed(() => data.value?.provider ?? null)
+const chain = computed(() => data.value?.chain ?? [])
 
 const handleSave = async (payload: AdminEmailProviderPayload) => {
   if (saving.value) return

@@ -22,6 +22,8 @@ const htmlEscapeMap: Record<string, string> = {
 
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => htmlEscapeMap[char])
 
+const stripHtml = (value: string) => value.replace(/<[^>]+>/g, '')
+
 const normalizeColor = (value: string | undefined, fallback: string) => {
   if (!value) return fallback
   return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim()) ? value.trim() : fallback
@@ -70,15 +72,30 @@ export const renderBrandedTemplate = (
   branding?: EmailBranding
 ): EmailContent => {
   const accent = normalizeColor(branding?.accentColor, DEFAULT_ACCENT)
-  const background = normalizeColor(branding?.backgroundColor, DEFAULT_BACKGROUND)
+  const isDark = branding?.isDarkMode === true
+  // Bakgrunden på e-postet ändras baserat på dark mode
+  const background = isDark ? '#0f172a' : DEFAULT_BACKGROUND
+  // Bakgrunden bakom loggan använder NavBar-färgen från brandingen
+  const logoBackground = normalizeColor(
+    branding?.logoBackgroundColor,
+    isDark ? DEFAULT_CARD_BG : DEFAULT_BACKGROUND
+  )
   const accentSoft = blendWithWhite(accent, 0.85)
+  // Färger för dark mode
+  const cardBackground = isDark ? '#1e293b' : '#fff'
+  const textColor = isDark ? '#f1f5f9' : '#0f172a'
+  const textSecondary = isDark ? '#cbd5e1' : '#475569'
+  const borderColor = isDark ? 'rgba(148,163,184,0.2)' : 'rgba(148,163,184,0.25)'
+  const borderTopColor = isDark ? 'rgba(148,163,184,0.2)' : 'rgba(15,23,42,0.08)'
   const introLines = input.intro ? [input.intro] : []
   const bodyLines = input.body ?? []
   const outroLines = input.outro ?? []
-  const text = renderText(introLines, bodyLines, outroLines, input.action)
-
-  // Använd mörk bakgrund endast för logotyp-boxen
-  const logoBackground = DEFAULT_CARD_BG
+  let text = renderText(introLines, bodyLines, outroLines, input.action)
+  if (branding?.footerTextPlain) {
+    text = `${text}\n\n${branding.footerTextPlain}`
+  } else if (branding?.footerText) {
+    text = `${text}\n\n${stripHtml(branding.footerText)}`
+  }
   
   const html = `
   <div style="margin:0;padding:0;background:${background};font-family:'Inter','Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;">
@@ -92,7 +109,7 @@ export const renderBrandedTemplate = (
             : `<span style="display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:10px;background:${accentSoft};color:${accent};font-weight:600;font-size:14px;">Cloud Portal</span>`
         }
       </div>
-      <div style="background:#fff;border-radius:28px;padding:40px 36px;box-shadow:0 20px 65px rgba(15,23,42,0.08);border:1px solid rgba(148,163,184,0.25);">
+      <div style="background:${cardBackground};border-radius:28px;padding:40px 36px;box-shadow:0 20px 65px rgba(15,23,42,0.08);border:1px solid ${borderColor};">
         ${
           input.pretitle
             ? `<p style="margin:0 0 12px;text-transform:uppercase;letter-spacing:0.24em;font-size:12px;color:${accent};font-weight:600;">${escapeHtml(
@@ -102,13 +119,13 @@ export const renderBrandedTemplate = (
         }
         ${
           input.title
-            ? `<h1 style="margin:0 0 16px;font-size:26px;color:#0f172a;line-height:1.3;">${escapeHtml(
+            ? `<h1 style="margin:0 0 16px;font-size:26px;color:${textColor};line-height:1.3;">${escapeHtml(
                 input.title
               )}</h1>`
             : ''
         }
-        ${renderLines(introLines, false)}
-        <div>${renderLines(bodyLines, false)}</div>
+        ${renderLines(introLines, isDark)}
+        <div>${renderLines(bodyLines, isDark)}</div>
         ${
           input.action
             ? `<div style="margin:30px 0;text-align:center;">
@@ -120,12 +137,10 @@ export const renderBrandedTemplate = (
               </div>`
             : ''
         }
-        ${renderLines(outroLines, false)}
+        ${renderLines(outroLines, isDark)}
         ${
           branding?.footerText
-            ? `<div style="margin-top:36px;padding-top:20px;border-top:1px solid rgba(15,23,42,0.08);font-size:13px;color:#475569;">${escapeHtml(
-                branding.footerText
-              )}</div>`
+            ? `<div style="margin-top:36px;padding-top:20px;border-top:1px solid ${borderTopColor};font-size:13px;color:${textSecondary};">${branding.footerText}</div>`
             : ''
         }
       </div>

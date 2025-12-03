@@ -120,6 +120,69 @@
       "when": 1764663499392,
       "tag": "0016_empty_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1764860000000,
+      "tag": "0017_module_role_overrides",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1764860001000,
+      "tag": "0018_login_branding",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1764860002000,
+      "tag": "0019_global_branding",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1764860003000,
+      "tag": "0020_navigation_branding",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1764860004000,
+      "tag": "0021_user_module_favorites",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1764860005000,
+      "tag": "0022_tenant_member_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1764860006000,
+      "tag": "0023_org_email_disclaimer",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1764860007000,
+      "tag": "0024_email_provider_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1764860008000,
+      "tag": "0025_email_dark_mode",
+      "breakpoints": true
     }
   ]
 }
