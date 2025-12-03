@@ -118,7 +118,7 @@ export default defineEventHandler(async (event) => {
               id: ownerUserId,
               email: normalizedOwnerEmail,
               passwordHash: null,
-              fullName: payload.owner.fullName,
+              fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
               status: 'active',
               defaultOrgId: organizationId,
               forcePasswordReset: 1
@@ -130,7 +130,7 @@ export default defineEventHandler(async (event) => {
             updates.defaultOrgId = organizationId
           }
           if (payload.owner.fullName && !existingUser.fullName) {
-            updates.fullName = payload.owner.fullName
+            updates.fullName = payload.owner.fullName.trim()
           }
           if (Object.keys(updates).length) {
             tx.update(users).set(updates).where(eq(users.id, existingUser.id)).run()
@@ -202,7 +202,7 @@ export default defineEventHandler(async (event) => {
             id: ownerUserId,
             email: normalizedOwnerEmail,
             passwordHash: null,
-            fullName: payload.owner.fullName,
+            fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
             status: 'active',
             defaultOrgId: organizationId,
             forcePasswordReset: 1
@@ -213,7 +213,7 @@ export default defineEventHandler(async (event) => {
             updates.defaultOrgId = organizationId
           }
           if (payload.owner.fullName && !existingUser.fullName) {
-            updates.fullName = payload.owner.fullName
+            updates.fullName = payload.owner.fullName.trim()
           }
           if (Object.keys(updates).length) {
             await tx.update(users).set(updates).where(eq(users.id, existingUser.id))
@@ -314,7 +314,7 @@ export default defineEventHandler(async (event) => {
     owner: {
       id: ownerUserId,
       email: normalizedOwnerEmail,
-      fullName: payload.owner.fullName ?? existingUser?.fullName ?? null
+      fullName: payload.owner.fullName?.trim() || existingUser?.fullName || normalizedOwnerEmail
     }
   }
 })

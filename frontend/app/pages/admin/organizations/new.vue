@@ -94,7 +94,7 @@
       <div v-show="currentStep === 2" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Steg 2: Ägarkonto</h2>
         <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Här skapar du ett användarkonto för organisationens ägare. Efter att organisationen har skapats kommer en inbjudningslänk att skickas via e-post där ägaren kan acceptera inbjudan och skapa sitt lösenord.
+          Här anger du e-postadressen för organisationens ägare. Om användaren inte finns kommer ett nytt konto att skapas. Efter att organisationen har skapats kommer en inbjudningslänk att skickas via e-post där ägaren kan acceptera inbjudan.
         </p>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <div class="md:col-span-2">
@@ -126,14 +126,12 @@
             </div>
           </div>
           <div class="md:col-span-2">
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</label>
-            <input
-              v-model="form.ownerFullName"
-              type="text"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="Ex. Anna Andersson"
-            />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Ett användarkonto kommer att skapas och en inbjudningslänk skickas via e-post.</p>
+            <p v-if="existingUserInfo && userConfirmed" class="text-xs text-slate-500 dark:text-slate-400">
+              En inbjudningslänk kommer att skickas via e-post till den befintliga användaren.
+            </p>
+            <p v-else class="text-xs text-slate-500 dark:text-slate-400">
+              Ett användarkonto kommer att skapas och en inbjudningslänk skickas via e-post. Användaren kan ange sitt namn när de accepterar inbjudan.
+            </p>
           </div>
         </div>
       </div>
@@ -276,8 +274,7 @@ const form = reactive({
   billingEmail: '',
   defaultRole: roles[3],
   coreId: '',
-  ownerEmail: '',
-  ownerFullName: ''
+  ownerEmail: ''
 })
 
 const canContinue = computed(() => {
@@ -408,9 +405,6 @@ const handleSubmit = async () => {
       payload.billingEmail = form.billingEmail.trim()
     }
     payload.coreId = form.coreId.trim().toUpperCase()
-    if (form.ownerFullName.trim()) {
-      payload.owner.fullName = form.ownerFullName.trim()
-    }
 
     const response = await $fetch<AdminCreateOrganizationResponse>('/api/admin/organizations', {
       method: 'POST',

@@ -5,7 +5,7 @@ import { getEffectiveEmailSenderContext } from '~~/server/utils/emailProvider'
 import { resolveEmailBranding } from '~~/server/utils/mailer'
 import { buildInvitationEmail, buildPasswordResetEmail } from '@coreit/email-kit'
 import type { EmailProviderLookupContext } from '~~/server/utils/emailProvider'
-import { requireSuperAdmin } from '~~/server/utils/rbac'
+import { requireSuperAdmin, requirePermission } from '~~/server/utils/rbac'
 import { organizations } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
 
@@ -18,10 +18,17 @@ const previewSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
-
   const body = await readBody(event)
   const input = previewSchema.parse(body)
+
+  // If organizationId is provided, check that user has org:manage permission for that organization
+  // (both owner and admin roles have org:manage permission)
+  // If no organizationId, require super admin (for global preview)
+  if (input.organizationId) {
+    await requirePermission(event, 'org:manage', input.organizationId)
+  } else {
+    await requireSuperAdmin(event)
+  }
 
   const context: EmailProviderLookupContext = {
     organizationId: input.organizationId ?? null,
