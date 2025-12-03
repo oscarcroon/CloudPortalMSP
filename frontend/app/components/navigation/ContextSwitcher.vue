@@ -271,20 +271,21 @@ const isOrgLocked = (org: AuthOrganization) =>
   org.requireSso && !org.hasLocalLoginOverride && !isSuperAdmin.value
 
 async function navigateAfterContextChange(payload: { tenantId?: string | null; organizationId?: string | null }) {
-  // If user is on settings page, just reload to ensure fresh state/view
+  const isSuperAdminUser = isSuperAdmin.value
+
+  // If only tenant is selected (no organization), navigate to tenant page for all users
+  // This should work even when on settings page
+  if (payload.tenantId && !payload.organizationId) {
+    await router.push(`/admin/tenants/${payload.tenantId}`)
+    return
+  }
+
+  // If user is on settings page and switching organization, just reload to ensure fresh state/view
   if (router.currentRoute.value.path.startsWith('/settings')) {
     // Since the state is reactive, we often don't need to do anything, but user requested "refresh feel".
     // We can do a simple router replacement to current route to trigger any watchers if needed,
     // or rely on the fact that auth state changed.
     // Let's just return and let reactivity handle it.
-    return
-  }
-
-  const isSuperAdminUser = isSuperAdmin.value
-
-  // If only tenant is selected (no organization), navigate to tenant page for all users
-  if (payload.tenantId && !payload.organizationId) {
-    await router.push(`/admin/tenants/${payload.tenantId}`)
     return
   }
 
