@@ -51,15 +51,6 @@
               placeholder="owner@example.com"
             />
           </div>
-          <div class="md:col-span-2">
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</label>
-            <input
-              v-model="form.ownerFullName"
-              type="text"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="Ex. Anna Andersson"
-            />
-          </div>
           <div class="md:col-span-2 space-y-3">
             <div
               v-if="checkingOwnerEmail"
@@ -229,8 +220,7 @@ const resetOrganizationForm = () => {
 const form = reactive({
   name: '',
   slug: '',
-  ownerEmail: '',
-  ownerFullName: ''
+  ownerEmail: ''
 })
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -300,9 +290,6 @@ const handleSubmit = async () => {
 
     if (form.slug.trim()) {
       payload.slug = form.slug.trim()
-    }
-    if (form.ownerFullName.trim()) {
-      payload.owner.fullName = form.ownerFullName.trim()
     }
 
     if (organizationForm.enabled && canCreateOrganization.value) {

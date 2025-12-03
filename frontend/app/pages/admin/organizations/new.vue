@@ -186,7 +186,6 @@
         <button
           type="button"
           class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
-          :disabled="currentStep === 1"
           @click="goToPreviousStep"
         >
           Föregående
@@ -365,7 +364,16 @@ const confirmExistingUser = () => {
 }
 
 const goToPreviousStep = () => {
-  if (currentStep.value <= 1) return
+  if (currentStep.value <= 1) {
+    // Navigate back to tenant page if tenantId is provided, otherwise to organizations list
+    const tenantId = typeof route.query.tenantId === 'string' ? route.query.tenantId : null
+    if (tenantId) {
+      router.push(`/admin/tenants/${tenantId}`)
+    } else {
+      router.push('/admin/organizations')
+    }
+    return
+  }
   currentStep.value = Math.max(1, currentStep.value - 1)
   showConfirmDialog.value = false
 }

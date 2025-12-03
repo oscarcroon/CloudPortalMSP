@@ -142,16 +142,16 @@ export default defineEventHandler(async (event) => {
       const inviteToken = createInviteToken()
       const inviteExpiresAtMs = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
       const inviteExpiresAt = new Date(inviteExpiresAtMs)
-
+      
       const invitationValues = {
         id: createId(),
-        tenantId: tenant.id,
-        email: normalizedOwnerEmail,
+              tenantId: tenant.id,
+              email: normalizedOwnerEmail,
         role: 'admin' as TenantRole,
         includeChildren: true,
-        token: inviteToken,
-        status: 'pending',
-        invitedByUserId: null,
+              token: inviteToken,
+              status: 'pending',
+              invitedByUserId: null,
         expiresAt: inviteExpiresAt,
         organizationData: null
       }
@@ -161,7 +161,7 @@ export default defineEventHandler(async (event) => {
       } else {
         await db.insert(tenantInvitations).values(invitationValues)
       }
-
+      
       await sendDistributorInvitationEmail({
         tenantId: tenant.id,
         tenantName: tenant.name,

@@ -7,7 +7,14 @@ import { normalizeEmail } from '../../../utils/crypto'
 import { ensureAuthState } from '../../../utils/session'
 
 const checkEmailSchema = z.object({
-  email: z.string().email()
+  email: z.string().min(1).refine(
+    (val) => {
+      // Use same regex as frontend for consistency
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      return emailRegex.test(val.trim())
+    },
+    { message: 'Invalid email format' }
+  )
 })
 
 export default defineEventHandler(async (event) => {
@@ -22,10 +29,26 @@ export default defineEventHandler(async (event) => {
 
   const normalizedEmail = normalizeEmail(payload.email)
   const [user] = await db
-    .select({ id: users.id })
+    .select({
+      id: users.id,
+      email: users.email,
+      fullName: users.fullName,
+      status: users.status
+    })
     .from(users)
     .where(eq(users.email, normalizedEmail))
     .limit(1)
 
-  return { exists: !!user }
+  if (!user) {
+    return { exists: false }
+  }
+
+  return {
+    exists: true,
+    user: {
+      email: user.email,
+      fullName: user.fullName,
+      status: user.status
+    }
+  }
 })

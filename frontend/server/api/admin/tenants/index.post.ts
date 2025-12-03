@@ -25,7 +25,15 @@ const createTenantSchema = z.object({
   owner: z.object({
     email: z.string().email(),
     fullName: z.string().min(2).max(120).optional()
-  })
+  }),
+  organization: z
+    .object({
+      name: z.string().min(2).max(120),
+      slug: z.string().min(2).max(120).regex(/^[a-z0-9-]+$/, 'Slug may only contain lowercase letters, numbers and hyphens.').optional(),
+      billingEmail: z.string().email().optional(),
+      coreId: z.string().trim().min(4).max(20).optional()
+    })
+    .optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -151,7 +159,7 @@ export default defineEventHandler(async (event) => {
               id: ownerUserId,
               email: normalizedOwnerEmail,
               passwordHash: null,
-              fullName: payload.owner.fullName,
+              fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
               status: 'active',
               forcePasswordReset: 1
             })
@@ -203,7 +211,7 @@ export default defineEventHandler(async (event) => {
             id: ownerUserId,
             email: normalizedOwnerEmail,
             passwordHash: null,
-            fullName: payload.owner.fullName,
+            fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
             status: 'active',
             forcePasswordReset: 1
           })
@@ -256,6 +264,17 @@ export default defineEventHandler(async (event) => {
       const isSqliteForInvite =
         (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
+      const shouldAttachOrganization = Boolean(payload.organization && payload.organization.name && payload.type === 'provider')
+      const organizationData =
+        shouldAttachOrganization
+          ? {
+              name: payload.organization!.name.trim(),
+              slug: payload.organization!.slug?.trim() || undefined,
+              billingEmail: payload.organization!.billingEmail?.trim() || undefined,
+              coreId: payload.organization!.coreId?.trim().toUpperCase() || undefined
+            }
+          : null
+
       const invitationValues = {
         id: createId(),
         tenantId: tenant.id,
@@ -266,7 +285,7 @@ export default defineEventHandler(async (event) => {
         status: 'pending',
         invitedByUserId: null,
         expiresAt: inviteExpiresAt,
-        organizationData: null
+        organizationData: organizationData ? JSON.stringify(organizationData) : null
       }
 
       if (isSqliteForInvite) {
@@ -282,7 +301,9 @@ export default defineEventHandler(async (event) => {
         to: normalizedOwnerEmail,
         expiresAt: inviteExpiresAtMs,
         token: inviteToken,
-        invitedBy: 'System'
+        invitedBy: 'System',
+        willCreateOrganization: Boolean(organizationData),
+        organizationName: organizationData?.name
       })
     } else {
       // Existing user - send confirmation email
@@ -304,7 +325,7 @@ export default defineEventHandler(async (event) => {
     owner: {
       id: ownerUserId,
       email: normalizedOwnerEmail,
-      fullName: payload.owner.fullName ?? existingUser?.fullName ?? null
+      fullName: payload.owner.fullName?.trim() || existingUser?.fullName || normalizedOwnerEmail
     }
   }
 })

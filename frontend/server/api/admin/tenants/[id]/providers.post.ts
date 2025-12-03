@@ -125,7 +125,7 @@ export default defineEventHandler(async (event) => {
               id: ownerUserId,
               email: normalizedOwnerEmail,
               passwordHash: null,
-              fullName: payload.owner.fullName,
+              fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
               status: 'active',
               forcePasswordReset: 1
             })
@@ -166,7 +166,7 @@ export default defineEventHandler(async (event) => {
             id: ownerUserId,
             email: normalizedOwnerEmail,
             passwordHash: null,
-            fullName: payload.owner.fullName,
+            fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
             status: 'active',
             forcePasswordReset: 1
           })
@@ -269,7 +269,7 @@ export default defineEventHandler(async (event) => {
     owner: {
       id: ownerUserId,
       email: normalizedOwnerEmail,
-      fullName: payload.owner.fullName ?? existingUser?.fullName ?? null
+      fullName: payload.owner.fullName?.trim() || existingUser?.fullName || normalizedOwnerEmail
     }
   }
 })

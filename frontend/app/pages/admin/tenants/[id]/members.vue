@@ -293,7 +293,7 @@
                 </td>
                 <td class="px-6 py-3 text-right">
                   <div v-if="invite.status === 'pending'" class="flex justify-end gap-2">
-                    <button
+                  <button
                       type="button"
                       class="rounded border border-brand/40 px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/10 disabled:opacity-40 dark:border-brand/60 dark:text-brand"
                       :disabled="inviteResendLoadingId === invite.id || inviteCancelLoadingId === invite.id"
@@ -303,12 +303,12 @@
                     </button>
                     <button
                       type="button"
-                      class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
+                    class="rounded border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
                       :disabled="inviteCancelLoadingId === invite.id || inviteResendLoadingId === invite.id"
-                      @click="cancelInvite(invite.id)"
-                    >
-                      {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
-                    </button>
+                    @click="cancelInvite(invite.id)"
+                  >
+                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                  </button>
                   </div>
                   <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
                 </td>
