@@ -1300,6 +1300,18 @@
       "inherited": "Inherited"
     }
   },
+  "adminSettingsEmail": {
+    "category": "Superadmin",
+    "title": "Global email provider",
+    "description": "Configure the global sending used for passwords, invitations and other notifications. These settings are inherited by all providers if they do not have their own settings.",
+    "loading": "Loading settings...",
+    "messages": {
+      "saved": "Settings saved.",
+      "saveError": "Could not save settings.",
+      "testSent": "Test email sent to {email}.",
+      "testError": "Could not send test email."
+    }
+  },
   "adminUsers": {
     "title": "Users",
     "description": "Manage user accounts, status and password resets.",

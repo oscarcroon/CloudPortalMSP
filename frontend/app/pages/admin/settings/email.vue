@@ -1,11 +1,10 @@
 <template>
   <section class="space-y-6">
     <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Global e-postprovider</h1>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('adminSettingsEmail.category') }}</p>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ t('adminSettingsEmail.title') }}</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        Konfigurera det globala utskicket som används för lösenord, inbjudningar och andra notifieringar.
-        Dessa inställningar ärvs av alla leverantörer om de inte har egna inställningar.
+        {{ t('adminSettingsEmail.description') }}
       </p>
     </header>
 
@@ -20,7 +19,7 @@
       v-if="pending"
       class="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
     >
-      Hämtar inställningar...
+      {{ t('adminSettingsEmail.loading') }}
     </div>
 
     <EmailProviderChainCard v-if="!pending && chain.length" :chain="chain" />
@@ -51,6 +50,9 @@ import type {
   AdminEmailProviderTestPayload,
   EmailProviderChainEntry
 } from '~/types/admin'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 definePageMeta({
   layout: 'default',
@@ -97,10 +99,10 @@ const handleSave = async (payload: AdminEmailProviderPayload) => {
       body: payload
     })
     await refresh()
-    notification.value = 'Inställningarna sparades.'
+    notification.value = t('adminSettingsEmail.messages.saved')
     testMessage.value = ''
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte spara inställningarna.'
+    errorMessage.value = err instanceof Error ? err.message : t('adminSettingsEmail.messages.saveError')
   } finally {
     saving.value = false
   }
@@ -116,10 +118,10 @@ const handleTest = async (payload: AdminEmailProviderTestPayload) => {
       body: payload
     })
     testVariant.value = 'success'
-    testMessage.value = `Testmail skickades till ${payload.testEmail}.`
+    testMessage.value = t('adminSettingsEmail.messages.testSent', { email: payload.testEmail })
   } catch (err) {
     testVariant.value = 'error'
-    testMessage.value = err instanceof Error ? err.message : 'Kunde inte skicka testmail.'
+    testMessage.value = err instanceof Error ? err.message : t('adminSettingsEmail.messages.testError')
   } finally {
     testing.value = false
   }

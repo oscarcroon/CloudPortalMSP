@@ -1300,6 +1300,18 @@
       "inherited": "Ärvs"
     }
   },
+  "adminSettingsEmail": {
+    "category": "Superadmin",
+    "title": "Global e-postprovider",
+    "description": "Konfigurera det globala utskicket som används för lösenord, inbjudningar och andra notifieringar. Dessa inställningar ärvs av alla leverantörer om de inte har egna inställningar.",
+    "loading": "Hämtar inställningar...",
+    "messages": {
+      "saved": "Inställningarna sparades.",
+      "saveError": "Kunde inte spara inställningarna.",
+      "testSent": "Testmail skickades till {email}.",
+      "testError": "Kunde inte skicka testmail."
+    }
+  },
   "adminUsers": {
     "title": "Användare",
     "description": "Hantera användarkonton, status och lösenordsåterställningar.",
