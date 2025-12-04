@@ -1,13 +1,13 @@
 <template>
   <section class="space-y-6">
     <header class="text-center space-y-2">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Inbjudan</p>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">{{ t('invite.title') }}</p>
       <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ invitePageTitle }}</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">{{ invitePageSubtitle }}</p>
     </header>
 
     <div v-if="!token" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
-      Ingen inbjudan hittades. Kontrollera att länken innehåller ett giltigt token.
+      {{ t('invite.notFound') }}
     </div>
 
     <div
@@ -34,12 +34,12 @@
           </p>
         </div>
         <p class="text-sm text-slate-500 dark:text-slate-400">
-          Inbjudan skickad till <span class="font-semibold">{{ invitation?.email }}</span>
+          {{ t('invite.sentTo') }} <span class="font-semibold">{{ invitation?.email }}</span>
         </p>
       </div>
 
       <div v-if="loading" class="rounded-lg border border-dashed border-slate-300 px-4 py-3 text-center text-sm text-slate-500 dark:border-white/10 dark:text-slate-300">
-        Laddar inbjudan...
+        {{ t('invite.loading') }}
       </div>
 
       <div v-else class="space-y-4">
@@ -53,36 +53,36 @@
 
         <dl class="grid gap-4 sm:grid-cols-2">
           <div class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-white/5">
-            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</dt>
+            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('invite.role') }}</dt>
             <dd class="text-lg font-semibold text-slate-900 dark:text-white">
               {{ invitation?.role }}
             </dd>
           </div>
           <div class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-white/5">
-            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</dt>
+            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('invite.status') }}</dt>
             <dd class="text-lg font-semibold text-slate-900 dark:text-white">
               {{ statusLabel }}
             </dd>
           </div>
           <div class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-white/5">
-            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Gäller till</dt>
+            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('invite.expiresAt') }}</dt>
             <dd class="text-sm text-slate-700 dark:text-slate-200">{{ formatDate(invitation?.expiresAt) }}</dd>
           </div>
           <div class="rounded-xl border border-slate-100 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-white/5">
-            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Inbjuden av</dt>
-            <dd class="text-sm text-slate-700 dark:text-slate-200">{{ invitation?.invitedBy || 'System' }}</dd>
+            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('invite.invitedBy') }}</dt>
+            <dd class="text-sm text-slate-700 dark:text-slate-200">{{ invitation?.invitedBy || t('invite.system') }}</dd>
           </div>
         </dl>
         <div
           v-if="shouldShowLoginPrompt"
           class="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
         >
-          <p class="mb-3">Logga in för att acceptera inbjudan.</p>
+          <p class="mb-3">{{ t('invite.loginPrompt') }}</p>
           <NuxtLink
             :to="loginRedirectUrl"
             class="inline-flex items-center justify-center rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80"
           >
-            Gå till inloggningen
+            {{ t('invite.goToLogin') }}
           </NuxtLink>
         </div>
 
@@ -95,18 +95,18 @@
             {{ registrationIntro }}
           </p>
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Fullständigt namn</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('invite.fullName') }}</label>
             <input
               v-model="registrationForm.fullName"
               type="text"
               required
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="Förnamn Efternamn"
+              :placeholder="t('invite.fullNamePlaceholder')"
             />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Ange både för- och efternamn.</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('invite.fullNameHelper') }}</p>
           </div>
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Lösenord</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('invite.password') }}</label>
             <input
               v-model="registrationForm.password"
               type="password"
@@ -115,7 +115,7 @@
             />
           </div>
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Bekräfta lösenord</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('invite.confirmPassword') }}</label>
             <input
               v-model="registrationForm.confirmPassword"
               type="password"
@@ -125,7 +125,7 @@
           </div>
 
           <ul class="list-disc space-y-1 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300" aria-live="polite">
-            <li v-for="rule in passwordRequirements" :key="rule">{{ rule }}</li>
+            <li v-for="rule in passwordRequirements" :key="rule">{{ t(rule) }}</li>
           </ul>
 
           <div v-if="registrationErrors.length > 0" class="rounded-lg bg-red-50 border border-red-200 dark:bg-red-500/10 dark:border-red-500/30 px-4 py-3">
@@ -140,7 +140,7 @@
             :disabled="registrationLoading"
             type="submit"
           >
-            {{ registrationLoading ? 'Skapar konto...' : 'Skapa konto och gå med' }}
+            {{ registrationLoading ? t('invite.creatingAccount') : t('invite.createAccount') }}
           </button>
         </form>
 
@@ -148,8 +148,7 @@
           v-else-if="showMismatchNotice"
           class="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
         >
-          Du är inloggad som {{ auth.state.value.data?.user?.email }} men inbjudan skickades till
-          {{ invitation?.email }}. Logga ut och logga in med rätt konto för att fortsätta.
+          {{ t('invite.mismatchNotice', { email: auth.state.value.data?.user?.email, inviteEmail: invitation?.email }) }}
         </div>
 
         <div v-else class="flex flex-wrap items-center gap-3">
@@ -158,13 +157,13 @@
             :disabled="!canAccept || acceptLoading"
             @click="acceptInvitation"
           >
-            {{ acceptLoading ? 'Accepterar...' : 'Acceptera inbjudan' }}
+            {{ acceptLoading ? t('invite.accepting') : t('invite.accept') }}
           </button>
           <NuxtLink
             to="/settings/members"
             class="rounded-full border border-slate-300 px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
           >
-            Till inställningar
+            {{ t('invite.toSettings') }}
           </NuxtLink>
         </div>
       </div>
@@ -173,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from '#imports'
+import { computed, onMounted, reactive, ref, watch, useI18n } from '#imports'
 import { useAuth } from '~/composables/useAuth'
 import { passwordRequirements } from '~/constants/password'
 import type {
@@ -189,6 +188,7 @@ definePageMeta({
 
 const route = useRoute()
 const auth = useAuth()
+const { t } = useI18n()
 
 if (import.meta.client) {
   await auth.bootstrap()
@@ -265,10 +265,10 @@ const loginRedirectUrl = computed(() => {
 })
 const statusLabel = computed(() => {
   const status = invitation.value?.status
-  if (status === 'accepted') return 'Redan accepterad'
-  if (status === 'cancelled') return 'Avbruten'
-  if (status === 'expired') return 'Utgången'
-  return 'Väntar på svar'
+  if (status === 'accepted') return t('invite.statusLabels.accepted')
+  if (status === 'cancelled') return t('invite.statusLabels.cancelled')
+  if (status === 'expired') return t('invite.statusLabels.expired')
+  return t('invite.statusLabels.pending')
 })
 const normalizedLogoUrl = computed(() => {
   const logoUrl = invitation.value?.branding?.logoUrl
@@ -280,38 +280,38 @@ const inviteTargetKind = computed<'organization' | 'provider' | 'distributor'>((
   return 'organization'
 })
 const inviteKindLabel = computed(() => {
-  if (inviteTargetKind.value === 'provider') return 'Leverantör'
-  if (inviteTargetKind.value === 'distributor') return 'Distributör'
-  return 'Organisation'
+  if (inviteTargetKind.value === 'provider') return t('invite.entityBadge.provider')
+  if (inviteTargetKind.value === 'distributor') return t('invite.entityBadge.distributor')
+  return t('invite.entityBadge.organization')
 })
 const invitePageTitle = computed(() => {
-  if (inviteTargetKind.value === 'provider') return 'Acceptera leverantörsinbjudan'
-  if (inviteTargetKind.value === 'distributor') return 'Acceptera distributörsinbjudan'
-  return 'Acceptera organisationsinbjudan'
+  if (inviteTargetKind.value === 'provider') return t('invite.acceptProvider')
+  if (inviteTargetKind.value === 'distributor') return t('invite.acceptDistributor')
+  return t('invite.acceptOrganization')
 })
 const invitePageSubtitle = computed(() => {
-  if (inviteTargetKind.value === 'provider') return 'Anslut dig till leverantören genom att bekräfta nedan.'
-  if (inviteTargetKind.value === 'distributor') return 'Anslut dig till distributören genom att bekräfta nedan.'
-  return 'Anslut dig till organisationen genom att bekräfta nedan.'
+  if (inviteTargetKind.value === 'provider') return t('invite.subtitleProvider')
+  if (inviteTargetKind.value === 'distributor') return t('invite.subtitleDistributor')
+  return t('invite.subtitleOrganization')
 })
-const inviteEntityName = computed(() => organisationName.value || tenantInfo.value?.name || 'Organisation')
+const inviteEntityName = computed(() => organisationName.value || tenantInfo.value?.name || t('invite.entityBadge.organization'))
 const inviteEntityBadge = computed(() => {
   if (inviteTargetKind.value === 'organization' && invitation.value?.willCreateOrganization) {
-    return 'Organisation · Skapas vid accept'
+    return t('invite.entityBadge.willCreate')
   }
   return inviteKindLabel.value
 })
 const registrationIntro = computed(() => {
   const base =
     inviteTargetKind.value === 'organization'
-      ? 'En administratör har skapat en organisation och bjudit in dig som ägare.'
-      : `En administratör har skapat en ${inviteKindLabel.value.toLowerCase()} och bjudit in dig som ägare.`
+      ? t('invite.registrationIntro.organization')
+      : t(`invite.registrationIntro.${inviteTargetKind.value}`)
 
   if (invitation.value?.willCreateOrganization && invitation.value?.organizationName) {
-    return `${base} När du slutför registreringen skapas organisationen "${invitation.value.organizationName}".`
+    return `${base} ${t('invite.registrationIntro.withOrgName', { orgName: invitation.value.organizationName })}`
   }
 
-  return `${base} Skapa ett lösenord nedan för att gå med.`
+  return `${base} ${t('invite.registrationIntro.createPassword')}`
 })
 const requiresAccountCreation = computed(
   () => 
@@ -352,12 +352,11 @@ const formatDate = (value?: string) => {
 const applyStatusHints = () => {
   if (!invitation.value) return
   if (invitation.value.status === 'expired') {
-    errorMessage.value =
-      'Den här inbjudan har gått ut. Kontakta din administratör för att få en ny länk.'
+    errorMessage.value = t('invite.errors.expired')
   } else if (invitation.value.status === 'cancelled') {
-    errorMessage.value = 'Inbjudan har återkallats av en administratör.'
+    errorMessage.value = t('invite.errors.cancelled')
   } else if (invitation.value.status === 'accepted') {
-    successMessage.value = 'Inbjudan är redan accepterad.'
+    successMessage.value = t('invite.errors.alreadyAccepted')
   }
 }
 
@@ -393,13 +392,12 @@ const loadInvitation = async () => {
     inviteMeta.value = null
     const status = extractStatus(error)
     if (status === 410) {
-      errorMessage.value =
-        'Den här inbjudan har gått ut. Kontakta din administratör för att få en ny länk.'
+      errorMessage.value = t('invite.errors.expired')
     } else if (status === 404) {
-      errorMessage.value = 'Inbjudan hittades inte. Kontrollera att länken är korrekt.'
+      errorMessage.value = t('invite.errors.notFound')
     } else {
       errorMessage.value =
-        error instanceof Error ? error.message : 'Kunde inte hämta inbjudan just nu.'
+        error instanceof Error ? error.message : t('invite.errors.loadFailed')
     }
   } finally {
     loading.value = false
@@ -409,7 +407,7 @@ const loadInvitation = async () => {
 const submitRegistration = async () => {
   if (!token.value || !requiresAccountCreation.value) return
   if (registrationForm.password !== registrationForm.confirmPassword) {
-    registrationErrors.value = ['Lösenorden matchar inte.']
+    registrationErrors.value = [t('invite.errors.passwordMismatch')]
     return
   }
   registrationLoading.value = true
@@ -426,7 +424,7 @@ const submitRegistration = async () => {
     })
     registrationForm.password = ''
     registrationForm.confirmPassword = ''
-    successMessage.value = 'Kontot skapades och inbjudan accepterades.'
+    successMessage.value = t('invite.success.accountCreated')
     await auth.fetchMe()
     await navigateTo('/')
   } catch (error) {
@@ -437,13 +435,13 @@ const submitRegistration = async () => {
       } else if (data.message) {
         registrationErrors.value = [data.message]
       } else {
-        registrationErrors.value = ['Kunde inte skapa kontot.']
+        registrationErrors.value = [t('invite.errors.createFailed')]
       }
     } else if (error && typeof error === 'object' && 'message' in error) {
-      const message = (error.message as string) || 'Kunde inte skapa kontot.'
+      const message = (error.message as string) || t('invite.errors.createFailed')
       registrationErrors.value = [message]
     } else {
-      registrationErrors.value = ['Kunde inte skapa kontot.']
+      registrationErrors.value = [t('invite.errors.createFailed')]
     }
   } finally {
     registrationLoading.value = false
@@ -459,22 +457,20 @@ const acceptInvitation = async () => {
     await $fetch(`/api/invite/${token.value}/accept`, {
       method: 'POST'
     })
-    successMessage.value = 'Du är nu medlem i organisationen.'
+    successMessage.value = t('invite.success.memberAdded')
     await auth.fetchMe()
     await navigateTo('/')
   } catch (error) {
     const status = extractStatus(error)
     if (status === 410) {
-      errorMessage.value =
-        'Inbjudan har gått ut. Be en administratör att skicka en ny inbjudan innan du försöker igen.'
+      errorMessage.value = t('invite.errors.acceptExpired')
     } else if (status === 409) {
-      errorMessage.value = 'Inbjudan är inte längre giltig. Kontakta administratören för en ny länk.'
+      errorMessage.value = t('invite.errors.acceptInvalid')
     } else if (status === 403) {
-      errorMessage.value =
-        'Inbjudan matchar inte det konto du är inloggad med. Kontrollera att du använder rätt e-postadress.'
+      errorMessage.value = t('invite.errors.acceptMismatch')
     } else {
       errorMessage.value =
-        error instanceof Error ? error.message : 'Kunde inte acceptera inbjudan.'
+        error instanceof Error ? error.message : t('invite.errors.acceptFailed')
     }
     await loadInvitation()
   } finally {

@@ -21,7 +21,7 @@
             v-else-if="asset.type !== 'background'"
             class="text-xs uppercase tracking-[0.3em] text-slate-400"
           >
-            Ingen logotyp
+            {{ t('settings.branding.loginBranding.assets.noLogo') }}
           </span>
           <span
             v-else
@@ -42,7 +42,7 @@
               :disabled="assetStates[asset.key].uploading"
               @click="triggerFilePicker(asset.key)"
             >
-              {{ assetStates[asset.key].uploading ? 'Laddar upp...' : 'Byt fil' }}
+              {{ assetStates[asset.key].uploading ? t('settings.branding.loginBranding.assets.uploading') : t('settings.branding.loginBranding.assets.changeFile') }}
             </button>
             <button
               v-if="assetHasCustomValue(asset.key)"
@@ -51,7 +51,7 @@
               :disabled="assetStates[asset.key].uploading"
               @click="removeAsset(asset.key)"
             >
-              {{ assetStates[asset.key].uploading ? 'Tar bort...' : 'Ta bort' }}
+              {{ assetStates[asset.key].uploading ? t('settings.branding.loginBranding.assets.removing') : t('settings.branding.loginBranding.assets.remove') }}
             </button>
             <input
               type="file"
@@ -62,7 +62,7 @@
             />
           </div>
           <div class="space-y-1 text-xs">
-            <p class="text-slate-500 dark:text-slate-400">Källa: <span class="font-semibold">{{ assetSourceLabel(asset.key) }}</span></p>
+            <p class="text-slate-500 dark:text-slate-400">{{ t('settings.branding.loginBranding.assets.source') }} <span class="font-semibold">{{ assetSourceLabel(asset.key) }}</span></p>
             <p v-if="assetStates[asset.key].error" class="font-semibold text-red-600">
               {{ assetStates[asset.key].error }}
             </p>
@@ -76,9 +76,9 @@
 
     <div class="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/40">
       <div class="flex flex-col gap-2">
-        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Bakgrundstint</p>
+        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.branding.loginBranding.tint.title') }}</p>
         <p class="text-xs text-slate-500 dark:text-slate-400">
-          Ange hex-färg för överlägg på bakgrundsbilden. Lämna tomt för standard.
+          {{ t('settings.branding.loginBranding.tint.description') }}
         </p>
       </div>
       <div
@@ -100,7 +100,7 @@
         />
         <div class="flex flex-col gap-2">
           <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Intensitet
+            {{ t('settings.branding.loginBranding.tint.intensity') }}
           </p>
           <div class="flex w-full max-w-xs items-center gap-3">
             <input
@@ -123,7 +123,7 @@
           :disabled="tintSaving || !hasBackgroundImage"
           @click="saveBackgroundTint"
         >
-          {{ tintSaving ? 'Sparar...' : 'Spara' }}
+          {{ tintSaving ? t('settings.branding.loginBranding.tint.saving') : t('settings.branding.loginBranding.tint.save') }}
         </button>
         <button
           class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
@@ -131,11 +131,11 @@
           :disabled="tintSaving || !canResetTint"
           @click="resetBackgroundTint"
         >
-          Återställ
+          {{ t('settings.branding.loginBranding.tint.reset') }}
         </button>
       </div>
       <p v-if="!hasBackgroundImage" class="mt-2 text-xs text-slate-400">
-        Ladda upp en bakgrundsbild för att kunna justera tint.
+        {{ t('settings.branding.loginBranding.tint.noBackgroundHint') }}
       </p>
       <p v-if="tintStatus" class="mt-2 text-xs font-semibold" :class="tintStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'">
         {{ tintStatus.message }}
@@ -146,8 +146,11 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from '#imports'
 import type { BrandingState, BrandingThemeSource } from '~/types/auth'
 import { DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY } from '~~/shared/branding'
+
+const { t } = useI18n()
 
 type AssetVariant = 'login-light' | 'login-dark' | 'login-background'
 
@@ -170,32 +173,32 @@ const emit = defineEmits<{
   (event: 'updated'): void
 }>()
 
-const assetDefinitions: AssetDefinition[] = [
+const assetDefinitions = computed<AssetDefinition[]>(() => [
   {
     key: 'login-light',
-    title: 'Logotyp (ljus bakgrund)',
-    description: 'Visas när användaren har ljust tema.',
+    title: t('settings.branding.loginBranding.assets.logoLight.title'),
+    description: t('settings.branding.loginBranding.assets.logoLight.description'),
     type: 'logo',
     accept: '.jpg,.jpeg,.png,.svg,.webp',
     previewClasses: 'bg-slate-50'
   },
   {
     key: 'login-dark',
-    title: 'Logotyp (mörk bakgrund)',
-    description: 'Visas när användaren har mörkt tema.',
+    title: t('settings.branding.loginBranding.assets.logoDark.title'),
+    description: t('settings.branding.loginBranding.assets.logoDark.description'),
     type: 'logo',
     accept: '.jpg,.jpeg,.png,.svg,.webp',
     previewClasses: 'bg-slate-900'
   },
   {
     key: 'login-background',
-    title: 'Bakgrundsbild',
-    description: 'Valfri bild som visas bakom login-formuläret.',
+    title: t('settings.branding.loginBranding.assets.background.title'),
+    description: t('settings.branding.loginBranding.assets.background.description'),
     type: 'background',
     accept: '.jpg,.jpeg,.png,.webp',
     previewClasses: 'bg-slate-900 text-white'
   }
-]
+])
 
 interface AssetState {
   uploading: boolean
@@ -271,7 +274,7 @@ const canResetTint = computed(() => {
   )
 })
 const backgroundLabel = computed(() =>
-  props.branding?.activeTheme.loginBackgroundUrl ? 'Förhandsvisning' : 'Ingen bakgrund'
+  props.branding?.activeTheme.loginBackgroundUrl ? t('settings.branding.loginBranding.assets.preview') : t('settings.branding.loginBranding.assets.noBackground')
 )
 const hasBackgroundImage = computed(() => Boolean(localTheme.value?.loginBackgroundUrl))
 const effectiveTintColor = computed(
@@ -353,15 +356,16 @@ function assetSourceLabel(variant: AssetVariant) {
 
 function formatSource(source?: BrandingThemeSource | null) {
   if (!source) {
-    return 'Standard'
+    return t('settings.branding.sourceLabels.default')
   }
   if (source.targetType === 'default') {
-    return 'Global standard'
+    return t('settings.branding.sourceLabels.global')
   }
   if (source.targetType === 'global') {
-    return 'Global'
+    return t('settings.branding.sourceLabels.global')
   }
-  return source.name ?? source.targetType
+  const label = t(`settings.branding.sourceLabels.${source.targetType}`)
+  return source.name ?? label
 }
 
 function assetHasCustomValue(variant: AssetVariant) {
@@ -421,11 +425,11 @@ async function handleSelection(variant: AssetVariant, event: Event) {
       body: formData,
       credentials: 'include'
     })
-    assetStates[variant].success = 'Uppdaterad.'
+    assetStates[variant].success = t('settings.branding.loginBranding.assets.updated')
     emit('updated')
   } catch (error: any) {
     assetStates[variant].error =
-      error?.data?.message || error?.message || 'Uppladdningen misslyckades.'
+      error?.data?.message || error?.message || t('settings.branding.loginBranding.assets.uploadFailed')
   } finally {
     assetStates[variant].uploading = false
     input.value = ''
@@ -434,7 +438,7 @@ async function handleSelection(variant: AssetVariant, event: Event) {
 }
 
 async function removeAsset(variant: AssetVariant) {
-  if (!confirm('Vill du ta bort denna fil?')) {
+  if (!confirm(t('settings.branding.loginBranding.assets.confirmRemove'))) {
     return
   }
   assetStates[variant].uploading = true
@@ -445,11 +449,11 @@ async function removeAsset(variant: AssetVariant) {
       method: 'DELETE',
       credentials: 'include'
     })
-    assetStates[variant].success = 'Borttagen.'
+    assetStates[variant].success = t('settings.branding.loginBranding.assets.removed')
     emit('updated')
   } catch (error: any) {
     assetStates[variant].error =
-      error?.data?.message || error?.message || 'Kunde inte ta bort filen.'
+      error?.data?.message || error?.message || t('settings.branding.loginBranding.assets.removeFailed')
   } finally {
     assetStates[variant].uploading = false
     scheduleStatusClear(variant)
@@ -463,10 +467,10 @@ function validateFile(variant: AssetVariant, file: File) {
     ? ['jpg', 'jpeg', 'png', 'webp']
     : ['jpg', 'jpeg', 'png', 'svg', 'webp']
   if (!extension || !allowed.includes(extension)) {
-    return `Ogiltigt format. Tillåtna: ${allowed.join(', ')}.`
+    return t('settings.branding.loginBranding.assets.invalidFormat', { formats: allowed.join(', ') })
   }
   if (file.size > maxBytes) {
-    return `Filen får vara max ${variant === 'login-background' ? '5' : '2'} MB.`
+    return t('settings.branding.loginBranding.assets.maxSize', { size: variant === 'login-background' ? '5' : '2' })
   }
   return null
 }
@@ -492,12 +496,12 @@ async function saveBackgroundTint() {
       },
       credentials: 'include'
     })
-    tintStatus.value = { type: 'success', message: 'Bakgrundstint sparades.' }
+    tintStatus.value = { type: 'success', message: t('settings.branding.loginBranding.tint.saved') }
     emit('updated')
   } catch (error: any) {
     tintStatus.value = {
       type: 'error',
-      message: error?.data?.message || error?.message || 'Kunde inte spara tint.'
+      message: error?.data?.message || error?.message || t('settings.branding.loginBranding.tint.saveError')
     }
   } finally {
     tintSaving.value = false

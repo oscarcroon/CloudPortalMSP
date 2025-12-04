@@ -5,19 +5,19 @@
         :to="`/admin/tenants/${tenantId}`"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka till tenant
+        {{ t('adminTenants.email.backToTenant') }}
       </NuxtLink>
       <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('adminTenants.email.category') }}</p>
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">
-          E-postinställningar - {{ tenant?.name ?? 'Laddar...' }}
+          {{ t('adminTenants.email.title', { name: tenant?.name ?? t('adminTenants.email.loading') }) }}
         </h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
           <span v-if="tenant?.type === 'provider'">
-            Leverantör - Dessa inställningar ärvs av alla distributörer och organisationer under denna leverantör.
+            {{ t('adminTenants.email.types.provider') }}
           </span>
           <span v-else-if="tenant?.type === 'distributor'">
-            Distributör - Dessa inställningar ärvs av alla organisationer under denna distributör.
+            {{ t('adminTenants.email.types.distributor') }}
           </span>
         </p>
       </div>
@@ -34,7 +34,7 @@
       v-if="pending"
       class="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
     >
-      Hämtar inställningar...
+      {{ t('adminTenants.email.loadingSettings') }}
     </div>
 
     <EmailProviderChainCard v-if="!pending && chain.length" :chain="chain" />
@@ -66,6 +66,9 @@ import type {
   AdminEmailProviderTestPayload,
   EmailProviderChainEntry
 } from '~/types/admin'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 definePageMeta({
   layout: 'default'
@@ -122,10 +125,10 @@ const handleSave = async (payload: AdminEmailProviderPayload) => {
       body: payload
     })
     await refresh()
-    notification.value = 'Inställningarna sparades.'
+    notification.value = t('adminTenants.email.messages.saved')
     testMessage.value = ''
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte spara inställningarna.'
+    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.email.messages.saveError')
   } finally {
     saving.value = false
   }
@@ -141,10 +144,10 @@ const handleTest = async (payload: AdminEmailProviderTestPayload) => {
       body: payload
     })
     testVariant.value = 'success'
-    testMessage.value = `Testmail skickades till ${payload.testEmail}.`
+    testMessage.value = t('adminTenants.email.messages.testSent', { email: payload.testEmail })
   } catch (err) {
     testVariant.value = 'error'
-    testMessage.value = err instanceof Error ? err.message : 'Kunde inte skicka testmail.'
+    testMessage.value = err instanceof Error ? err.message : t('adminTenants.email.messages.testError')
   } finally {
     testing.value = false
   }

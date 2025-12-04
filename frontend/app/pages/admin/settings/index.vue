@@ -2,9 +2,9 @@
   <section class="space-y-8">
     <header class="space-y-2">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-3xl font-semibold text-slate-900 dark:text-white">Superadmin-inställningar</h1>
+      <h1 class="text-3xl font-semibold text-slate-900 dark:text-white">{{ t('admin.title') }}</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        Samlad startsida för alla verktyg som kräver superadmintillgång.
+        {{ t('admin.subtitle') }}
       </p>
     </header>
 
@@ -36,7 +36,7 @@
             :to="section.to"
             class="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
           >
-            Öppna
+            {{ t('admin.open') }}
             <Icon icon="mdi:open-in-new" class="h-4 w-4" />
           </NuxtLink>
         </div>
@@ -44,9 +44,9 @@
     </div>
 
     <div class="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-      <p class="font-semibold">Snabbtips</p>
+      <p class="font-semibold">{{ t('admin.quickTip') }}</p>
       <p class="mt-1">
-        Bokmärk den här sidan – nya superadminverktyg läggs alltid till här först.
+        {{ t('admin.quickTipText') }}
       </p>
     </div>
   </section>
@@ -54,74 +54,77 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from '#imports'
 
 definePageMeta({
   layout: 'default',
   superAdmin: true
 })
 
+const { t } = useI18n()
+
 const adminSections = [
   {
-    title: 'Tenants',
-    description: 'Hantera distributörer och leverantörer, skapa nya tenants och administrera arv.',
-    badge: 'Struktur',
-    category: 'Multitenancy',
+    title: t('admin.sections.tenants.title'),
+    description: t('admin.sections.tenants.description'),
+    badge: t('admin.sections.tenants.badge'),
+    category: t('admin.sections.tenants.category'),
     icon: 'mdi:account-group',
     to: '/admin/tenants'
   },
   {
-    title: 'Organisationer',
-    description: 'Överblicka organisationer, medlemskap och deras autentisering.',
-    badge: 'Kunder',
-    category: 'Organisationer',
+    title: t('admin.sections.organizations.title'),
+    description: t('admin.sections.organizations.description'),
+    badge: t('admin.sections.organizations.badge'),
+    category: t('admin.sections.organizations.category'),
     icon: 'mdi:office-building',
     to: '/admin/organizations'
   },
   {
-    title: 'Global branding',
-    description: 'Sätt portalens standardlogotyper, accentfärger och login-branding.',
-    badge: 'Branding',
-    category: 'Design',
+    title: t('admin.sections.globalBranding.title'),
+    description: t('admin.sections.globalBranding.description'),
+    badge: t('admin.sections.globalBranding.badge'),
+    category: t('admin.sections.globalBranding.category'),
     icon: 'mdi:palette-outline',
     to: '/admin/branding'
   },
   {
-    title: 'RBAC-matris',
-    description: 'Granska roller, modulrättigheter och gör justeringar på en central plats.',
-    badge: 'Säkerhet',
-    category: 'Behörigheter',
+    title: t('admin.sections.rbacMatrix.title'),
+    description: t('admin.sections.rbacMatrix.description'),
+    badge: t('admin.sections.rbacMatrix.badge'),
+    category: t('admin.sections.rbacMatrix.category'),
     icon: 'mdi:shield-key',
     to: '/admin/rbac-matrix'
   },
   {
-    title: 'Audit-loggar',
-    description: 'Inspektera kritiska händelser, loginförsök och administrativa spår.',
-    badge: 'Revision',
-    category: 'Loggar',
+    title: t('admin.sections.auditLogs.title'),
+    description: t('admin.sections.auditLogs.description'),
+    badge: t('admin.sections.auditLogs.badge'),
+    category: t('admin.sections.auditLogs.category'),
     icon: 'mdi:file-search-outline',
     to: '/admin/audit-logs'
   },
   {
-    title: 'Admin-email',
-    description: 'Konfigurera portalens globala e-postprofiler och testutskick.',
-    badge: 'Kommunikation',
-    category: 'E-post',
+    title: t('admin.sections.adminEmail.title'),
+    description: t('admin.sections.adminEmail.description'),
+    badge: t('admin.sections.adminEmail.badge'),
+    category: t('admin.sections.adminEmail.category'),
     icon: 'mdi:email-send-outline',
     to: '/admin/settings/email'
   },
   {
-    title: 'Användare (globalt)',
-    description: 'Granska hela användarregistret, hantera status, roller och tvinga lösenordsbyten.',
-    badge: 'Identitet',
-    category: 'Användare',
+    title: t('admin.sections.users.title'),
+    description: t('admin.sections.users.description'),
+    badge: t('admin.sections.users.badge'),
+    category: t('admin.sections.users.category'),
     icon: 'mdi:shield-crown',
     to: '/admin/users'
   },
   {
-    title: 'Custom domains',
-    description: 'Verifiera tenant-domäner och följ upp DNS-status för CNAME-konfigurationer.',
-    badge: 'Routing',
-    category: 'Domäner',
+    title: t('admin.sections.customDomains.title'),
+    description: t('admin.sections.customDomains.description'),
+    badge: t('admin.sections.customDomains.badge'),
+    category: t('admin.sections.customDomains.category'),
     icon: 'mdi:earth',
     to: '/admin/tenants?tab=domains'
   }

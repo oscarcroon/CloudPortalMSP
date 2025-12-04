@@ -11,7 +11,7 @@
           @click.stop
         >
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-white">Steguppverifiering krävs</h2>
+            <h2 class="text-xl font-semibold text-white">{{ t('mfa.title') }}</h2>
             <button
               v-if="allowCancel"
               class="text-slate-400 transition hover:text-white"
@@ -22,13 +22,13 @@
           </div>
 
           <p class="mb-6 text-sm text-slate-300">
-            Denna åtgärd kräver ytterligare verifiering. Vänligen ange din MFA-kod för att fortsätta.
+            {{ t('mfa.subtitle') }}
           </p>
 
           <form @submit.prevent="handleSubmit">
             <div class="mb-4">
               <label for="mfa-code" class="mb-2 block text-sm font-medium text-slate-300">
-                MFA-kod
+                {{ t('mfa.codeLabel') }}
               </label>
               <input
                 id="mfa-code"
@@ -39,7 +39,7 @@
                 maxlength="6"
                 autocomplete="one-time-code"
                 class="w-full rounded-md border border-slate-600 bg-slate-800 px-4 py-2 text-white placeholder:text-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                placeholder="000000"
+                :placeholder="t('mfa.codePlaceholder')"
                 :disabled="loading"
                 @input="handleCodeInput"
               />
@@ -57,15 +57,15 @@
                 :disabled="loading"
                 @click="handleCancel"
               >
-                Avbryt
+                {{ t('common.cancel') }}
               </button>
               <button
                 type="submit"
                 class="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand/90 disabled:opacity-50"
                 :disabled="loading || !isCodeValid"
               >
-                <span v-if="loading">Verifierar...</span>
-                <span v-else>Verifiera</span>
+                <span v-if="loading">{{ t('mfa.verifying') }}</span>
+                <span v-else>{{ t('mfa.verify') }}</span>
               </button>
             </div>
           </form>
@@ -76,8 +76,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from '#imports'
+import { ref, computed, useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
+
+const { t } = useI18n()
 
 interface Props {
   show: boolean
@@ -136,11 +138,11 @@ async function handleSubmit() {
       error.value = null
     } else {
       error.value = response.error === 'INVALID_MFA_CODE' 
-        ? 'Ogiltig MFA-kod. Försök igen.'
-        : 'Verifiering misslyckades. Försök igen.'
+        ? t('mfa.errors.invalidCode')
+        : t('mfa.errors.verifyFailed')
     }
   } catch (err: any) {
-    error.value = err.data?.message || 'Ett fel uppstod. Försök igen.'
+    error.value = err.data?.message || t('mfa.errors.generic')
   } finally {
     loading.value = false
   }

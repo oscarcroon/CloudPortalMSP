@@ -1,15 +1,15 @@
 <template>
   <section class="space-y-8">
     <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Administration</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Audit Loggar</h1>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('settings.administration') }}</p>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ t('settings.audit.title') }}</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        Visa säkerhetshändelser och administrativa aktiviteter för denna organisation.
+        {{ t('settings.audit.pageDescription') }}
       </p>
     </header>
 
     <div v-if="!hasActiveOrg" class="rounded-lg bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-      Välj en organisation för att visa audit loggar.
+      {{ t('settings.audit.noActiveOrg') }}
     </div>
 
     <template v-else>
@@ -17,18 +17,18 @@
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
         <form class="grid grid-cols-1 gap-4 md:grid-cols-3" @submit.prevent="loadLogs">
           <div>
-            <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Event Type</label>
+            <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('settings.audit.eventType') }}</label>
             <select
               v-model="filters.eventType"
               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             >
-              <option value="">Alla</option>
+              <option value="">{{ t('settings.audit.all') }}</option>
               <option v-for="type in relevantEventTypes" :key="type" :value="type">{{ type }}</option>
             </select>
           </div>
 
           <div>
-            <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Från datum</label>
+            <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('settings.audit.fromDate') }}</label>
             <input
               v-model="filters.startDate"
               type="date"
@@ -37,7 +37,7 @@
           </div>
 
           <div>
-            <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Till datum</label>
+            <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('settings.audit.toDate') }}</label>
             <input
               v-model="filters.endDate"
               type="date"
@@ -50,31 +50,31 @@
               type="submit"
               class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
             >
-              Filtrera
+              {{ t('settings.audit.filter') }}
             </button>
             <button
               type="button"
               class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
               @click="clearFilters"
             >
-              Rensa
+              {{ t('settings.audit.clear') }}
             </button>
           </div>
         </form>
       </div>
 
       <!-- Loading state -->
-      <div v-if="loading" class="text-center text-slate-600 dark:text-slate-400">Laddar...</div>
+      <div v-if="loading" class="text-center text-slate-600 dark:text-slate-400">{{ t('settings.audit.loading') }}</div>
 
       <!-- Logs table -->
       <div v-else class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
         <table class="w-full">
           <thead class="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Tidpunkt</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Event</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Användare</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Detaljer</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ t('settings.audit.table.timestamp') }}</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ t('settings.audit.table.event') }}</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ t('settings.audit.table.user') }}</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ t('settings.audit.table.details') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 dark:divide-white/10">
@@ -86,7 +86,7 @@
                 <span class="font-mono text-xs">{{ log.eventType }}</span>
               </td>
               <td class="px-4 py-3 text-sm text-slate-900 dark:text-white">
-                {{ log.userEmail || log.userName || 'N/A' }}
+                {{ log.userEmail || log.userName || t('settings.audit.table.na') }}
               </td>
               <td class="px-4 py-3 text-sm">
                 <button
@@ -94,7 +94,7 @@
                   class="text-brand hover:underline"
                   @click="showDetails(log)"
                 >
-                  Visa
+                  {{ t('settings.audit.table.view') }}
                 </button>
               </td>
             </tr>
@@ -160,6 +160,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 import { ref, computed, onMounted } from '#imports'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'

@@ -1,3 +1,4 @@
+/* eslint-env node */
 /**
  * Script för att rensa gammal krypterad e-postkonfiguration
  * 
@@ -97,6 +98,9 @@ for (const record of records) {
     invalidCount++
     invalidRecords.push(record)
     console.log(`✗ ${record.target_type}:${record.target_key} - Kan inte dekrypteras`)
+    if (error instanceof Error) {
+      console.debug(`   ↳ Orsak: ${error.message}`)
+    }
   }
 }
 

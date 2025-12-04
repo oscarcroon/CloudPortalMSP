@@ -2,9 +2,9 @@
   <section class="space-y-8">
     <header class="space-y-1">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Tenants</h1>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ t('adminTenants.title') }}</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        Hantera distributörer och leverantörer. Distributörer kan skapa leverantörer, leverantörer kan skapa organisationer.
+        {{ t('adminTenants.description') }}
       </p>
     </header>
 
@@ -15,14 +15,14 @@
             v-model="searchInput"
             type="text"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            placeholder="Sök efter namn eller slug..."
+            :placeholder="t('adminTenants.searchPlaceholder')"
           />
           <button
             v-if="searchInput"
             type="button"
             class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300"
             @click="clearSearch"
-            title="Rensa sökning"
+            :title="t('adminTenants.clearSearch')"
           >
             <Icon icon="mdi:close-circle" class="h-5 w-5" />
           </button>
@@ -36,7 +36,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
         >
           <Icon icon="mdi:city" class="h-4 w-4" />
-          Skapa distributör
+          {{ t('adminTenants.createDistributor') }}
         </NuxtLink>
         <NuxtLink
           v-if="canCreateSupplier"
@@ -44,7 +44,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
         >
           <Icon icon="mdi:store" class="h-4 w-4" />
-          Skapa leverantör
+          {{ t('adminTenants.createProvider') }}
         </NuxtLink>
       </div>
     </div>
@@ -52,10 +52,10 @@
     <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
       <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/5">
         <div>
-          <p class="text-sm font-semibold text-slate-900 dark:text-white">Alla tenants</p>
+          <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('adminTenants.allTenants') }}</p>
           <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ filteredTenants.length }} resultat
-            <span v-if="searchInput">för "{{ searchInput }}"</span>
+            {{ t('adminTenants.results', { count: filteredTenants.length }) }}
+            <span v-if="searchInput"> {{ t('adminTenants.for', { query: searchInput }) }}</span>
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -65,22 +65,22 @@
               type="checkbox"
               class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-white/20"
             />
-            <span class="text-xs">Visa alla organisationer</span>
+            <span class="text-xs">{{ t('adminTenants.showAllOrganizations') }}</span>
           </label>
           <button
             class="rounded border border-slate-300 px-3 py-1 text-xs uppercase tracking-wide text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
             @click="refreshList"
           >
-            Uppdatera
+            {{ t('adminTenants.refresh') }}
           </button>
         </div>
       </div>
 
       <div v-if="listError" class="px-6 py-4 text-sm text-red-500">{{ listError }}</div>
-      <div v-else-if="pending" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Laddar tenants...</div>
+      <div v-else-if="pending" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{{ t('adminTenants.loading') }}</div>
       <div v-else-if="!filteredTenants.length && !filteredOrganizations.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-        <span v-if="searchInput">Inga resultat matchade din sökning.</span>
-        <span v-else>Inga tenants hittades.</span>
+        <span v-if="searchInput">{{ t('adminTenants.noResults') }}</span>
+        <span v-else>{{ t('adminTenants.noTenants') }}</span>
       </div>
       <div v-else class="overflow-x-auto p-4 sm:p-6">
         <!-- Tree View -->
@@ -102,6 +102,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 import { computed, onMounted, ref, useFetch, useRoute, useRouter, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
@@ -366,19 +369,6 @@ const formatDate = (value: number) =>
     dateStyle: 'short',
     timeStyle: 'short'
   })
-
-const getTypeLabel = (type: string) => {
-  switch (type) {
-    case 'provider':
-      return 'Leverantör'
-    case 'distributor':
-      return 'Distributör'
-    case 'organization':
-      return 'Organisation'
-    default:
-      return type
-  }
-}
 
 const getTypeClass = (type: string) => {
   switch (type) {

@@ -1,11 +1,10 @@
 <template>
   <section class="space-y-8">
     <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Inställningar</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Modulrättigheter</h1>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('settings.administration') }}</p>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ t('settings.modules.title') }}</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation.
-        Du kan också sätta granulära rättigheter per användare för varje modul.
+        {{ t('settings.modules.pageDescription') }}
       </p>
     </header>
 
@@ -25,7 +24,7 @@
           <input
             v-model="moduleSearchQuery"
             type="text"
-            placeholder="Sök efter moduler..."
+            :placeholder="t('settings.modules.searchPlaceholder')"
             class="w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
           />
         </div>
@@ -34,14 +33,14 @@
           class="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
         >
           <Icon :icon="allPermissionsExpanded ? 'mdi:unfold-less-horizontal' : 'mdi:unfold-more-horizontal'" class="h-5 w-5" />
-          {{ allPermissionsExpanded ? 'Dölj alla rättigheter' : 'Visa alla rättigheter' }}
+          {{ allPermissionsExpanded ? t('settings.modules.hideAll') : t('settings.modules.showAll') }}
         </button>
       </div>
 
       <div v-if="filteredPolicies.length === 0" class="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
         <Icon icon="mdi:puzzle-outline" class="mx-auto h-12 w-12 text-slate-400" />
         <p class="mt-4 text-sm text-slate-600 dark:text-slate-400">
-          {{ moduleSearchQuery ? 'Inga moduler matchade sökningen' : 'Inga moduler hittades för din organisation.' }}
+          {{ moduleSearchQuery ? t('settings.modules.noSearchResults') : t('settings.modules.noModules') }}
         </p>
       </div>
       
@@ -84,10 +83,10 @@
                 >
                   {{ policy.module.name }}
                   <span v-if="!policy.enabled && !policy.disabled" class="ml-2 text-xs font-normal text-red-500 dark:text-red-400">
-                    (Inaktiverad)
+                    ({{ t('settings.modules.disabled') }})
                   </span>
                   <span v-else-if="policy.disabled && policy.enabled" class="ml-2 text-xs font-normal text-yellow-600 dark:text-yellow-400">
-                    (Avaktiverad)
+                    ({{ t('settings.modules.deactivated') }})
                   </span>
                 </h3>
                 <p 
@@ -474,6 +473,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 import { ref, onMounted, watch, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useAuth } from '~/composables/useAuth'

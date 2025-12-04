@@ -1,8 +1,8 @@
 <template>
   <section class="space-y-8">
     <header>
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Administration</p>
-      <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Inställningar</h1>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('settings.administration') }}</p>
+      <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.title') }}</h1>
     </header>
 
     <!-- Loading state while auth is initializing -->
@@ -17,9 +17,9 @@
           <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ organizationSectionTitle }}</h2>
         </div>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Byt aktiv organisation och se roller.
+          {{ t('settings.organizations.description') }}
           <span v-if="hasActiveTenant && auth.currentTenant.value" class="block text-xs text-slate-400 dark:text-slate-500">
-            Visar endast organisationer under {{ auth.currentTenant.value.name }}.
+            {{ t('settings.organizations.showingOnly', { tenant: auth.currentTenant.value.name }) }}
           </span>
         </p>
 
@@ -34,17 +34,17 @@
                     v-if="isPrimaryOrganization(activeOrganization.id)"
                     class="rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white"
                   >
-                    Primär
+                    {{ t('settings.organizations.primary') }}
                   </span>
                   <span
                     v-else
                     class="text-xs text-slate-400 dark:text-slate-500"
                   >
-                    Ej primär
+                    {{ t('settings.organizations.notPrimary') }}
                   </span>
                 </div>
                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Roll: {{ activeOrganization.role }}
+                  {{ t('settings.organizations.role') }}: {{ activeOrganization.role }}
                   <span
                     v-if="activeOrgAccessLabel"
                     class="ml-2 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand dark:bg-brand/20 dark:text-brand-light"
@@ -53,7 +53,7 @@
                     {{ activeOrgAccessLabel }}
                   </span>
                 </p>
-                <p class="mt-1 text-xs font-semibold text-brand">Aktiv nu</p>
+                <p class="mt-1 text-xs font-semibold text-brand">{{ t('settings.organizations.activeNow') }}</p>
               </div>
               <button
                 class="flex items-center justify-center rounded-full p-2 transition hover:bg-white/20"
@@ -64,8 +64,8 @@
                 "
                 :title="
                   isPrimaryOrganization(activeOrganization.id)
-                    ? 'Primär organisation'
-                    : 'Sätt som primär organisation'
+                    ? t('settings.organizations.isPrimary')
+                    : t('settings.organizations.setAsPrimary')
                 "
                 @click="handleSetPrimary(activeOrganization.id)"
               >
@@ -82,12 +82,12 @@
           v-if="!hasActiveOrg"
           class="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
         >
-          Ingen organisation är aktiv just nu. Välj en i listan för att visa organisationsspecifika inställningar.
+          {{ t('settings.organizations.noActiveOrg') }}
         </p>
 
         <!-- Other Organizations Section -->
         <div v-if="otherOrganizations.length > 0" class="mt-6">
-          <h3 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Övriga organisationer</h3>
+          <h3 class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.organizations.otherOrganizations') }}</h3>
           
           <!-- Search Input - Only show if more than 3 organizations -->
           <div v-if="otherOrganizations.length > 3" class="mb-4">
@@ -95,7 +95,7 @@
               v-model="searchTerm"
               type="text"
               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white dark:placeholder-slate-500"
-              placeholder="Sök efter organisation..."
+              :placeholder="t('settings.organizations.searchPlaceholder')"
               @input="currentPage = 1"
             />
           </div>
@@ -117,8 +117,8 @@
                   "
                   :title="
                     isPrimaryOrganization(org.id)
-                      ? 'Primär organisation'
-                      : 'Sätt som primär organisation'
+                      ? t('settings.organizations.isPrimary')
+                      : t('settings.organizations.setAsPrimary')
                   "
                   @click="handleSetPrimary(org.id)"
                 >
@@ -134,23 +134,23 @@
                       v-if="isPrimaryOrganization(org.id)"
                       class="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200"
                     >
-                      Primär
+                      {{ t('settings.organizations.primary') }}
                     </span>
                     <span
                       v-if="org.status !== 'active'"
                       class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
                     >
-                      Inaktiv
+                      {{ t('settings.organizations.inactive') }}
                     </span>
                   </div>
                   <p class="text-xs text-slate-500 dark:text-slate-400">
-                    Roll: {{ org.role }}
+                    {{ t('settings.organizations.role') }}: {{ org.role }}
                     <span
                       v-if="org.accessType === 'msp'"
                       class="ml-2 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand dark:bg-brand/20 dark:text-brand-light"
                     >
                       <Icon icon="mdi:account-hard-hat" class="h-3 w-3" />
-                      Via tenant
+                      {{ t('settings.organizations.viaTenant') }}
                     </span>
                   </p>
                 </div>
@@ -160,7 +160,7 @@
                 :disabled="org.status !== 'active'"
                 @click="auth.switchOrganization(org.id)"
               >
-                Välj
+                {{ t('settings.organizations.select') }}
               </button>
             </li>
           </ul>
@@ -172,17 +172,17 @@
               :disabled="currentPage === 1"
               @click="currentPage = Math.max(1, currentPage - 1)"
             >
-              Föregående
+              {{ t('settings.organizations.previous') }}
             </button>
             <span class="text-sm text-slate-600 dark:text-slate-400">
-              Sida {{ currentPage }} av {{ totalPages }}
+              {{ t('settings.organizations.page', { current: currentPage, total: totalPages }) }}
             </span>
             <button
               class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:text-slate-200"
               :disabled="currentPage >= totalPages"
               @click="currentPage = Math.min(totalPages, currentPage + 1)"
             >
-              Nästa
+              {{ t('settings.organizations.next') }}
             </button>
           </div>
         </div>
@@ -191,7 +191,7 @@
           v-if="otherOrganizations.length === 0 && filteredOrganizations.length === 0"
           class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
         >
-          Inga organisationer är kopplade till den aktuella leverantören. Lägg till en organisation eller byt leverantör i context switchern.
+          {{ t('settings.organizations.noOrganizations') }}
         </p>
       </div>
 
@@ -205,10 +205,10 @@
           <div>
             <div class="flex items-center gap-3">
               <Icon icon="mdi:account-group-outline" class="h-6 w-6 text-brand" />
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Medlemmar</h2>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.members.title') }}</h2>
             </div>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Lista alla medlemmar i organisationen och hantera roller.
+              {{ t('settings.members.description') }}
             </p>
           </div>
           <NuxtLink
@@ -220,13 +220,13 @@
               { 'pointer-events-none opacity-50': isSettingsLocked }
             ]"
           >
-            Öppna
+            {{ t('settings.open') }}
           </NuxtLink>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-          <li>• Se status för aktiva och väntande medlemmar</li>
-          <li>• Uppdatera roller för owner, admin och member</li>
-          <li>• Ta bort åtkomst för användare som lämnar</li>
+          <li>• {{ t('settings.members.features.status') }}</li>
+          <li>• {{ t('settings.members.features.roles') }}</li>
+          <li>• {{ t('settings.members.features.remove') }}</li>
         </ul>
       </div>
 
@@ -240,10 +240,10 @@
           <div>
             <div class="flex items-center gap-3">
               <Icon icon="mdi:shield-lock-outline" class="h-6 w-6 text-brand" />
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Auth &amp; SSO</h2>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.auth.title') }}</h2>
             </div>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Aktivera Identity Provider, konfigurera OpenID eller Entra och styr om SSO ska krävas.
+              {{ t('settings.auth.description') }}
             </p>
           </div>
           <NuxtLink
@@ -255,13 +255,13 @@
               { 'pointer-events-none opacity-50': isSettingsLocked }
             ]"
           >
-            Öppna
+            {{ t('settings.open') }}
           </NuxtLink>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-          <li>• Välj IdP-typ (OpenID eller Entra AD)</li>
-          <li>• Följ guiden för att konfigurera Cloudflare Access</li>
-          <li>• Aktivera “Kräv SSO” när IdP är klar</li>
+          <li>• {{ t('settings.auth.features.idp') }}</li>
+          <li>• {{ t('settings.auth.features.cloudflare') }}</li>
+          <li>• {{ t('settings.auth.features.require') }}</li>
         </ul>
       </div>
 
@@ -275,10 +275,10 @@
           <div>
             <div class="flex items-center gap-3">
               <Icon icon="mdi:email-outline" class="h-6 w-6 text-brand" />
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">E-postoverride</h2>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.email.title') }}</h2>
             </div>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Ställ in organisationens egen SMTP- eller Graph-provider, inklusive branding och testutskick.
+              {{ t('settings.email.description') }}
             </p>
           </div>
           <NuxtLink
@@ -290,13 +290,13 @@
               { 'pointer-events-none opacity-50': isSettingsLocked }
             ]"
           >
-            Öppna
+            {{ t('settings.open') }}
           </NuxtLink>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-          <li>• Aktivera override för utskick inom organisationen</li>
-          <li>• Konfigurera SMTP med eller utan auth, eller Microsoft Graph</li>
-          <li>• Anpassa logotyp, färger och testkör direkt från formuläret</li>
+          <li>• {{ t('settings.email.features.override') }}</li>
+          <li>• {{ t('settings.email.features.configure') }}</li>
+          <li>• {{ t('settings.email.features.customize') }}</li>
         </ul>
       </div>
 
@@ -311,9 +311,9 @@
             <div class="flex items-center gap-3">
               <Icon icon="mdi:palette-outline" class="h-6 w-6 text-brand" />
               <div>
-                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Branding & login</h2>
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.branding.title') }}</h2>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Hantera logotyp, accentfärg och login-branding för {{ activeOrganisationName }}.
+                  {{ t('settings.branding.description', { orgName: activeOrganisationName }) }}
                 </p>
               </div>
             </div>
@@ -327,13 +327,13 @@
               { 'pointer-events-none opacity-50': isSettingsLocked }
             ]"
           >
-            Öppna
+            {{ t('settings.open') }}
           </NuxtLink>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-          <li>• Ladda upp separata logotyper för ljus/mörk bakgrund</li>
-          <li>• Sätt accentfärg eller välj från palett med arv per tenant</li>
-          <li>• Hantera login-branding och custom domains (CNAME)</li>
+          <li>• {{ t('settings.branding.features.logos') }}</li>
+          <li>• {{ t('settings.branding.features.color') }}</li>
+          <li>• {{ t('settings.branding.features.login') }}</li>
         </ul>
       </div>
 
@@ -347,10 +347,10 @@
           <div>
             <div class="flex items-center gap-3">
               <Icon icon="mdi:puzzle-outline" class="h-6 w-6 text-brand" />
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Modulrättigheter</h2>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.modules.title') }}</h2>
             </div>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation.
+              {{ t('settings.modules.description') }}
             </p>
           </div>
           <NuxtLink
@@ -362,13 +362,13 @@
               { 'pointer-events-none opacity-50': isSettingsLocked }
             ]"
           >
-            Öppna
+            {{ t('settings.open') }}
           </NuxtLink>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-          <li>• Aktivera eller inaktivera moduler för organisationen</li>
-          <li>• Hantera rättigheter per modul (read/write)</li>
-          <li>• Sätt granulära rättigheter per användare</li>
+          <li>• {{ t('settings.modules.features.enable') }}</li>
+          <li>• {{ t('settings.modules.features.permissions') }}</li>
+          <li>• {{ t('settings.modules.features.granular') }}</li>
         </ul>
       </div>
 
@@ -382,10 +382,10 @@
           <div>
             <div class="flex items-center gap-3">
               <Icon icon="mdi:file-document-outline" class="h-6 w-6 text-brand" />
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Audit Loggar</h2>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.audit.title') }}</h2>
             </div>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Visa säkerhetshändelser och administrativa aktiviteter för organisationen.
+              {{ t('settings.audit.description') }}
             </p>
           </div>
           <NuxtLink
@@ -397,22 +397,22 @@
               { 'pointer-events-none opacity-50': isSettingsLocked }
             ]"
           >
-            Öppna
+            {{ t('settings.open') }}
           </NuxtLink>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
-          <li>• Visa inloggningar och säkerhetshändelser</li>
-          <li>• Spåra ändringar i roller och medlemmar</li>
-          <li>• Översikt över modulaktiveringar</li>
+          <li>• {{ t('settings.audit.features.events') }}</li>
+          <li>• {{ t('settings.audit.features.track') }}</li>
+          <li>• {{ t('settings.audit.features.overview') }}</li>
         </ul>
       </div>
 
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center gap-3">
           <Icon icon="mdi:key-outline" class="h-6 w-6 text-brand" />
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">API tokens</h2>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.apiTokens.title') }}</h2>
         </div>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Hantera autentisering mot externa leverantörer.</p>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ t('settings.apiTokens.description') }}</p>
         <div class="mt-4 space-y-3">
           <div
             v-for="token in tokens"
@@ -422,7 +422,7 @@
             <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ token.name }}</p>
             <p class="text-xs text-slate-500 dark:text-slate-400">{{ token.description }}</p>
             <button class="mt-2 text-xs font-semibold text-brand hover:text-brand-dark dark:text-brand-light">
-              Konfigurera
+              {{ t('settings.apiTokens.configure') }}
             </button>
           </div>
         </div>
@@ -432,13 +432,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from '#imports'
+import { computed, ref, onMounted, watch, useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'
 import { matchesSearch } from '~/utils/search'
 import type { AuthOrganization } from '~~/server/types/auth'
 
+const { t } = useI18n()
 const auth = useAuth()
 const { can } = usePermission()
 
@@ -521,7 +522,7 @@ const activeOrganization = computed(() => {
 const activeOrgAccessLabel = computed(() => {
   if (!activeOrganization.value) return null
   if (activeOrganization.value.accessType === 'msp') {
-    return activeOrganization.value.role === 'admin' ? 'Admin via tenant' : 'Viewer via tenant'
+    return activeOrganization.value.role === 'admin' ? t('settings.organizations.adminViaTenant') : t('settings.organizations.viewerViaTenant')
   }
   return null
 })
@@ -574,8 +575,8 @@ async function handleSetPrimary(orgId: string) {
 const hasActiveOrg = computed(() => Boolean(auth.state.value.data?.currentOrgId))
 const organizationSectionTitle = computed(() =>
   hasActiveTenant.value && auth.currentTenant.value
-    ? `Organisationer för ${auth.currentTenant.value.name}`
-    : 'Organisationer'
+    ? t('settings.organizations.titleForTenant', { tenant: auth.currentTenant.value.name })
+    : t('settings.organizations.title')
 )
 const canManageOrg = can('org:manage')
 // Only lock settings if auth is initialized and det saknas rättigheter för aktiv org
@@ -589,6 +590,6 @@ const isSettingsLocked = computed(() => {
   return !canManageOrg.value
 })
 
-const activeOrganisationName = computed(() => auth.currentOrg.value?.name ?? 'Ingen organisation vald')
+const activeOrganisationName = computed(() => auth.currentOrg.value?.name ?? t('settings.organizations.noActiveOrg'))
 </script>
 

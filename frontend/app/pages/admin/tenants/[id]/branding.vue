@@ -5,12 +5,12 @@
         :to="`/admin/tenants/${tenantId}`"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka
+        {{ t('adminTenants.branding.backToTenant') }}
       </NuxtLink>
       <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Branding</p>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('adminTenants.branding.category') }}</p>
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">
-          {{ tenantInfo?.name ?? 'Laddar...' }}
+          {{ tenantInfo?.name ?? t('adminTenants.branding.loading') }}
         </h1>
         <p class="text-sm text-slate-500 dark:text-slate-400">
           {{ tenantTypeLabel }}
@@ -23,10 +23,10 @@
           <div>
             <div class="flex items-center gap-3">
               <Icon icon="mdi:palette-outline" class="h-6 w-6 text-brand" />
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Branding</h2>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('adminTenants.branding.title') }}</h2>
             </div>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Uppdatera logotyp och accentfärg för {{ tenantTypeLabel.toLowerCase() }}n.
+              {{ t('adminTenants.branding.description', { tenantType: tenantTypeLabel.toLowerCase() }) }}
             </p>
           </div>
         </div>
@@ -37,7 +37,7 @@
 
       <div v-else>
         <div v-if="brandingLoading" class="py-8 text-sm text-slate-500 dark:text-slate-400">
-          Hämtar brandinginformation...
+          {{ t('adminTenants.branding.loadingBranding') }}
         </div>
         <div v-else class="mt-4 space-y-6">
           <div class="grid gap-6 lg:grid-cols-2">
@@ -52,7 +52,7 @@
                   class="max-h-20 w-auto object-contain"
                 />
               </div>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Logokälla: {{ logoSourceLabel }}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('adminTenants.branding.logo.source', { source: logoSourceLabel }) }}</p>
               <div class="flex flex-wrap items-center gap-3">
                 <button
                   class="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:bg-brand/40"
@@ -60,7 +60,7 @@
                   :disabled="isUploading"
                   @click="triggerFilePicker"
                 >
-                  {{ isUploading ? 'Laddar upp...' : 'Byt logotyp' }}
+                  {{ isUploading ? t('adminTenants.branding.logo.uploading') : t('adminTenants.branding.logo.change') }}
                 </button>
                 <button
                   v-if="hasCustomLogo"
@@ -69,7 +69,7 @@
                   :disabled="isUploading"
                   @click="removeLogo"
                 >
-                  {{ isUploading ? 'Tar bort...' : 'Ta bort logotyp' }}
+                  {{ isUploading ? t('adminTenants.branding.logo.removing') : t('adminTenants.branding.logo.remove') }}
                 </button>
                 <input
                   ref="logoInputRef"
@@ -86,7 +86,7 @@
                 {{ uploadSuccessMessage }}
               </p>
                 <p class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                  Max 2 MB
+                  {{ t('adminTenants.branding.logo.maxSize') }}
                 </p>
             </div>
 
@@ -94,16 +94,16 @@
               <div class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
                 <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Accentfärg</p>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ t('adminTenants.branding.accentColor.title') }}</p>
                     <p class="text-xs text-slate-500 dark:text-slate-400">
-                      Ange egen färg eller välj en fördefinierad ton.
+                      {{ t('adminTenants.branding.accentColor.description') }}
                     </p>
                 </div>
                   <div
                     class="flex h-10 w-24 items-center justify-center rounded-lg text-xs font-semibold text-white"
                     :style="{ backgroundColor: activeAccentColor }"
                   >
-                    Accent
+                    {{ t('adminTenants.branding.accentColor.label') }}
                 </div>
               </div>
                 <div class="flex flex-wrap items-center gap-3">
@@ -124,7 +124,7 @@
                     :disabled="accentSaving"
                     @click="saveCustomAccent"
                   >
-                    {{ accentSaving ? 'Sparar...' : 'Spara' }}
+                    {{ accentSaving ? t('adminTenants.branding.accentColor.saving') : t('adminTenants.branding.accentColor.save') }}
                   </button>
                   <button
                     v-if="tenantHasCustomAccent"
@@ -133,7 +133,7 @@
                     :disabled="accentSaving"
                     @click="resetAccent"
                   >
-                    Återställ
+                    {{ t('adminTenants.branding.accentColor.reset') }}
                   </button>
                 </div>
                 <p
@@ -152,23 +152,23 @@
                     :disabled="accentSaving"
                     @click="applyAccentPreset(option.hex)"
                   >
-                    <span class="sr-only">Välj {{ option.label }}</span>
+                    <span class="sr-only">{{ t('adminTenants.branding.accentColor.select', { label: option.label }) }}</span>
                   </button>
                 </div>
               </div>
               <div class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
                 <div class="flex items-center justify-between gap-4">
                   <div>
-                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Navigation</p>
+                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ t('adminTenants.branding.navigation.title') }}</p>
                     <p class="text-xs text-slate-500 dark:text-slate-400">
-                      Bakgrundsfärgen som används i portaltoppen.
+                      {{ t('adminTenants.branding.navigation.description') }}
                     </p>
                   </div>
                   <div
                     class="flex h-10 w-24 items-center justify-center rounded-lg text-xs font-semibold text-white"
                     :style="{ backgroundColor: navigationPreviewColor }"
                   >
-                    Nav
+                    {{ t('adminTenants.branding.navigation.label') }}
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
@@ -189,7 +189,7 @@
                     :disabled="navSaving"
                     @click="saveNavigationColor"
                   >
-                    {{ navSaving ? 'Sparar...' : 'Spara' }}
+                    {{ navSaving ? t('adminTenants.branding.navigation.saving') : t('adminTenants.branding.navigation.save') }}
                   </button>
                   <button
                     v-if="navColor"
@@ -198,7 +198,7 @@
                     :disabled="navSaving"
                     @click="resetNavigationColor"
                   >
-                    Återställ
+                    {{ t('adminTenants.branding.navigation.reset') }}
                   </button>
                 </div>
                 <p
@@ -217,7 +217,7 @@
                     :disabled="navSaving"
                     @click="applyNavPreset(option.hex)"
                   >
-                    <span class="sr-only">Välj {{ option.label }}</span>
+                    <span class="sr-only">{{ t('adminTenants.branding.navigation.select', { label: option.label }) }}</span>
                   </button>
                 </div>
               </div>
@@ -225,7 +225,7 @@
           </div>
 
           <div class="border-t border-slate-200 pt-4 dark:border-white/10" v-if="brandingLayers.length">
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Ärvd kedja</p>
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.branding.inheritedChain.title') }}</p>
             <div class="mt-3 grid gap-3 md:grid-cols-2">
               <div
                 v-for="layer in brandingLayers"
@@ -235,10 +235,10 @@
                 <p class="font-semibold text-slate-900 dark:text-slate-100">{{ layer.title }}</p>
                 <p class="text-xs text-slate-500 dark:text-slate-400">{{ layer.name }}</p>
                 <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  Logo: <span class="font-semibold">{{ layer.hasLogo ? 'Egen' : 'Ärvs' }}</span>
+                  {{ t('adminTenants.branding.inheritedChain.logo') }} <span class="font-semibold">{{ layer.hasLogo ? t('adminTenants.branding.inheritedChain.custom') : t('adminTenants.branding.inheritedChain.inherited') }}</span>
                 </p>
                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Accent: <span class="font-semibold">{{ layer.hasAccent ? 'Egen' : 'Ärvs' }}</span>
+                  {{ t('adminTenants.branding.inheritedChain.accent') }} <span class="font-semibold">{{ layer.hasAccent ? t('adminTenants.branding.inheritedChain.custom') : t('adminTenants.branding.inheritedChain.inherited') }}</span>
                 </p>
               </div>
             </div>
@@ -249,10 +249,10 @@
               <Icon icon="mdi:login" class="h-6 w-6 text-brand" />
               <div>
                 <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Login-branding
+                  {{ t('adminTenants.branding.loginBranding.title') }}
                 </h3>
                 <p class="text-sm text-slate-500 dark:text-slate-400">
-                  Styr hur login-sidan visas för denna {{ tenantTypeLabel.toLowerCase() }}.
+                  {{ t('adminTenants.branding.loginBranding.description', { tenantType: tenantTypeLabel.toLowerCase() }) }}
                 </p>
               </div>
             </div>
@@ -274,13 +274,13 @@
         <div>
           <div class="flex items-center gap-3">
             <Icon icon="mdi:earth" class="h-6 w-6 text-brand" />
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Login-domän</h2>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('adminTenants.branding.loginDomain.title') }}</h2>
           </div>
           <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Koppla en egen domän för login-sidan eller använd standardadressen.
+            {{ t('adminTenants.branding.loginDomain.description') }}
           </p>
           <p v-if="suggestedLoginDomain" class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            Standard: <code class="rounded bg-slate-100 px-2 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-100">https://{{ suggestedLoginDomain }}</code>
+            {{ t('adminTenants.branding.loginDomain.default') }} <code class="rounded bg-slate-100 px-2 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-100">https://{{ suggestedLoginDomain }}</code>
           </p>
         </div>
         <span
@@ -291,12 +291,12 @@
         </span>
       </div>
       <div class="mt-4 space-y-3">
-        <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Custom domain</label>
+        <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.branding.loginDomain.customDomain') }}</label>
         <input
           v-model="customDomainForm.value"
           type="text"
           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-transparent dark:text-slate-100"
-          placeholder="portal.exempel.se"
+          :placeholder="t('adminTenants.branding.loginDomain.placeholder')"
         />
         <div class="flex flex-wrap items-center gap-3">
           <button
@@ -305,7 +305,7 @@
             :disabled="customDomainSaving"
             @click="saveCustomDomain"
           >
-            {{ customDomainSaving ? 'Sparar...' : 'Spara' }}
+            {{ customDomainSaving ? t('adminTenants.branding.loginDomain.saving') : t('adminTenants.branding.loginDomain.save') }}
           </button>
           <button
             v-if="tenantInfo?.customDomain"
@@ -314,14 +314,14 @@
             :disabled="verifyDomainLoading"
             @click="verifyCustomDomain"
           >
-            {{ verifyDomainLoading ? 'Verifierar...' : 'Verifiera' }}
+            {{ verifyDomainLoading ? t('adminTenants.branding.loginDomain.verifying') : t('adminTenants.branding.loginDomain.verify') }}
           </button>
         </div>
         <p v-if="customDomainStatus" class="text-xs font-semibold" :class="customDomainStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'">
           {{ customDomainStatus.text }}
         </p>
         <p class="text-xs text-slate-500 dark:text-slate-400">
-          Peka ett CNAME till <code>{{ suggestedLoginDomain || 'login.<slug>' }}</code> och verifiera domänen innan den tas i bruk.
+          {{ t('adminTenants.branding.loginDomain.cnameHint', { domain: suggestedLoginDomain || 'login.<slug>' }) }}
         </p>
       </div>
     </div>
@@ -341,6 +341,9 @@ import {
   normalizeHexColor
 } from '~~/shared/branding'
 import LoginBrandingAssets from '~/components/branding/LoginBrandingAssets.vue'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const tenantId = computed(() => route.params.id as string)
@@ -406,7 +409,7 @@ const currentLogo = computed(() => {
 
 const tenantTypeLabel = computed(() => {
   if (!tenantInfo.value) return 'Tenant'
-  return tenantInfo.value.type === 'provider' ? 'Leverantör' : 'Distributör'
+  return tenantInfo.value.type === 'provider' ? t('adminTenants.branding.types.provider') : t('adminTenants.branding.types.distributor')
 })
 
 const activeAccentColor = computed(
@@ -455,7 +458,7 @@ const brandingLayers = computed(() => {
   }
   if (brandingDetails.value.distributorTheme) {
     layers.push({
-      title: 'Distributör',
+      title: t('adminTenants.branding.types.distributor'),
       name: brandingDetails.value.distributorTheme.name,
       hasLogo: Boolean(brandingDetails.value.distributorTheme.logoUrl),
       hasAccent: Boolean(
@@ -470,29 +473,29 @@ const brandingLayers = computed(() => {
 const domainVerificationMeta = computed(() => {
   if (!tenantInfo.value?.customDomain) {
     return {
-      label: 'Ej konfigurerad',
+      label: t('adminTenants.branding.loginDomain.status.notConfigured'),
       class: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
     }
   }
   switch (tenantInfo.value.customDomainVerificationStatus) {
     case 'verified':
       return {
-        label: 'Verifierad',
+        label: t('adminTenants.branding.loginDomain.status.verified'),
         class: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-100'
       }
     case 'pending':
       return {
-        label: 'Avvaktar',
+        label: t('adminTenants.branding.loginDomain.status.pending'),
         class: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-100'
       }
     case 'failed':
       return {
-        label: 'Misslyckades',
+        label: t('adminTenants.branding.loginDomain.status.failed'),
         class: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-100'
       }
     default:
       return {
-        label: 'Overifierad',
+        label: t('adminTenants.branding.loginDomain.status.unverified'),
         class: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
       }
   }
@@ -507,10 +510,10 @@ function triggerFilePicker() {
 function validateFile(file: File) {
   const extension = file.name.split('.').pop()?.toLowerCase()
   if (!extension || !allowedExtensions.includes(extension)) {
-    return 'Ogiltigt filformat. Tillåtna format: .jpg, .png, .svg, .webp.'
+    return t('adminTenants.branding.logo.invalidFormat')
   }
   if (file.size > maxLogoBytes) {
-    return 'Filen får vara max 2 MB.'
+    return t('adminTenants.branding.logo.fileTooLarge')
   }
   return null
 }
@@ -543,13 +546,13 @@ async function handleLogoSelection(event: Event) {
       }
     )
     if (result?.logoUrl) {
-      uploadSuccessMessage.value = 'Logotypen uppdaterades.'
+      uploadSuccessMessage.value = t('adminTenants.branding.logo.updated')
       await fetchBranding()
     } else {
-      uploadError.value = 'Kunde inte ladda upp logotypen. Inget svar från servern.'
+      uploadError.value = t('adminTenants.branding.logo.uploadErrorNoResponse')
     }
   } catch (error: any) {
-    uploadError.value = error?.data?.message || error?.message || 'Kunde inte ladda upp logotypen.'
+    uploadError.value = error?.data?.message || error?.message || t('adminTenants.branding.logo.uploadError')
   } finally {
     isUploading.value = false
     target.value = ''
@@ -558,7 +561,7 @@ async function handleLogoSelection(event: Event) {
 }
 
 async function removeLogo() {
-  if (!confirm('Vill du ta bort den anpassade logotypen?')) {
+  if (!confirm(t('adminTenants.branding.logo.removeConfirm'))) {
     return
   }
   isUploading.value = true
@@ -569,10 +572,10 @@ async function removeLogo() {
       method: 'DELETE',
       credentials: 'include'
     })
-    uploadSuccessMessage.value = 'Logotypen togs bort.'
+    uploadSuccessMessage.value = t('adminTenants.branding.logo.removed')
     await fetchBranding()
   } catch (error: any) {
-    uploadError.value = error?.data?.message || error?.message || 'Kunde inte ta bort logotypen.'
+    uploadError.value = error?.data?.message || error?.message || t('adminTenants.branding.logo.removeError')
   } finally {
     isUploading.value = false
     scheduleUploadStatusClear()
@@ -604,12 +607,12 @@ async function saveCustomDomain() {
         customDomain: customDomainForm.value.trim() || null
       }
     })
-    customDomainStatus.value = { type: 'success', text: 'Domänen uppdaterades.' }
+    customDomainStatus.value = { type: 'success', text: t('adminTenants.branding.loginDomain.updated') }
     await fetchBranding()
   } catch (error: any) {
     customDomainStatus.value = {
       type: 'error',
-      text: error?.data?.message || error?.message || 'Kunde inte spara domänen.'
+      text: error?.data?.message || error?.message || t('adminTenants.branding.loginDomain.saveError')
     }
   } finally {
     customDomainSaving.value = false
@@ -627,12 +630,12 @@ async function verifyCustomDomain() {
       method: 'POST',
       credentials: 'include'
     })
-    customDomainStatus.value = { type: 'success', text: 'Domänen verifierades.' }
+    customDomainStatus.value = { type: 'success', text: t('adminTenants.branding.loginDomain.verified') }
     await fetchBranding()
   } catch (error: any) {
     customDomainStatus.value = {
       type: 'error',
-      text: error?.data?.message || error?.message || 'Verifieringen misslyckades.'
+      text: error?.data?.message || error?.message || t('adminTenants.branding.loginDomain.verifyError')
     }
   } finally {
     verifyDomainLoading.value = false
@@ -668,7 +671,7 @@ async function fetchBranding() {
     customDomainForm.value = tenantInfo.value?.customDomain ?? ''
   } catch (error: any) {
     brandingError.value =
-      error?.data?.message || error?.message || 'Kunde inte hämta brandinginformation.'
+      error?.data?.message || error?.message || t('adminTenants.branding.errors.loadFailed')
   } finally {
     brandingLoading.value = false
   }
@@ -676,14 +679,14 @@ async function fetchBranding() {
 
 async function saveCustomAccent() {
   if (!accentForm.customColor.trim()) {
-    accentStatus.value = { type: 'error', text: 'Ange en giltig färgkod.' }
+    accentStatus.value = { type: 'error', text: t('adminTenants.branding.accentColor.missingColor') }
     return
   }
   let normalized: string
   try {
     normalized = normalizeHexColor(accentForm.customColor)
   } catch {
-    accentStatus.value = { type: 'error', text: 'Ogiltig färgkod.' }
+    accentStatus.value = { type: 'error', text: t('adminTenants.branding.accentColor.invalidColor') }
     return
   }
   accentSaving.value = true
@@ -699,11 +702,11 @@ async function saveCustomAccent() {
       }
     })
     await fetchBranding()
-    accentStatus.value = { type: 'success', text: 'Accentfärgen uppdaterades.' }
+    accentStatus.value = { type: 'success', text: t('adminTenants.branding.accentColor.updated') }
   } catch (error: any) {
     accentStatus.value = {
       type: 'error',
-      text: error?.data?.message || error?.message || 'Kunde inte uppdatera accentfärgen.'
+      text: error?.data?.message || error?.message || t('adminTenants.branding.accentColor.updateError')
     }
   } finally {
     accentSaving.value = false
@@ -726,11 +729,11 @@ async function resetAccent() {
       }
     })
     await fetchBranding()
-    accentStatus.value = { type: 'success', text: 'Accentfärgen återställdes.' }
+    accentStatus.value = { type: 'success', text: t('adminTenants.branding.accentColor.resetMessage') }
   } catch (error: any) {
     accentStatus.value = {
       type: 'error',
-      text: error?.data?.message || error?.message || 'Kunde inte återställa accentfärgen.'
+      text: error?.data?.message || error?.message || t('adminTenants.branding.accentColor.resetError')
     }
   } finally {
     accentSaving.value = false
@@ -772,12 +775,12 @@ async function saveNavigationColor() {
       }
     })
     await fetchBranding()
-    navStatus.value = { type: 'success', text: 'Navigationsbakgrunden uppdaterades.' }
+    navStatus.value = { type: 'success', text: t('adminTenants.branding.navigation.updated') }
   } catch (error: any) {
     navStatus.value = {
       type: 'error',
       text:
-        error?.data?.message || error?.message || 'Kunde inte uppdatera navigationsbakgrunden.'
+        error?.data?.message || error?.message || t('adminTenants.branding.navigation.updateError')
     }
   } finally {
     navSaving.value = false
@@ -807,14 +810,10 @@ async function applyNavPreset(hex: string) {
 
 function formatSource(source?: BrandingThemeSource | null) {
   if (!source || source.targetType === 'default') {
-    return 'Standard'
+    return t('adminTenants.branding.sourceLabels.default')
   }
-  const label =
-    source.targetType === 'organization'
-      ? 'Organisation'
-      : source.targetType === 'provider'
-        ? 'Leverantör'
-        : 'Distributör'
+  const labelKey = `adminTenants.branding.sourceLabels.${source.targetType}`
+  const label = t(labelKey)
   return source.name ? `${label}: ${source.name}` : label
 }
 </script>

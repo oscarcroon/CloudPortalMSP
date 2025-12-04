@@ -2,8 +2,12 @@
   <section class="space-y-8">
     <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6 sm:justify-start">
       <div class="space-y-1">
-        <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Profil</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Hantera ditt konto och lösenord.</p>
+        <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
+          {{ t('profile.title') }}
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          {{ t('profile.subtitle') }}
+        </p>
       </div>
       <div class="flex flex-wrap gap-3">
         <button
@@ -16,7 +20,7 @@
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
           </svg>
-          <span class="whitespace-nowrap">Logga ut</span>
+          <span class="whitespace-nowrap">{{ t('auth.logout') }}</span>
         </button>
       </div>
     </header>
@@ -25,38 +29,75 @@
       v-if="requiresPasswordReset"
       class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
     >
-      Du måste uppdatera ditt lösenord innan du fortsätter.
+      {{ t('profile.forcePasswordReset') }}
     </div>
 
     <div class="grid gap-6 lg:grid-cols-2">
       <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0f172a]">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Konto</h2>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+          {{ t('profile.sections.account') }}
+        </h2>
         <dl class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</dt>
+            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('profile.fields.email') }}
+            </dt>
             <dd class="font-medium text-slate-900 dark:text-white">{{ user?.email }}</dd>
           </div>
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</dt>
-            <dd>{{ user?.fullName ?? 'Ej angivet' }}</dd>
+            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('profile.fields.name') }}
+            </dt>
+            <dd>{{ user?.fullName ?? t('profile.notProvided') }}</dd>
           </div>
           <div>
-            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</dt>
+            <dt class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('profile.fields.status') }}
+            </dt>
             <dd class="capitalize">{{ user?.status }}</dd>
           </div>
         </dl>
 
+        <div class="space-y-2">
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ t('profile.language.label') }}
+          </label>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ t('profile.language.description') }}
+          </p>
+          <select
+            v-model="selectedLocale"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-white/10 dark:text-white"
+            :disabled="localeSubmitting"
+            @change="onLocaleChange"
+          >
+            <option v-for="localeOption in supportedLocales" :key="localeOption.code" :value="localeOption.code">
+              {{ localeOption.name }}
+            </option>
+          </select>
+          <p v-if="localeError" class="text-xs text-red-600 dark:text-red-400">
+            {{ localeError }}
+          </p>
+          <p v-else-if="localeSuccess" class="text-xs text-emerald-600 dark:text-emerald-300">
+            {{ localeSuccess }}
+          </p>
+        </div>
+
         <form class="mt-4 space-y-3" @submit.prevent="handleNameSave">
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Ändra namn</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('profile.form.nameLabel') }}
+            </label>
             <input
               v-model="nameForm.fullName"
               type="text"
               required
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-white/10 dark:text-white"
-              placeholder="Förnamn Efternamn"
+              :placeholder="t('profile.form.namePlaceholder')"
             />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Ange både för- och efternamn.</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {{ t('profile.form.nameHelper') }}
+            </p>
           </div>
 
           <p v-if="nameError" class="rounded bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
@@ -72,15 +113,19 @@
               class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
               :disabled="nameSubmitting || !nameChanged"
             >
-              {{ nameSubmitting ? 'Sparar...' : 'Spara namn' }}
+              {{ nameSubmitting ? t('profile.actions.savingName') : t('profile.actions.saveName') }}
             </button>
           </div>
         </form>
       </div>
 
       <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0f172a]">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Organisationer</h2>
-        <p class="text-sm text-slate-500 dark:text-slate-400">Du är medlem i {{ organizations.length }} organisationer.</p>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+          {{ t('profile.sections.organizations') }}
+        </h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          {{ t('profile.organizations.count', { count: organizations.length }) }}
+        </p>
         <ul class="space-y-3">
           <li
             v-for="org in organizations"
@@ -101,15 +146,19 @@
 
     <form class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0f172a]" @submit.prevent="handlePasswordChange">
       <div>
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Byt lösenord</h2>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+          {{ t('profile.sections.password') }}
+        </h2>
         <p class="text-sm text-slate-500 dark:text-slate-400">
-          Välj ett starkt lösenord. Se kraven nedan.
+          {{ t('profile.password.helper') }}
         </p>
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
         <div class="md:col-span-2">
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Nuvarande lösenord</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ t('profile.form.currentPassword') }}
+          </label>
           <input
             v-model="passwordForm.current"
             type="password"
@@ -118,7 +167,9 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Nytt lösenord</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ t('profile.form.newPassword') }}
+          </label>
           <input
             v-model="passwordForm.next"
             type="password"
@@ -127,7 +178,9 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Bekräfta nytt lösenord</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ t('profile.form.confirmPassword') }}
+          </label>
           <input
             v-model="passwordForm.confirm"
             type="password"
@@ -138,7 +191,7 @@
       </div>
 
       <ul class="list-disc space-y-1 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">
-        <li v-for="rule in passwordRequirements" :key="rule">{{ rule }}</li>
+        <li v-for="rule in passwordRequirementKeys" :key="rule">{{ t(rule) }}</li>
       </ul>
 
       <p v-if="passwordError" class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
@@ -154,7 +207,7 @@
           class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
           :disabled="passwordSubmitting"
         >
-          {{ passwordSubmitting ? 'Sparar...' : 'Uppdatera lösenord' }}
+          {{ passwordSubmitting ? t('profile.actions.savingPassword') : t('profile.actions.updatePassword') }}
         </button>
       </div>
     </form>
@@ -162,15 +215,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from '#imports'
+import { computed, reactive, ref, watch, useI18n } from '#imports'
 import { passwordRequirements } from '~/constants/password'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type SupportedLocaleCode } from '~/constants/i18n'
 import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({
   layout: 'default'
 })
 
+const { t, setLocale } = useI18n()
 const auth = useAuth()
+const supportedLocales = SUPPORTED_LOCALES
+const passwordRequirementKeys = passwordRequirements
+
 const user = computed(() => auth.user.value)
 const organizations = computed(() => auth.organizations.value)
 const requiresPasswordReset = computed(() => Boolean(user.value?.forcePasswordReset))
@@ -182,15 +240,10 @@ const nameSubmitting = ref(false)
 const nameError = ref('')
 const nameSuccess = ref('')
 
-watch(
-  () => user.value?.fullName,
-  (fullName) => {
-    nameForm.fullName = fullName ?? ''
-  },
-  { immediate: true }
-)
-
-const nameChanged = computed(() => nameForm.fullName.trim() !== (user.value?.fullName ?? '').trim())
+const selectedLocale = ref<SupportedLocaleCode>(user.value?.locale ?? DEFAULT_LOCALE)
+const localeSubmitting = ref(false)
+const localeSuccess = ref('')
+const localeError = ref('')
 
 const passwordForm = reactive({
   current: '',
@@ -200,6 +253,35 @@ const passwordForm = reactive({
 const passwordSubmitting = ref(false)
 const passwordError = ref('')
 const passwordSuccess = ref('')
+
+const setEphemeralMessage = (target: { value: string }, message: string, timeout = 3000) => {
+  target.value = message
+  setTimeout(() => {
+    target.value = ''
+  }, timeout)
+}
+
+watch(
+  () => user.value?.fullName,
+  (fullName) => {
+    nameForm.fullName = fullName ?? ''
+  },
+  { immediate: true }
+)
+
+watch(
+  () => user.value?.locale,
+  (nextLocale) => {
+    if (!nextLocale) {
+      selectedLocale.value = DEFAULT_LOCALE
+      return
+    }
+    selectedLocale.value = nextLocale as SupportedLocaleCode
+  },
+  { immediate: true }
+)
+
+const nameChanged = computed(() => nameForm.fullName.trim() !== (user.value?.fullName ?? '').trim())
 
 const handleNameSave = async () => {
   if (!nameChanged.value) return
@@ -214,21 +296,55 @@ const handleNameSave = async () => {
       }
     })
     await auth.fetchMe()
-    nameSuccess.value = 'Namnet sparades.'
-    setTimeout(() => {
-      nameSuccess.value = ''
-    }, 3000)
+    setEphemeralMessage(nameSuccess, t('profile.messages.nameSaved'))
   } catch (error) {
-    nameError.value =
-      error instanceof Error ? error.message : 'Kunde inte uppdatera namnet. Försök igen.'
+    nameError.value = error instanceof Error ? error.message : t('profile.messages.nameError')
   } finally {
     nameSubmitting.value = false
   }
 }
 
+const onLocaleChange = async () => {
+  if (localeSubmitting.value) {
+    return
+  }
+  const currentLocale = (user.value?.locale ?? DEFAULT_LOCALE) as SupportedLocaleCode
+  const nextLocale = selectedLocale.value
+  if (nextLocale === currentLocale) {
+    return
+  }
+
+  localeSubmitting.value = true
+  localeError.value = ''
+  localeSuccess.value = ''
+
+  if (user.value) {
+    user.value.locale = nextLocale
+  }
+  await setLocale(nextLocale)
+
+  try {
+    await $fetch('/api/profile/locale', {
+      method: 'PATCH',
+      body: { locale: nextLocale }
+    })
+    setEphemeralMessage(localeSuccess, t('profile.messages.languageSaved'))
+  } catch (error) {
+    selectedLocale.value = currentLocale
+    await setLocale(currentLocale)
+    if (user.value) {
+      user.value.locale = currentLocale
+    }
+    localeError.value =
+      error instanceof Error ? error.message : t('profile.messages.languageError')
+  } finally {
+    localeSubmitting.value = false
+  }
+}
+
 const handlePasswordChange = async () => {
   if (passwordForm.next !== passwordForm.confirm) {
-    passwordError.value = 'Lösenorden matchar inte.'
+    passwordError.value = t('profile.messages.passwordMismatch')
     return
   }
   passwordSubmitting.value = true
@@ -246,10 +362,11 @@ const handlePasswordChange = async () => {
     passwordForm.current = ''
     passwordForm.next = ''
     passwordForm.confirm = ''
-    passwordSuccess.value = 'Lösenordet uppdaterades.'
+    setEphemeralMessage(passwordSuccess, t('profile.messages.passwordSaved'))
   } catch (error) {
     console.error(error)
-    passwordError.value = 'Kunde inte uppdatera lösenordet. Kontrollera ditt nuvarande lösenord och försök igen.'
+    passwordError.value =
+      error instanceof Error ? error.message : t('profile.messages.passwordError')
   } finally {
     passwordSubmitting.value = false
   }

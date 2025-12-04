@@ -5,15 +5,15 @@
         to="/admin/tenants"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka till listan
+        {{ t('adminTenants.detail.backToList') }}
       </NuxtLink>
       <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ tenant?.name ?? 'Laddar...' }}</h1>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('adminTenants.detail.category') }}</p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ tenant?.name ?? t('adminTenants.detail.loading') }}</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          <span v-if="tenant?.type === 'distributor'">Distributör - kan skapa leverantörer</span>
-          <span v-else-if="tenant?.type === 'provider'">Leverantör - kan skapa organisationer</span>
-          <span v-else-if="tenant?.type === 'organization'">Organisation</span>
+          <span v-if="tenant?.type === 'distributor'">{{ t('adminTenants.detail.types.distributor') }}</span>
+          <span v-else-if="tenant?.type === 'provider'">{{ t('adminTenants.detail.types.provider') }}</span>
+          <span v-else-if="tenant?.type === 'organization'">{{ t('adminTenants.detail.types.organization') }}</span>
         </p>
       </div>
     </header>
@@ -22,20 +22,20 @@
       {{ error }}
     </div>
 
-    <div v-if="pending" class="text-sm text-slate-600 dark:text-slate-400">Laddar tenant-detaljer...</div>
+    <div v-if="pending" class="text-sm text-slate-600 dark:text-slate-400">{{ t('adminTenants.detail.loadingDetails') }}</div>
 
     <div v-else-if="tenant" class="space-y-6">
       <!-- Tenant Information -->
       <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Information</h2>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('adminTenants.detail.sections.information') }}</h2>
           <button
             v-if="canEdit && (tenant.type === 'provider' || tenant.type === 'distributor')"
             class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
             @click="isEditing = !isEditing"
           >
             <Icon :icon="isEditing ? 'mdi:close' : 'mdi:pencil-outline'" class="h-3 w-3" />
-            {{ isEditing ? 'Avbryt' : 'Redigera' }}
+            {{ isEditing ? t('adminTenants.detail.actions.cancel') : t('adminTenants.detail.actions.edit') }}
           </button>
         </div>
         
@@ -45,24 +45,24 @@
 
         <div v-if="!isEditing" class="mt-4 grid gap-4 md:grid-cols-2">
           <div>
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</p>
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.name') }}</p>
             <p class="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{{ tenant.name }}</p>
           </div>
           <div>
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug</p>
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.slug') }}</p>
             <p class="mt-1 font-mono text-sm text-slate-700 dark:text-slate-300">{{ tenant.slug }}</p>
           </div>
           <div>
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Typ</p>
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.type') }}</p>
             <span
               class="mt-1 inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold"
               :class="getTypeClass(tenant.type)"
             >
-              {{ getTypeLabel(tenant.type) }}
+              {{ t(`adminTenants.badges.${tenant.type}`) }}
             </span>
           </div>
           <div>
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</p>
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.status') }}</p>
             <StatusPill :variant="tenant.status === 'active' ? 'success' : 'warning'" class="mt-1">
               {{ tenant.status }}
             </StatusPill>
@@ -73,7 +73,7 @@
           <div class="grid gap-4 md:grid-cols-2">
             <div>
               <label for="name" class="block text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Namn
+                {{ t('adminTenants.detail.fields.name') }}
               </label>
               <input
                 id="name"
@@ -87,7 +87,7 @@
             </div>
             <div>
               <label for="slug" class="block text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Slug
+                {{ t('adminTenants.detail.fields.slug') }}
               </label>
               <input
                 id="slug"
@@ -100,7 +100,7 @@
                 class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
               />
               <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Endast små bokstäver, siffror och bindestreck
+                {{ t('adminTenants.detail.form.slugHint') }}
               </p>
             </div>
           </div>
@@ -111,14 +111,14 @@
               class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
             >
               <Icon v-if="saving" icon="mdi:loading" class="h-4 w-4 animate-spin" />
-              <span v-else>Spara</span>
+              <span v-else>{{ t('adminTenants.detail.actions.save') }}</span>
             </button>
             <button
               type="button"
               @click="cancelEdit"
               class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
             >
-              Avbryt
+              {{ t('adminTenants.detail.actions.cancel') }}
             </button>
           </div>
         </form>
@@ -132,7 +132,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
         >
           <Icon icon="mdi:store" class="h-4 w-4" />
-          Skapa leverantör
+          {{ t('adminTenants.detail.actions.createProvider') }}
         </NuxtLink>
         <NuxtLink
           v-if="tenant.type === 'provider' && canCreateOrganization"
@@ -140,7 +140,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80"
         >
           <Icon icon="mdi:home" class="h-4 w-4" />
-          Skapa organisation
+          {{ t('adminTenants.detail.actions.createOrganization') }}
         </NuxtLink>
         <NuxtLink
           v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
@@ -148,7 +148,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
         >
           <Icon icon="mdi:account-group" class="h-4 w-4" />
-          Medlemmar
+          {{ t('adminTenants.detail.actions.members') }}
         </NuxtLink>
         <NuxtLink
           v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
@@ -156,7 +156,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
         >
           <Icon icon="mdi:email-outline" class="h-4 w-4" />
-          E-postinställningar
+          {{ t('adminTenants.detail.actions.emailSettings') }}
         </NuxtLink>
         <NuxtLink
           v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
@@ -164,7 +164,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
         >
           <Icon icon="mdi:puzzle-outline" class="h-4 w-4" />
-          Modulrättigheter
+          {{ t('adminTenants.detail.actions.modulePermissions') }}
         </NuxtLink>
         <NuxtLink
           v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
@@ -172,7 +172,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
         >
           <Icon icon="mdi:palette-outline" class="h-4 w-4" />
-          Branding
+          {{ t('adminTenants.detail.actions.branding') }}
         </NuxtLink>
         <NuxtLink
           v-if="(tenant.type === 'provider' || tenant.type === 'distributor') && canReadAuditLogs"
@@ -180,7 +180,7 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
         >
           <Icon icon="mdi:file-document-outline" class="h-4 w-4" />
-          Audit Loggar
+          {{ t('adminTenants.detail.actions.auditLogs') }}
         </NuxtLink>
       </div>
 
@@ -202,12 +202,12 @@
             </div>
             <div>
               <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-                <span v-if="tenant.type === 'distributor'">Leverantörer</span>
-                <span v-else-if="tenant.type === 'provider'">Distributörer</span>
+                <span v-if="tenant.type === 'distributor'">{{ t('adminTenants.detail.sections.linkedTenants.providers') }}</span>
+                <span v-else-if="tenant.type === 'provider'">{{ t('adminTenants.detail.sections.linkedTenants.distributors') }}</span>
               </h2>
               <p class="text-xs text-slate-500 dark:text-slate-400">
-                <span v-if="tenant.type === 'distributor'">{{ linkedTenants.length }} leverantörer</span>
-                <span v-else-if="tenant.type === 'provider'">{{ linkedTenants.length }} distributörer</span>
+                <span v-if="tenant.type === 'distributor'">{{ t('adminTenants.detail.sections.linkedTenants.countProviders', { count: linkedTenants.length }) }}</span>
+                <span v-else-if="tenant.type === 'provider'">{{ t('adminTenants.detail.sections.linkedTenants.countDistributors', { count: linkedTenants.length }) }}</span>
               </p>
             </div>
           </div>
@@ -217,12 +217,12 @@
             @click="openEditDistributorsModal"
           >
             <Icon icon="mdi:pencil-outline" class="h-3 w-3" />
-            Redigera
+            {{ t('adminTenants.detail.actions.edit') }}
           </button>
         </div>
         <div v-if="linkedTenants.length === 0" class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
-          <span v-if="tenant.type === 'provider'">Inga distributörer kopplade.</span>
-          <span v-else>Inga leverantörer kopplade.</span>
+          <span v-if="tenant.type === 'provider'">{{ t('adminTenants.detail.sections.linkedTenants.noneDistributors') }}</span>
+          <span v-else>{{ t('adminTenants.detail.sections.linkedTenants.noneProviders') }}</span>
         </div>
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
@@ -247,12 +247,12 @@
                   <span
                     v-if="linked.hasEmailOverride"
                     class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                    title="E-post override aktiv"
+                    :title="t('adminTenants.emailOverride.active')"
                   >
                     <Icon icon="mdi:email-check" class="h-3 w-3" />
-                    Override
+                    {{ t('adminTenants.detail.email.override') }}
                   </span>
-                  <span v-else class="text-xs text-slate-400 dark:text-slate-500">Ärvs</span>
+                  <span v-else class="text-xs text-slate-400 dark:text-slate-500">{{ t('adminTenants.detail.email.inherited') }}</span>
                 </td>
                 <td class="px-6 py-3">
                   <StatusPill :variant="linked.status === 'active' ? 'success' : 'warning'">
@@ -273,8 +273,8 @@
               <Icon icon="mdi:home" class="h-5 w-5" />
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Organisationer</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400">{{ organizations.length }} organisationer</p>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('adminTenants.detail.sections.organizations.title') }}</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.sections.organizations.count', { count: organizations.length }) }}</p>
             </div>
           </div>
         </div>
@@ -282,10 +282,10 @@
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
             <thead class="bg-slate-50 dark:bg-white/5">
               <tr>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.name') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.slug') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.email') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.status') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
@@ -301,12 +301,12 @@
                   <span
                     v-if="org.hasEmailOverride"
                     class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                    title="E-post override aktiv"
+                    :title="t('adminTenants.emailOverride.active')"
                   >
                     <Icon icon="mdi:email-check" class="h-3 w-3" />
-                    Override
+                    {{ t('adminTenants.detail.email.override') }}
                   </span>
-                  <span v-else class="text-xs text-slate-400 dark:text-slate-500">Ärvs</span>
+                  <span v-else class="text-xs text-slate-400 dark:text-slate-500">{{ t('adminTenants.detail.email.inherited') }}</span>
                 </td>
                 <td class="px-6 py-3">
                   <StatusPill :variant="org.status === 'active' ? 'success' : 'warning'">
@@ -323,12 +323,12 @@
       <div v-if="tenant.type === 'provider' || tenant.type === 'distributor'" class="rounded-xl border border-dashed border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
           <div class="flex items-center justify-between">
-            <p class="text-sm font-semibold text-slate-900 dark:text-white">Väntande inbjudningar</p>
+            <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('adminTenants.detail.sections.pendingInvitations.title') }}</p>
             <NuxtLink
               :to="`/admin/tenants/${tenant.id}/members`"
               class="text-xs text-slate-500 transition hover:text-brand dark:text-slate-400"
             >
-              Visa alla medlemmar →
+              {{ t('adminTenants.detail.sections.pendingInvitations.viewAllMembers') }}
             </NuxtLink>
           </div>
         </div>
@@ -339,25 +339,25 @@
           {{ inviteActionError }}
         </div>
         <div v-if="!invites.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-          Inga aktiva inbjudningar.
+          {{ t('adminTenants.detail.sections.pendingInvitations.none') }}
         </div>
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
             <thead class="bg-slate-50 dark:bg-white/5">
               <tr>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Inbjuden av</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Gäller till</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Organisation</th>
-                <th v-if="canInviteMember" class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">Åtgärder</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.email') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.members.table.role') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.status') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.invitations.invitedBy') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.invitations.expiresAt') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.organization') }}</th>
+                <th v-if="canInviteMember" class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">{{ t('settings.members.table.actions') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
               <tr v-for="invite in invites" :key="invite.id">
                 <td class="px-6 py-3 text-slate-700 dark:text-slate-200">{{ invite.email }}</td>
-                <td class="px-6 py-3">{{ invite.role }}</td>
+                <td class="px-6 py-3">{{ t(`rbac.roles.${invite.role}`) }}</td>
                 <td class="px-6 py-3">
                   <StatusPill :variant="invite.status === 'pending' ? 'warning' : invite.status === 'accepted' ? 'success' : 'info'">
                     {{ invitationStatusLabel(invite.status) }}
@@ -371,7 +371,7 @@
                 </td>
                 <td class="px-6 py-3 text-xs text-slate-600 dark:text-slate-400">
                   <span v-if="invite.willCreateOrganization && invite.organizationName" class="font-semibold">
-                    Kommer skapa: {{ invite.organizationName }}
+                    {{ t('adminTenants.detail.invitations.willCreate', { name: invite.organizationName }) }}
                   </span>
                   <span v-else class="text-slate-400 dark:text-slate-500">—</span>
                 </td>
@@ -383,7 +383,7 @@
                       :disabled="inviteResendLoadingId === invite.id || inviteCancelLoadingId === invite.id"
                       @click="resendInvite(invite.id)"
                     >
-                      {{ inviteResendLoadingId === invite.id ? 'Skickar...' : 'Skicka igen' }}
+                      {{ inviteResendLoadingId === invite.id ? t('adminTenants.detail.invitations.resending') : t('adminTenants.detail.invitations.resend') }}
                     </button>
                     <button
                       type="button"
@@ -391,7 +391,7 @@
                       :disabled="inviteCancelLoadingId === invite.id || inviteResendLoadingId === invite.id"
                     @click="cancelInvite(invite.id)"
                   >
-                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                    {{ inviteCancelLoadingId === invite.id ? t('adminTenants.detail.invitations.cancelling') : t('adminTenants.detail.invitations.cancel') }}
                   </button>
                   </div>
                   <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
@@ -409,7 +409,7 @@
       >
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 class="text-lg font-semibold text-red-700 dark:text-red-200">Danger zone</h2>
+            <h2 class="text-lg font-semibold text-red-700 dark:text-red-200">{{ t('adminTenants.detail.sections.dangerZone.title') }}</h2>
             <p class="text-sm text-red-600 dark:text-red-300">
               {{ deleteCopy.dangerDescription }}
             </p>
@@ -427,11 +427,11 @@
 
     <!-- Edit Distributors Modal -->
     <Modal :show="showEditDistributorsModal" @close="closeEditDistributorsModal">
-      <template #title>Redigera distributör-kopplingar</template>
+      <template #title>{{ t('adminTenants.detail.editDistributors.title') }}</template>
       <template #content>
         <form @submit.prevent="handleSaveDistributors" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">Distributörer</label>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ t('adminTenants.detail.editDistributors.label') }}</label>
             <div class="mt-2 space-y-2 max-h-60 overflow-y-auto">
               <label
                 v-for="distributor in allDistributors"
@@ -449,11 +449,11 @@
                 </span>
               </label>
               <p v-if="allDistributors.length === 0" class="text-sm text-slate-500 dark:text-slate-400">
-                Inga distributörer tillgängliga.
+                {{ t('adminTenants.detail.editDistributors.none') }}
               </p>
             </div>
             <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              Välj vilka distributörer denna leverantör ska kopplas till.
+              {{ t('adminTenants.detail.editDistributors.hint') }}
             </p>
           </div>
           <div v-if="editDistributorsError" class="text-sm text-red-500">{{ editDistributorsError }}</div>
@@ -463,7 +463,7 @@
               class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
               @click="closeEditDistributorsModal"
             >
-              Avbryt
+              {{ t('adminTenants.detail.actions.cancel') }}
             </button>
             <button
               type="submit"
@@ -471,7 +471,7 @@
               :disabled="savingDistributors"
             >
               <Icon v-if="savingDistributors" icon="mdi:loading" class="h-5 w-5 animate-spin" />
-              <span v-else>Spara</span>
+              <span v-else>{{ t('adminTenants.detail.actions.save') }}</span>
             </button>
           </div>
         </form>
@@ -490,12 +490,10 @@
       >
         <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ deleteCopy.modalTitle }}</h3>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Bekräfta åtgärden genom att skriva in {{ deleteCopy.subjectPossessive }} slug
-          (<strong>{{ tenant?.slug }}</strong>) och markera att du förstår konsekvenserna.
-          {{ deleteCopy.modalExtra }}
+          {{ t('adminTenants.detail.delete.confirmText', { possessive: deleteCopy.subjectPossessive, slug: tenant?.slug ?? '', extra: deleteCopy.modalExtra }) }}
         </p>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Bekräfta slug</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.delete.confirmSlug') }}</label>
           <input
             v-model="deleteForm.confirmSlug"
             type="text"
@@ -517,14 +515,14 @@
             class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200"
             @click="closeDeleteModal"
           >
-            Avbryt
+            {{ t('adminTenants.detail.actions.cancel') }}
           </button>
           <button
             type="submit"
             class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-60"
             :disabled="deleteDisabled || deleteLoading"
           >
-            {{ deleteLoading ? 'Raderar...' : 'Ta bort permanent' }}
+            {{ deleteLoading ? t('adminTenants.detail.actions.deleting') : t('adminTenants.detail.actions.delete') }}
           </button>
         </div>
       </form>
@@ -540,6 +538,9 @@ import Modal from '~/components/shared/Modal.vue'
 import type { AdminTenantDetail, AdminTenantSummary } from '~/types/admin'
 import { useAuth } from '~/composables/useAuth'
 import { tenantRolePermissionMap } from '~/constants/rbac'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 definePageMeta({
   layout: 'default'
@@ -596,33 +597,28 @@ interface DeleteCopy {
   errorFallback: string
 }
 
-const distributorDeleteCopy: DeleteCopy = {
-  dangerDescription:
-    'Radering tar bort distributören och all kopplad data. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna. Detta kan inte ångras.',
-  buttonLabel: 'Ta bort distributör',
-  modalTitle: 'Ta bort distributör',
-  subjectPossessive: 'distributörens',
-  modalExtra:
-    'Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.',
-  acknowledgementText:
-    'Jag förstår att distributören och all kopplad data (leverantörskopplingar, medlemskap m.m.) raderas permanent. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.',
-  errorFallback: 'Kunde inte radera distributören.'
-}
+const distributorDeleteCopy = computed<DeleteCopy>(() => ({
+  dangerDescription: t('adminTenants.detail.delete.distributor.description'),
+  buttonLabel: t('adminTenants.detail.delete.distributor.button'),
+  modalTitle: t('adminTenants.detail.delete.distributor.modalTitle'),
+  subjectPossessive: t('adminTenants.detail.delete.distributor.possessive'),
+  modalExtra: t('adminTenants.detail.delete.distributor.extra'),
+  acknowledgementText: t('adminTenants.detail.delete.distributor.acknowledgement'),
+  errorFallback: t('adminTenants.detail.delete.distributor.error')
+}))
 
-const providerDeleteCopy: DeleteCopy = {
-  dangerDescription:
-    'Radering tar bort leverantören och all kopplad data. Leverantören kan endast raderas om alla organisationer under den först är borttagna. Detta kan inte ångras.',
-  buttonLabel: 'Ta bort leverantör',
-  modalTitle: 'Ta bort leverantör',
-  subjectPossessive: 'leverantörens',
-  modalExtra: 'Leverantören kan endast raderas om alla organisationer under den först är borttagna.',
-  acknowledgementText:
-    'Jag förstår att leverantören och all kopplad data (organisationer, medlemskap m.m.) raderas permanent. Leverantören kan endast raderas om alla organisationer under den först är borttagna.',
-  errorFallback: 'Kunde inte radera leverantören.'
-}
+const providerDeleteCopy = computed<DeleteCopy>(() => ({
+  dangerDescription: t('adminTenants.detail.delete.provider.description'),
+  buttonLabel: t('adminTenants.detail.delete.provider.button'),
+  modalTitle: t('adminTenants.detail.delete.provider.modalTitle'),
+  subjectPossessive: t('adminTenants.detail.delete.provider.possessive'),
+  modalExtra: t('adminTenants.detail.delete.provider.extra'),
+  acknowledgementText: t('adminTenants.detail.delete.provider.acknowledgement'),
+  errorFallback: t('adminTenants.detail.delete.provider.error')
+}))
 
 const deleteCopy = computed<DeleteCopy>(() =>
-  tenant.value?.type === 'provider' ? providerDeleteCopy : distributorDeleteCopy
+  tenant.value?.type === 'provider' ? providerDeleteCopy.value : distributorDeleteCopy.value
 )
 
 
@@ -703,7 +699,7 @@ const handleSave = async () => {
     await refresh()
     isEditing.value = false
   } catch (err) {
-    updateError.value = err instanceof Error ? err.message : 'Kunde inte spara ändringarna.'
+    updateError.value = err instanceof Error ? err.message : t('adminTenants.detail.form.saveError')
   } finally {
     saving.value = false
   }
@@ -803,7 +799,7 @@ const handleSaveDistributors = async () => {
     await refresh()
     closeEditDistributorsModal()
   } catch (err: any) {
-    editDistributorsError.value = err.data?.message || err.message || 'Kunde inte spara ändringarna.'
+    editDistributorsError.value = err.data?.message || err.message || t('adminTenants.detail.editDistributors.saveError')
   } finally {
     savingDistributors.value = false
   }
@@ -862,16 +858,7 @@ const submitDelete = async () => {
 
 
 const getTypeLabel = (type: string) => {
-  switch (type) {
-    case 'distributor':
-      return 'Distributör'
-    case 'provider':
-      return 'Leverantör'
-    case 'organization':
-      return 'Organisation'
-    default:
-      return type
-  }
+  return t(`adminTenants.badges.${type}`)
 }
 
 const getTypeClass = (type: string) => {
@@ -904,15 +891,11 @@ const formatDate = (value: string | null) => {
 }
 
 const invitationStatusLabel = (status: string) => {
-  if (status === 'pending') return 'Avvaktar'
-  if (status === 'accepted') return 'Accepterad'
-  if (status === 'cancelled') return 'Avbruten'
-  if (status === 'expired') return 'Utgången'
-  return status
+  return t(`settings.members.invitationStatus.${status}`)
 }
 
 const cancelInvite = async (inviteId: string) => {
-  if (!confirm('Vill du verkligen avbryta denna inbjudan?')) {
+  if (!confirm(t('adminTenants.detail.invitations.cancelConfirm'))) {
     return
   }
   inviteCancelLoadingId.value = inviteId
@@ -923,11 +906,11 @@ const cancelInvite = async (inviteId: string) => {
       method: 'DELETE'
     })
     await refresh()
-    inviteActionMessage.value = 'Inbjudan avbröts.'
+    inviteActionMessage.value = t('adminTenants.detail.invitations.cancelled')
     setTimeout(() => (inviteActionMessage.value = ''), 3000)
   } catch (err: any) {
     // Error handling for invite cancellation
-    const message = err?.data?.message || err?.message || 'Kunde inte avbryta inbjudan.'
+    const message = err?.data?.message || err?.message || t('adminTenants.detail.invitations.cancelError')
     inviteActionError.value = message
     console.error('Failed to cancel invite:', err)
   } finally {
@@ -944,10 +927,10 @@ const resendInvite = async (inviteId: string) => {
       method: 'POST'
     })
     await refresh()
-    inviteActionMessage.value = 'Inbjudan skickades igen.'
+    inviteActionMessage.value = t('adminTenants.detail.invitations.resent')
     setTimeout(() => (inviteActionMessage.value = ''), 3000)
   } catch (err: any) {
-    const message = err?.data?.message || err?.message || 'Kunde inte skicka om inbjudan.'
+    const message = err?.data?.message || err?.message || t('adminTenants.detail.invitations.resendError')
     inviteActionError.value = message
     console.error('Failed to resend invite:', err)
   } finally {

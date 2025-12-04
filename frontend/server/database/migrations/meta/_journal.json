@@ -183,6 +183,13 @@
       "when": 1764860008000,
       "tag": "0025_email_dark_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1764860010000,
+      "tag": "0026_user_locale",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,6 @@
 import type { RbacRole, TenantRole } from '~/constants/rbac'
 import type { ModuleId } from '~/constants/modules'
+import type { SupportedLocaleCode } from '~/constants/i18n'
 import type { BrandingTargetType } from '../database/schema'
 
 export interface AuthUser {
@@ -10,6 +11,7 @@ export interface AuthUser {
   defaultOrgId?: string | null
   isSuperAdmin: boolean
   forcePasswordReset: boolean
+  locale: SupportedLocaleCode
 }
 
 export interface AuthOrganization {

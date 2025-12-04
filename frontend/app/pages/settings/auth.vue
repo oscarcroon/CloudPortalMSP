@@ -5,25 +5,25 @@
         to="/settings"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka till inställningar
+        {{ t('settings.auth.backToSettings') }}
       </NuxtLink>
       <div>
-        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Auth &amp; SSO</h1>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.auth.title') }}</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Välj Identity Provider, följ guiden och styr om SSO ska krävas för organisationen.
+          {{ t('settings.auth.pageDescription') }}
         </p>
       </div>
     </header>
 
     <div v-if="!currentOrgId" class="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
-      Du behöver välja en aktiv organisation innan du kan konfigurera SSO.
+      {{ t('settings.auth.noActiveOrg') }}
     </div>
 
     <div
       v-else-if="pending"
       class="rounded-2xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-[#0c1524] dark:text-slate-300"
     >
-      Hämtar auth-inställningar...
+      {{ t('settings.auth.loading') }}
     </div>
 
     <div
@@ -48,16 +48,16 @@
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#101932]">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Organisation</p>
+            <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.organization') }}</p>
             <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ organization.name }}</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400">Slug: {{ organization.slug }}</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">{{ t('settings.auth.slug') }}: {{ organization.slug }}</p>
           </div>
           <button
             type="submit"
             class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand/85 disabled:opacity-50"
             :disabled="saving"
           >
-            {{ saving ? 'Sparar...' : 'Spara ändringar' }}
+            {{ saving ? t('settings.auth.saving') : t('settings.auth.save') }}
           </button>
         </div>
 
@@ -71,9 +71,9 @@
               :disabled="requireSsoDisabled"
             />
             <div>
-              <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Kräv SSO</p>
+              <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ t('settings.auth.requireSso.title') }}</p>
               <p class="text-xs text-slate-500 dark:text-slate-400">
-                Alla användare måste logga in via vald IdP.
+                {{ t('settings.auth.requireSso.description') }}
               </p>
               <p v-if="requireSsoDisabled" class="text-xs text-amber-600 dark:text-amber-300">
                 {{ requireSsoDisabledMessage }}
@@ -89,8 +89,8 @@
               class="rounded border-slate-300 dark:border-white/20"
             />
             <div>
-              <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Tillåt lokalt login för ägare</p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Behåll fallback via lösenord för ägare.</p>
+              <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ t('settings.auth.allowLocalLogin.title') }}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('settings.auth.allowLocalLogin.description') }}</p>
             </div>
           </label>
         </div>
@@ -98,9 +98,9 @@
 
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#101932]">
         <div class="flex flex-col gap-2">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Identity Provider</h2>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('settings.auth.idp.title') }}</h2>
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Välj vilken IdP som ska vara aktiv och fyll i OIDC-detaljer. Organisationen kan endast ha en IdP åt gången.
+            {{ t('settings.auth.idp.description') }}
           </p>
         </div>
 
@@ -132,13 +132,13 @@
 
         <div v-if="form.idpProvider !== 'none'" class="mt-6 space-y-4">
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Fyll i uppgifterna enligt guiden. Redirect-URL för denna organisation:
+            {{ t('settings.auth.idp.redirectUriHint') }}
             <code class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-800 dark:bg-white/10 dark:text-slate-200">{{ redirectUriHint }}</code>
           </p>
 
           <div v-if="form.idpProvider === 'openid'" class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Issuer (Discovery URL)</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.openid.issuer') }}</label>
               <input
                 v-model="form.openid.issuer"
                 type="text"
@@ -147,7 +147,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Metadata URL (valfri)</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.openid.metadataUrl') }}</label>
               <input
                 v-model="form.openid.metadataUrl"
                 type="text"
@@ -156,7 +156,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Client ID</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.openid.clientId') }}</label>
               <input
                 v-model="form.openid.clientId"
                 type="text"
@@ -164,7 +164,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Client Secret</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.openid.clientSecret') }}</label>
               <input
                 v-model="form.openid.clientSecret"
                 type="password"
@@ -172,7 +172,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Redirect URL</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.openid.redirectUri') }}</label>
               <input
                 v-model="form.openid.redirectUri"
                 type="text"
@@ -181,7 +181,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Scopes (valfri)</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.openid.scopes') }}</label>
               <input
                 v-model="form.openid.scopes"
                 type="text"
@@ -193,7 +193,7 @@
 
           <div v-else-if="form.idpProvider === 'entra'" class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Tenant ID</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.entra.tenantId') }}</label>
               <input
                 v-model="form.entra.tenantId"
                 type="text"
@@ -202,7 +202,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Client ID</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.entra.clientId') }}</label>
               <input
                 v-model="form.entra.clientId"
                 type="text"
@@ -210,7 +210,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Client Secret</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.entra.clientSecret') }}</label>
               <input
                 v-model="form.entra.clientSecret"
                 type="password"
@@ -218,7 +218,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Redirect URL</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.entra.redirectUri') }}</label>
               <input
                 v-model="form.entra.redirectUri"
                 type="text"
@@ -227,7 +227,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Scopes (valfri)</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.entra.scopes') }}</label>
               <input
                 v-model="form.entra.scopes"
                 type="text"
@@ -238,7 +238,7 @@
           </div>
           <div v-else-if="form.idpProvider === 'saml'" class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Entry Point (SSO URL)</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.saml.entryPoint') }}</label>
               <input
                 v-model="form.saml.entryPoint"
                 type="text"
@@ -247,7 +247,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Issuer (Entity ID)</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.saml.issuer') }}</label>
               <input
                 v-model="form.saml.issuer"
                 type="text"
@@ -256,7 +256,7 @@
               />
             </div>
             <div>
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Audience (valfri)</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.saml.audience') }}</label>
               <input
                 v-model="form.saml.audience"
                 type="text"
@@ -265,7 +265,7 @@
               />
             </div>
             <div class="md:col-span-2">
-              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Publikt certifikat</label>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.saml.certificate') }}</label>
               <textarea
                 v-model="form.saml.certificate"
                 rows="5"
@@ -280,8 +280,8 @@
                 class="rounded border-slate-300 dark:border-white/20"
               />
               <div>
-                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Signera AuthnRequest</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Rekommenderas: IdP förväntar sig signerade requests.</p>
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ t('settings.auth.idp.saml.signRequest.title') }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.saml.signRequest.description') }}</p>
               </div>
             </label>
             <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
@@ -291,8 +291,8 @@
                 class="rounded border-slate-300 dark:border-white/20"
               />
               <div>
-                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Kräv signerade assertioner</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Säkerställer att IdP signerar svaren.</p>
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ t('settings.auth.idp.saml.wantAssertionsSigned.title') }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('settings.auth.idp.saml.wantAssertionsSigned.description') }}</p>
               </div>
             </label>
           </div>
@@ -301,9 +301,9 @@
 
       <div v-if="form.idpProvider !== 'none'" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#101932]">
         <div class="flex flex-col gap-2">
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Konfigurationsguide</h2>
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('settings.auth.configGuide.title') }}</h2>
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Snabbguide för att konfigurera {{ selectedGuide?.title || 'din valda IdP' }}.
+            {{ t('settings.auth.configGuide.description', { idp: selectedGuide?.title || t('settings.auth.idp.title') }) }}
           </p>
         </div>
 
@@ -315,7 +315,7 @@
                 :to="selectedGuide.localDocUrl"
                 class="text-xs font-semibold text-brand hover:underline"
               >
-                Läs mer i docs
+                {{ t('settings.auth.configGuide.readMore') }}
               </NuxtLink>
             </div>
             <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
@@ -331,6 +331,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 import { computed, reactive, ref, useFetch, useRuntimeConfig, watch } from '#imports'
 import { Icon as IconifyIcon } from '@iconify/vue'
 import type { AdminOrganizationDetail, OrganizationAuthUpdatePayload } from '~/types/admin'
@@ -345,12 +348,12 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const saving = ref(false)
 
-const providerOptions = [
-  { value: 'none', label: 'Ingen IdP', icon: 'mdi:cancel' },
-  { value: 'openid', label: 'OpenID Connect', icon: 'simple-icons:openid' },
-  { value: 'entra', label: 'Microsoft Entra ID', icon: 'simple-icons:microsoftazure' },
-  { value: 'saml', label: 'SAML 2.0', icon: 'mdi:shield-lock' }
-] as const
+const providerOptions = computed(() => [
+  { value: 'none', label: t('settings.auth.idp.providers.none'), icon: 'mdi:cancel' },
+  { value: 'openid', label: t('settings.auth.idp.providers.openid'), icon: 'simple-icons:openid' },
+  { value: 'entra', label: t('settings.auth.idp.providers.entra'), icon: 'simple-icons:microsoftazure' },
+  { value: 'saml', label: t('settings.auth.idp.providers.saml'), icon: 'mdi:shield-lock' }
+] as const)
 
 const form = reactive({
   requireSso: false,
@@ -389,7 +392,7 @@ watch(
   error,
   (value) => {
     if (!value) return
-    errorMessage.value = value.message ?? 'Kunde inte hämta auth-inställningar.'
+    errorMessage.value = value.message ?? t('settings.auth.idp.messages.loadError')
   },
   { immediate: true }
 )
@@ -417,51 +420,48 @@ const redirectUriHint = computed(() => {
 
 const providerGuides = computed(() => {
   const redirect = redirectUriHint.value
+  const openidSteps = [
+    t('settings.auth.configGuide.openid.steps.0'),
+    t('settings.auth.configGuide.openid.steps.1', { redirect }),
+    t('settings.auth.configGuide.openid.steps.2'),
+    t('settings.auth.configGuide.openid.steps.3'),
+    t('settings.auth.configGuide.openid.steps.4')
+  ]
+  const entraSteps = [
+    t('settings.auth.configGuide.entra.steps.0'),
+    t('settings.auth.configGuide.entra.steps.1', { redirect }),
+    t('settings.auth.configGuide.entra.steps.2'),
+    t('settings.auth.configGuide.entra.steps.3'),
+    t('settings.auth.configGuide.entra.steps.4')
+  ]
+  const samlSteps = [
+    t('settings.auth.configGuide.saml.steps.0'),
+    t('settings.auth.configGuide.saml.steps.1'),
+    t('settings.auth.configGuide.saml.steps.2'),
+    t('settings.auth.configGuide.saml.steps.3'),
+    t('settings.auth.configGuide.saml.steps.4')
+  ]
   return [
     {
       provider: 'openid',
-      title: 'OpenID Connect (OneLogin m.fl.)',
+      title: t('settings.auth.configGuide.openid.title'),
       localDocUrl: '/docs/auth/openid',
       docUrl: 'https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/onelogin-oidc/',
-      steps: [
-        'Skapa en ny OIDC-app i din IdP (t.ex. OneLogin) och välj Web-klient.',
-        `Ange ${redirect} som Redirect URL i din IdP.`,
-        'Kopiera Issuer/Discovery URL, Client ID och Client Secret från IdP:n.',
-        'Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.',
-        'Testa inloggningen innan du aktiverar "Kräv SSO" i CloudPortal.'
-      ],
-      summary:
-        'Följ guiden för att konfigurera OIDC med din IdP och fyll i värdena i CloudPortal.'
+      steps: openidSteps
     },
     {
       provider: 'entra',
-      title: 'Microsoft Entra ID (Azure AD)',
+      title: t('settings.auth.configGuide.entra.title'),
       localDocUrl: '/docs/auth/entra',
       docUrl: 'https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/entra-id/',
-      steps: [
-        'Registrera en ny Entra-app (App registration) och välj Web som plattform.',
-        `Sätt Redirect URI till ${redirect} i Microsoft Entra ID.`,
-        'Anteckna Application (client) ID, Directory (tenant) ID och skapa ett Client secret.',
-        'Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.',
-        'Tilldela användare och testa inloggningen, fyll sedan i Tenant ID, Client ID/Secret här innan du kräver SSO.'
-      ],
-      summary:
-        'Följ guiden för att konfigurera Microsoft Entra ID och fyll i värdena i CloudPortal.'
+      steps: entraSteps
     },
     {
       provider: 'saml',
-      title: 'SAML 2.0 (Azure AD, Okta m.fl.)',
+      title: t('settings.auth.configGuide.saml.title'),
       localDocUrl: '/docs/auth/saml',
       docUrl: 'https://developers.cloudflare.com/cloudflare-one/identity/idp-integration/saml/',
-      steps: [
-        'Skapa en ny SAML-app i din IdP och ange ACS/Callback URL till redirect-URL:en ovan.',
-        'Kopiera Issuer/Entity ID, Entry Point (SSO URL) och publik X.509-certifikat från IdP:n.',
-        'Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.',
-        'Ange eventuella Audience/Entity ID som förväntas av IdP:n och välj om AuthnRequests ska signeras.',
-        'Testa inloggningen innan du aktiverar "Kräv SSO" i CloudPortal.'
-      ],
-      summary:
-        'Standard-SAML-flöde: CloudPortal fungerar som SP och behöver IdP:ns entrypoint, issuer och certifikat för att verifiera assertioner.'
+      steps: samlSteps
     }
   ]
 })
@@ -566,8 +566,8 @@ const providerConfigured = computed(() => {
 const requireSsoDisabled = computed(() => form.idpProvider === 'none' || !providerConfigured.value)
 const requireSsoDisabledMessage = computed(() =>
   form.idpProvider === 'none'
-    ? 'Konfigurera en IdP innan SSO kan krävas.'
-    : 'Fyll i alla obligatoriska IdP-fält för att kunna kräva SSO.'
+    ? t('settings.auth.idp.requireSsoDisabled.noIdp')
+    : t('settings.auth.idp.requireSsoDisabled.incomplete')
 )
 
 const buildPayload = (): OrganizationAuthUpdatePayload => {
@@ -626,14 +626,14 @@ const validateProvider = (): string | null => {
     return null
   }
   if (!providerConfigured.value) {
-    return 'Fyll i alla obligatoriska IdP-fält innan du sparar.'
+    return t('settings.auth.idp.validation.incomplete')
   }
   return null
 }
 
 const handleSave = async () => {
   if (!organization.value) {
-    errorMessage.value = 'Ingen organisation är vald.'
+    errorMessage.value = t('settings.auth.idp.validation.noOrg')
     return
   }
 
@@ -653,10 +653,10 @@ const handleSave = async () => {
       body: buildPayload()
     })
     await refresh()
-    successMessage.value = 'Auth-inställningarna uppdaterades.'
+    successMessage.value = t('settings.auth.idp.messages.saved')
   } catch (err) {
     errorMessage.value =
-      err instanceof Error ? err.message : 'Kunde inte spara auth-inställningarna.'
+      err instanceof Error ? err.message : t('settings.auth.idp.messages.saveError')
   } finally {
     saving.value = false
   }

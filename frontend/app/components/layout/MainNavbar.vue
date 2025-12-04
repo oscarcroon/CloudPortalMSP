@@ -32,7 +32,7 @@
             :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
           >
             <Icon icon="mdi:view-dashboard" class="h-4 w-4 flex-shrink-0" />
-            <span>Dashboard</span>
+            <span>{{ t('nav.dashboard') }}</span>
           </NuxtLink>
         </li>
         <li v-for="module in visiblePrimaryModules" :key="module.id">
@@ -51,7 +51,7 @@
             <button
               class="flex items-center gap-1 py-2 hover:text-brand-light"
               :class="hasOverflowModules ? 'text-white' : 'text-slate-400'"
-              aria-label="Visa fler moduler"
+              :aria-label="t('nav.showMore')"
             >
               <Icon icon="mdi:chevron-down" class="h-4 w-4 transition-transform group-hover:rotate-180" />
             </button>
@@ -80,7 +80,7 @@
               :class="isAnyAdminActive ? 'text-brand-light border-b border-brand-light' : 'text-white'"
             >
               <Icon icon="mdi:cog" class="h-4 w-4 flex-shrink-0" />
-              <span>Inställningar</span>
+              <span>{{ t('nav.settings') }}</span>
               <Icon icon="mdi:chevron-down" class="h-3 w-3 flex-shrink-0 transition-transform group-hover:rotate-180" />
             </button>
             <ul
@@ -111,7 +111,7 @@
         @click="mobileOpen = false"
       >
         <Icon icon="mdi:view-dashboard" class="h-4 w-4 flex-shrink-0" />
-        <span>Dashboard</span>
+        <span>{{ t('nav.dashboard') }}</span>
       </NuxtLink>
       <NuxtLink
         v-for="module in mobileNavModules"
@@ -124,7 +124,9 @@
         <span>{{ module.name }}</span>
       </NuxtLink>
       <div v-if="adminNavItems.length > 0" class="mt-2 pt-2 border-t border-slate-700">
-        <p class="px-2 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">Inställningar</p>
+        <p class="px-2 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          {{ t('nav.adminSection') }}
+        </p>
         <NuxtLink
           v-for="item in adminNavItems"
           :key="item.to"
@@ -142,7 +144,7 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, ref } from '#imports'
+import { computed, ref, useI18n } from '#imports'
 import { useWindowSize } from '@vueuse/core'
 import ContextSwitcher from '~/components/navigation/ContextSwitcher.vue'
 import { useAuth } from '~/composables/useAuth'
@@ -162,6 +164,7 @@ const DEFAULT_NAV_RGB: [number, number, number] = (() => {
 })()
 
 const route = useRoute()
+const { t } = useI18n()
 const mobileOpen = ref(false)
 const auth = useAuth()
 const defaultLogo = defaultLogoAsset
@@ -240,15 +243,15 @@ const mobileNavModules = computed(() => {
 })
 
 const adminNavItems = computed(() => {
-  const items = [{ label: 'Inställningar', to: '/settings', icon: 'mdi:cog' }]
+  const items = [{ label: t('nav.settings'), to: '/settings', icon: 'mdi:cog' }]
   const hasTenantAccess =
     auth.isSuperAdmin.value ||
     Object.keys(auth.state.value.data?.tenantRoles ?? {}).length > 0
   if (hasTenantAccess) {
-    items.push({ label: 'Tenants', to: '/admin/tenants', icon: 'mdi:account-group' })
+    items.push({ label: t('nav.tenants'), to: '/admin/tenants', icon: 'mdi:account-group' })
   }
   if (auth.isSuperAdmin.value) {
-    items.push({ label: 'Superadmin', to: '/admin/settings', icon: 'mdi:shield-crown' })
+    items.push({ label: t('nav.superadmin'), to: '/admin/settings', icon: 'mdi:shield-crown' })
   }
   return items
 })

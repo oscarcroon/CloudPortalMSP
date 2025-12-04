@@ -2,9 +2,9 @@
   <section class="space-y-8">
     <header class="space-y-1">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Organisationer</h1>
+      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ t('adminOrganizations.title') }}</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        Hantera alla kundkonton, sök efter organisationer och öppna detaljerade vyer för medlemmar och inställningar.
+        {{ t('adminOrganizations.description') }}
       </p>
     </header>
 
@@ -12,7 +12,7 @@
       v-if="deletedSlug"
       class="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300"
     >
-      Organisationen "{{ deletedSlug }}" raderades permanent.
+      {{ t('adminOrganizations.deleted', { slug: deletedSlug }) }}
     </div>
 
     <div class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
@@ -21,7 +21,7 @@
           v-model="searchInput"
           type="text"
           class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-          placeholder="Sök efter namn eller slug"
+          :placeholder="t('adminOrganizations.searchPlaceholder')"
           @input="applySearch"
         />
         <div class="flex gap-2">
@@ -30,31 +30,31 @@
             class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
             @click="clearSearch"
           >
-            Rensa
+            {{ t('adminOrganizations.clear') }}
           </button>
         </div>
       </form>
       <div class="flex flex-wrap gap-3">
         <div class="flex items-center gap-2">
-          <label class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status:</label>
+          <label class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.status') }}</label>
           <select
             v-model="statusFilter"
             class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             @change="applyFilters"
           >
-            <option value="">Alla</option>
-            <option value="active">Aktiva</option>
-            <option value="inactive">Inaktiva</option>
+            <option value="">{{ t('adminOrganizations.all') }}</option>
+            <option value="active">{{ t('adminOrganizations.active') }}</option>
+            <option value="inactive">{{ t('adminOrganizations.inactive') }}</option>
           </select>
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tenant:</label>
+          <label class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.tenant') }}</label>
           <select
             v-model="tenantFilter"
             class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             @change="applyFilters"
           >
-            <option value="">Alla</option>
+            <option value="">{{ t('adminOrganizations.all') }}</option>
             <option v-for="tenant in uniqueTenants" :key="tenant.id" :value="tenant.id">
               {{ tenant.name }}
             </option>
@@ -68,28 +68,28 @@
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
         >
           <Icon icon="mdi:file-document-outline" class="h-4 w-4" />
-          Audit Loggar
+          {{ t('adminOrganizations.auditLogs') }}
         </NuxtLink>
         <NuxtLink
           to="/admin/settings/email"
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
         >
           <Icon icon="mdi:email-outline" class="h-4 w-4" />
-          Global e-post
+          {{ t('adminOrganizations.globalEmail') }}
         </NuxtLink>
         <NuxtLink
           to="/admin/users"
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
         >
           <Icon icon="mdi:account-group-outline" class="h-4 w-4" />
-          Hantera användare
+          {{ t('adminOrganizations.manageUsers') }}
         </NuxtLink>
         <NuxtLink
           to="/admin/organizations/new"
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80"
         >
           <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
-          Skapa organisation
+          {{ t('adminOrganizations.createOrganization') }}
         </NuxtLink>
       </div>
     </div>
@@ -97,16 +97,16 @@
     <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
       <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/5">
         <div>
-          <p class="text-sm font-semibold text-slate-900 dark:text-white">Alla organisationer</p>
+          <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('adminOrganizations.allOrganizations') }}</p>
           <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ organizations.length }} resultat
-            <span v-if="appliedQuery">för "{{ appliedQuery }}"</span>
+            {{ t('adminOrganizations.results', { count: organizations.length }) }}
+            <span v-if="appliedQuery">{{ t('adminOrganizations.for', { query: appliedQuery }) }}</span>
             <span v-if="statusFilter || tenantFilter">
               <span v-if="appliedQuery"> • </span>
-              <span v-if="statusFilter">Status: {{ statusFilter === 'active' ? 'Aktiva' : 'Inaktiva' }}</span>
+              <span v-if="statusFilter">{{ t('adminOrganizations.filters.statusLabel') }} {{ statusFilter === 'active' ? t('adminOrganizations.filters.statusActive') : t('adminOrganizations.filters.statusInactive') }}</span>
               <span v-if="statusFilter && tenantFilter"> • </span>
               <span v-if="tenantFilter">
-                Tenant: {{ uniqueTenants.find(t => t.id === tenantFilter)?.name ?? tenantFilter }}
+                {{ t('adminOrganizations.filters.tenantLabel') }} {{ uniqueTenants.find(t => t.id === tenantFilter)?.name ?? tenantFilter }}
               </span>
             </span>
           </p>
@@ -115,27 +115,27 @@
           class="rounded border border-slate-300 px-3 py-1 text-xs uppercase tracking-wide text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
           @click="refreshList"
         >
-          Uppdatera
+          {{ t('adminOrganizations.refresh') }}
         </button>
       </div>
 
       <div v-if="listError" class="px-6 py-4 text-sm text-red-500">{{ listError }}</div>
-      <div v-else-if="pending" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Laddar organisationer...</div>
+      <div v-else-if="pending" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{{ t('adminOrganizations.loading') }}</div>
       <div v-else-if="!organizations.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-        Inga organisationer matchade din sökning.
+        {{ t('adminOrganizations.noResults') }}
       </div>
       <div v-else class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
           <thead class="bg-slate-50 dark:bg-white/5">
             <tr>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Organisation</th>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug</th>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tenant</th>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Medlemmar</th>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">SSO</th>
-              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Skapad</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.table.organization') }}</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.table.slug') }}</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.table.status') }}</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.table.tenant') }}</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.table.members') }}</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.table.email') }}</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.table.sso') }}</th>
+              <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminOrganizations.table.created') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-white/5">
@@ -151,37 +151,37 @@
               <td class="px-6 py-3 font-mono text-xs text-slate-500 dark:text-slate-400">{{ org.slug }}</td>
               <td class="px-6 py-3">
                 <StatusPill :variant="org.status === 'active' ? 'success' : 'warning'">
-                  {{ org.status === 'active' ? 'Aktiv' : 'Inaktiv' }}
+                  {{ t(`adminOrganizations.status.${org.status}`) }}
                 </StatusPill>
               </td>
               <td class="px-6 py-3 text-slate-700 dark:text-slate-200">
                 <span v-if="org.tenantName" class="text-xs font-medium text-slate-900 dark:text-slate-100">
                   {{ org.tenantName }}
                 </span>
-                <span v-else class="text-xs text-slate-400 dark:text-slate-500">Ingen tenant</span>
+                <span v-else class="text-xs text-slate-400 dark:text-slate-500">{{ t('adminOrganizations.noTenant') }}</span>
               </td>
               <td class="px-6 py-3 text-slate-700 dark:text-slate-200">
                 <button
                   class="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-white/20 dark:text-slate-200"
                   @click.stop="navigateToMembers(org.slug)"
                 >
-                  {{ org.memberCount }} st
+                  {{ t('adminOrganizations.memberCount', { count: org.memberCount }) }}
                 </button>
               </td>
               <td class="px-6 py-3">
                 <span
                   v-if="org.hasEmailOverride"
                   class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  title="E-post override aktiv"
+                  :title="t('adminOrganizations.emailOverride.active')"
                 >
                   <Icon icon="mdi:email-check" class="h-3 w-3" />
-                  Override
+                  {{ t('adminOrganizations.emailOverride.override') }}
                 </span>
-                <span v-else class="text-xs text-slate-400 dark:text-slate-500">Ärvs</span>
+                <span v-else class="text-xs text-slate-400 dark:text-slate-500">{{ t('adminOrganizations.emailOverride.inherited') }}</span>
               </td>
               <td class="px-6 py-3">
                 <StatusPill :variant="org.requireSso ? 'success' : 'info'">
-                  {{ org.requireSso ? 'På' : 'Av' }}
+                  {{ org.requireSso ? t('adminOrganizations.sso.on') : t('adminOrganizations.sso.off') }}
                 </StatusPill>
               </td>
               <td class="px-6 py-3 text-xs text-slate-500 dark:text-slate-400">
@@ -196,6 +196,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 import { computed, ref, useFetch, useRoute, useRouter } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'

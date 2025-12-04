@@ -5,13 +5,13 @@
       :style="heroGradientStyle"
     >
       <p class="text-sm uppercase tracking-[0.3em] text-white/70">Cloud Portal</p>
-      <h1 class="mt-3 text-4xl font-semibold">Single pane of glass</h1>
+      <h1 class="mt-3 text-4xl font-semibold">{{ t('dashboard.title') }}</h1>
       <p class="mt-4 max-w-2xl text-white/80">
-        Hantera DNS, containrar, virtuella maskiner och WordPress-webbplatser från ett enda gränssnitt.
+        {{ t('dashboard.subtitle') }}
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
-        <StatusPill variant="success" dot>All systems operational</StatusPill>
-        <StatusPill variant="info">Organisationer: {{ organisations.length }}</StatusPill>
+        <StatusPill variant="success" dot>{{ t('dashboard.allSystemsOperational') }}</StatusPill>
+        <StatusPill variant="info">{{ t('dashboard.organizations') }}: {{ organisations.length }}</StatusPill>
       </div>
     </div>
 
@@ -28,7 +28,7 @@
         :key="module.id"
         :title="module.name"
         :description="module.description"
-        :badge="module.badge || 'Modul'"
+        :badge="module.badge || t('dashboard.module')"
         :icon="module.icon"
         :disabled="module.disabled || false"
         :is-favorite="isFavorite(module.id)"
@@ -40,7 +40,7 @@
     <div v-else class="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-800">
       <Icon icon="mdi:package-variant" class="mx-auto h-12 w-12 text-slate-400" />
       <p class="mt-4 text-sm text-slate-600 dark:text-slate-400">
-        Inga moduler är tillgängliga för din organisation.
+        {{ t('dashboard.noModules') }}
       </p>
     </div>
 
@@ -48,7 +48,7 @@
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card transition-colors dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center gap-3">
           <Icon icon="mdi:chart-line" class="h-6 w-6 text-brand" />
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Status</h3>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('dashboard.status') }}</h3>
         </div>
         <ul class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
           <li v-for="item in statusItems" :key="item.label" class="flex items-center justify-between">
@@ -61,7 +61,7 @@
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card transition-colors dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center gap-3">
           <Icon icon="mdi:newspaper-outline" class="h-6 w-6 text-brand" />
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Nyheter</h3>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('dashboard.news') }}</h3>
         </div>
         <ul class="mt-4 space-y-4 text-sm text-slate-600 dark:text-slate-300">
           <li v-for="post in news" :key="post.title">
@@ -77,6 +77,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import DashboardCard from '~/components/dashboard/DashboardCard.vue'
@@ -84,28 +85,30 @@ import { useAuth } from '~/composables/useAuth'
 import { useModules } from '~/composables/useModules'
 import { useFavorites } from '~/composables/useFavorites'
 
+const { t } = useI18n()
+
 const router = useRouter()
 const auth = useAuth()
 const { modules, loading } = useModules()
 const { toggleFavorite, isFavorite, pending: favoritesPending } = useFavorites()
 
 const statusItems = [
-  { label: 'Cloudflare API', value: 'OK', variant: 'success' },
-  { label: 'Incus cluster', value: 'Degraded', variant: 'warning' },
-  { label: 'VM platform', value: 'OK', variant: 'success' },
-  { label: 'WordPress', value: 'Maintenance', variant: 'danger' }
+  { label: 'Cloudflare API', value: t('dashboard.statusLabels.ok'), variant: 'success' },
+  { label: 'Incus cluster', value: t('dashboard.statusLabels.degraded'), variant: 'warning' },
+  { label: 'VM platform', value: t('dashboard.statusLabels.ok'), variant: 'success' },
+  { label: 'WordPress', value: t('dashboard.statusLabels.maintenance'), variant: 'danger' }
 ] as const
 
 const news = [
   {
-    title: 'Din första webbplats? Kom igång smidigt',
-    summary: 'Följ våra fem steg för en snabb och säker lansering.',
-    date: '28 okt'
+    title: t('dashboard.newsItems.firstSite.title'),
+    summary: t('dashboard.newsItems.firstSite.summary'),
+    date: t('dashboard.newsItems.firstSite.date')
   },
   {
-    title: 'Hur hänger DNS och e-post ihop?',
-    summary: 'Kort guide för SPF, DKIM och MX.',
-    date: '14 okt'
+    title: t('dashboard.newsItems.dnsEmail.title'),
+    summary: t('dashboard.newsItems.dnsEmail.summary'),
+    date: t('dashboard.newsItems.dnsEmail.date')
   }
 ]
 

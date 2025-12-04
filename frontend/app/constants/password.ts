@@ -1,9 +1,11 @@
 export const passwordRequirements = [
-  'Minst 12 tecken långt',
-  'Minst en versal (A-Z)',
-  'Minst en gemen (a-z)',
-  'Minst en siffra (0-9)',
-  'Minst ett specialtecken (t.ex. !@#)'
-]
+  'password.requirements.length',
+  'password.requirements.uppercase',
+  'password.requirements.lowercase',
+  'password.requirements.digit',
+  'password.requirements.symbol'
+] as const
+
+export type PasswordRequirementKey = (typeof passwordRequirements)[number]
 
 

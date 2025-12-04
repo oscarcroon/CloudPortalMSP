@@ -4,19 +4,19 @@
       to="/settings"
       class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
     >
-      ← Inställningar
+      {{ t('settings.branding.backToSettings') }}
     </NuxtLink>
 
     <div>
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Branding</p>
-      <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Branding & login</h1>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('settings.branding.category') }}</p>
+      <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.branding.title') }}</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        Hantera logotyper, accentfärg och login-branding för {{ activeOrganisationName }}.
+        {{ t('settings.branding.pageDescription', { orgName: activeOrganisationName }) }}
       </p>
     </div>
 
     <div v-if="!showContent" class="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-      Hämtar organisationsinformation...
+      {{ t('settings.branding.loading') }}
     </div>
 
     <div v-else class="space-y-6">
@@ -24,7 +24,7 @@
         v-if="isSettingsLocked"
         class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
       >
-        Välj en aktiv organisation för att kunna ändra branding.
+        {{ t('settings.branding.noActiveOrg') }}
       </div>
 
       <div
@@ -38,9 +38,9 @@
             <div class="flex items-center gap-3">
               <Icon icon="mdi:palette-outline" class="h-6 w-6 text-brand" />
               <div>
-                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">App-branding</h2>
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.branding.appBranding.title') }}</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">
-                  Styr logotyp och accentfärg som visas i hela portalen.
+                  {{ t('settings.branding.appBranding.description') }}
                 </p>
               </div>
             </div>
@@ -54,7 +54,7 @@
           </div>
           <div v-else>
             <div v-if="brandingLoading" class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-              Hämtar brandinginformation...
+              {{ t('settings.branding.appBranding.loadingBranding') }}
             </div>
             <div v-else class="space-y-6">
               <div class="grid gap-6 lg:grid-cols-2">
@@ -63,9 +63,9 @@
                     class="flex h-32 w-full max-w-sm items-center justify-center rounded-xl border border-dashed border-white/10 px-4 text-white"
                     :style="{ backgroundColor: navigationPreviewColor }"
                   >
-                    <img :src="currentLogo" :alt="`Logo preview for ${activeOrganisationName}`" class="max-h-20 w-auto object-contain" />
+                    <img :src="currentLogo" :alt="t('settings.branding.logoPreview', { orgName: activeOrganisationName })" class="max-h-20 w-auto object-contain" />
                   </div>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">Logokälla: {{ logoSourceLabel }}</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('settings.branding.appBranding.logoSource', { source: logoSourceLabel }) }}</p>
                   <div class="flex flex-wrap items-center gap-3">
                     <button
                       class="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:bg-brand/40"
@@ -73,7 +73,7 @@
                       :disabled="isUploading"
                       @click="triggerFilePicker"
                     >
-                      {{ isUploading ? 'Laddar upp...' : 'Byt logotyp' }}
+                      {{ isUploading ? t('settings.branding.appBranding.uploading') : t('settings.branding.appBranding.changeLogo') }}
                     </button>
                     <button
                       v-if="hasCustomLogo"
@@ -82,7 +82,7 @@
                       :disabled="isUploading"
                       @click="removeLogo"
                     >
-                      {{ isUploading ? 'Tar bort...' : 'Ta bort logotyp' }}
+                      {{ isUploading ? t('settings.branding.appBranding.removing') : t('settings.branding.appBranding.removeLogo') }}
                     </button>
                     <input
                       ref="logoInputRef"
@@ -98,23 +98,23 @@
                   <p v-else-if="uploadSuccessMessage" class="text-xs font-semibold text-emerald-600">
                     {{ uploadSuccessMessage }}
                   </p>
-                  <p class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Max 2 MB</p>
+                  <p class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ t('settings.branding.appBranding.maxSize') }}</p>
                 </div>
 
                 <div class="space-y-4">
                 <div class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
                   <div class="flex items-center justify-between gap-4">
                     <div>
-                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Accentfärg</p>
+                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.branding.accentColor.title') }}</p>
                       <p class="text-xs text-slate-500 dark:text-slate-400">
-                        Använd en egen färg eller återställ till arv.
+                        {{ t('settings.branding.accentColor.description') }}
                       </p>
                     </div>
                     <div
                       class="flex h-10 w-24 items-center justify-center rounded-lg text-xs font-semibold text-white"
                       :style="{ backgroundColor: activeAccentColor }"
                     >
-                      Accent
+                      {{ t('settings.branding.accentColor.label') }}
                     </div>
                   </div>
                   <div class="flex flex-wrap items-center gap-3">
@@ -135,7 +135,7 @@
                       :disabled="accentSaving"
                       @click="saveCustomAccent"
                     >
-                      {{ accentSaving ? 'Sparar...' : 'Spara' }}
+                      {{ accentSaving ? t('settings.branding.accentColor.saving') : t('settings.branding.accentColor.save') }}
                     </button>
                     <button
                       v-if="organizationHasCustomAccent"
@@ -144,7 +144,7 @@
                       :disabled="accentSaving"
                       @click="resetAccent"
                     >
-                      Återställ
+                      {{ t('settings.branding.accentColor.reset') }}
                     </button>
                   </div>
                   <p
@@ -163,7 +163,7 @@
                       :disabled="accentSaving"
                       @click="applyAccentPreset(option.hex)"
                     >
-                      <span class="sr-only">Välj {{ option.label }}</span>
+                      <span class="sr-only">{{ t('settings.branding.accentColor.select', { label: t(`settings.branding.palette.${option.key}`) }) }}</span>
                     </button>
                   </div>
                 </div>
@@ -171,16 +171,16 @@
                 <div class="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
                   <div class="flex items-center justify-between gap-4">
                     <div>
-                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Navigation</p>
+                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.branding.navigation.title') }}</p>
                       <p class="text-xs text-slate-500 dark:text-slate-400">
-                        Bakgrundsfärgen som används i huvudmenyn.
+                        {{ t('settings.branding.navigation.description') }}
                       </p>
                     </div>
                     <div
                       class="flex h-10 w-24 items-center justify-center rounded-lg text-xs font-semibold text-white"
                       :style="{ backgroundColor: navigationPreviewColor }"
                     >
-                      Nav
+                      {{ t('settings.branding.navigation.label') }}
                     </div>
                   </div>
                   <div class="flex flex-wrap items-center gap-3">
@@ -201,7 +201,7 @@
                       :disabled="navSaving"
                       @click="saveNavigationColor"
                     >
-                      {{ navSaving ? 'Sparar...' : 'Spara' }}
+                      {{ navSaving ? t('settings.branding.accentColor.saving') : t('settings.branding.accentColor.save') }}
                     </button>
                     <button
                       v-if="navColor"
@@ -210,7 +210,7 @@
                       :disabled="navSaving"
                       @click="resetNavigationColor"
                     >
-                      Återställ
+                      {{ t('settings.branding.accentColor.reset') }}
                     </button>
                   </div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -222,7 +222,7 @@
                     :disabled="navSaving"
                     @click="applyNavPreset(option.hex)"
                   >
-                    <span class="sr-only">Välj {{ option.label }}</span>
+                    <span class="sr-only">{{ t('settings.branding.navigation.select', { label: t(`settings.branding.palette.${option.key}`) }) }}</span>
                   </button>
                 </div>
                   <p
@@ -244,15 +244,15 @@
             <div class="flex items-center gap-3">
               <Icon icon="mdi:login" class="h-6 w-6 text-brand" />
               <div>
-                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Login-branding</h2>
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.branding.loginBranding.title') }}</h2>
                 <p class="text-sm text-slate-500 dark:text-slate-400">
-                  Ladda upp separata logotyper (ljus/mörk) och bakgrundsbild för inloggningssidan.
+                  {{ t('settings.branding.loginBranding.description') }}
                 </p>
               </div>
             </div>
           </div>
           <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
-            Branding väljs automatiskt baserat på host (slug eller verifierad custom domain) och ärver från leverantör/distributör.
+            {{ t('settings.branding.loginBranding.autoSelect') }}
           </p>
           <LoginBrandingAssets
             v-if="currentOrgId && brandingDetails"
@@ -273,6 +273,9 @@ import { computed, onMounted, reactive, ref, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
 import { useAuth } from '~/composables/useAuth'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 import LoginBrandingAssets from '~/components/branding/LoginBrandingAssets.vue'
 import { normalizeLogoUrl } from '~/utils/logo'
 import type { BrandingState, BrandingThemeSource } from '~/types/auth'
@@ -376,10 +379,10 @@ function triggerFilePicker() {
 function validateFile(file: File) {
   const extension = file.name.split('.').pop()?.toLowerCase()
   if (!extension || !allowedExtensions.includes(extension)) {
-    return 'Ogiltigt filformat. Tillåtna format: .jpg, .png, .svg, .webp.'
+    return t('settings.branding.messages.invalidFileFormat')
   }
   if (file.size > maxLogoBytes) {
-    return 'Filen får vara max 2 MB.'
+    return t('settings.branding.messages.fileTooLarge')
   }
   return null
 }
@@ -403,7 +406,7 @@ async function handleLogoSelection(event: Event) {
 
   const activeOrgId = currentOrgId.value
   if (!activeOrgId) {
-    uploadError.value = 'Ingen aktiv organisation vald.'
+    uploadError.value = t('settings.branding.messages.noActiveOrg')
     target.value = ''
     return
   }
@@ -418,14 +421,14 @@ async function handleLogoSelection(event: Event) {
       credentials: 'include'
     })
     if (result?.logoUrl) {
-      uploadSuccessMessage.value = 'Logotypen uppdaterades.'
+      uploadSuccessMessage.value = t('settings.branding.messages.logoUpdated')
       await auth.fetchMe()
       await refreshBranding()
     } else {
-      uploadError.value = 'Kunde inte ladda upp logotypen. Inget svar från servern.'
+      uploadError.value = t('settings.branding.messages.logoUploadErrorNoResponse')
     }
   } catch (error: any) {
-    const errorMessage = error?.data?.message || error?.message || 'Kunde inte ladda upp logotypen.'
+    const errorMessage = error?.data?.message || error?.message || t('settings.branding.messages.logoUploadError')
     uploadError.value = errorMessage
   } finally {
     isUploading.value = false
@@ -437,11 +440,11 @@ async function handleLogoSelection(event: Event) {
 async function removeLogo() {
   const activeOrgId = currentOrgId.value
   if (!activeOrgId) {
-    uploadError.value = 'Ingen aktiv organisation vald.'
+    uploadError.value = t('settings.branding.messages.noActiveOrg')
     return
   }
 
-  if (!confirm('Vill du ta bort den anpassade logotypen? Standardlogotypen kommer att användas istället.')) {
+  if (!confirm(t('settings.branding.messages.logoRemoveConfirm'))) {
     return
   }
 
@@ -454,11 +457,11 @@ async function removeLogo() {
       method: 'DELETE',
       credentials: 'include'
     })
-    uploadSuccessMessage.value = 'Logotypen togs bort.'
+    uploadSuccessMessage.value = t('settings.branding.messages.logoRemoved')
     await auth.fetchMe()
     await refreshBranding()
   } catch (error: any) {
-    const errorMessage = error?.data?.message || error?.message || 'Kunde inte ta bort logotypen.'
+    const errorMessage = error?.data?.message || error?.message || t('settings.branding.messages.logoRemoveError')
     uploadError.value = errorMessage
   } finally {
     isUploading.value = false
@@ -494,7 +497,7 @@ async function refreshBranding() {
     const theme = brandingDetails.value?.organizationTheme
     accentForm.customColor = theme?.accentColor ?? ''
   } catch (error: any) {
-    brandingError.value = error?.data?.message || error?.message || 'Kunde inte hämta brandinginformation.'
+    brandingError.value = error?.data?.message || error?.message || t('settings.branding.messages.brandingLoadError')
   } finally {
     brandingLoading.value = false
   }
@@ -506,14 +509,14 @@ async function saveCustomAccent() {
     return
   }
   if (!accentForm.customColor.trim()) {
-    accentStatus.value = { type: 'error', text: 'Ange en giltig färgkod.' }
+    accentStatus.value = { type: 'error', text: t('settings.branding.messages.accentMissingColor') }
     return
   }
   let normalized: string
   try {
     normalized = normalizeHexColor(accentForm.customColor)
   } catch {
-    accentStatus.value = { type: 'error', text: 'Ogiltig färgkod.' }
+    accentStatus.value = { type: 'error', text: t('settings.branding.messages.accentInvalidColor') }
     return
   }
 
@@ -531,11 +534,11 @@ async function saveCustomAccent() {
     })
     await auth.fetchMe()
     await refreshBranding()
-    accentStatus.value = { type: 'success', text: 'Accentfärgen uppdaterades.' }
+    accentStatus.value = { type: 'success', text: t('settings.branding.messages.accentUpdated') }
   } catch (error: any) {
     accentStatus.value = {
       type: 'error',
-      text: error?.data?.message || error?.message || 'Kunde inte uppdatera accentfärgen.'
+      text: error?.data?.message || error?.message || t('settings.branding.messages.accentUpdateError')
     }
   } finally {
     accentSaving.value = false
@@ -563,11 +566,11 @@ async function resetAccent() {
     })
     await auth.fetchMe()
     await refreshBranding()
-    accentStatus.value = { type: 'success', text: 'Accentfärgen återställdes.' }
+    accentStatus.value = { type: 'success', text: t('settings.branding.messages.accentReset') }
   } catch (error: any) {
     accentStatus.value = {
       type: 'error',
-      text: error?.data?.message || error?.message || 'Kunde inte återställa accentfärgen.'
+      text: error?.data?.message || error?.message || t('settings.branding.messages.accentResetError')
     }
   } finally {
     accentSaving.value = false
@@ -611,12 +614,11 @@ async function saveNavigationColor() {
     })
     await auth.fetchMe()
     await refreshBranding()
-    navStatus.value = { type: 'success', text: 'Navigationsbakgrunden uppdaterades.' }
+    navStatus.value = { type: 'success', text: t('settings.branding.messages.navUpdated') }
   } catch (error: any) {
     navStatus.value = {
       type: 'error',
-      text:
-        error?.data?.message || error?.message || 'Kunde inte uppdatera navigationsbakgrunden.'
+      text: error?.data?.message || error?.message || t('settings.branding.messages.navUpdateError')
     }
   } finally {
     navSaving.value = false
@@ -646,14 +648,9 @@ async function applyNavPreset(hex: string) {
 
 function formatBrandingSource(source?: BrandingThemeSource | null) {
   if (!source || source.targetType === 'default') {
-    return 'Standard'
+    return t('settings.branding.sourceLabels.default')
   }
-  const label =
-    source.targetType === 'organization'
-      ? 'Organisation'
-      : source.targetType === 'provider'
-        ? 'Leverantör'
-        : 'Distributör'
+  const label = t(`settings.branding.sourceLabels.${source.targetType}`)
   return source.name ? `${label}: ${source.name}` : label
 }
 </script>

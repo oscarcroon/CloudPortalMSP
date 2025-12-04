@@ -23,6 +23,7 @@ import type { RbacRole, TenantRole } from '~/constants/rbac'
 import { tenantRoleOrgProxyPermissions } from '~/constants/rbac'
 import type { ModuleId } from '~/constants/modules'
 import { moduleIds } from '~/constants/modules'
+import { DEFAULT_LOCALE, type SupportedLocaleCode } from '~/constants/i18n'
 import { normalizeEmail } from './crypto'
 import { normalizeStoredLogoUrl, resolveBrandingChain } from './branding'
 
@@ -379,7 +380,8 @@ export const buildAuthState = async (
       status: user.status,
       defaultOrgId: user.defaultOrgId,
       isSuperAdmin: Boolean(user.isSuperAdmin),
-      forcePasswordReset: Boolean(user.forcePasswordReset)
+      forcePasswordReset: Boolean(user.forcePasswordReset),
+      locale: (user.locale as SupportedLocaleCode) ?? DEFAULT_LOCALE
     },
     organizations: organizationPayload,
     tenants: tenantPayload,

@@ -28,7 +28,7 @@
           v-model="searchInput"
           type="text"
           class="w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-          placeholder="Sök efter organisation..."
+          :placeholder="t('contextSwitcher.searchPlaceholder')"
         />
       </div>
 
@@ -55,7 +55,7 @@
                 <p class="truncate font-semibold">{{ tenant.name }}</p>
               </div>
               <p class="text-xs text-slate-400">
-                {{ getTenantTypeLabel(tenant.type) }} • {{ tenant.role }}
+                {{ getTenantTypeLabel(tenant.type) }} • {{ getRoleLabel(tenant.role) }}
               </p>
             </div>
             <Icon
@@ -80,7 +80,7 @@
             >
               <div class="min-w-0 flex-1">
                 <p class="truncate font-medium">{{ org.name }}</p>
-                <p class="text-xs text-slate-500">{{ org.role }} • {{ org.status }}</p>
+                <p class="text-xs text-slate-500">{{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}</p>
               </div>
               <Icon
                 v-if="auth.state.value.data?.currentOrgId === org.id"
@@ -94,7 +94,7 @@
 
       <!-- Organizations Section (only standalone orgs, not shown under tenants) -->
       <div v-if="standaloneOrganizations.length > 0">
-        <p class="px-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Organisationer</p>
+        <p class="px-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('contextSwitcher.organizations') }}</p>
         <button
           v-for="org in standaloneOrganizations"
           :key="org.id"
@@ -106,7 +106,7 @@
         >
           <div class="min-w-0 flex-1">
             <p class="truncate font-semibold">{{ org.name }}</p>
-            <p class="text-xs text-slate-400">{{ org.role }} • {{ org.status }}</p>
+            <p class="text-xs text-slate-400">{{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}</p>
           </div>
           <div class="flex items-center gap-1">
             <span v-if="org.requireSso" class="text-xs text-amber-400">SSO</span>
@@ -119,7 +119,7 @@
         </button>
 
         <p v-if="!standaloneOrganizations.length && !tenants.length" class="px-2 py-4 text-sm text-slate-400">
-          Inga kontexter tillgängliga.
+          {{ t('contextSwitcher.noContexts') }}
         </p>
       </div>
     </div>
@@ -133,6 +133,9 @@ import { breakpointsTailwind, useBreakpoints } from '@vueuse/core'
 import { useAuth } from '~/composables/useAuth'
 import type { AuthOrganization, AuthTenant } from '~/types/auth'
 import { DEFAULT_NAV_BACKGROUND } from '~~/shared/branding'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 const DEFAULT_NAV_RGB: [number, number, number] = (() => {
   const clean = DEFAULT_NAV_BACKGROUND.replace('#', '')
@@ -262,7 +265,7 @@ const currentContextName = computed(() => {
     return currentTenant.name
   }
   
-  return 'Välj kontext'
+  return t('contextSwitcher.selectContext')
 })
 
 const isSuperAdmin = auth.isSuperAdmin
@@ -349,7 +352,7 @@ async function selectTenant(tenantId: string) {
     await navigateAfterContextChange({ tenantId, organizationId: null })
   } catch (error: any) {
     console.error('Failed to switch tenant:', error)
-    auth.state.value.error = error.data?.message || error.message || 'Kunde inte byta till denna tenant.'
+    auth.state.value.error = error.data?.message || error.message || t('contextSwitcher.errors.switchTenantFailed')
   }
 }
 
@@ -360,13 +363,13 @@ async function selectContext(payload: { tenantId: string | null; organizationId:
     await navigateAfterContextChange(payload)
   } catch (error: any) {
     console.error('Failed to switch context:', error)
-    auth.state.value.error = error.data?.message || error.message || 'Kunde inte byta kontext.'
+    auth.state.value.error = error.data?.message || error.message || t('contextSwitcher.errors.switchContextFailed')
   }
 }
 
 async function trySelectOrg(org: AuthOrganization) {
   if (isOrgLocked(org)) {
-    auth.state.value.error = 'Organisationen kräver SSO. Starta SSO-flödet för att fortsätta.'
+    auth.state.value.error = t('contextSwitcher.errors.ssoRequired')
     return
   }
   
@@ -381,7 +384,7 @@ async function trySelectOrg(org: AuthOrganization) {
     await navigateAfterContextChange({ organizationId: org.id, tenantId })
   } catch (error: any) {
     console.error('Failed to switch context:', error)
-    auth.state.value.error = error.data?.message || error.message || 'Kunde inte byta till denna organisation.'
+    auth.state.value.error = error.data?.message || error.message || t('contextSwitcher.errors.switchOrgFailed')
     // Keep dropdown open so user can see the error
   }
 }
@@ -398,14 +401,15 @@ function getTenantTypeIcon(type: string) {
 }
 
 function getTenantTypeLabel(type: string) {
-  switch (type) {
-    case 'distributor':
-      return 'Distributör'
-    case 'provider':
-      return 'Leverantör'
-    default:
-      return type
-  }
+  return t(`adminTenants.badges.${type}`) || type
+}
+
+function getRoleLabel(role: string) {
+  return t(`rbac.roles.${role}`) || role
+}
+
+function getStatusLabel(status: string) {
+  return t(`settings.members.status.${status}`) || status
 }
 
 function getTenantTypeColor(type: string) {

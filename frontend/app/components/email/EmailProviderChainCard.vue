@@ -1,10 +1,10 @@
 <template>
   <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
     <header class="mb-4">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Översikt</p>
-      <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Effektiv e-postkedja</h3>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ $t('adminTenants.email.chain.overview') }}</p>
+      <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ $t('adminTenants.email.chain.title') }}</h3>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        Visar varifrån nuvarande avsändare och leverantör hämtas.
+        {{ $t('adminTenants.email.chain.description') }}
       </p>
     </header>
 
@@ -28,17 +28,17 @@
             class="rounded-full px-3 py-1 text-xs font-semibold"
             :class="entry.summary.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-300'"
           >
-            {{ entry.summary.isActive ? 'Aktiv' : 'Inaktiv' }}
+            {{ entry.summary.isActive ? $t('adminTenants.email.chain.active') : $t('adminTenants.email.chain.inactive') }}
           </span>
         </div>
 
         <div class="mt-3 space-y-1 text-slate-600 dark:text-slate-300">
           <p v-if="entry.summary.fromEmail">
-            <span class="font-medium">Från:</span> {{ entry.summary.fromName || 'Ej angivet' }} &lt;{{ entry.summary.fromEmail }}&gt;
+            <span class="font-medium">{{ $t('adminTenants.email.chain.from') }}</span> {{ entry.summary.fromName || $t('adminTenants.email.chain.notProvided') }} &lt;{{ entry.summary.fromEmail }}&gt;
           </p>
-          <p v-else class="text-slate-400 dark:text-slate-500">Ingen avsändare konfigurerad.</p>
+          <p v-else class="text-slate-400 dark:text-slate-500">{{ $t('adminTenants.email.chain.noSender') }}</p>
           <p>
-            <span class="font-medium">Leverantör:</span>
+            <span class="font-medium">{{ $t('adminTenants.email.chain.provider') }}</span>
             {{ entry.summary.providerType ? entry.summary.providerType.toUpperCase() : '–' }}
           </p>
         </div>
@@ -49,27 +49,24 @@
 
 <script setup lang="ts">
 import type { EmailProviderChainEntry } from '~/types/admin'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   chain: EmailProviderChainEntry[]
 }>()
 
-const levelMap: Record<EmailProviderChainEntry['targetType'], string> = {
-  organization: 'Organisation',
-  provider: 'Leverantör',
-  distributor: 'Distributör',
-  global: 'Global'
+const levelLabel = (entry: EmailProviderChainEntry) => {
+  const key = `adminTenants.email.chain.levels.${entry.targetType}`
+  return t(key) ?? t('adminTenants.email.chain.level')
 }
 
 const fallbackName = (type: EmailProviderChainEntry['targetType']) => {
   if (type === 'global') {
-    return 'Global standard'
+    return t('adminTenants.email.chain.globalDefault')
   }
-  return levelMap[type]
-}
-
-const levelLabel = (entry: EmailProviderChainEntry) => {
-  return levelMap[entry.targetType] ?? 'Nivå'
+  return t(`adminTenants.email.chain.levels.${type}`)
 }
 </script>
 

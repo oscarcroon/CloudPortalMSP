@@ -2,16 +2,16 @@
   <section class="space-y-6">
     <header class="text-center">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Cloud Portal</p>
-      <h1 class="mt-2 text-2xl font-semibold">Logga in</h1>
+      <h1 class="mt-2 text-2xl font-semibold">{{ t('auth.loginTitle') }}</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        Anslut med e-post och lösenord eller lägg till SSO senare per organisation.
+        {{ t('auth.loginSubtitle') }}
       </p>
     </header>
 
     <form class="space-y-4" @submit.prevent="step === 'email' ? handleEmailSubmit() : handlePasswordSubmit()">
       <div>
         <label for="email" class="text-xs uppercase tracking-wide text-slate-600 dark:text-slate-400"
-          >E-post</label
+          >{{ t('auth.email') }}</label
         >
         <input
           id="email"
@@ -19,14 +19,14 @@
           type="email"
           required
           class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-slate-50 dark:border-white/10 dark:bg-white/10 dark:text-white dark:placeholder:text-slate-400 dark:disabled:bg-slate-900/30 dark:disabled:text-slate-500 dark:disabled:border-white/5"
-          placeholder="you@example.com"
+          :placeholder="t('auth.emailPlaceholder')"
           :disabled="step === 'password'"
         />
       </div>
 
       <div v-if="step === 'password'" class="space-y-3">
         <label for="password" class="text-xs uppercase tracking-wide text-slate-600 dark:text-slate-400"
-          >Lösenord</label
+          >{{ t('auth.password') }}</label
         >
         <input
           id="password"
@@ -41,19 +41,19 @@
             class="text-slate-500 underline-offset-4 transition hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-white"
             @click="resetToEmailStep"
           >
-            Byt e-postadress
+            {{ t('auth.changeEmail') }}
           </button>
           <NuxtLink
             to="/forgot-password"
             class="text-slate-500 underline-offset-4 transition hover:text-slate-700 hover:underline dark:text-slate-400 dark:hover:text-white"
           >
-            Glömt lösenord?
+            {{ t('auth.forgotPassword') }}
           </NuxtLink>
         </div>
       </div>
 
       <p v-if="providers.restrictSso" class="rounded-lg bg-amber-500/20 px-3 py-2 text-sm text-amber-900 dark:text-amber-200">
-        Minst en organisation kräver SSO. Använd knapparna nedan för att initiera SSO-flödet eller välj en org som tillåter lösenord.
+        {{ t('auth.restrictSso') }}
       </p>
 
       <p v-if="errorMessage" class="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-900 dark:text-red-200">
@@ -65,7 +65,7 @@
         class="space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
       >
         <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          SSO-aktiverade organisationer
+          {{ t('auth.ssoOrganizations') }}
         </p>
         <div class="space-y-2">
           <a
@@ -87,20 +87,20 @@
         class="flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
         :disabled="auth.loading.value"
       >
-        <span v-if="step === 'email'">Fortsätt</span>
-        <span v-else>Logga in</span>
+        <span v-if="step === 'email'">{{ t('auth.continue') }}</span>
+        <span v-else>{{ t('auth.login') }}</span>
       </button>
     </form>
 
     <p class="text-center text-xs text-slate-400 dark:text-slate-500">
-      Skyddat bakom Cloudflare Zero Trust? Lägg till ditt Access-token i headern
+      {{ t('auth.cloudflareNote') }}
       <code class="rounded bg-slate-100 px-1 py-0.5 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
-        >CF_Authorization</code
+        >{{ t('auth.cloudflareCode') }}</code
       >
-      för sömlös SSO.
+      {{ t('auth.cloudflareNoteEnd') }}
     </p>
     <p v-if="brandingSourceLabel" class="text-center text-xs text-slate-400 dark:text-slate-500">
-      Login-branding: {{ brandingSourceLabel }}
+      {{ t('auth.loginBranding') }} {{ brandingSourceLabel }}
     </p>
   </section>
 </template>
@@ -149,10 +149,12 @@ const redirectTarget = computed(() => {
   return '/'
 })
 
+const { t } = useI18n()
+
 const providerLabel = (value: string) => {
-  if (value === 'entra') return 'Microsoft Entra ID'
-  if (value === 'openid') return 'OpenID Connect'
-  if (value === 'saml') return 'SAML'
+  if (value === 'entra') return t('auth.providers.entra')
+  if (value === 'openid') return t('auth.providers.openid')
+  if (value === 'saml') return t('auth.providers.saml')
   return value.toUpperCase()
 }
 
@@ -180,13 +182,13 @@ const handleEmailSubmit = async () => {
       fetchError?.statusCode ?? fetchError?.status ?? fetchError?.response?.status ?? null
     
     if (status === 400 || status === 422) {
-      errorMessage.value = 'Ogiltig e-postadress. Kontrollera att e-postadressen är korrekt formaterad.'
+      errorMessage.value = t('auth.errors.invalidEmail')
     } else if (status === 500 || status >= 500) {
-      errorMessage.value = 'E-postadressen verkar vara ogiltig eller så kunde servern inte verifiera den. Kontrollera stavningen och försök igen.'
+      errorMessage.value = t('auth.errors.serverError')
     } else if (status === 404) {
-      errorMessage.value = 'E-postadressen kunde inte hittas. Kontrollera att den är korrekt.'
+      errorMessage.value = t('auth.errors.notFound')
     } else {
-      errorMessage.value = 'Kunde inte verifiera e-postadressen. Kontrollera att den är korrekt formaterad och försök igen.'
+      errorMessage.value = t('auth.errors.verifyFailed')
     }
   }
 }
@@ -201,15 +203,15 @@ const handlePasswordSubmit = async () => {
     const status =
       fetchError?.statusCode ?? fetchError?.status ?? fetchError?.response?.status ?? null
     if (status === 401) {
-      errorMessage.value = 'Fel e-post eller lösenord. Försök igen.'
+      errorMessage.value = t('auth.errors.invalidCredentials')
       password.value = ''
       return
     }
     if (status === 403) {
-      errorMessage.value = 'Organisationen kräver SSO. Använd SSO-inloggning.'
+      errorMessage.value = t('auth.errors.ssoRequired')
       return
     }
-    errorMessage.value = 'Kunde inte logga in just nu.'
+    errorMessage.value = t('auth.errors.loginFailed')
   }
 }
 
@@ -233,7 +235,7 @@ function formatBrandingSource(source?: { name: string | null; targetType: string
     return ''
   }
   if (source.targetType === 'default' || !source.name) {
-    return 'Global standard'
+    return t('auth.globalDefault')
   }
   return source.name
 }

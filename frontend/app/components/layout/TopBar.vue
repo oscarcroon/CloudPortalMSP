@@ -7,12 +7,12 @@
     >
       <!-- Desktop: Sökfält -->
       <div class="hidden flex-1 md:block">
-        <label class="sr-only" for="global-search">Sök</label>
+        <label class="sr-only" for="global-search">{{ t('topBar.searchLabel') }}</label>
           <input
             id="global-search"
             v-model="search"
             type="search"
-            placeholder="Sök DNS, containers, VMs..."
+            :placeholder="t('topBar.searchPlaceholder')"
             class="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition placeholder:text-slate-400 focus:outline-none focus:ring-1 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:placeholder:text-slate-500"
             :style="{ '--tw-ring-color': accentColor }"
             @focus="(e: FocusEvent) => { const el = e.target as HTMLInputElement; el.style.borderColor = accentColor; el.style.setProperty('--tw-ring-color', accentColor) }"
@@ -28,7 +28,7 @@
             type="button"
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             :aria-pressed="mobileSearchOpen"
-            :aria-label="mobileSearchOpen ? 'Stäng sök' : 'Öppna sök'"
+            :aria-label="mobileSearchOpen ? t('topBar.toggleSearchClose') : t('topBar.toggleSearchOpen')"
             aria-controls="mobile-search-panel"
             @click="toggleMobileSearch"
             @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
@@ -42,13 +42,15 @@
                 clip-rule="evenodd"
               />
             </svg>
-            <span class="sr-only">Öppna sök</span>
+            <span class="sr-only">
+              {{ mobileSearchOpen ? t('topBar.toggleSearchClose') : t('topBar.toggleSearchOpen') }}
+            </span>
           </button>
           <NuxtLink
             to="/docs"
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            aria-label="Dokumentation"
-            title="Dokumentation"
+            :aria-label="t('topBar.docs')"
+            :title="t('topBar.docs')"
             @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
             @mouseleave="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = ''; el.style.color = '' }"
           >
@@ -70,8 +72,9 @@
           </NuxtLink>
         </div>
 
-        <!-- Mitten: Tema toggle -->
-        <div class="flex items-center">
+        <!-- Mitten: Språkväxlare + Tema toggle -->
+        <div class="flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeToggle />
         </div>
 
@@ -81,8 +84,8 @@
           class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-white transition"
           :style="{ backgroundColor: accentColor }"
           :class="{ 'hover:opacity-90': true }"
-          aria-label="Profil"
-          title="Profil"
+          :aria-label="t('topBar.profile')"
+          :title="t('topBar.profile')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
             <path
@@ -98,8 +101,8 @@
         <NuxtLink
           to="/docs"
           class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-          aria-label="Dokumentation"
-          title="Dokumentation"
+          :aria-label="t('topBar.docs')"
+          :title="t('topBar.docs')"
           @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
           @mouseleave="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = ''; el.style.color = '' }"
         >
@@ -123,8 +126,8 @@
         <NuxtLink
           to="/support"
           class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-          aria-label="Support"
-          title="Support"
+          :aria-label="t('topBar.support')"
+          :title="t('topBar.support')"
           @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
           @mouseleave="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = ''; el.style.color = '' }"
         >
@@ -137,13 +140,15 @@
 
         <ThemeToggle />
 
+        <LanguageSwitcher />
+
         <NuxtLink
           to="/profile"
           class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-white transition"
           :style="{ backgroundColor: accentColor }"
           :class="{ 'hover:opacity-90': true }"
-          aria-label="Profil"
-          title="Profil"
+          :aria-label="t('topBar.profile')"
+          :title="t('topBar.profile')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
             <path
@@ -151,7 +156,7 @@
               fill="currentColor"
             />
           </svg>
-          <span>{{ currentUser?.email ?? 'Okänd' }}</span>
+          <span>{{ currentUser?.email ?? t('common.unknown') }}</span>
         </NuxtLink>
       </div>
 
@@ -164,7 +169,7 @@
         leave-to-class="-translate-y-2 opacity-0"
       >
         <div v-if="mobileSearchOpen" id="mobile-search-panel" class="w-full md:hidden">
-          <label class="sr-only" for="mobile-global-search">Sök</label>
+          <label class="sr-only" for="mobile-global-search">{{ t('topBar.searchLabel') }}</label>
           <div
             class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-900/80"
           >
@@ -173,14 +178,14 @@
               ref="mobileSearchInput"
               v-model="search"
               type="search"
-              placeholder="Sök DNS, containers, VMs..."
+              :placeholder="t('topBar.searchPlaceholder')"
               class="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-500"
               @keyup.esc="closeMobileSearch"
             />
             <button
               type="button"
               class="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"
-              aria-label="Stäng sök"
+              :aria-label="t('topBar.toggleSearchClose')"
               @click="closeMobileSearch"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -198,11 +203,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from '#imports'
+import { computed, nextTick, ref, watch, useI18n } from '#imports'
 import ThemeToggle from '~/components/layout/ThemeToggle.vue'
+import LanguageSwitcher from '~/components/layout/LanguageSwitcher.vue'
 import { useAuth } from '~/composables/useAuth'
 
 const auth = useAuth()
+const { t } = useI18n()
 const search = ref('')
 const currentUser = computed(() => auth.user.value)
 const mobileSearchOpen = ref(false)

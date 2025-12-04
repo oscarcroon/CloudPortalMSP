@@ -23,6 +23,7 @@
     "@coreit/email-kit": "file:../packages/email-kit",
     "@iconify/vue": "^5.0.0",
     "@nuxtjs/color-mode": "^4.0.0",
+    "@nuxtjs/i18n": "^10.2.1",
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "@pinia/nuxt": "^0.5.5",

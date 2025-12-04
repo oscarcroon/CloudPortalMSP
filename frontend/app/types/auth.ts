@@ -1,5 +1,6 @@
 import type { RbacRole, TenantRole } from '~/constants/rbac'
 import type { ModuleId } from '~/constants/modules'
+import type { SupportedLocaleCode } from '~/constants/i18n'
 
 export interface AuthOrganization {
   id: string
@@ -35,6 +36,7 @@ export interface AuthUser {
   defaultOrgId?: string | null
   isSuperAdmin: boolean
   forcePasswordReset: boolean
+  locale: SupportedLocaleCode
 }
 
 export interface AuthPayload {

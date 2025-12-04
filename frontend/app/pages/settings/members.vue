@@ -5,24 +5,24 @@
         to="/settings"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka till inställningar
+        {{ t('settings.members.backToSettings') }}
       </NuxtLink>
       <div>
-        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Medlemmar</h1>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.members.title') }}</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Hantera roller, se väntande inbjudningar och ta bort åtkomst för den aktiva organisationen.
+          {{ t('settings.members.pageDescription') }}
         </p>
       </div>
     </header>
 
     <ClientOnly>
       <div v-if="!currentOrgId" class="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
-        Du behöver välja en aktiv organisation innan du kan hantera medlemmar.
+        {{ t('settings.members.noActiveOrg') }}
       </div>
       <div v-else class="space-y-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Aktiv organisation</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.members.activeOrganization') }}</p>
           <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ organisationName }}</h2>
           <p class="text-xs text-slate-500 dark:text-slate-400">
             {{ memberSummary }}
@@ -35,7 +35,7 @@
             @click="refreshMembers"
           >
             <Icon icon="mdi:refresh" class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-            {{ loading ? 'Uppdaterar...' : 'Uppdatera' }}
+            {{ loading ? t('settings.members.refreshing') : t('settings.members.refresh') }}
           </button>
           <button
             class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -43,7 +43,7 @@
             @click="openInviteModal"
           >
             <Icon icon="mdi:account-plus-outline" class="h-4 w-4" />
-            Bjud in medlem
+            {{ t('settings.members.inviteMember') }}
           </button>
         </div>
       </div>
@@ -59,10 +59,10 @@
       <div class="rounded-2xl border border-slate-200 bg-white shadow-card dark:border-white/10 dark:bg-[#0c1524]">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
           <div class="flex items-center justify-between">
-            <p class="text-sm font-semibold text-slate-900 dark:text-white">Medlemmar</p>
+            <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('settings.members.title') }}</p>
             <span class="text-xs text-slate-500 dark:text-slate-400">
-              {{ visibleMembers.length }} st
-              <span v-if="searchQuery"> av {{ members.length }}</span>
+              {{ t('settings.members.table.count', { count: visibleMembers.length }) }}
+              <span v-if="searchQuery"> {{ t('settings.members.table.of', { total: members.length }) }}</span>
             </span>
           </div>
         </div>
@@ -74,7 +74,7 @@
                 v-model="searchQuery"
                 type="text"
                 class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white dark:placeholder:text-slate-500"
-                placeholder="Sök efter namn eller e-post"
+                :placeholder="t('settings.members.searchPlaceholder')"
               />
               <div class="flex gap-2">
                 <button
@@ -83,7 +83,7 @@
                   class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
                   @click="clearFilters"
                 >
-                  Rensa
+                  {{ t('settings.members.clear') }}
                 </button>
               </div>
             </form>
@@ -94,29 +94,29 @@
                   class="rounded border-slate-300 text-amber-500 focus:ring-amber-500 dark:border-white/20"
                   v-model="showOnlyOverrides"
                 />
-                Visa bara medlemmar med manuella modulroller
+                {{ t('settings.members.showOnlyOverrides') }}
               </label>
             </div>
           </div>
         </div>
 
         <div v-if="loading" class="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          Laddar medlemmar...
+          {{ t('settings.members.loading') }}
         </div>
 
         <div v-else-if="!members.length" class="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          Inga medlemmar hittades. Använd knappen ovan för att bjuda in nya personer.
+          {{ t('settings.members.noMembers') }}
         </div>
 
         <div v-else-if="!visibleMembers.length && (searchQuery || showOnlyOverrides)" class="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          <p>Inga medlemmar matchade din sökning.</p>
+          <p>{{ t('settings.members.noSearchResults') }}</p>
           <button
             v-if="searchQuery || showOnlyOverrides"
             type="button"
             class="mt-2 text-xs text-brand underline hover:no-underline"
             @click="clearFilters"
           >
-            Rensa filter
+            {{ t('settings.members.clearFilters') }}
           </button>
         </div>
 
@@ -124,12 +124,12 @@
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
             <thead class="bg-slate-50 dark:bg-white/5">
               <tr>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Senast uppdaterad</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">Åtgärder</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.members.table.name') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.members.table.email') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.members.table.role') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.members.table.status') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.members.table.lastUpdated') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">{{ t('settings.members.table.actions') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
@@ -137,13 +137,13 @@
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-2">
                     <p class="font-semibold text-slate-900 dark:text-white">
-                      {{ member.displayName || 'Okänt namn' }}
+                      {{ member.displayName || t('settings.members.table.unknownName') }}
                     </p>
                     <ClientOnly>
                       <span
                         v-if="memberHasOverrides(member)"
                         class="inline-flex items-center"
-                        title="Har manuellt anpassade modulroller"
+                        :title="t('settings.members.table.hasOverrides')"
                       >
                         <Icon
                           icon="mdi:star-circle"
@@ -153,7 +153,7 @@
                     </ClientOnly>
                   </div>
                   <p class="text-xs text-slate-500 dark:text-slate-400">
-                    {{ member.userId ?? 'Ej kopplad' }}
+                    {{ member.userId ?? t('settings.members.status.notLinked') }}
                   </p>
                 </td>
                 <td class="px-6 py-4 text-slate-700 dark:text-slate-200">
@@ -186,7 +186,7 @@
                       :disabled="!canManageUsers || member.status !== 'active'"
                       @click="openModuleRoleDrawer(member)"
                     >
-                      Modulroller
+                      {{ t('settings.members.moduleRoles.button') }}
                     </button>
                     <button
                       v-if="member.status === 'active'"
@@ -194,7 +194,7 @@
                       :disabled="!canManageUsers || statusLoadingId === member.id"
                       @click="disableMember(member)"
                     >
-                      {{ statusLoadingId === member.id ? 'Inaktiverar...' : 'Inaktivera' }}
+                      {{ statusLoadingId === member.id ? t('settings.members.actions.disabling') : t('settings.members.actions.disable') }}
                     </button>
                     <button
                       v-if="member.status === 'inactive'"
@@ -202,14 +202,14 @@
                       :disabled="!canManageUsers || statusLoadingId === member.id"
                       @click="enableMember(member)"
                     >
-                      {{ statusLoadingId === member.id ? 'Aktiverar...' : 'Aktivera' }}
+                      {{ statusLoadingId === member.id ? t('settings.members.actions.enabling') : t('settings.members.actions.enable') }}
                     </button>
                     <button
                       class="rounded border border-red-200 px-3 py-1 font-semibold text-red-600 transition hover:border-red-300 hover:text-red-500 disabled:opacity-40 dark:border-red-500/30 dark:text-red-200"
                       :disabled="!canManageUsers || removalLoadingId === member.id || statusLoadingId === member.id"
                       @click="removeMember(member)"
                     >
-                      {{ removalLoadingId === member.id ? 'Tar bort...' : 'Ta bort permanent' }}
+                      {{ removalLoadingId === member.id ? t('settings.members.actions.removing') : t('settings.members.actions.remove') }}
                     </button>
                   </div>
                 </td>
@@ -221,32 +221,32 @@
 
       <div class="rounded-2xl border border-dashed border-slate-200 bg-white shadow-card dark:border-white/10 dark:bg-white/5">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
-          <p class="text-sm font-semibold text-slate-900 dark:text-white">Väntande inbjudningar</p>
+          <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('settings.members.invitations.title') }}</p>
         </div>
         <div v-if="!invitations.length" class="px-6 py-8 text-sm text-slate-500 dark:text-slate-400">
-          Inga aktiva inbjudningar just nu.
+          {{ t('settings.members.invitations.none') }}
         </div>
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
             <thead class="bg-slate-50 dark:bg-white/5">
               <tr>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  E-post
+                  {{ t('settings.members.invitations.email') }}
                 </th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Roll
+                  {{ t('settings.members.invitations.role') }}
                 </th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Status
+                  {{ t('settings.members.invitations.status') }}
                 </th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Bjuden av
+                  {{ t('settings.members.invitations.invitedBy') }}
                 </th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Gäller till
+                  {{ t('settings.members.invitations.expiresAt') }}
                 </th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">
-                  Åtgärder
+                  {{ t('settings.members.invitations.actions') }}
                 </th>
               </tr>
             </thead>
@@ -277,7 +277,7 @@
                       :disabled="inviteResendLoadingId === invite.id || inviteCancelLoadingId === invite.id"
                       @click="resendPendingInvitation(invite)"
                     >
-                      {{ inviteResendLoadingId === invite.id ? 'Skickar...' : 'Skicka igen' }}
+                      {{ inviteResendLoadingId === invite.id ? t('settings.members.invitations.resending') : t('settings.members.invitations.resend') }}
                     </button>
                     <button
                       type="button"
@@ -285,7 +285,7 @@
                       :disabled="inviteCancelLoadingId === invite.id || inviteResendLoadingId === invite.id"
                     @click="cancelPendingInvitation(invite)"
                   >
-                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                    {{ inviteCancelLoadingId === invite.id ? t('settings.members.invitations.cancelling') : t('settings.members.invitations.cancel') }}
                   </button>
                   </div>
                   <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
@@ -323,7 +323,7 @@
         <div class="flex items-start justify-between border-b border-slate-200 px-6 py-4 dark:border-white/5">
           <div>
             <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-              Modulroller
+              {{ t('settings.members.moduleRoles.title') }}
             </p>
             <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
               {{ selectedMemberForRoles?.displayName || selectedMemberForRoles?.email }}
@@ -341,13 +341,13 @@
         </div>
         <div class="flex-1 overflow-y-auto p-6">
           <div v-if="moduleRoleDrawerLoading" class="rounded-lg border border-dashed border-slate-200 bg-white/50 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            Laddar modulroller...
+            {{ t('settings.members.moduleRoles.loading') }}
           </div>
           <div v-else-if="moduleRoleDrawerError" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/5 dark:text-red-200">
             {{ moduleRoleDrawerError }}
           </div>
           <div v-else-if="!moduleRoleEntries.length" class="rounded-lg border border-slate-200 bg-white/70 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            Inga moduler med modulspecifika roller hittades.
+            {{ t('settings.members.moduleRoles.none') }}
           </div>
           <div v-else class="space-y-4">
             <div
@@ -361,20 +361,20 @@
                   <p class="text-xs text-slate-500 dark:text-slate-400">{{ entry.description }}</p>
                 </div>
                 <span class="text-xs text-slate-500 dark:text-slate-400">
-                  Policy: {{ moduleRolePolicySource(entry.allowedRolesSource) }}
+                  {{ t('settings.members.moduleRoles.policyLabel') }}: {{ moduleRolePolicySource(entry.allowedRolesSource) }}
                 </span>
               </div>
               <p
                 v-if="entry.allowedRoles && entry.allowedRoles.length > 0"
                 class="mt-2 text-xs text-slate-500 dark:text-slate-400"
               >
-                Tillåtna roller: {{ formatAllowedRoleLabels(entry).join(', ') }}
+                {{ t('settings.members.moduleRoles.allowedRolesLabel') }}: {{ formatAllowedRoleLabels(entry).join(', ') }}
               </p>
               <p
                 v-if="!entry.editable"
                 class="mt-3 rounded-lg bg-yellow-50 px-3 py-2 text-xs font-medium text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200"
               >
-                Modulroller blockeras av {{ moduleRolePolicySource(entry.allowedRolesSource) }}.
+                {{ t('settings.members.moduleRoles.blocked', { source: moduleRolePolicySource(entry.allowedRolesSource) }) }}
               </p>
               <div class="mt-4 space-y-2">
                 <div class="flex flex-wrap gap-2">
@@ -402,7 +402,7 @@
                   </label>
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-400">
-                  Källa: {{ memberModuleRoleSourceLabel(entry) }}
+                  {{ t('settings.members.moduleRoles.sourceLabel') }}: {{ memberModuleRoleSourceLabel(entry) }}
                 </div>
                 <button
                   v-if="canResetEntry(entry)"
@@ -410,7 +410,7 @@
                   :disabled="moduleRoleDrawerSaving || !entry.editable"
                   @click="resetModuleRolesForEntry(entry)"
                 >
-                  Återställ till standard
+                  {{ t('settings.members.moduleRoles.resetToDefault') }}
                 </button>
               </div>
             </div>
@@ -418,7 +418,7 @@
         </div>
         <div class="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4 text-sm dark:border-white/5 dark:bg-white/5">
           <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ moduleRoleDrawerDirty ? 'Det finns osparade ändringar.' : 'Inga ändringar att spara.' }}
+            {{ moduleRoleDrawerDirty ? t('settings.members.moduleRoles.unsavedChanges') : t('settings.members.moduleRoles.noChanges') }}
           </p>
           <div class="flex gap-2">
             <button
@@ -426,14 +426,14 @@
               :disabled="moduleRoleDrawerSaving"
               @click="closeModuleRoleDrawer"
             >
-              Stäng
+              {{ t('settings.members.moduleRoles.close') }}
             </button>
             <button
               class="rounded bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
               :disabled="!moduleRoleDrawerDirty || moduleRoleDrawerSaving"
               @click="saveModuleRoleDrawer"
             >
-              {{ moduleRoleDrawerSaving ? 'Sparar...' : 'Spara ändringar' }}
+              {{ moduleRoleDrawerSaving ? t('settings.members.moduleRoles.saving') : t('settings.members.moduleRoles.save') }}
             </button>
           </div>
         </div>
@@ -444,12 +444,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from '#imports'
+import { computed, ref, watch, useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import InviteMemberDialog from '~/components/organization/InviteMemberDialog.vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { useOrganizationMembers } from '~/composables/useOrganizationMembers'
 import { usePermission } from '~/composables/usePermission'
+
+const { t } = useI18n()
 import type {
   InviteMemberPayload,
   OrganizationInvitationSummary,
@@ -468,12 +470,12 @@ const roleOptions: RbacRole[] = rbacRoles
 const inviteRoleOptions: RbacRole[] = rbacRoles
 
 const roleNames: Record<RbacRole, string> = {
-  owner: 'Ägare',
-  admin: 'Administratör',
-  operator: 'Operatör',
-  member: 'Medlem',
-  viewer: 'Visare',
-  support: 'Support'
+  owner: t('rbac.roles.owner'),
+  admin: t('rbac.roles.admin'),
+  operator: t('rbac.roles.operator'),
+  member: t('rbac.roles.member'),
+  viewer: t('rbac.roles.viewer'),
+  support: t('rbac.roles.support')
 }
 
 const getRoleName = (role: RbacRole | string): string => roleNames[role as RbacRole] ?? role
@@ -519,12 +521,12 @@ const canInviteMembers = permission.can('users:invite')
 
 const memberSummary = computed(() => {
   if (!members.value.length && !invitations.value.length) {
-    return 'Inga medlemmar eller väntande inbjudningar registrerade.'
+    return t('settings.members.summary.none')
   }
   const active = members.value.filter((member) => member.status === 'active').length
   const invitedMembers = members.value.filter((member) => member.status === 'invited').length
   const pendingInvites = invitations.value.filter((invite) => invite.status === 'pending').length
-  return `${active} aktiva · ${invitedMembers} inbjudna · ${pendingInvites} väntande inbjudningar`
+  return t('settings.members.summary.format', { active, invited: invitedMembers, pending: pendingInvites })
 })
 
 const visibleMembers = computed(() => {
@@ -558,10 +560,10 @@ const formatDate = (value?: string) => {
 }
 
 const invitationStatusLabel = (status: InvitationStatus) => {
-  if (status === 'pending') return 'Avvaktar'
-  if (status === 'accepted') return 'Accepterad'
-  if (status === 'cancelled') return 'Avbruten'
-  return 'Utgången'
+  if (status === 'pending') return t('settings.members.invitationStatus.pending')
+  if (status === 'accepted') return t('settings.members.invitationStatus.accepted')
+  if (status === 'cancelled') return t('settings.members.invitationStatus.cancelled')
+  return t('settings.members.invitationStatus.expired')
 }
 
 const invitationStatusVariant = (status: InvitationStatus) => {
@@ -572,9 +574,9 @@ const invitationStatusVariant = (status: InvitationStatus) => {
 }
 
 const statusLabel = (status: OrganizationMemberStatus) => {
-  if (status === 'invited') return 'Inbjuden'
-  if (status === 'inactive') return 'Avslutad'
-  return 'Aktiv'
+  if (status === 'invited') return t('settings.members.status.invited')
+  if (status === 'inactive') return t('settings.members.status.inactive')
+  return t('settings.members.status.active')
 }
 
 const statusVariant = (status: OrganizationMemberStatus) => {
@@ -732,11 +734,11 @@ const removeMember = async (member: OrganizationMember) => {
 }
 
 const moduleRolePolicySource = (source: ModuleRoleSource): string => {
-  if (source === 'module-default') return 'modulens standard'
-  if (source === 'distributor') return 'distributörsnivå'
-  if (source === 'provider') return 'leverantörsnivå'
-  if (source === 'organization') return 'organisationen'
-  return 'högre nivå'
+  if (source === 'module-default') return t('settings.members.moduleRoles.policySources.moduleDefault')
+  if (source === 'distributor') return t('settings.members.moduleRoles.policySources.distributor')
+  if (source === 'provider') return t('settings.members.moduleRoles.policySources.provider')
+  if (source === 'organization') return t('settings.members.moduleRoles.policySources.organization')
+  return t('settings.members.moduleRoles.policySources.higherLevel')
 }
 
 const openModuleRoleDrawer = async (member: OrganizationMember) => {
@@ -839,8 +841,8 @@ const roleClass = (entry: ModuleRoleEntryUI, roleKey: ModuleRoleKey) => {
 
 const roleBadge = (entry: ModuleRoleEntryUI, roleKey: ModuleRoleKey): string | null => {
   const state = resolveRoleState(entry, roleKey)
-  if (state === 'granted') return '+ Tillagd'
-  if (state === 'revoked') return '− Borttagen'
+  if (state === 'granted') return t('settings.members.moduleRoles.roleBadges.added')
+  if (state === 'revoked') return t('settings.members.moduleRoles.roleBadges.removed')
   return null
 }
 
@@ -896,12 +898,12 @@ const canResetEntry = (entry: ModuleRoleEntryUI): boolean => {
 
 const memberModuleRoleSourceLabel = (entry: ModuleRoleEntryUI): string => {
   if (entry.roleSource === 'custom') {
-    return 'Manuellt tilldelade roller'
+    return t('settings.members.moduleRoles.sourceLabels.custom')
   }
   if (entry.roleSource === 'rbac' && selectedMemberForRoles.value) {
-    return `Ärvda från RBAC (${getRoleName(selectedMemberForRoles.value.role)})`
+    return t('settings.members.moduleRoles.sourceLabels.rbacInherited', { role: getRoleName(selectedMemberForRoles.value.role) })
   }
-  return 'Inga modulroller tilldelade'
+  return t('settings.members.moduleRoles.sourceLabels.none')
 }
 
 const saveModuleRoleDrawer = async () => {

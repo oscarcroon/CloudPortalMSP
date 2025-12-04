@@ -6,11 +6,11 @@
           :to="`/admin/tenants/${tenantId}`"
           class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
         >
-          ← Tillbaka till tenant
+          {{ t('adminTenants.members.backToTenant') }}
         </NuxtLink>
         <div>
-          <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Medlemmar</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-400">Hantera roller, bjud in nya användare och se väntande inbjudningar.</p>
+          <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ t('adminTenants.members.title') }}</h1>
+          <p class="text-sm text-slate-600 dark:text-slate-400">{{ t('adminTenants.members.description') }}</p>
         </div>
       </div>
       <div class="flex gap-2">
@@ -20,7 +20,7 @@
           @click="refresh"
         >
           <Icon icon="mdi:refresh" class="h-4 w-4" :class="{ 'animate-spin': pending }" />
-          {{ pending ? 'Uppdaterar...' : 'Uppdatera' }}
+          {{ pending ? t('adminTenants.members.refreshing') : t('adminTenants.members.refresh') }}
         </button>
         <button
           v-if="canInvite"
@@ -28,7 +28,7 @@
           @click="openInviteModal"
         >
           <Icon icon="mdi:account-plus-outline" class="h-4 w-4" />
-          Bjud in medlem
+          {{ t('adminTenants.members.inviteMember') }}
         </button>
       </div>
     </header>
@@ -42,43 +42,43 @@
     </div>
 
     <div v-if="pending" class="rounded-lg border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-      Laddar medlemmar...
+      {{ t('adminTenants.members.loading') }}
     </div>
 
     <template v-else>
       <div class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <p class="text-sm font-semibold text-slate-900 dark:text-white">Medlemmar</p>
+            <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('adminTenants.members.title') }}</p>
             <div class="relative w-full md:w-64">
               <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Sök medlemmar..."
+                :placeholder="t('adminTenants.members.searchPlaceholder')"
                 class="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white dark:placeholder-slate-500"
               />
             </div>
           </div>
         </div>
         <div v-if="!filteredMembers.length && searchQuery" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-          Inga medlemmar matchade sökningen "{{ searchQuery }}".
+          {{ t('adminTenants.members.noSearchResults', { query: searchQuery }) }}
         </div>
         <div v-else-if="!filteredMembers.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-          Inga medlemmar hittades.
+          {{ t('adminTenants.members.noMembers') }}
         </div>
         <div v-else class="overflow-x-auto overflow-y-visible">
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5" style="overflow: visible;">
             <thead class="bg-slate-50 dark:bg-white/5">
               <tr>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">MSP-roller</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Alla orgar</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Tillagd</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Åtgärder</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.name') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.email') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.role') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.mspRoles') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.allOrgs') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.status') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.added') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.actions') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5" style="position: relative;">
@@ -106,7 +106,7 @@
                           class="pointer-events-none fixed z-[10000] whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs text-white shadow-xl dark:bg-slate-700"
                           :style="tooltipStyles[member.membershipId]"
                         >
-                          Har åtkomst till alla organisationer hos denna leverantör
+                          {{ t('adminTenants.members.tooltip.hasAccess') }}
                         </div>
                       </Teleport>
                     </div>
@@ -164,7 +164,7 @@
                     —
                   </p>
                   <p v-else class="text-xs text-slate-400 dark:text-slate-500">
-                    Inga MSP-roller tillgängliga
+                    {{ t('adminTenants.members.mspRoles.none') }}
                   </p>
                 </td>
                 <td class="px-6 py-3">
@@ -180,7 +180,7 @@
                         "
                         :title="
                           !memberHasMspRole(member)
-                            ? 'Lägg till en MSP-roll i listan ovan för att kunna aktivera åtkomst till alla organisationer.'
+                            ? t('adminTenants.members.tooltip.addMspRole')
                             : undefined
                         "
                         @change="toggleMemberIncludeChildren(member, ($event.target as HTMLInputElement).checked)"
@@ -188,10 +188,10 @@
                     <span class="text-xs text-slate-500 dark:text-slate-400">
                       {{
                         includeChildrenLoadingId === member.membershipId
-                          ? 'Uppdaterar...'
+                          ? t('adminTenants.members.includeChildren.updating')
                           : member.includeChildren
-                            ? 'Aktiverad'
-                            : 'Inte aktiv'
+                            ? t('adminTenants.members.includeChildren.enabled')
+                            : t('adminTenants.members.includeChildren.notEnabled')
                         }}
                     </span>
                     </div>
@@ -201,7 +201,7 @@
                     class="text-xs"
                     :class="member.includeChildren ? 'text-brand font-semibold' : 'text-slate-400 dark:text-slate-500'"
                   >
-                    {{ member.includeChildren ? 'Aktiverad' : '—' }}
+                    {{ member.includeChildren ? t('adminTenants.members.includeChildren.enabled') : '—' }}
                   </span>
                 </td>
                 <td class="px-6 py-3">
@@ -220,7 +220,7 @@
                       :disabled="statusLoadingId === member.membershipId || deleteLoadingId === member.membershipId"
                       @click="disableMember(member)"
                     >
-                      {{ statusLoadingId === member.membershipId ? 'Inaktiverar...' : 'Inaktivera' }}
+                      {{ statusLoadingId === member.membershipId ? t('adminTenants.members.actions.disabling') : t('adminTenants.members.actions.disable') }}
                     </button>
                     <button
                       v-if="member.status === 'suspended'"
@@ -228,14 +228,14 @@
                       :disabled="statusLoadingId === member.membershipId || deleteLoadingId === member.membershipId"
                       @click="enableMember(member)"
                     >
-                      {{ statusLoadingId === member.membershipId ? 'Aktiverar...' : 'Aktivera' }}
+                      {{ statusLoadingId === member.membershipId ? t('adminTenants.members.actions.enabling') : t('adminTenants.members.actions.enable') }}
                     </button>
                     <button
                       class="rounded border border-red-200 px-3 py-1 text-red-600 transition hover:border-red-300 hover:text-red-500 dark:border-red-500/30 dark:text-red-200"
                       :disabled="deleteLoadingId === member.membershipId || statusLoadingId === member.membershipId"
                       @click="deleteMember(member)"
                     >
-                      {{ deleteLoadingId === member.membershipId ? 'Tar bort...' : 'Ta bort permanent' }}
+                      {{ deleteLoadingId === member.membershipId ? t('adminTenants.members.actions.removing') : t('adminTenants.members.actions.remove') }}
                     </button>
                   </div>
                 </td>
@@ -252,22 +252,22 @@
 
       <div class="rounded-xl border border-dashed border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
         <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
-          <p class="text-sm font-semibold text-slate-900 dark:text-white">Väntande inbjudningar</p>
+          <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('adminTenants.members.invitations.title') }}</p>
         </div>
         <div v-if="!invites.length" class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-          Inga aktiva inbjudningar.
+          {{ t('adminTenants.members.invitations.none') }}
         </div>
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-100 text-left text-sm dark:divide-white/5">
             <thead class="bg-slate-50 dark:bg-white/5">
               <tr>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Status</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Inbjuden av</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Gäller till</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Organisation</th>
-                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">Åtgärder</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.email') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.role') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.status') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.invitations.invitedBy') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.invitations.expiresAt') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.invitations.organization') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 text-right">{{ t('adminTenants.members.table.actions') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-white/5">
@@ -287,7 +287,7 @@
                 </td>
                 <td class="px-6 py-3 text-xs text-slate-600 dark:text-slate-400">
                   <span v-if="invite.willCreateOrganization && invite.organizationName" class="font-semibold">
-                    Kommer skapa: {{ invite.organizationName }}
+                    {{ t('adminTenants.members.invitations.willCreate', { name: invite.organizationName }) }}
                   </span>
                   <span v-else class="text-slate-400 dark:text-slate-500">—</span>
                 </td>
@@ -299,7 +299,7 @@
                       :disabled="inviteResendLoadingId === invite.id || inviteCancelLoadingId === invite.id"
                       @click="resendInvite(invite)"
                     >
-                      {{ inviteResendLoadingId === invite.id ? 'Skickar...' : 'Skicka igen' }}
+                      {{ inviteResendLoadingId === invite.id ? t('adminTenants.members.invitations.resending') : t('adminTenants.members.invitations.resend') }}
                     </button>
                     <button
                       type="button"
@@ -307,7 +307,7 @@
                       :disabled="inviteCancelLoadingId === invite.id || inviteResendLoadingId === invite.id"
                     @click="cancelInvite(invite.id)"
                   >
-                    {{ inviteCancelLoadingId === invite.id ? 'Avbryter...' : 'Avbryt' }}
+                    {{ inviteCancelLoadingId === invite.id ? t('adminTenants.members.invitations.cancelling') : t('adminTenants.members.invitations.cancel') }}
                   </button>
                   </div>
                   <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
@@ -328,9 +328,9 @@
         class="w-full max-w-lg space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#0f172a]"
         @submit.prevent="submitInvite"
       >
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Bjud in medlem</h3>
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('adminTenants.members.inviteModal.title') }}</h3>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.inviteModal.email') }}</label>
           <input
             v-model="inviteForm.email"
             type="email"
@@ -338,10 +338,10 @@
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             @blur="checkUserExists"
           />
-          <p v-if="checkingUser" class="mt-1 text-xs text-slate-500 dark:text-slate-400">Kontrollerar...</p>
+          <p v-if="checkingUser" class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.inviteModal.checking') }}</p>
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Roll</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.inviteModal.role') }}</label>
           <select
             v-model="inviteForm.role"
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
@@ -362,14 +362,14 @@
               class="mt-1 rounded border-slate-300 dark:border-white/20"
             />
             <span>
-              Tillgång till alla organisationer
+              {{ t('adminTenants.members.inviteModal.includeChildren.label') }}
               <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-                Ger användaren åtkomst till samtliga kunder under {{ tenant?.name }} via vald roll.
+                {{ t('adminTenants.members.inviteModal.includeChildren.description', { tenantName: tenant?.name ?? '' }) }}
               </span>
             </span>
           </label>
           <p class="mt-2 text-xs text-amber-600 dark:text-amber-300">
-            Använd endast för betrodda administratörer. Alla organisationer visas då i context switcher.
+            {{ t('adminTenants.members.inviteModal.includeChildren.warning') }}
           </p>
         </div>
         <div
@@ -378,20 +378,20 @@
         >
           <Icon icon="mdi:alert-circle-outline" class="mt-0.5 h-5 w-5" />
           <div>
-            <p class="font-semibold">Kunde inte skicka inbjudan</p>
+            <p class="font-semibold">{{ t('adminTenants.members.inviteModal.error') }}</p>
             <p class="text-sm">{{ inviteError }}</p>
           </div>
         </div>
         <div class="flex justify-end gap-2">
           <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 dark:border-white/10 dark:text-slate-200" @click="closeInviteModal">
-            Avbryt
+            {{ t('adminTenants.members.inviteModal.cancel') }}
           </button>
           <button
             type="submit"
             class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-60"
             :disabled="inviteSubmitting"
           >
-            {{ inviteSubmitting ? 'Skickar...' : 'Skicka inbjudan' }}
+            {{ inviteSubmitting ? t('adminTenants.members.inviteModal.sending') : t('adminTenants.members.inviteModal.send') }}
           </button>
         </div>
       </form>
@@ -414,6 +414,9 @@ import type {
 } from '~/types/admin'
 import { useAuth } from '~/composables/useAuth'
 import { getTenantRoleLabel, MSP_TENANT_ROLES } from '~/utils/tenantRoles'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 definePageMeta({
   layout: 'default'
@@ -623,17 +626,11 @@ const formatDate = (value: string | null) => {
 }
 
 const invitationStatusLabel = (status: string) => {
-  if (status === 'pending') return 'Avvaktar'
-  if (status === 'accepted') return 'Accepterad'
-  if (status === 'cancelled') return 'Avbruten'
-  if (status === 'expired') return 'Utgången'
-  return status
+  return t(`settings.members.invitationStatus.${status}`)
 }
 
 const statusLabel = (status: string) => {
-  if (status === 'active') return 'Aktiv'
-  if (status === 'suspended') return 'Inaktiverad'
-  return status
+  return t(`settings.members.status.${status}`)
 }
 
 const statusVariant = (status: string) => {
@@ -693,19 +690,19 @@ const submitInvite = async () => {
     })
     closeInviteModal()
     await refresh()
-    successMessage.value = 'Inbjudan skickad.'
+    successMessage.value = t('adminTenants.members.messages.inviteSent')
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
   } catch (err) {
-    inviteError.value = err instanceof Error ? err.message : 'Kunde inte skicka inbjudan.'
+    inviteError.value = err instanceof Error ? err.message : t('adminTenants.members.messages.inviteError')
   } finally {
     inviteSubmitting.value = false
   }
 }
 
 const cancelInvite = async (inviteId: string) => {
-  if (!confirm('Avbryt denna inbjudan?')) {
+  if (!confirm(t('adminTenants.members.invitations.cancelConfirm'))) {
     return
   }
   inviteCancelLoadingId.value = inviteId
@@ -716,12 +713,12 @@ const cancelInvite = async (inviteId: string) => {
       method: 'DELETE'
     })
     await refresh()
-    successMessage.value = 'Inbjudan avbröts.'
+    successMessage.value = t('adminTenants.members.invitations.cancelled')
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte avbryta inbjudan.'
+    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.members.invitations.cancelError')
   } finally {
     inviteCancelLoadingId.value = ''
   }
@@ -736,12 +733,12 @@ const resendInvite = async (invite: AdminTenantInvite) => {
       method: 'POST'
     })
     await refresh()
-    successMessage.value = `Inbjudan till ${invite.email} skickades igen.`
+    successMessage.value = t('adminTenants.members.invitations.resent', { email: invite.email })
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte skicka om inbjudan.'
+    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.members.invitations.resendError')
   } finally {
     inviteResendLoadingId.value = ''
   }
@@ -752,7 +749,7 @@ const handleRoleChange = async (member: AdminTenantMember, roleValue: string) =>
   
   // Prevent self-demotion from admin to any other role
   if (member.role === 'admin' && roleValue !== 'admin' && member.userId === auth.user.value?.id) {
-    errorMessage.value = 'Du kan inte nedgradera dina egna admin-rättigheter. Endast andra admins kan göra denna ändring.'
+    errorMessage.value = t('adminTenants.members.messages.roleUpdateError')
     return
   }
   
@@ -766,14 +763,14 @@ const handleRoleChange = async (member: AdminTenantMember, roleValue: string) =>
       method: 'PATCH',
       body: { role: roleValue }
     })
-    successMessage.value = `Rollen för ${member.email} uppdaterades till ${roleValue}.`
+    successMessage.value = t('adminTenants.members.messages.roleUpdated', { email: member.email, role: roleValue })
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
     await refresh()
   } catch (err) {
     member.role = previousRole
-    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte uppdatera rollen.'
+    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.members.messages.roleUpdateFailed')
   } finally {
     roleLoadingId.value = ''
   }
@@ -802,7 +799,7 @@ const setMemberStatus = async (
     await refresh()
   } catch (err) {
     errorMessage.value =
-      err instanceof Error ? err.message : 'Kunde inte uppdatera medlemsstatus.'
+      err instanceof Error ? err.message : t('adminTenants.members.messages.statusUpdateFailed')
   } finally {
     statusLoadingId.value = ''
   }
@@ -854,15 +851,15 @@ const toggleMemberIncludeChildren = async (member: AdminTenantMember, nextValue:
     )
     await refresh()
     successMessage.value = nextValue
-      ? 'Medlemmen har nu tillgång till alla organisationer.'
-      : 'Åtkomst till alla organisationer har tagits bort.'
+      ? t('adminTenants.members.messages.includeChildrenEnabled')
+      : t('adminTenants.members.messages.includeChildrenDisabled')
     setTimeout(() => (successMessage.value = ''), 3000)
   } catch (err) {
     member.includeChildren = previousValue
     errorMessage.value =
       err instanceof Error
         ? err.message
-        : 'Kunde inte uppdatera åtkomst till alla organisationer.'
+        : t('adminTenants.members.messages.includeChildrenUpdateFailed')
   } finally {
     includeChildrenLoadingId.value = ''
   }
@@ -887,13 +884,13 @@ const handleMspRolesChange = async (member: AdminTenantMember, selectedRoles: st
       }
     )
     await refresh()
-    successMessage.value = 'MSP-roller uppdaterades.'
+    successMessage.value = t('adminTenants.members.messages.mspRolesUpdated')
     setTimeout(() => (successMessage.value = ''), 3000)
   } catch (err) {
     // Revert on error
     memberMspRoles[member.membershipId] = previousRoles
     errorMessage.value =
-      err instanceof Error ? err.message : 'Kunde inte uppdatera MSP-roller.'
+      err instanceof Error ? err.message : t('adminTenants.members.messages.mspRolesUpdateFailed')
     await refresh()
   } finally {
     mspRolesLoadingId.value = ''
@@ -902,7 +899,7 @@ const handleMspRolesChange = async (member: AdminTenantMember, selectedRoles: st
 
 const disableMember = (member: AdminTenantMember) =>
   setMemberStatus(member, 'suspended', {
-    confirm: `Inaktivera ${member.email}? Personen kan inte logga in förrän kontot aktiveras igen.`
+    confirm: t('adminTenants.members.messages.disableConfirm', { email: member.email })
   })
 
 const enableMember = (member: AdminTenantMember) => setMemberStatus(member, 'active')
@@ -910,7 +907,7 @@ const enableMember = (member: AdminTenantMember) => setMemberStatus(member, 'act
 const deleteMember = async (member: AdminTenantMember) => {
   if (
     !confirm(
-      `Ta bort ${member.email} permanent? Personen måste bjudas in på nytt för att få åtkomst.`
+      t('adminTenants.members.messages.removeConfirm', { email: member.email })
     )
   ) {
     return
@@ -924,7 +921,7 @@ const deleteMember = async (member: AdminTenantMember) => {
     })
     await refresh()
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : 'Kunde inte ta bort medlemmen.'
+    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.members.messages.removeFailed')
   } finally {
     deleteLoadingId.value = ''
   }

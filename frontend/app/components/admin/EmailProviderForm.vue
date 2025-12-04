@@ -3,29 +3,21 @@
     <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
       <header class="mb-4">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-          {{
-            mode === 'global'
-              ? 'Global avsändare'
-              : mode === 'provider'
-                ? 'E-postinställning för leverantör'
-                : mode === 'distributor'
-                  ? 'E-postinställning för distributör'
-                  : 'E-postinställning för organisationen'
-          }}
+          {{ t(`settings.email.form.titles.${mode}`) }}
         </h2>
         <p class="text-sm text-slate-500 dark:text-slate-400">
-          Ange avsändaradress, svarsmail och leverantör som ska gälla för utskick.
+          {{ t('settings.email.form.description') }}
         </p>
       </header>
       <div v-if="mode === 'organization'" class="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10">
         <input id="use-override" v-model="useOverride" type="checkbox" class="rounded border-slate-300 dark:border-white/20" />
         <label for="use-override" class="text-sm text-slate-700 dark:text-slate-200">
-          Använd organisationsspecifik e-postprovider
+          {{ t('settings.email.form.useOverride') }}
         </label>
       </div>
       <div class="grid gap-4 md:grid-cols-2" :class="{ 'opacity-60 pointer-events-none': !isEditable }">
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Avsändarnamn</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.fromName') }}</label>
           <input
             v-model="form.fromName"
             type="text"
@@ -34,7 +26,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Avsändaradress</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.fromEmail') }}</label>
           <input
             v-model="form.fromEmail"
             type="email"
@@ -45,7 +37,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Ämnesprefix (valfritt)</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.subjectPrefix') }}</label>
           <input
             v-model="form.subjectPrefix"
             type="text"
@@ -55,7 +47,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Supportkontakt (valfritt)</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.supportContact') }}</label>
           <input
             v-model="form.supportContact"
             type="text"
@@ -65,7 +57,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Svar-adress</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.replyToEmail') }}</label>
           <input
             v-model="form.replyToEmail"
             type="email"
@@ -75,7 +67,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Aktiv</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.active') }}</label>
           <div class="mt-1 flex items-center gap-3">
             <button
               type="button"
@@ -96,12 +88,12 @@
               />
             </button>
             <span class="text-sm font-medium text-slate-700 dark:text-slate-200">
-              {{ form.isActive ? 'Utskick aktiverat' : 'Utskick inaktiverat' }}
+              {{ form.isActive ? t('settings.email.form.active.enabled') : t('settings.email.form.active.disabled') }}
             </span>
           </div>
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">E-posttema</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.emailTheme') }}</label>
           <div class="mt-1 flex items-center gap-3">
             <input
               id="email-dark-mode"
@@ -111,11 +103,11 @@
               class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20 disabled:opacity-50"
             />
             <label for="email-dark-mode" class="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Mörkt läge (standard är ljust läge)
+              {{ t('settings.email.form.emailDarkMode.label') }}
             </label>
           </div>
           <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            I mörkt läge används mörka färger för e-postinnehållet och bakgrunden. Bakgrunden bakom loggan använder NavBar-färgen från brandingen.
+            {{ t('settings.email.form.emailDarkMode.description') }}
           </p>
         </div>
       </div>
@@ -124,8 +116,8 @@
     <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
       <header class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Leverantör</h3>
-          <p class="text-sm text-slate-500 dark:text-slate-400">Välj SMTP eller Microsoft Graph och fyll i nödvändiga värden.</p>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('settings.email.form.provider.title') }}</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.description') }}</p>
         </div>
         <div class="flex gap-2">
           <button
@@ -135,7 +127,7 @@
             @click="switchProvider('smtp')"
           >
             <Icon icon="mdi:email-send" class="h-4 w-4" />
-            SMTP
+            {{ t('settings.email.form.provider.smtp') }}
           </button>
           <button
             type="button"
@@ -144,14 +136,14 @@
             @click="switchProvider('graph')"
           >
             <Icon icon="mdi:microsoft" class="h-4 w-4" />
-            Microsoft Graph
+            {{ t('settings.email.form.provider.graph') }}
           </button>
         </div>
       </header>
 
       <div v-if="form.providerType === 'smtp'" class="grid gap-4 md:grid-cols-2" :class="{ 'opacity-60 pointer-events-none': !isEditable }">
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">SMTP-host</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.smtpFields.host') }}</label>
           <input
             v-model="form.smtp.host"
             type="text"
@@ -162,7 +154,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Port</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.smtpFields.port') }}</label>
           <input
             v-model.number="form.smtp.port"
             type="number"
@@ -174,14 +166,14 @@
         </div>
         <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
           <input id="smtp-secure" v-model="form.smtp.secure" type="checkbox" :disabled="!isEditable" class="rounded border-slate-300 dark:border-white/20" />
-          <label for="smtp-secure" class="text-sm text-slate-700 dark:text-slate-200">Anslutning med TLS/SSL</label>
+          <label for="smtp-secure" class="text-sm text-slate-700 dark:text-slate-200">{{ t('settings.email.form.provider.smtpFields.secure') }}</label>
         </div>
         <div class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-white/10">
           <input id="smtp-ignore-tls" v-model="form.smtp.ignoreTls" type="checkbox" :disabled="!isEditable" class="rounded border-slate-300 dark:border-white/20" />
-          <label for="smtp-ignore-tls" class="text-sm text-slate-700 dark:text-slate-200">Tillåt osignerade certifikat</label>
+          <label for="smtp-ignore-tls" class="text-sm text-slate-700 dark:text-slate-200">{{ t('settings.email.form.provider.smtpFields.ignoreTls') }}</label>
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Användarnamn</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.smtpFields.authUser') }}</label>
           <input
             v-model="form.smtp.authUser"
             type="text"
@@ -190,20 +182,20 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Lösenord</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.smtpFields.authPass') }}</label>
           <input
             v-model="form.smtp.authPass"
             type="password"
             :disabled="!isEditable"
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            :placeholder="form.smtp.hasStoredSecret ? 'Lämna tomt för att behålla' : ''"
+            :placeholder="form.smtp.hasStoredSecret ? t('settings.email.form.provider.smtpFields.keepSecret') : ''"
           />
         </div>
       </div>
 
       <div v-else class="grid gap-4 md:grid-cols-2" :class="{ 'opacity-60 pointer-events-none': !isEditable }">
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Tenant ID</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.graphFields.tenantId') }}</label>
           <input
             v-model="form.graph.tenantId"
             type="text"
@@ -213,7 +205,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Client ID</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.graphFields.clientId') }}</label>
           <input
             v-model="form.graph.clientId"
             type="text"
@@ -223,17 +215,17 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Client Secret</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.graphFields.clientSecret') }}</label>
           <input
             v-model="form.graph.clientSecret"
             type="password"
             :disabled="!isEditable"
-            :placeholder="form.graph.hasStoredSecret ? 'Lämna tomt för att behålla' : ''"
+            :placeholder="form.graph.hasStoredSecret ? t('settings.email.form.provider.graphFields.keepSecret') : ''"
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Avsändar-ID (valfritt)</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.graphFields.senderUserId') }}</label>
           <input
             v-model="form.graph.senderUserId"
             type="text"
@@ -243,7 +235,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Scope (valfritt)</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.graphFields.scope') }}</label>
           <input
             v-model="form.graph.scope"
             type="text"
@@ -253,7 +245,7 @@
           />
         </div>
         <div>
-          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Endpoint (valfritt)</label>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.provider.graphFields.endpoint') }}</label>
           <input
             v-model="form.graph.endpoint"
             type="text"
@@ -270,9 +262,9 @@
       class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5"
     >
       <header class="mb-4 space-y-1">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Egen disclaimer</h3>
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('settings.email.form.disclaimer.title') }}</h3>
         <p class="text-sm text-slate-500 dark:text-slate-400">
-          Texten läggs längst ner i alla utskick (även om e-post provider ärvs). Markdown stöds för länkar, listor och betoning.
+          {{ t('settings.email.form.disclaimer.description') }}
         </p>
       </header>
       <div class="grid gap-6 lg:grid-cols-2">
@@ -281,18 +273,18 @@
             v-model="form.disclaimerMarkdown"
             rows="8"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            placeholder="Exempel: Detta meddelande är konfidentiellt..."
+            :placeholder="t('settings.email.form.disclaimer.placeholder')"
           />
-          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Lämna tomt för att använda kedjans standardtext.</p>
+          <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">{{ t('settings.email.form.disclaimer.emptyHint') }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-slate-50/70 p-4 text-sm dark:border-white/10 dark:bg-white/5">
-          <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Förhandsvisning</p>
+          <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ t('settings.email.form.disclaimer.preview') }}</p>
           <div
             v-if="disclaimerPreview.html"
             class="prose prose-sm mt-3 max-w-none text-slate-700 dark:prose-invert dark:text-slate-200"
             v-html="disclaimerPreview.html"
           />
-          <p v-else class="mt-3 text-slate-400 dark:text-slate-500">Ingen text angiven ännu.</p>
+          <p v-else class="mt-3 text-slate-400 dark:text-slate-500">{{ t('settings.email.form.disclaimer.noText') }}</p>
         </div>
       </div>
     </section>
@@ -300,17 +292,17 @@
     <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
       <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div class="flex-1">
-          <p class="text-sm font-semibold text-slate-900 dark:text-white">Status & Test</p>
+          <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('settings.email.form.status.title') }}</p>
           <div class="mt-2 space-y-1">
             <!-- Only show test result if it was run for the currently selected provider type -->
             <p v-if="summary?.lastTestedAt && summary?.settings?.type === form.providerType" class="text-sm text-slate-500 dark:text-slate-400">
-              Senaste test: {{ formatTimestamp(summary.lastTestedAt) }} •
-              <span :class="summary.lastTestStatus === 'success' ? 'text-emerald-600 dark:text-emerald-300' : 'text-red-500'">
-                {{ summary.lastTestStatus === 'success' ? 'Lyckades' : 'Misslyckades' }}
-              </span>
+              {{ t('settings.email.form.status.lastTest', { 
+                date: formatTimestamp(summary.lastTestedAt), 
+                status: summary.lastTestStatus === 'success' ? t('settings.email.form.status.statusSuccess') : t('settings.email.form.status.statusFailed')
+              }) }}
             </p>
             <p v-else-if="!summary?.lastTestedAt || summary?.settings?.type !== form.providerType" class="text-sm text-slate-500 dark:text-slate-400">
-              Inga tester körda ännu för {{ form.providerType === 'graph' ? 'Microsoft Graph' : 'SMTP' }}.
+              {{ t('settings.email.form.status.noTests', { provider: form.providerType === 'graph' ? t('settings.email.form.provider.graph') : t('settings.email.form.provider.smtp') }) }}
             </p>
             <p v-if="summary?.lastTestError && summary?.settings?.type === form.providerType" class="text-xs text-red-500 dark:text-red-300">
               {{ summary.lastTestError }}
@@ -318,10 +310,10 @@
             <!-- Only show OAuth status if Graph is selected AND the test was actually run for Graph -->
             <template v-if="form.providerType === 'graph'">
               <p v-if="summary?.settings?.type === 'graph' && summary?.lastTestStatus === 'success'" class="text-xs text-emerald-600 dark:text-emerald-300">
-                ✓ OAuth-token verifierad
+                {{ t('settings.email.form.status.oauthVerified') }}
               </p>
               <p v-if="summary?.settings?.type === 'graph' && summary?.lastTestedAt" class="text-xs text-slate-500 dark:text-slate-400">
-                Senast beviljad: {{ formatTimestamp(summary.lastTestedAt) }}
+                {{ t('settings.email.form.status.lastGranted', { date: formatTimestamp(summary.lastTestedAt) }) }}
               </p>
             </template>
           </div>
@@ -331,7 +323,7 @@
             v-model="form.testEmail"
             type="email"
             :disabled="!isEditable"
-            placeholder="Testmottagare"
+            :placeholder="t('settings.email.form.testEmail.placeholder')"
             class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           />
           <button
@@ -341,7 +333,7 @@
             @click="handleTest"
           >
             <Icon icon="mdi:email-send" class="h-4 w-4" />
-            {{ testing ? 'Skickar...' : 'Skicka test' }}
+            {{ testing ? t('settings.email.form.testEmail.sending') : t('settings.email.form.testEmail.send') }}
           </button>
           <button
             v-if="form.providerType === 'graph'"
@@ -351,7 +343,7 @@
             @click="handleReconnect"
           >
             <Icon icon="mdi:refresh" class="h-4 w-4" />
-            Återanslut Microsoft 365
+            {{ t('settings.email.form.testEmail.reconnect') }}
           </button>
         </div>
       </div>
@@ -381,7 +373,7 @@
           @click="showPreview('invitation')"
         >
           <Icon icon="mdi:email-open" class="h-4 w-4" />
-          Förhandsgranska inbjudningsmail
+          {{ t('settings.email.form.preview.invitation') }}
         </button>
         <button
           v-if="props.mode === 'global' || props.mode === 'organization' || props.mode === 'provider' || props.mode === 'distributor'"
@@ -390,7 +382,7 @@
           @click="showPreview('password-reset')"
         >
           <Icon icon="mdi:lock-reset" class="h-4 w-4" />
-          Förhandsgranska återställningsmail
+          {{ t('settings.email.form.preview.passwordReset') }}
         </button>
       </div>
       <button
@@ -398,13 +390,13 @@
         class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-60"
         :disabled="!isEditable || saving"
       >
-        {{ saving ? 'Sparar...' : 'Spara inställningar' }}
+        {{ saving ? t('settings.email.form.save.saving') : t('settings.email.form.save.button') }}
       </button>
     </div>
 
     <EmailPreviewModal
       :is-open="previewModalOpen"
-      :title="previewType === 'invitation' ? 'Förhandsgranska inbjudningsmail' : 'Förhandsgranska återställningsmail'"
+      :title="previewType === 'invitation' ? t('settings.email.form.preview.modalTitleInvitation') : t('settings.email.form.preview.modalTitlePasswordReset')"
       :type="previewType"
       :organization-id="previewOrganizationId"
       :tenant-id="previewTenantId"
@@ -420,11 +412,14 @@ import { computed, reactive, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { renderMarkdown } from '~~/shared/markdown'
 import EmailPreviewModal from '~/components/email/EmailPreviewModal.vue'
+import { useI18n } from '#imports'
 import type {
   AdminEmailProviderPayload,
   AdminEmailProviderSummary,
   AdminEmailProviderTestPayload
 } from '~/types/admin'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   summary: AdminEmailProviderSummary | null
@@ -676,7 +671,7 @@ const showPreview = (type: 'invitation' | 'password-reset') => {
 const handleReconnect = async () => {
   // Trigger a test to re-authenticate
   if (!form.testEmail) {
-    alert('Ange en testmottagare för att återansluta.')
+    alert(t('settings.email.form.testEmail.reconnectAlert'))
     return
   }
   await handleTest()

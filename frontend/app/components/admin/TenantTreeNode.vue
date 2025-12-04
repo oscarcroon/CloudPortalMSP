@@ -71,7 +71,7 @@
           v-if="node.tenant.type === 'provider' && hasOrganizations"
           class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300"
           @click.stop="toggleOrganizations"
-          :title="showProviderOrgs ? 'Dölj organisationer' : 'Visa organisationer'"
+          :title="showProviderOrgs ? t('adminTenants.toggleOrgs.hide') : t('adminTenants.toggleOrgs.show')"
         >
           <Icon
             :icon="showProviderOrgs ? 'mdi:chevron-down' : 'mdi:chevron-right'"
@@ -108,18 +108,18 @@
           </div>
           <div class="mt-1 flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
             <span class="font-mono truncate max-w-[120px] sm:max-w-none">{{ node.tenant.slug }}</span>
-            <span class="whitespace-nowrap">{{ node.tenant.memberCount }} medlemmar</span>
+            <span class="whitespace-nowrap">{{ t('adminTenants.members', { count: node.tenant.memberCount }) }}</span>
             <span v-if="node.tenant.type === 'provider' && node.tenant.organizationCount !== undefined" class="whitespace-nowrap">
-              {{ node.tenant.organizationCount }} organisationer
+              {{ t('adminTenants.organizations', { count: node.tenant.organizationCount }) }}
             </span>
             <span
               v-if="node.tenant.hasEmailOverride"
               class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-1.5 sm:px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 shrink-0"
-              title="E-post override aktiv"
+              :title="t('adminTenants.emailOverride.active')"
             >
               <Icon icon="mdi:email-check" class="h-3 w-3" />
-              <span class="hidden sm:inline">E-post override</span>
-              <span class="sm:hidden">E-post</span>
+              <span class="hidden sm:inline">{{ t('adminTenants.emailOverride.label') }}</span>
+              <span class="sm:hidden">{{ t('adminTenants.emailOverride.short') }}</span>
             </span>
             <span class="whitespace-nowrap">{{ formatDate(node.tenant.createdAt) }}</span>
           </div>
@@ -130,7 +130,7 @@
           <button
             class="rounded p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300"
             @click.stop="handleNavigate"
-            title="Visa detaljer"
+            :title="t('adminTenants.viewDetails')"
           >
             <Icon icon="mdi:chevron-right" class="h-5 w-5" />
           </button>
@@ -160,6 +160,9 @@ import { computed, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import type { AdminTenantSummary } from '~/types/admin'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 interface OrganizationNode {
   id: string
@@ -267,11 +270,11 @@ const handleNavigate = () => {
 const getTypeLabel = (type: string) => {
   switch (type) {
     case 'provider':
-      return 'Leverantör'
+      return t('adminTenants.badges.provider')
     case 'distributor':
-      return 'Distributör'
+      return t('adminTenants.badges.distributor')
     case 'organization':
-      return 'Organisation'
+      return t('adminTenants.badges.organization')
     default:
       return type
   }

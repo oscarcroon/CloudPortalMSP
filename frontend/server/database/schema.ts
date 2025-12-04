@@ -78,6 +78,7 @@ export const users = sqliteTable(
     passwordHash: text('password_hash'),
     fullName: text('full_name'),
     status: text('status').notNull().default('active'),
+    locale: text('locale').notNull().default('sv'),
     isSuperAdmin: integer('is_super_admin', { mode: 'boolean' }).notNull().default(0),
     isMfaEnabled: integer('is_mfa_enabled', { mode: 'boolean' }).notNull().default(0),
     lastLoginAt: integer('last_login_at', { mode: 'timestamp_ms' }),

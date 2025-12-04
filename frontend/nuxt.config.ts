@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './app/constants/i18n'
+
 const backendApiBase = process.env.API_BASE || 'http://localhost:4000/api'
 const backendProxyBase = backendApiBase
 const loginBrandingSlugSuffixes = (process.env.LOGIN_BRANDING_SLUG_SUFFIXES || '.portal.coreit.cloud')
@@ -8,7 +10,7 @@ const loginBrandingSlugSuffixes = (process.env.LOGIN_BRANDING_SLUG_SUFFIXES || '
 
 export default defineNuxtConfig({
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode', '@nuxtjs/i18n'],
   css: ['~/assets/css/tailwind.css'],
   postcss: {
     plugins: {
@@ -66,6 +68,17 @@ export default defineNuxtConfig({
     }
   },
   pinia: {},
+  i18n: {
+    strategy: 'no_prefix',
+    lazy: true,
+    langDir: 'locales',
+    defaultLocale: DEFAULT_LOCALE,
+    fallbackLocale: DEFAULT_LOCALE,
+    locales: SUPPORTED_LOCALES.map((locale) => ({
+      ...locale,
+      file: `${locale.code}.json`
+    }))
+  },
   typescript: {
     typeCheck: false,
     strict: true
