@@ -85,14 +85,24 @@ export async function tenantContext(req: Request, res: Response, next: NextFunct
       const canProxy =
         includeChildren && tenantType && ['provider', 'distributor'].includes(tenantType)
       if (canProxy && tenantRole) {
-        const proxyPermissions =
-          tenantRoleOrgProxyPermissions[tenantRole as TenantRole]
-        if (proxyPermissions) {
-          for (const perm of proxyPermissions) {
-            if (!permissions.includes(perm)) {
-              permissions.push(perm)
+        // Validate that tenantRole is a valid TenantRole before using it
+        // This prevents silent failures when invalid role strings are present
+        if (tenantRole in tenantRoleOrgProxyPermissions) {
+          const proxyPermissions =
+            tenantRoleOrgProxyPermissions[tenantRole as TenantRole]
+          if (proxyPermissions) {
+            for (const perm of proxyPermissions) {
+              if (!permissions.includes(perm)) {
+                permissions.push(perm)
+              }
             }
           }
+        } else {
+          // Log warning when invalid tenant role is encountered
+          console.warn(
+            `Invalid tenant role "${tenantRole}" for tenant ${currentOrg.tenantId}. ` +
+              `Expected one of: ${Object.keys(tenantRoleOrgProxyPermissions).join(', ')}`
+          )
         }
       }
     }
