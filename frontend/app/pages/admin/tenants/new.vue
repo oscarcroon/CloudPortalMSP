@@ -1,44 +1,55 @@
 <template>
   <section class="space-y-8">
     <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
+        {{ t('adminTenants.create.category') }}
+      </p>
       <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
-        {{ tenantType === 'distributor' ? 'Skapa distributör' : 'Skapa leverantör' }}
+        {{ t(`adminTenants.create.title.${tenantType}`) }}
       </h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        <span v-if="tenantType === 'distributor'">Distributörer är högsta nivån och kan kopplas till leverantörer.</span>
-        <span v-else>Leverantörer kan skapa organisationer och kopplas till distributörer.</span>
+        {{ t(`adminTenants.create.description.${tenantType}`) }}
       </p>
     </header>
 
     <form class="space-y-6" @submit.prevent="handleSubmit">
       <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Tenant-detaljer</h2>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+          {{ t('adminTenants.create.tenantDetails.title') }}
+        </h2>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <div class="md:col-span-2">
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.create.tenantDetails.name') }}
+            </label>
             <input
               v-model="form.name"
               type="text"
               required
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="Ex. Acme Suppliers AB"
+              :placeholder="t('adminTenants.create.tenantDetails.namePlaceholder')"
             />
           </div>
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.create.tenantDetails.slug') }}
+            </label>
             <input
               v-model="form.slug"
               type="text"
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="acme-suppliers"
+              :placeholder="t('adminTenants.create.tenantDetails.slugPlaceholder')"
             />
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Lämna tomt för automatisk generering.</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.create.tenantDetails.slugHint') }}
+            </p>
           </div>
           <div v-if="tenantType === 'provider'">
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Distributörer</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.create.tenantDetails.distributors') }}
+            </label>
             <div v-if="distributorsPending" class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Laddar distributörer...
+              {{ t('adminTenants.create.tenantDetails.loadingDistributors') }}
             </div>
             <div v-else class="mt-2 space-y-2">
               <label
@@ -57,30 +68,34 @@
                 </span>
               </label>
               <p v-if="distributors.length === 0" class="text-xs text-slate-500 dark:text-slate-400">
-                Inga distributörer tillgängliga. Skapa en distributör först.
+                {{ t('adminTenants.create.tenantDetails.noDistributors') }}
               </p>
             </div>
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Välj vilka distributörer denna leverantör ska kopplas till.
+              {{ t('adminTenants.create.tenantDetails.distributorsHint') }}
             </p>
           </div>
         </div>
       </div>
 
       <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
-        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Ägarkonto</h2>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+          {{ t('adminTenants.create.ownerAccount.title') }}
+        </h2>
         <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-          Skapa ett användarkonto för tenant-ägaren. En inbjudningslänk kommer att skickas via e-post.
+          {{ t('adminTenants.create.ownerAccount.description') }}
         </p>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
           <div class="md:col-span-2">
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">E-post</label>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.create.ownerAccount.email') }}
+            </label>
             <input
               v-model="form.ownerEmail"
               type="email"
               required
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="owner@example.com"
+              :placeholder="t('adminTenants.create.ownerAccount.emailPlaceholder')"
             />
           </div>
           <div v-if="tenantType === 'provider'" class="md:col-span-2 space-y-3">
@@ -88,21 +103,21 @@
               v-if="checkingOwnerEmail"
               class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/10 dark:text-slate-300"
             >
-              Kontrollerar om e-postadressen finns i systemet...
+              {{ t('adminTenants.create.ownerAccount.checkingEmail') }}
             </div>
             <div
               v-else-if="ownerEmailStatus === 'exists'"
               class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-100"
             >
-              Kontot finns redan i systemet
+              {{ t('adminTenants.create.ownerAccount.accountExists') }}
               <span v-if="existingUserInfo?.fullName" class="font-semibold">({{ existingUserInfo.fullName }})</span
-              >. Personen får direkt åtkomst till leverantören utan att du behöver skapa en ny organisation.
+              >. {{ t('adminTenants.create.ownerAccount.accountExistsDescription') }}
             </div>
             <div
               v-else-if="ownerEmailStatus === 'invalid'"
               class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
             >
-              Ange en giltig e-postadress för att fortsätta.
+              {{ t('adminTenants.create.ownerAccount.invalidEmail') }}
             </div>
             <div
               v-else-if="ownerEmailStatus === 'new'"
@@ -110,9 +125,11 @@
             >
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p class="text-sm font-semibold text-slate-900 dark:text-white">Skapa organisation samtidigt</p>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-white">
+                    {{ t('adminTenants.create.ownerAccount.createOrganization.title') }}
+                  </p>
                   <p class="text-xs text-slate-500 dark:text-slate-400">
-                    Rekommenderas om leverantören behöver en första kundorganisation direkt.
+                    {{ t('adminTenants.create.ownerAccount.createOrganization.description') }}
                   </p>
                 </div>
                 <button
@@ -133,53 +150,63 @@
             <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-white/10 dark:bg-white/5">
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-semibold text-slate-900 dark:text-white">Organisationsdetaljer</p>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-white">
+                    {{ t('adminTenants.create.ownerAccount.organizationDetails.title') }}
+                  </p>
                   <p class="text-xs text-slate-500 dark:text-slate-400">
-                    Denna organisation skapas automatiskt när ägaren accepterar inbjudan.
+                    {{ t('adminTenants.create.ownerAccount.organizationDetails.description') }}
                   </p>
                 </div>
               </div>
               <div class="mt-4 grid gap-4 md:grid-cols-2">
                 <div class="md:col-span-2">
-                  <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</label>
+                  <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ t('adminTenants.create.ownerAccount.organizationDetails.name') }}
+                  </label>
                   <input
                     v-model="organizationForm.name"
                     type="text"
                     required
                     class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-                    placeholder="Ex. CoreIT AB"
+                    :placeholder="t('adminTenants.create.ownerAccount.organizationDetails.namePlaceholder')"
                   />
                 </div>
                 <div>
-                  <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Slug (valfritt)</label>
+                  <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ t('adminTenants.create.ownerAccount.organizationDetails.slug') }}
+                  </label>
                   <input
                     v-model="organizationForm.slug"
                     type="text"
                     class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-                    placeholder="coreit-ab"
+                    :placeholder="t('adminTenants.create.ownerAccount.organizationDetails.slugPlaceholder')"
                   />
                 </div>
                 <div>
-                  <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400"
-                    >Fakturae-post (valfritt)</label
-                  >
+                  <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ t('adminTenants.create.ownerAccount.organizationDetails.billingEmail') }}
+                  </label>
                   <input
                     v-model="organizationForm.billingEmail"
                     type="email"
                     class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-                    placeholder="billing@example.com"
+                    :placeholder="t('adminTenants.create.ownerAccount.organizationDetails.billingEmailPlaceholder')"
                   />
                 </div>
                 <div>
-                  <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">CORE ID (valfritt)</label>
+                  <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ t('adminTenants.create.ownerAccount.organizationDetails.coreId') }}
+                  </label>
                   <input
                     v-model="organizationForm.coreId"
                     type="text"
                     maxlength="4"
                     class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-                    placeholder="ABCD"
+                    :placeholder="t('adminTenants.create.ownerAccount.organizationDetails.coreIdPlaceholder')"
                   />
-                  <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">4 tecken. Lämna tomt om okänt.</p>
+                  <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {{ t('adminTenants.create.ownerAccount.organizationDetails.coreIdHint') }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -196,14 +223,14 @@
           to="/admin/tenants"
           class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
         >
-          Avbryt
+          {{ t('adminTenants.create.actions.cancel') }}
         </NuxtLink>
         <button
           type="submit"
           class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-60"
           :disabled="submitting"
         >
-          {{ submitting ? 'Skapar...' : 'Skapa tenant' }}
+          {{ submitting ? t('adminTenants.create.actions.creating') : t('adminTenants.create.actions.create') }}
         </button>
       </div>
     </form>
@@ -213,10 +240,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#imports'
 import type { AdminCreateTenantResponse, AdminTenantSummary } from '~/types/admin'
+import { useI18n } from '#imports'
 
 definePageMeta({
   layout: 'default'
 })
+
+const { t } = useI18n()
 
 const router = useRouter()
 const route = useRoute()
@@ -367,17 +397,17 @@ const handleSubmit = async () => {
 
     if (tenantType.value === 'provider' && organizationForm.enabled && canCreateOrganization.value) {
       if (!organizationForm.name.trim()) {
-        errorMessage.value = 'Ange ett organisationsnamn om du vill skapa organisationen direkt.'
+        errorMessage.value = t('adminTenants.create.errors.organizationNameRequired')
         submitting.value = false
         return
       }
       if (organizationForm.billingEmail.trim() && !emailRegex.test(organizationForm.billingEmail.trim())) {
-        errorMessage.value = 'Billing-e-postadressen för organisationen är ogiltig.'
+        errorMessage.value = t('adminTenants.create.errors.invalidBillingEmail')
         submitting.value = false
         return
       }
       if (organizationForm.coreId.trim() && organizationForm.coreId.trim().length !== 4) {
-        errorMessage.value = 'COREID måste bestå av exakt 4 tecken.'
+        errorMessage.value = t('adminTenants.create.errors.invalidCoreId')
         submitting.value = false
         return
       }
@@ -403,7 +433,7 @@ const handleSubmit = async () => {
     })
   } catch (error) {
     errorMessage.value =
-      error instanceof Error ? error.message : 'Kunde inte skapa tenant just nu.'
+      error instanceof Error ? error.message : t('adminTenants.create.errors.createFailed')
   } finally {
     submitting.value = false
   }

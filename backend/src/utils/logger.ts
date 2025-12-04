@@ -18,10 +18,16 @@ export interface LogContext {
  * Get request ID from request headers or generate new one
  */
 export const getRequestId = (req: Request): string => {
-  // Check header
+  // Check header first (external request ID)
   const headerId = req.headers['x-request-id'] as string | undefined
   if (headerId) {
     return headerId
+  }
+  
+  // Check if already stored on request object
+  const storedId = (req as any).requestId
+  if (storedId) {
+    return storedId
   }
   
   // Generate new ID and store in request

@@ -914,6 +914,67 @@
       "short": "E-post"
     },
     "viewDetails": "Visa detaljer",
+    "create": {
+      "category": "Superadmin",
+      "title": {
+        "distributor": "Skapa distributör",
+        "provider": "Skapa leverantör"
+      },
+      "description": {
+        "distributor": "Distributörer är högsta nivån och kan kopplas till leverantörer.",
+        "provider": "Leverantörer kan skapa organisationer och kopplas till distributörer."
+      },
+      "tenantDetails": {
+        "title": "Tenant-detaljer",
+        "name": "Namn",
+        "namePlaceholder": "Ex. Acme Suppliers AB",
+        "slug": "Slug",
+        "slugPlaceholder": "acme-suppliers",
+        "slugHint": "Lämna tomt för automatisk generering.",
+        "distributors": "Distributörer",
+        "loadingDistributors": "Laddar distributörer...",
+        "noDistributors": "Inga distributörer tillgängliga. Skapa en distributör först.",
+        "distributorsHint": "Välj vilka distributörer denna leverantör ska kopplas till."
+      },
+      "ownerAccount": {
+        "title": "Ägarkonto",
+        "description": "Skapa ett användarkonto för tenant-ägaren. En inbjudningslänk kommer att skickas via e-post.",
+        "email": "E-post",
+        "emailPlaceholder": "owner{'@'}example.com",
+        "checkingEmail": "Kontrollerar om e-postadressen finns i systemet...",
+        "accountExists": "Kontot finns redan i systemet",
+        "accountExistsDescription": "Personen får direkt åtkomst till leverantören utan att du behöver skapa en ny organisation.",
+        "invalidEmail": "Ange en giltig e-postadress för att fortsätta.",
+        "createOrganization": {
+          "title": "Skapa organisation samtidigt",
+          "description": "Rekommenderas om leverantören behöver en första kundorganisation direkt."
+        },
+        "organizationDetails": {
+          "title": "Organisationsdetaljer",
+          "description": "Denna organisation skapas automatiskt när ägaren accepterar inbjudan.",
+          "name": "Namn",
+          "namePlaceholder": "Ex. CoreIT AB",
+          "slug": "Slug (valfritt)",
+          "slugPlaceholder": "coreit-ab",
+          "billingEmail": "Fakturae-post (valfritt)",
+          "billingEmailPlaceholder": "billing{'@'}example.com",
+          "coreId": "CORE ID (valfritt)",
+          "coreIdPlaceholder": "ABCD",
+          "coreIdHint": "4 tecken. Lämna tomt om okänt."
+        }
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "create": "Skapa tenant",
+        "creating": "Skapar..."
+      },
+      "errors": {
+        "organizationNameRequired": "Ange ett organisationsnamn om du vill skapa organisationen direkt.",
+        "invalidBillingEmail": "Billing-e-postadressen för organisationen är ogiltig.",
+        "invalidCoreId": "COREID måste bestå av exakt 4 tecken.",
+        "createFailed": "Kunde inte skapa tenant just nu."
+      }
+    },
     "members": {
       "backToTenant": "← Tillbaka till tenant",
       "title": "Medlemmar",

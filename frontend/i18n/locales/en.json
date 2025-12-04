@@ -914,6 +914,67 @@
       "short": "Email"
     },
     "viewDetails": "View details",
+    "create": {
+      "category": "Superadmin",
+      "title": {
+        "distributor": "Create distributor",
+        "provider": "Create provider"
+      },
+      "description": {
+        "distributor": "Distributors are the top level and can be linked to providers.",
+        "provider": "Providers can create organizations and be linked to distributors."
+      },
+      "tenantDetails": {
+        "title": "Tenant details",
+        "name": "Name",
+        "namePlaceholder": "Ex. Acme Suppliers AB",
+        "slug": "Slug",
+        "slugPlaceholder": "acme-suppliers",
+        "slugHint": "Leave blank for automatic generation.",
+        "distributors": "Distributors",
+        "loadingDistributors": "Loading distributors...",
+        "noDistributors": "No distributors available. Create a distributor first.",
+        "distributorsHint": "Select which distributors this provider should be linked to."
+      },
+      "ownerAccount": {
+        "title": "Owner account",
+        "description": "Create a user account for the tenant owner. An invitation link will be sent via email.",
+        "email": "Email",
+        "emailPlaceholder": "owner{'@'}example.com",
+        "checkingEmail": "Checking if the email address exists in the system...",
+        "accountExists": "Account already exists in the system",
+        "accountExistsDescription": "The person will get direct access to the provider without you needing to create a new organization.",
+        "invalidEmail": "Enter a valid email address to continue.",
+        "createOrganization": {
+          "title": "Create organization at the same time",
+          "description": "Recommended if the provider needs a first customer organization immediately."
+        },
+        "organizationDetails": {
+          "title": "Organization details",
+          "description": "This organization will be created automatically when the owner accepts the invitation.",
+          "name": "Name",
+          "namePlaceholder": "Ex. CoreIT AB",
+          "slug": "Slug (optional)",
+          "slugPlaceholder": "coreit-ab",
+          "billingEmail": "Billing email (optional)",
+          "billingEmailPlaceholder": "billing{'@'}example.com",
+          "coreId": "CORE ID (optional)",
+          "coreIdPlaceholder": "ABCD",
+          "coreIdHint": "4 characters. Leave blank if unknown."
+        }
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "create": "Create tenant",
+        "creating": "Creating..."
+      },
+      "errors": {
+        "organizationNameRequired": "Enter an organization name if you want to create the organization directly.",
+        "invalidBillingEmail": "The billing email address for the organization is invalid.",
+        "invalidCoreId": "CORE ID must consist of exactly 4 characters.",
+        "createFailed": "Could not create tenant right now."
+      }
+    },
     "members": {
       "backToTenant": "← Back to tenant",
       "title": "Members",

@@ -253,16 +253,18 @@ const closeDropdown = () => {
 }
 
 // Close on escape key
+const handleEscape = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && isOpen.value) {
+    closeDropdown()
+  }
+}
+
 onMounted(() => {
-  const handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && isOpen.value) {
-      closeDropdown()
-    }
-  }
   document.addEventListener('keydown', handleEscape)
-  return () => {
-    document.removeEventListener('keydown', handleEscape)
-  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleEscape)
 })
 
 // Directive for click outside
