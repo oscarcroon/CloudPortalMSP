@@ -14,10 +14,10 @@ export default defineNuxtPlugin(() => {
     }
 
     const prefersDark = event?.matches ?? mediaQuery.matches
-    const targetValue = prefersDark ? 'dark' : 'light'
+    const targetValue: 'dark' | 'light' = prefersDark ? 'dark' : 'light'
 
-    if (colorMode.value !== targetValue) {
-      colorMode.value = targetValue
+    if (colorMode.preference !== (targetValue as any)) {
+      colorMode.preference = targetValue
     }
   }
 

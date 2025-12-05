@@ -210,7 +210,7 @@ export default defineEventHandler(async (event) => {
     existingMembershipRecord = existingMembership ?? null
   }
 
-  const includeChildrenFlag = payload.includeChildren ? 1 : 0
+  const includeChildrenFlag = Boolean(payload.includeChildren)
   const inviteToken = createInviteToken()
   const inviteExpiresAtMs = Date.now() + INVITE_VALIDITY_MS
   const inviteExpiresAt = new Date(inviteExpiresAtMs)

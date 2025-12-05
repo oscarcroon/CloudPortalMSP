@@ -54,21 +54,22 @@ export const buildSecretsFromPayload = (
   existing?: EmailProviderProfile | null
 ): ProviderSecrets => {
   if (provider.type === 'smtp') {
+    const smtpProvider = provider as Extract<ProviderConfigPayload, { type: 'smtp' }>
     const previous = existing && existing.type === 'smtp' ? existing.config : null
-    let auth: ProviderSecrets['config']['auth'] | null = null
-    if (provider.auth && provider.auth.user) {
+    let auth: any = null
+    if (smtpProvider.auth && smtpProvider.auth.user) {
       const pass =
-        provider.auth.pass && provider.auth.pass.length > 0
-          ? provider.auth.pass
+        smtpProvider.auth.pass && smtpProvider.auth.pass.length > 0
+          ? smtpProvider.auth.pass
           : previous?.auth?.pass ?? ''
       if (!pass) {
         throw new Error('SMTP-lösenord krävs.')
       }
       auth = {
-        user: provider.auth.user,
+        user: smtpProvider.auth.user,
         pass
       }
-    } else if (provider.auth && !provider.auth.user) {
+    } else if (smtpProvider.auth && !smtpProvider.auth.user) {
       auth = null
     } else {
       auth = previous?.auth ?? null
@@ -76,11 +77,11 @@ export const buildSecretsFromPayload = (
     return {
       type: 'smtp',
       config: {
-        host: provider.host,
-        port: provider.port,
-        secure: provider.secure ?? provider.port === 465,
+        host: smtpProvider.host,
+        port: smtpProvider.port,
+        secure: smtpProvider.secure ?? smtpProvider.port === 465,
         auth,
-        ignoreTls: provider.ignoreTls ?? false
+        ignoreTls: smtpProvider.ignoreTls ?? false
       }
     }
   }

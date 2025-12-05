@@ -8,11 +8,11 @@ import type { DrizzleDb } from './db'
 import { getDb } from './db'
 import {
   brandingThemes,
-  BrandingTargetType,
   distributorProviders,
   organizations,
   tenants
 } from '../database/schema'
+import type { BrandingTargetType } from '../database/schema'
 import {
   BRANDING_PALETTE_MAP,
   DEFAULT_BRANDING_ACCENT,
@@ -283,7 +283,9 @@ export async function setBrandingMediaAsset(
 ) {
   const config = BRANDING_MEDIA_CONFIG[mediaType]
   const existing = await findBrandingRow(db, target)
-  const previousUrl = existing ? ((existing as Record<string, string | null>)[config.column] ?? null) : null
+  const previousUrl = existing
+    ? ((existing as unknown as Record<string, string | null>)[config.column] ?? null)
+    : null
   const url = await persistLogoFile(target, payload, previousUrl, config.filenameSuffix)
   const changes: Record<string, string | null> = {
     [config.column]: url
@@ -311,7 +313,8 @@ export async function removeBrandingMediaAsset(
   if (!existing) {
     return { removed: false }
   }
-  const currentUrl = (existing as Record<string, string | null>)[config.column] ?? null
+  const currentUrl =
+    (existing as unknown as Record<string, string | null>)[config.column] ?? null
   if (!currentUrl) {
     return { removed: false }
   }
@@ -517,6 +520,7 @@ function buildResolution(
     loginBackgroundUrl: loginBackground.value,
     loginBackgroundTint: loginBackgroundTint.value,
     loginBackgroundTintOpacity: loginBackgroundTintOpacity.value,
+    navigationBackgroundColor: navBackground.value ?? DEFAULT_NAV_BACKGROUND,
     navBackgroundColor: navBackground.value ?? DEFAULT_NAV_BACKGROUND,
     accentColor: accentSource.color,
     paletteKey: accentSource.paletteKey,
@@ -638,6 +642,7 @@ export function getDefaultBrandingResolution(): BrandingResolution {
     loginBackgroundUrl: null,
     loginBackgroundTint: null,
     loginBackgroundTintOpacity: DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY,
+    navigationBackgroundColor: DEFAULT_NAV_BACKGROUND,
     navBackgroundColor: DEFAULT_NAV_BACKGROUND,
     accentColor: DEFAULT_BRANDING_ACCENT,
     paletteKey: DEFAULT_BRANDING_PALETTE_KEY,
@@ -786,6 +791,8 @@ async function writeBrandingRecord(
   changes: Record<string, string | number | null>,
   userId?: string
 ) {
+  const toStringOrNull = (value: unknown) =>
+    typeof value === 'string' ? value : value == null ? null : null
   const mediaColumns = [
     'logoUrl',
     'appLogoLightUrl',
@@ -823,24 +830,26 @@ async function writeBrandingRecord(
         ? target.tenantId
         : null,
     organizationId: target.targetType === 'organization' ? target.organizationId : null,
-    logoUrl: Object.prototype.hasOwnProperty.call(changes, 'logoUrl') ? changes.logoUrl ?? null : null,
+    logoUrl: Object.prototype.hasOwnProperty.call(changes, 'logoUrl')
+      ? toStringOrNull(changes.logoUrl)
+      : null,
     appLogoLightUrl: Object.prototype.hasOwnProperty.call(changes, 'appLogoLightUrl')
-      ? changes.appLogoLightUrl ?? null
+      ? toStringOrNull(changes.appLogoLightUrl)
       : null,
     appLogoDarkUrl: Object.prototype.hasOwnProperty.call(changes, 'appLogoDarkUrl')
-      ? changes.appLogoDarkUrl ?? null
+      ? toStringOrNull(changes.appLogoDarkUrl)
       : null,
     loginLogoLightUrl: Object.prototype.hasOwnProperty.call(changes, 'loginLogoLightUrl')
-      ? changes.loginLogoLightUrl ?? null
+      ? toStringOrNull(changes.loginLogoLightUrl)
       : null,
     loginLogoDarkUrl: Object.prototype.hasOwnProperty.call(changes, 'loginLogoDarkUrl')
-      ? changes.loginLogoDarkUrl ?? null
+      ? toStringOrNull(changes.loginLogoDarkUrl)
       : null,
     loginBackgroundUrl: Object.prototype.hasOwnProperty.call(changes, 'loginBackgroundUrl')
-      ? changes.loginBackgroundUrl ?? null
+      ? toStringOrNull(changes.loginBackgroundUrl)
       : null,
     loginBackgroundTint: Object.prototype.hasOwnProperty.call(changes, 'loginBackgroundTint')
-      ? changes.loginBackgroundTint ?? null
+      ? toStringOrNull(changes.loginBackgroundTint)
       : null,
     loginBackgroundTintOpacity: Object.prototype.hasOwnProperty.call(
       changes,
@@ -852,13 +861,13 @@ async function writeBrandingRecord(
       changes,
       'navigationBackgroundColor'
     )
-      ? changes.navigationBackgroundColor ?? null
+      ? toStringOrNull(changes.navigationBackgroundColor)
       : null,
     accentColor: Object.prototype.hasOwnProperty.call(changes, 'accentColor')
-      ? changes.accentColor ?? null
+      ? toStringOrNull(changes.accentColor)
       : null,
     paletteKey: Object.prototype.hasOwnProperty.call(changes, 'paletteKey')
-      ? changes.paletteKey ?? null
+      ? toStringOrNull(changes.paletteKey)
       : null,
     createdByUserId: userId ?? null,
     updatedByUserId: userId ?? null,
@@ -871,12 +880,7 @@ async function writeBrandingRecord(
 
 async function loadOrganization(db: DrizzleDb, organizationId: string) {
   const rows = await db
-    .select({
-      id: organizations.id,
-      name: organizations.name,
-      tenantId: organizations.tenantId,
-      logoUrl: organizations.logoUrl
-    })
+    .select()
     .from(organizations)
     .where(eq(organizations.id, organizationId))
     .limit(1)
@@ -886,11 +890,7 @@ async function loadOrganization(db: DrizzleDb, organizationId: string) {
 
 async function loadTenant(db: DrizzleDb, tenantId: string) {
   const rows = await db
-    .select({
-      id: tenants.id,
-      name: tenants.name,
-      type: tenants.type
-    })
+    .select()
     .from(tenants)
     .where(eq(tenants.id, tenantId))
     .limit(1)

@@ -1,0 +1,7 @@
+{
+  "title": "Windows DNS",
+  "description": "Manage DNS zones and records for Windows environments.",
+  "cta": "Create zone",
+  "empty": "No zones yet."
+}
+

@@ -1,7 +1,7 @@
 import type { ModuleId } from '~/constants/modules'
 import { moduleIds } from '~/constants/modules'
 
-const moduleIdSet = new Set<ModuleId>(moduleIds as ModuleId[])
+const moduleIdSet = new Set<ModuleId>(Array.from(moduleIds) as ModuleId[])
 
 export const isValidModuleId = (value: unknown): value is ModuleId => {
   if (typeof value !== 'string') {

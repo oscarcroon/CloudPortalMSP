@@ -45,7 +45,7 @@ export const useDnsStore = defineStore('dns', () => {
     }
 
     if (!selectedZoneId.value && zones.value.length) {
-      selectedZoneId.value = zones.value[0].id
+      selectedZoneId.value = zones.value?.[0]?.id ?? null
     }
 
     if (selectedZoneId.value) {

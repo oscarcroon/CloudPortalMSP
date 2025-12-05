@@ -61,7 +61,7 @@ export const useContainerStore = defineStore('containers', () => {
     }
 
     if (!selectedProjectId.value && projects.value.length) {
-      selectedProjectId.value = projects.value[0].id
+      selectedProjectId.value = projects.value?.[0]?.id ?? null
     }
   }
 

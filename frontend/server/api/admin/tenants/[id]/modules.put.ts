@@ -93,7 +93,7 @@ export default defineEventHandler(async (event) => {
   await setTenantModulePolicy(
     tenantId,
     moduleId as ModuleId,
-    finalEnabled,
+    Boolean(finalEnabled),
     finalPermissionOverrides as ModulePermissionOverrides | undefined,
     finalDisabled,
     allowedRoles === undefined ? undefined : allowedRoles

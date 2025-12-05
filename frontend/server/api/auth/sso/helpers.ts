@@ -67,7 +67,7 @@ const base64UrlDecode = (segment: string) => {
 
 export const decodeIdToken = (token: string) => {
   const parts = token.split('.')
-  if (parts.length < 2) {
+  if (parts.length < 2 || !parts[1]) {
     throw new Error('Ogiltigt ID-token')
   }
   const payload = base64UrlDecode(parts[1])

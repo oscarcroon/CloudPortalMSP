@@ -463,8 +463,8 @@ export const setTenantModulePolicy = async (
     if (isSqlite) {
       db.update(tenantModulePolicies)
         .set({
-          enabled: enabled ? 1 : 0,
-          disabled: finalDisabled ? 1 : 0,
+          enabled: Boolean(enabled),
+          disabled: Boolean(finalDisabled),
           permissionOverrides: overridesJson,
           allowedRoles: allowedRolesJson,
           updatedAt: new Date()
@@ -475,8 +475,8 @@ export const setTenantModulePolicy = async (
       await db
         .update(tenantModulePolicies)
         .set({
-          enabled: enabled ? 1 : 0,
-          disabled: finalDisabled ? 1 : 0,
+          enabled: Boolean(enabled),
+          disabled: Boolean(finalDisabled),
           permissionOverrides: overridesJson,
           allowedRoles: allowedRolesJson,
           updatedAt: new Date()
@@ -486,25 +486,29 @@ export const setTenantModulePolicy = async (
   } else {
     // Create new policy
     if (isSqlite) {
-      db.insert(tenantModulePolicies).values({
-        id: createId(),
-        tenantId,
-        moduleId,
-        enabled: enabled ? 1 : 0,
-        disabled: finalDisabled ? 1 : 0,
-        permissionOverrides: overridesJson,
-        allowedRoles: allowedRolesJson
-      }).run()
+      db.insert(tenantModulePolicies)
+        .values({
+          id: createId(),
+          tenantId,
+          moduleId,
+          enabled: Boolean(enabled),
+          disabled: Boolean(finalDisabled),
+          permissionOverrides: overridesJson,
+          allowedRoles: allowedRolesJson
+        } as any)
+        .run()
     } else {
-      await db.insert(tenantModulePolicies).values({
-        id: createId(),
-        tenantId,
-        moduleId,
-        enabled: enabled ? 1 : 0,
-        disabled: finalDisabled ? 1 : 0,
-        permissionOverrides: overridesJson,
-        allowedRoles: allowedRolesJson
-      })
+      await db
+        .insert(tenantModulePolicies)
+        .values({
+          id: createId(),
+          tenantId,
+          moduleId,
+          enabled: Boolean(enabled),
+          disabled: Boolean(finalDisabled),
+          permissionOverrides: overridesJson,
+          allowedRoles: allowedRolesJson
+        } as any)
     }
   }
 }
@@ -571,8 +575,8 @@ export const setOrganizationModulePolicy = async (
     await db
       .update(organizationModulePolicies)
       .set({
-        enabled: enabled ? 1 : 0,
-        disabled: finalDisabled ? 1 : 0,
+        enabled: Boolean(enabled),
+        disabled: Boolean(finalDisabled),
         permissionOverrides: overridesJson,
         allowedRoles: allowedRolesJson,
         updatedAt: new Date()
@@ -584,11 +588,11 @@ export const setOrganizationModulePolicy = async (
       id: createId(),
       organizationId,
       moduleId,
-      enabled: enabled ? 1 : 0,
-      disabled: finalDisabled ? 1 : 0,
+      enabled: Boolean(enabled),
+      disabled: Boolean(finalDisabled),
       permissionOverrides: overridesJson,
       allowedRoles: allowedRolesJson
-    })
+    } as any)
   }
 }
 

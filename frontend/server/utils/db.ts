@@ -12,9 +12,10 @@ const require = createRequire(import.meta.url)
 
 type SqliteDb = BetterSQLite3Database<typeof schema>
 type MysqlDb = MySql2Database<typeof schema>
-export type DrizzleDb = SqliteDb | MysqlDb
+type DrizzleDbInstance = SqliteDb | MysqlDb
+export type DrizzleDb = SqliteDb
 
-let dbInstance: DrizzleDb | null = null
+let dbInstance: DrizzleDbInstance | null = null
 
 const resolveSqlitePath = () => {
   const rawUrl = process.env.DATABASE_URL ?? 'file:./.data/dev.db'
@@ -47,7 +48,7 @@ const createMysqlDb = (): MysqlDb => {
   }
 
   const pool = mysql.createPool(url)
-  return drizzleMysql(pool, { schema })
+  return drizzleMysql(pool, { schema } as any)
 }
 
 const determineDialect = () =>
@@ -55,12 +56,12 @@ const determineDialect = () =>
 
 export const getDb = (): DrizzleDb => {
   if (dbInstance) {
-    return dbInstance
+    return dbInstance as DrizzleDb
   }
 
   const dialect = determineDialect()
   dbInstance = dialect === 'mysql' ? createMysqlDb() : createSqliteDb()
-  return dbInstance
+  return dbInstance as DrizzleDb
 }
 
 export const resetDbInstance = () => {

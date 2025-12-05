@@ -17,12 +17,11 @@ export default defineNuxtPlugin(() => {
   const cookies = parseCookies(event)
   const storedPreference = cookies[STORAGE_KEY]
 
-  if (!persistedPreferences.has(storedPreference)) {
+  if (!storedPreference || !persistedPreferences.has(storedPreference)) {
     return
   }
 
   const colorMode = useColorMode()
   colorMode.preference = storedPreference as 'light' | 'dark'
-  colorMode.value = storedPreference as 'light' | 'dark'
 })
 

@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
   await getDb()
     .update(organizationInvitations)
-    .set({ status: 'cancelled', cancelledAt: new Date(), updatedAt: new Date() })
+    .set({ status: 'cancelled', declinedAt: new Date(), updatedAt: new Date() })
     .where(eq(organizationInvitations.id, inviteId))
 
   return { success: true }

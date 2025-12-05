@@ -187,18 +187,21 @@ async function convertLogoToDataUri(
     // Hantera olika URL-format
     if (logoUrl.includes('/api/uploads/logos/')) {
       const parts = logoUrl.split('/api/uploads/logos/')
-      if (parts.length > 1) {
-        filename = path.basename(parts[1].split('?')[0])
+      if (parts.length > 1 && parts[1]) {
+        const segment = parts[1].split('?')[0] ?? parts[1]
+        filename = path.basename(segment)
       }
     } else if (logoUrl.includes('uploads/logos/')) {
       const parts = logoUrl.split('uploads/logos/')
-      if (parts.length > 1) {
-        filename = path.basename(parts[1].split('?')[0])
+      if (parts.length > 1 && parts[1]) {
+        const segment = parts[1].split('?')[0] ?? parts[1]
+        filename = path.basename(segment)
       }
     } else if (logoUrl.includes('/uploads/logos/')) {
       const parts = logoUrl.split('/uploads/logos/')
-      if (parts.length > 1) {
-        filename = path.basename(parts[1].split('?')[0])
+      if (parts.length > 1 && parts[1]) {
+        const segment = parts[1].split('?')[0] ?? parts[1]
+        filename = path.basename(segment)
       }
     } else {
       // Försök extrahera från URL pathname
@@ -206,7 +209,8 @@ async function convertLogoToDataUri(
         const urlObj = new URL(logoUrl)
         const urlPath = urlObj.pathname
         if (urlPath.includes('logos/')) {
-          filename = path.basename(urlPath.split('logos/')[1])
+          const part = urlPath.split('logos/')[1]
+          filename = part ? path.basename(part) : null
         } else {
           filename = path.basename(urlPath)
         }
@@ -287,6 +291,16 @@ interface EmailBrandingOptions {
   isDarkMode?: boolean
 }
 
+interface EmailBranding {
+  logoUrl?: string
+  accentColor?: string
+  backgroundColor?: string
+  logoBackgroundColor?: string
+  isDarkMode: boolean
+  footerText?: string
+  footerTextPlain?: string
+}
+
 export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
   const resolution = options.organizationId
     ? await resolveBrandingChain({ organizationId: options.organizationId })
@@ -303,7 +317,7 @@ export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
     null
   const logoDataUri = await convertLogoToDataUri(logoSource, options.organizationId)
 
-  const branding = {
+  const branding: EmailBranding = {
     logoUrl: logoDataUri ?? logoSource ?? undefined,
     accentColor: theme.accentColor ?? undefined,
     backgroundColor: undefined, // Bakgrunden på e-postet ändras baserat på dark mode
@@ -317,7 +331,6 @@ export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
   if (footer.html) {
     branding.footerText = footer.html
     if (footer.text) {
-      // @ts-expect-error internal field for plain-text footer
       branding.footerTextPlain = footer.text
     }
   }

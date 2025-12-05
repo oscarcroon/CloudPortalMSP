@@ -22,8 +22,7 @@ const timestampColumns = () => ({
     .default(sql`(strftime('%s','now') * 1000)`)
 })
 
-const softDeleteColumn = () =>
-  integer('deleted_at', { mode: 'timestamp_ms' }).default(null)
+const softDeleteColumn = () => integer('deleted_at', { mode: 'timestamp_ms' })
 
 export const tenants = sqliteTable(
   'tenants',
@@ -55,10 +54,10 @@ export const organizations = sqliteTable(
     slug: text('slug').notNull(),
     tenantId: text('tenant_id'),
     status: text('status').notNull().default('active'),
-    isSuspended: integer('is_suspended', { mode: 'boolean' }).notNull().default(0),
+    isSuspended: integer('is_suspended', { mode: 'boolean' }).notNull().default(false),
     defaultRole: text('default_role').notNull().default('viewer'),
-    requireSso: integer('require_sso', { mode: 'boolean' }).notNull().default(0),
-    allowSelfSignup: integer('allow_self_signup', { mode: 'boolean' }).notNull().default(0),
+    requireSso: integer('require_sso', { mode: 'boolean' }).notNull().default(false),
+    allowSelfSignup: integer('allow_self_signup', { mode: 'boolean' }).notNull().default(false),
     logoUrl: text('logo_url'),
     billingEmail: text('billing_email'),
     coreId: text('core_id'),
@@ -79,12 +78,12 @@ export const users = sqliteTable(
     fullName: text('full_name'),
     status: text('status').notNull().default('active'),
     locale: text('locale').notNull().default('sv'),
-    isSuperAdmin: integer('is_super_admin', { mode: 'boolean' }).notNull().default(0),
-    isMfaEnabled: integer('is_mfa_enabled', { mode: 'boolean' }).notNull().default(0),
+    isSuperAdmin: integer('is_super_admin', { mode: 'boolean' }).notNull().default(false),
+    isMfaEnabled: integer('is_mfa_enabled', { mode: 'boolean' }).notNull().default(false),
     lastLoginAt: integer('last_login_at', { mode: 'timestamp_ms' }),
     defaultOrgId: text('default_org_id'),
     enforcedOrgId: text('enforced_org_id'),
-    forcePasswordReset: integer('force_password_reset', { mode: 'boolean' }).notNull().default(0),
+    forcePasswordReset: integer('force_password_reset', { mode: 'boolean' }).notNull().default(false),
     passwordResetTokenHash: text('password_reset_token_hash'),
     passwordResetExpiresAt: integer('password_reset_expires_at', { mode: 'timestamp_ms' }),
     metadata: text('metadata', { length: 2048 }),
@@ -324,16 +323,16 @@ export const organizationAuthSettings = sqliteTable('organization_auth_settings'
     .primaryKey()
     .references(() => organizations.id, { onDelete: 'cascade' }),
   idpType: text('idp_type').notNull().default('none'),
-  ssoEnforced: integer('sso_enforced', { mode: 'boolean' }).notNull().default(0),
+  ssoEnforced: integer('sso_enforced', { mode: 'boolean' }).notNull().default(false),
   allowLocalLoginForOwners: integer('allow_local_login_for_owners', { mode: 'boolean' })
     .notNull()
-    .default(1),
+    .default(true),
   requireMfaOnSensitiveActions: integer('require_mfa_on_sensitive_actions', { mode: 'boolean' })
     .notNull()
-    .default(0),
+    .default(false),
   requireMfaOnContextSwitch: integer('require_mfa_on_context_switch', { mode: 'boolean' })
     .notNull()
-    .default(0),
+    .default(false),
   idpConfig: text('idp_config', { length: 4096 }),
   ...timestampColumns()
 })
@@ -344,10 +343,10 @@ export const tenantAuthSettings = sqliteTable('tenant_auth_settings', {
     .references(() => tenants.id, { onDelete: 'cascade' }),
   requireMfaOnSensitiveActions: integer('require_mfa_on_sensitive_actions', { mode: 'boolean' })
     .notNull()
-    .default(0),
+    .default(false),
   requireMfaOnContextSwitch: integer('require_mfa_on_context_switch', { mode: 'boolean' })
     .notNull()
-    .default(0),
+    .default(false),
   ...timestampColumns()
 })
 
@@ -405,7 +404,7 @@ export const organizationIdentityProviders = sqliteTable(
     metadataUrl: text('metadata_url'),
     audience: text('audience'),
     scopes: text('scopes'),
-    isEnabled: integer('is_enabled', { mode: 'boolean' }).notNull().default(0),
+    isEnabled: integer('is_enabled', { mode: 'boolean' }).notNull().default(false),
     enforceForUserType: text('enforce_for_user_type'),
     ...timestampColumns()
   },
@@ -430,13 +429,13 @@ export const emailProviderProfiles = sqliteTable(
       onDelete: 'cascade'
     }),
     providerType: text('provider_type').notNull(),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(0),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
     fromName: text('from_name'),
     fromEmail: text('from_email'),
     replyToEmail: text('reply_to_email'),
     subjectPrefix: text('subject_prefix'),
     supportContact: text('support_contact'),
-    emailDarkMode: integer('email_dark_mode', { mode: 'boolean' }).notNull().default(0),
+    emailDarkMode: integer('email_dark_mode', { mode: 'boolean' }).notNull().default(false),
     brandingConfig: text('branding_config', { length: 4096 }),
     encryptedConfig: text('encrypted_config', { length: 8192 }),
     encryptionIv: text('encryption_iv'),
@@ -486,7 +485,7 @@ export const dnsRecords = sqliteTable(
     name: text('name').notNull(),
     content: text('content').notNull(),
     ttl: integer('ttl').notNull().default(3600),
-    proxied: integer('proxied', { mode: 'boolean' }).notNull().default(0),
+    proxied: integer('proxied', { mode: 'boolean' }).notNull().default(false),
     priority: integer('priority'),
     ...timestampColumns()
   },
@@ -817,10 +816,10 @@ export const tenantModulePolicies = sqliteTable(
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
     moduleId: text('module_id').notNull(),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(1),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
     // If disabled is true, module is visible but grayed out (deactivated)
     // If enabled is false, module is hidden completely (inactivated)
-    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(0),
+    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
     // JSON object storing permission overrides
     // Example: { "cloudflare:write": false } to disable write access
     permissionOverrides: text('permission_overrides', { length: 2048 }),
@@ -851,10 +850,10 @@ export const organizationModulePolicies = sqliteTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     moduleId: text('module_id').notNull(),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(1),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
     // If disabled is true, module is visible but grayed out (deactivated)
     // If enabled is false, module is hidden completely (inactivated)
-    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(0),
+    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
     // JSON object storing permission overrides
     // Example: { "cloudflare:write": false } to disable write access
     permissionOverrides: text('permission_overrides', { length: 2048 }),
@@ -889,7 +888,7 @@ export const cloudflareCredentials = sqliteTable(
     // Optional: Cloudflare account ID if needed
     accountId: text('account_id'),
     // Status of the credentials
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(1),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
     lastValidatedAt: integer('last_validated_at', { mode: 'timestamp_ms' }),
     ...timestampColumns()
   },

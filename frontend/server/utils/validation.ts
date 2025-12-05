@@ -45,7 +45,7 @@ export const validateId = (value: string): string => {
  * Only sanitizes top-level string values
  */
 export const sanitizeObject = <T extends Record<string, any>>(value: T): T => {
-  const sanitized = { ...value }
+  const sanitized = { ...value } as Record<string, any>
   
   for (const key of Object.keys(sanitized)) {
     if (typeof sanitized[key] === 'string') {
@@ -55,7 +55,7 @@ export const sanitizeObject = <T extends Record<string, any>>(value: T): T => {
     }
   }
   
-  return sanitized
+  return sanitized as T
 }
 
 /**

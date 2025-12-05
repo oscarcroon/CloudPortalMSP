@@ -58,10 +58,12 @@ export default defineEventHandler(async (event) => {
       .where(inArray(tenantMemberRoles.membershipId, membershipIds))
 
     membershipRoleMap = roleRows.reduce<Record<string, string[]>>((acc, row) => {
-      if (!acc[row.membershipId]) {
-        acc[row.membershipId] = []
+      const membershipId = row.membershipId
+      if (!membershipId) return acc
+      if (!acc[membershipId]) {
+        acc[membershipId] = []
       }
-      acc[row.membershipId].push(row.roleKey)
+      acc[membershipId].push(row.roleKey)
       return acc
     }, {})
   }

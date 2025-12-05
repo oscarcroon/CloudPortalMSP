@@ -8,8 +8,11 @@
       "~~": ["."],
       "~~/*": ["./*"],
       "#imports": ["./.nuxt/imports"],
-      "server/*": ["./server/*"]
-    }
-  }
+      "server/*": ["./server/*"],
+      "@windows-dns/*": ["./layers/windows-dns/*"]
+    },
+    "skipLibCheck": true
+  },
+  "exclude": ["scripts/legacy/**"]
 }
 

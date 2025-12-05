@@ -16,16 +16,14 @@ const allowedTags = [
   'ul'
 ]
 
-const allowedAttributes: sanitizeHtml.IOptions['allowedAttributes'] = {
+const allowedAttributes: Record<string, string[]> = {
   a: ['href', 'title', 'target', 'rel']
 }
 
 const allowedSchemes = ['http', 'https', 'mailto']
 
 marked.setOptions({
-  breaks: true,
-  mangle: false,
-  headerIds: false
+  breaks: true
 })
 
 export interface RenderedMarkdown {
@@ -33,7 +31,7 @@ export interface RenderedMarkdown {
   text: string
 }
 
-const sanitizeOptions: sanitizeHtml.IOptions = {
+const sanitizeOptions: any = {
   allowedTags,
   allowedAttributes,
   allowedSchemes

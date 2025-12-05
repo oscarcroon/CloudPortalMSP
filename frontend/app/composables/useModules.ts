@@ -55,14 +55,14 @@ export const useModules = () => {
    * Check if a module is visible (enabled, even if disabled/deactivated)
    */
   const isModuleVisible = (moduleId: string) => {
-    return (visibleModules.value || []).some((m) => m.id === moduleId)
+    return (visibleModules.value || []).some((m: any) => m.id === moduleId)
   }
 
   /**
    * Check if a module is disabled (deactivated)
    */
   const isModuleDisabled = (moduleId: string) => {
-    const module = (visibleModules.value || []).find((m) => m.id === moduleId)
+    const module = (visibleModules.value || []).find((m: any) => m.id === moduleId)
     return module?.disabled === true
   }
 

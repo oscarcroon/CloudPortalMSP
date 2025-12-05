@@ -26,7 +26,11 @@ export default defineEventHandler(async (event) => {
   // Parse filters
   const userId = query.userId as string | undefined
   const eventType = query.eventType as AuditEventType | undefined
-  const severity = query.severity as string | undefined
+  const severityRaw = query.severity as string | undefined
+  const allowedSeverities = new Set(['error', 'critical', 'warning', 'info'] as const)
+  const severity = allowedSeverities.has(severityRaw as any)
+    ? (severityRaw as (typeof allowedSeverities extends Set<infer T> ? T : never))
+    : undefined
   const startDate = query.startDate ? new Date(query.startDate as string) : undefined
   const endDate = query.endDate ? new Date(query.endDate as string) : undefined
   

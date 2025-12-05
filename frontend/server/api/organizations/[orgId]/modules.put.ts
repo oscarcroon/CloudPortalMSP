@@ -6,7 +6,7 @@ import { setOrganizationModulePolicy, getEffectiveModulePolicyForOrg } from '~~/
 import { getAllModules } from '~/lib/modules'
 import { getDb } from '~~/server/utils/db'
 import { organizations } from '~~/server/database/schema'
-import type { ModuleId } from '~/constants/modules'
+import type { ModuleId, ModuleRoleDefinition } from '~/constants/modules'
 import type { ModulePermissionOverrides } from '~~/server/utils/modulePolicy'
 import { logOrganizationAction } from '~~/server/utils/audit'
 
@@ -34,6 +34,12 @@ export default defineEventHandler(async (event) => {
   const modules = getAllModules()
   const module = modules.find((m) => m.id === moduleId)
   if (!module) {
+    throw createError({
+      statusCode: 400,
+      message: `Invalid module ID: ${moduleId}`
+    })
+  }
+
   if (allowedRoles !== undefined) {
     if (!module.roles || module.roles.length === 0) {
       if (allowedRoles && allowedRoles.length > 0) {
@@ -43,7 +49,9 @@ export default defineEventHandler(async (event) => {
         })
       }
     } else if (allowedRoles) {
-      const validRoleKeys = new Set(module.roles.map((role) => role.key))
+      const validRoleKeys = new Set(
+        module.roles.map((role: ModuleRoleDefinition) => role.key)
+      )
       const invalidRoles = allowedRoles.filter((role) => !validRoleKeys.has(role))
       if (invalidRoles.length > 0) {
         throw createError({
@@ -52,12 +60,6 @@ export default defineEventHandler(async (event) => {
         })
       }
     }
-  }
-
-    throw createError({
-      statusCode: 400,
-      message: `Invalid module ID: ${moduleId}`
-    })
   }
 
   // Get current effective policy to ensure we're not expanding permissions
@@ -106,16 +108,7 @@ export default defineEventHandler(async (event) => {
   // If enabled is explicitly provided, use it
   // Otherwise, if there's an existing org policy, keep its enabled value
   // If no org policy exists and enabled is not provided, inherit from tenant (which means enabled=true by default)
-  let finalEnabled: boolean
-  if (enabled !== undefined) {
-    finalEnabled = enabled
-  } else if (orgOwnPolicy) {
-    // Keep existing org policy enabled value
-    finalEnabled = orgOwnPolicy.enabled
-  } else {
-    // No org policy exists, so we inherit from tenant (default enabled=true)
-    finalEnabled = tenantLevelEnabled
-  }
+  const finalEnabled: boolean = Boolean(enabled ?? orgOwnPolicy?.enabled ?? tenantLevelEnabled)
   
   const finalDisabled = disabled !== undefined ? disabled : (orgOwnPolicy?.disabled ?? false)
   const finalOverrides: ModulePermissionOverrides = {
@@ -128,21 +121,23 @@ export default defineEventHandler(async (event) => {
   const oldEnabled = oldPolicy.enabled
   const oldDisabled = oldPolicy.disabled
 
+  const finalEnabledBool = Boolean(finalEnabled)
+
   await setOrganizationModulePolicy(
     orgId,
     moduleId as ModuleId,
-    finalEnabled,
+    finalEnabledBool,
     finalOverrides,
     finalDisabled,
     allowedRoles === undefined ? undefined : allowedRoles
   )
 
   // Log audit event
-  if (finalEnabled !== oldEnabled || finalDisabled !== oldDisabled) {
-    await logOrganizationAction(event, finalEnabled ? 'MODULE_ENABLED' : 'MODULE_DISABLED', {
+  if (finalEnabledBool !== oldEnabled || finalDisabled !== oldDisabled) {
+    await logOrganizationAction(event, finalEnabledBool ? 'MODULE_ENABLED' : 'MODULE_DISABLED', {
       moduleId,
       oldEnabled,
-      newEnabled: finalEnabled,
+      newEnabled: finalEnabledBool,
       oldDisabled,
       newDisabled: finalDisabled
     }, orgId)

@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   // Log audit event
   await logSecurityEvent(
     event,
-    'USER_SET_PRIMARY_ORGANIZATION',
+    'USER_UPDATED',
     {
       userId: auth.user.id,
       oldDefaultOrgId: oldDefaultOrgId ?? null,

@@ -15,7 +15,9 @@ export const usePermission = () => {
       // Check organization-level permissions
       const currentOrgId = auth.state.value.data?.currentOrgId
       if (currentOrgId) {
-        const role = auth.state.value.data?.orgRoles[currentOrgId]
+        const role = auth.state.value.data?.orgRoles[currentOrgId] as
+          | keyof typeof rolePermissionMap
+          | undefined
         if (role && rolePermissionMap[role]?.includes(permission)) {
           return true
         }
@@ -28,7 +30,7 @@ export const usePermission = () => {
 
           // Fallback: if currentOrg is null but currentOrgId exists, try to find tenantId from organizations list
           if (!orgTenantId && currentOrgId) {
-            const orgFromList = auth.organizations.value.find((org) => org.id === currentOrgId)
+            const orgFromList = auth.organizations.value.find((org: any) => org.id === currentOrgId)
             orgTenantId = orgFromList?.tenantId
           }
 
@@ -36,7 +38,7 @@ export const usePermission = () => {
             const tenantId = orgTenantId
             const tenantRole = auth.state.value.data?.tenantRoles?.[tenantId] as TenantRole | undefined
             const includeChildren = auth.state.value.data?.tenantIncludeChildren?.[tenantId] ?? false
-            const tenant = auth.tenants.value.find((t) => t.id === tenantId)
+            const tenant = auth.tenants.value.find((t: any) => t.id === tenantId)
 
             // Debug logging (only in dev)
             if (import.meta.dev && permission === 'org:manage') {
@@ -79,7 +81,7 @@ export const usePermission = () => {
             console.log('[usePermission] ❌ No tenantId found for current org:', {
               currentOrgId,
               currentOrg: currentOrg ? { id: currentOrg.id, tenantId: currentOrg.tenantId } : null,
-              orgsInList: auth.organizations.value.map(o => ({ id: o.id, tenantId: o.tenantId }))
+                orgsInList: auth.organizations.value.map((o: any) => ({ id: o.id, tenantId: o.tenantId }))
             })
           }
         }
@@ -89,8 +91,8 @@ export const usePermission = () => {
       if (permission.startsWith('tenants:')) {
         for (const [tenantId, tenantRole] of Object.entries(
           auth.state.value.data?.tenantRoles ?? {}
-        )) {
-          if (tenantRolePermissionMap[tenantRole]?.includes(permission)) {
+        ) as Array<[string, TenantRole]>) {
+          if (tenantRolePermissionMap[tenantRole as TenantRole]?.includes(permission)) {
             return true
           }
         }

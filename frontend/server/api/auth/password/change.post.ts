@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       passwordHash: newHash,
       passwordResetTokenHash: null,
       passwordResetExpiresAt: null,
-      forcePasswordReset: 0
+      forcePasswordReset: false
     })
     .where(eq(users.id, user.id))
 

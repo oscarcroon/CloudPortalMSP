@@ -80,7 +80,7 @@ const toSummary = (record: ProviderRecord, profile?: EmailProviderProfile | null
   emailDarkMode: Boolean(record.emailDarkMode),
   isActive: Boolean(record.isActive),
   hasConfig: Boolean(record.encryptedConfig),
-  lastTestedAt: record.lastTestedAt ?? undefined,
+  lastTestedAt: record.lastTestedAt ? record.lastTestedAt.getTime() : undefined,
   lastTestStatus: record.lastTestStatus ?? undefined,
   lastTestError: record.lastTestError ?? undefined,
   settings: buildSettings(profile)
@@ -312,7 +312,7 @@ const getHierarchyForOrganization = async (organisationId: string): Promise<Hier
     hierarchy.push({ id: tenant.id, type: 'provider', name: tenant.name })
     const distributor = await findDistributorForProvider(tenant.id)
     if (distributor) {
-      hierarchy.push({ id: distributor.id, type: 'distributor', name: distributor.name })
+      hierarchy.push({ id: distributor.id, type: 'distributor', name: (distributor as any).name })
     }
   } else if (tenant?.type === 'distributor') {
     hierarchy.push({ id: tenant.id, type: 'distributor', name: tenant.name })
@@ -331,7 +331,7 @@ const getHierarchyForTenant = async (tenantId: string): Promise<HierarchyNode[]>
     const hierarchy: HierarchyNode[] = [{ id: tenant.id, type: 'provider', name: tenant.name }]
     const distributor = await findDistributorForProvider(tenant.id)
     if (distributor) {
-      hierarchy.push({ id: distributor.id, type: 'distributor', name: distributor.name })
+      hierarchy.push({ id: distributor.id, type: 'distributor', name: (distributor as any).name })
     }
     return hierarchy
   }

@@ -9,6 +9,7 @@ const loginBrandingSlugSuffixes = (process.env.LOGIN_BRANDING_SLUG_SUFFIXES || '
   .filter(Boolean)
 
 export default defineNuxtConfig({
+  extends: ['./layers/windows-dns'],
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode', '@nuxtjs/i18n'],
   css: ['~/assets/css/tailwind.css'],
@@ -70,14 +71,13 @@ export default defineNuxtConfig({
   pinia: {},
   i18n: {
     strategy: 'no_prefix',
-    lazy: true,
     langDir: 'locales',
     defaultLocale: DEFAULT_LOCALE,
-    fallbackLocale: DEFAULT_LOCALE,
     locales: SUPPORTED_LOCALES.map((locale) => ({
       ...locale,
       file: `${locale.code}.json`
-    }))
+    })),
+    vueI18n: './i18n.config.ts'
   },
   typescript: {
     typeCheck: false,

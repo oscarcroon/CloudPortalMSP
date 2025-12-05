@@ -25,11 +25,12 @@ export const triggerPasswordReset = async (userId: string, email: string) => {
     .set({
       passwordResetTokenHash: tokenHash,
       passwordResetExpiresAt: expiresAt,
-      forcePasswordReset: 1
+      forcePasswordReset: true
     })
     .where(eq(users.id, userId))
 
-  if (result.rowsAffected === 0) {
+  const rowsAffected = (result as any)?.rowsAffected ?? 0
+  if (rowsAffected === 0) {
     throw createError({ statusCode: 404, message: 'Användaren kunde inte uppdateras.' })
   }
 

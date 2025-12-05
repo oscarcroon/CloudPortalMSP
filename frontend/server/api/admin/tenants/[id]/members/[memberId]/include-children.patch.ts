@@ -113,7 +113,7 @@ export default defineEventHandler(async (event) => {
   await db
     .update(tenantMemberships)
     .set({
-      includeChildren: includeChildren ? 1 : 0,
+      includeChildren,
       updatedAt: new Date()
     })
     .where(eq(tenantMemberships.id, membership.id))

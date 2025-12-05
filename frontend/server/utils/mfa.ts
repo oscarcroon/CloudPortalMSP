@@ -79,7 +79,7 @@ export const hasValidMfaSession = async (
       and(
         eq(mfaSessions.userId, userId),
         eq(mfaSessions.scope, scope),
-        gt(mfaSessions.expiresAt, now)
+        gt(mfaSessions.expiresAt, new Date(now))
       )
     )
     .limit(1)
@@ -113,7 +113,7 @@ export const createMfaSession = async (
     id: sessionId,
     userId,
     scope,
-    expiresAt
+    expiresAt: new Date(expiresAt)
   })
 
   return sessionId

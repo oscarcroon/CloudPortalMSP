@@ -173,12 +173,12 @@ export const useAuth = () => {
 
   const currentOrg = computed(() => {
     const orgId = state.value.data?.currentOrgId
-    return state.value.data?.organizations.find((org) => org.id === orgId) ?? null
+    return state.value.data?.organizations.find((org: any) => org.id === orgId) ?? null
   })
 
   const currentTenant = computed(() => {
     const tenantId = state.value.data?.currentTenantId
-    return state.value.data?.tenants.find((tenant) => tenant.id === tenantId) ?? null
+    return state.value.data?.tenants.find((tenant: any) => tenant.id === tenantId) ?? null
   })
 
   const isSuperAdmin = computed(() => Boolean(state.value.data?.user?.isSuperAdmin))

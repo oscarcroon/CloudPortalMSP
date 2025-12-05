@@ -6,7 +6,7 @@ import { logSecurityEvent } from './audit'
 interface RateLimitConfig {
   windowMs: number // Time window in milliseconds
   maxRequests: number // Maximum requests per window
-  keyGenerator?: (event: H3Event) => string // Custom key generator
+  keyGenerator?: (event: H3Event) => string | Promise<string> // Custom key generator
   skipSuccessfulRequests?: boolean // Don't count successful requests
   skipFailedRequests?: boolean // Don't count failed requests
 }
@@ -27,7 +27,11 @@ const cleanupInterval = 60 * 1000 // Clean up every minute
 setInterval(() => {
   const now = Date.now()
   for (const key in store) {
-    if (store[key].resetTime < now) {
+    const entry = store[key]
+    if (!entry) {
+      continue
+    }
+    if (entry.resetTime < now) {
       delete store[key]
     }
   }
@@ -39,8 +43,8 @@ setInterval(() => {
 export const rateLimit = (config: RateLimitConfig) => {
   return async (event: H3Event) => {
     const key = config.keyGenerator
-      ? config.keyGenerator(event)
-      : getDefaultKey(event)
+      ? await config.keyGenerator(event)
+      : await getDefaultKey(event)
 
     const now = Date.now()
     const entry = store[key]

@@ -42,7 +42,7 @@ export const useFavorites = () => {
 
   const nonFavoriteModules = computed(() => {
     return modules.value.filter(
-      (module) => !module.disabled && !favoriteIds.value.includes(module.id as ModuleId)
+      (module: any) => !module.disabled && !favoriteIds.value.includes(module.id as ModuleId)
     )
   })
 

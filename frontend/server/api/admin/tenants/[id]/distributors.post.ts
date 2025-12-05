@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
               passwordHash: null,
               fullName: payload.owner.fullName,
               status: 'active',
-              forcePasswordReset: 1
+              forcePasswordReset: true
             })
             .run()
         }
@@ -109,7 +109,7 @@ export default defineEventHandler(async (event) => {
             passwordHash: null,
             fullName: payload.owner.fullName,
             status: 'active',
-            forcePasswordReset: 1
+          forcePasswordReset: true
           })
         }
 
@@ -117,7 +117,7 @@ export default defineEventHandler(async (event) => {
           id: createId(),
           tenantId,
           userId: ownerUserId,
-          role: 'admin' as TenantRole,
+          role: 'admin',
           includeChildren: true,
           status: 'active'
         })
@@ -135,6 +135,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId))
+if (!tenant) {
+  throw createError({ statusCode: 404, message: 'Tenant not found' })
+}
 
   // Send email to owner
   try {
@@ -143,15 +146,15 @@ export default defineEventHandler(async (event) => {
       const inviteExpiresAtMs = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
       const inviteExpiresAt = new Date(inviteExpiresAtMs)
       
-      const invitationValues = {
+      const invitationValues: typeof tenantInvitations.$inferInsert = {
         id: createId(),
-              tenantId: tenant.id,
-              email: normalizedOwnerEmail,
-        role: 'admin' as TenantRole,
+        tenantId: tenant.id,
+        email: normalizedOwnerEmail,
+        role: 'admin',
         includeChildren: true,
-              token: inviteToken,
-              status: 'pending',
-              invitedByUserId: null,
+        token: inviteToken,
+        status: 'pending',
+        invitedByUserId: null,
         expiresAt: inviteExpiresAt,
         organizationData: null
       }

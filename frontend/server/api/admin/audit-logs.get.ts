@@ -17,7 +17,11 @@ export default defineEventHandler(async (event) => {
   const orgId = query.orgId as string | undefined
   const tenantId = query.tenantId as string | undefined
   const eventType = query.eventType as AuditEventType | undefined
-  const severity = query.severity as string | undefined
+  const severityRaw = query.severity as string | undefined
+  const allowedSeverities = new Set(['error', 'critical', 'warning', 'info'] as const)
+  const severity = allowedSeverities.has(severityRaw as any)
+    ? (severityRaw as (typeof allowedSeverities extends Set<infer T> ? T : never))
+    : undefined
   const startDate = query.startDate ? new Date(query.startDate as string) : undefined
   const endDate = query.endDate ? new Date(query.endDate as string) : undefined
   
@@ -59,7 +63,12 @@ export default defineEventHandler(async (event) => {
     conditions.push(lte(auditLogs.createdAt, endDate))
   }
   
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+  const whereClause =
+    conditions.length === 0
+      ? undefined
+      : conditions.length === 1
+        ? conditions[0]!
+        : and(...conditions)
   
   // Get total count
   const [countResult] = await db
