@@ -1,11 +1,55 @@
 ﻿import { createError, defineEventHandler, getRouterParam } from 'h3'
-import { requirePermission } from '~~/server/utils/rbac'
-import { getEffectiveModulePolicyForOrg, getTenantModulePolicy } from '~~/server/utils/modulePolicy'
-import { getAllModules } from '~/lib/modules'
-import { getDb } from '~~/server/utils/db'
-import { organizations, tenants, distributorProviders } from '~~/server/database/schema'
 import { eq } from 'drizzle-orm'
-import type { ModuleId } from '~/constants/modules'
+import { getDb } from '~~/server/utils/db'
+import { organizations, organizationModulePolicies, tenantModulePolicies } from '~~/server/database/schema'
+import { requirePermission } from '~~/server/utils/rbac'
+import {
+  getModulesByScope,
+  type ModuleWithStatus
+} from '~/lib/modules-helpers'
+
+const toBoolean = (value: unknown, fallback: boolean): boolean => {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (typeof value === 'number') {
+    return value === 1
+  }
+  return fallback
+}
+
+const buildResponseItem = (
+  module: ModuleWithStatus,
+  tenantPolicy?: typeof tenantModulePolicies.$inferSelect,
+  orgPolicy?: typeof organizationModulePolicies.$inferSelect
+) => {
+  const tenantEnabled = toBoolean(tenantPolicy?.enabled, true)
+  const tenantDisabled = toBoolean(tenantPolicy?.disabled, false)
+  const orgEnabled = toBoolean(orgPolicy?.enabled, tenantEnabled)
+  const orgDisabled = toBoolean(orgPolicy?.disabled, false)
+
+  const effectiveEnabled = tenantEnabled && orgEnabled
+  const effectiveDisabled = tenantDisabled || orgDisabled
+
+  return {
+    key: module.key,
+    name: module.name,
+    description: module.description,
+    category: module.category,
+    layerKey: module.layerKey,
+    rootRoute: module.rootRoute,
+    scopes: module.scopes,
+    status: module.status,
+    featureFlag: module.featureFlag,
+    requiredPermissions: module.requiredPermissions,
+    tenantEnabled,
+    tenantDisabled,
+    orgEnabled,
+    orgDisabled,
+    effectiveEnabled,
+    effectiveDisabled
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const orgId = getRouterParam(event, 'orgId')
@@ -13,95 +57,66 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing organization ID' })
   }
 
-  // Require org:manage permission to view module policies
   await requirePermission(event, 'org:manage', orgId)
 
-  // Get all modules
-  const modules = getAllModules()
-
-  // Get organization and its tenant to check tenant-level enabled status
   const db = getDb()
   const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId))
-  
-  // Get effective policies for each module
-  const policies = await Promise.all(
-    modules.map(async (module) => {
-      const policy = await getEffectiveModulePolicyForOrg(orgId, module.id)
-      
-      // Check tenant-level enabled/disabled status to determine if organization can manage the module
-      let tenantLevelEnabled = true
-      let tenantLevelDisabled = false
-      if (org?.tenantId) {
-        const [orgTenant] = await db.select().from(tenants).where(eq(tenants.id, org.tenantId))
-        
-        if (orgTenant) {
-          let tenantPolicy = null
-          
-          // If tenant is a provider, check both distributor and provider policies
-          if (orgTenant.type === 'provider') {
-            // Check distributor policy
-            const [link] = await db
-              .select()
-              .from(distributorProviders)
-              .where(eq(distributorProviders.providerId, orgTenant.id))
-            
-            if (link) {
-              const distributorPolicy = await getTenantModulePolicy(link.distributorId, module.id)
-              if (distributorPolicy) {
-                if (!distributorPolicy.enabled) {
-                  tenantLevelEnabled = false
-                }
-                if (distributorPolicy.disabled) {
-                  tenantLevelDisabled = true
-                }
-              }
-            }
-            
-            // Check provider policy
-            tenantPolicy = await getTenantModulePolicy(orgTenant.id, module.id)
-          } else if (orgTenant.type === 'distributor') {
-            tenantPolicy = await getTenantModulePolicy(orgTenant.id, module.id)
-          }
-          
-          // If tenant policy exists, check enabled and disabled status
-          if (tenantPolicy) {
-            if (!tenantPolicy.enabled) {
-              tenantLevelEnabled = false
-            }
-            if (tenantPolicy.disabled) {
-              tenantLevelDisabled = true
-            }
-          }
-        }
-      }
-      
-      return {
-        moduleId: module.id,
-        module: {
-          id: module.id,
-          name: module.name,
-          description: module.description,
-          category: module.category,
-          permissions: module.permissions,
-          icon: module.icon
-        },
-        enabled: policy.enabled,
-        disabled: policy.disabled,
-        permissionOverrides: policy.permissionOverrides,
-        allowedRoles: policy.allowedRoles,
-        allowedRolesSource: policy.allowedRolesSource,
-        visibilityMode: module.visibilityMode ?? 'everyone',
-        roleDefinitions: module.roles ?? [],
-        defaultAllowedRoles: module.defaultAllowedRoles ?? null,
-        tenantLevelEnabled, // Whether the module is enabled at tenant level
-        tenantLevelDisabled // Whether the module is disabled (grayed out) at tenant level
-      }
+
+  if (!org) {
+    throw createError({ statusCode: 404, message: 'Organization not found' })
+  }
+
+  const [tenantPolicies, orgPolicies] = await Promise.all([
+    org.tenantId
+      ? db
+          .select()
+          .from(tenantModulePolicies)
+          .where(eq(tenantModulePolicies.tenantId, org.tenantId))
+      : Promise.resolve([]),
+    db
+      .select()
+      .from(organizationModulePolicies)
+      .where(eq(organizationModulePolicies.organizationId, orgId))
+  ])
+
+  const modules = (() => {
+    const all = [...getModulesByScope('org'), ...getModulesByScope('user')]
+    const deduped = new Map<string, ModuleWithStatus>()
+    all.forEach((module) => {
+      deduped.set(module.key, module)
     })
+    return Array.from(deduped.values())
+  })()
+
+  const tenantPolicyMap = new Map(tenantPolicies.map((policy) => [policy.moduleId, policy]))
+  const orgPolicyMap = new Map(orgPolicies.map((policy) => [policy.moduleId, policy]))
+
+  const knownKeys = new Set(modules.map((module) => module.key))
+
+  tenantPolicies
+    .filter((policy) => !knownKeys.has(policy.moduleId))
+    .forEach((orphan) =>
+      console.warn('[org-modules:get] Orphaned tenant module policy', {
+        tenantId: org.tenantId,
+        moduleId: orphan.moduleId
+      })
+    )
+
+  orgPolicies
+    .filter((policy) => !knownKeys.has(policy.moduleId))
+    .forEach((orphan) =>
+      console.warn('[org-modules:get] Orphaned org module policy', {
+        orgId,
+        moduleId: orphan.moduleId
+      })
+    )
+
+  const items = modules.map((module) =>
+    buildResponseItem(module, tenantPolicyMap.get(module.key), orgPolicyMap.get(module.key))
   )
 
   return {
     organizationId: orgId,
-    policies
+    modules: items
   }
 })
-

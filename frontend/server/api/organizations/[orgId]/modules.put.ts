@@ -2,8 +2,13 @@
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { requirePermission } from '~~/server/utils/rbac'
-import { setOrganizationModulePolicy, getEffectiveModulePolicyForOrg } from '~~/server/utils/modulePolicy'
-import { getAllModules } from '~/lib/modules'
+import {
+  setOrganizationModulePolicy,
+  getEffectiveModulePolicyForOrg,
+  getTenantModulePolicy,
+  getOrganizationModulePolicy
+} from '~~/server/utils/modulePolicy'
+import { getModuleById } from '~/lib/modules'
 import { getDb } from '~~/server/utils/db'
 import { organizations } from '~~/server/database/schema'
 import type { ModuleId, ModuleRoleDefinition } from '~/constants/modules'
@@ -31,8 +36,7 @@ export default defineEventHandler(async (event) => {
   await requirePermission(event, 'org:manage', orgId)
 
   // Validate module ID
-  const modules = getAllModules()
-  const module = modules.find((m) => m.id === moduleId)
+  const module = getModuleById(moduleId as ModuleId)
 
   if (allowedRoles !== undefined) {
     if (!module) {
@@ -77,12 +81,12 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
   const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId))
   
-  let tenantLevelEnabled = true // Default to enabled if no tenant
-  if (org?.tenantId) {
-    const { getTenantModulePolicy } = await import('~~/server/utils/modulePolicy')
-    const tenantPolicy = await getTenantModulePolicy(org.tenantId, moduleId as ModuleId)
-    tenantLevelEnabled = tenantPolicy === null ? true : tenantPolicy.enabled
-  }
+  const tenantPolicy = org?.tenantId
+    ? await getTenantModulePolicy(org.tenantId, moduleId as ModuleId)
+    : null
+
+  const tenantLevelEnabled = tenantPolicy === null ? true : tenantPolicy.enabled
+  const tenantLevelDisabled = tenantPolicy === null ? false : tenantPolicy.disabled
 
   // If setting enabled, ensure we're not enabling something that's disabled at tenant level
   if (enabled !== undefined) {
@@ -110,7 +114,6 @@ export default defineEventHandler(async (event) => {
   // If enabled is explicitly set, use it
   // Otherwise, if we're only updating disabled/permissionOverrides, we need to check
   // what the organization's own policy is (not the effective policy which includes tenant)
-  const { getOrganizationModulePolicy } = await import('~~/server/utils/modulePolicy')
   const orgOwnPolicy = await getOrganizationModulePolicy(orgId, moduleId as ModuleId)
   
   // If enabled is explicitly provided, use it
@@ -153,11 +156,37 @@ export default defineEventHandler(async (event) => {
 
   // Return updated policy
   const updatedPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)
+  const orgPolicy = await getOrganizationModulePolicy(orgId, moduleId as ModuleId)
+
+  const toBoolean = (value: unknown, fallback: boolean) => {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'number') return value === 1
+    return fallback
+  }
+
+  const tenantEnabled = toBoolean(tenantPolicy?.enabled, true)
+  const tenantDisabled = toBoolean(tenantPolicy?.disabled, false)
+  const orgEnabled = toBoolean(orgPolicy?.enabled, tenantEnabled)
+  const orgDisabled = toBoolean(orgPolicy?.disabled, false)
+
   return {
-    organizationId: orgId,
-    moduleId,
-    enabled: updatedPolicy.enabled,
-    disabled: updatedPolicy.disabled,
+    key: module.id,
+    moduleId: module.id,
+    name: module.name,
+    description: module.description,
+    category: module.category,
+    layerKey: module.layerKey,
+    rootRoute: module.routePath,
+    scopes: module.scopes,
+    status: module.status ?? 'active',
+    featureFlag: module.featureFlag,
+    requiredPermissions: module.permissions,
+    tenantEnabled,
+    tenantDisabled,
+    orgEnabled,
+    orgDisabled,
+    effectiveEnabled: updatedPolicy.enabled,
+    effectiveDisabled: updatedPolicy.disabled,
     permissionOverrides: updatedPolicy.permissionOverrides,
     allowedRoles: updatedPolicy.allowedRoles
   }

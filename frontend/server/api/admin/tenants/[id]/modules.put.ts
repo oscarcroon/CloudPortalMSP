@@ -2,7 +2,7 @@
 import { z } from 'zod'
 import { requireTenantPermission } from '~~/server/utils/rbac'
 import { setTenantModulePolicy, getTenantModulePolicy } from '~~/server/utils/modulePolicy'
-import { getAllModules } from '~/lib/modules'
+import { getModuleById } from '~/lib/modules'
 import type { ModuleId } from '~/constants/modules'
 import type { ModulePermissionOverrides } from '~~/server/utils/modulePolicy'
 import { logTenantAction } from '~~/server/utils/audit'
@@ -28,8 +28,7 @@ export default defineEventHandler(async (event) => {
   await requireTenantPermission(event, 'tenants:manage', tenantId)
 
   // Validate module ID
-  const modules = getAllModules()
-  const module = modules.find((m) => m.id === moduleId)
+  const module = getModuleById(moduleId as ModuleId)
   if (!module) {
     throw createError({
       statusCode: 400,
@@ -112,17 +111,30 @@ export default defineEventHandler(async (event) => {
 
   // Return updated policy
   const updatedPolicy = await getTenantModulePolicy(tenantId, moduleId as ModuleId)
-  
-  // If policy is null, it means default enabled (true) and disabled (false)
-  // If policy exists, use its values
-  const resultEnabled = updatedPolicy === null ? true : updatedPolicy.enabled
-  const resultDisabled = updatedPolicy === null ? false : updatedPolicy.disabled
-  
+  const tenantEnabled =
+    updatedPolicy === null ? true : typeof updatedPolicy.enabled === 'boolean'
+      ? updatedPolicy.enabled
+      : updatedPolicy.enabled === 1
+  const tenantDisabled =
+    updatedPolicy === null ? false : typeof updatedPolicy.disabled === 'boolean'
+      ? updatedPolicy.disabled
+      : updatedPolicy.disabled === 1
+
   return {
-    tenantId,
-    moduleId,
-    enabled: resultEnabled,
-    disabled: resultDisabled,
+    key: module.id,
+    moduleId: module.id,
+    name: module.name,
+    description: module.description,
+    category: module.category,
+    layerKey: module.layerKey,
+    rootRoute: module.routePath,
+    scopes: module.scopes,
+    status: module.status ?? 'active',
+    featureFlag: module.featureFlag,
+    requiredPermissions: module.permissions,
+    tenantEnabled,
+    tenantDisabled,
+    effectiveEnabled: tenantEnabled,
     permissionOverrides: updatedPolicy?.permissionOverrides ?? {},
     allowedRoles: updatedPolicy?.allowedRoles ?? null
   }

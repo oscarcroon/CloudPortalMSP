@@ -73,6 +73,14 @@ const adminSections = [
     to: '/admin/tenants'
   },
   {
+    title: t('admin.sections.modules.title'),
+    description: t('admin.sections.modules.description'),
+    badge: t('admin.sections.modules.badge'),
+    category: t('admin.sections.modules.category'),
+    icon: 'mdi:puzzle-outline',
+    to: '/admin/modules'
+  },
+  {
     title: t('admin.sections.organizations.title'),
     description: t('admin.sections.organizations.description'),
     badge: t('admin.sections.organizations.badge'),

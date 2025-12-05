@@ -2,18 +2,20 @@
   <section class="space-y-6">
     <header class="space-y-1">
       <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-        {{ t('settings.administration') }}
+        Superadmin
       </p>
       <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
-        {{ t('settings.modules.title') }}
+        {{ t('adminModules.title') }}
       </h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">
-        {{ t('settings.modules.pageDescription') }}
+        {{ t('adminModules.description') }}
       </p>
     </header>
 
-    <div v-if="modulesError" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-      {{ modulesError }}
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+      <p class="text-sm text-slate-700 dark:text-slate-200">
+        {{ t('adminModules.info') }}
+      </p>
     </div>
 
     <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
@@ -23,13 +25,14 @@
             v-model="searchInput"
             type="text"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            :placeholder="t('settings.modules.searchPlaceholder')"
+            :placeholder="t('adminModules.searchPlaceholder')"
           />
           <button
             v-if="searchInput"
             type="button"
             class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300"
             @click="searchInput = ''"
+            :title="t('adminModules.clearSearch')"
           >
             <Icon icon="mdi:close-circle" class="h-5 w-5" />
           </button>
@@ -38,29 +41,27 @@
           v-model="categoryFilter"
           class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white md:w-48"
         >
-          <option value="all">{{ t('settings.modules.filters.allCategories') }}</option>
+          <option value="all">{{ t('adminModules.filters.allCategories') }}</option>
           <option v-for="category in categories" :key="category" :value="category">
             {{ category }}
           </option>
         </select>
+        <select
+          v-model="scopeFilter"
+          class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white md:w-40"
+        >
+          <option value="all">{{ t('adminModules.filters.allScopes') }}</option>
+          <option v-for="scope in scopeOptions" :key="scope" :value="scope">
+            {{ t(`adminModules.scopes.${scope}`) }}
+          </option>
+        </select>
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-300">
-        {{ t('settings.modules.results', { count: filteredModules.length }) }}
+        {{ t('adminModules.results', { count: filteredModules.length }) }}
       </div>
     </div>
 
-    <div v-if="pending" class="rounded-xl border border-dashed border-slate-200 p-6 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300">
-      {{ t('settings.modules.loading') }}
-    </div>
-
-    <div
-      v-else-if="!filteredModules.length"
-      class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
-    >
-      {{ t('settings.modules.noModules') }}
-    </div>
-
-    <div v-else class="space-y-3">
+    <div class="space-y-3">
       <div
         v-for="module in filteredModules"
         :key="module.key"
@@ -73,17 +74,11 @@
                 {{ module.name }}
               </p>
               <StatusPill :variant="statusVariant(module.status)">
-                {{ t(`adminModules.status.${module.status ?? 'active'}`) }}
+                {{ t(`adminModules.status.${module.status}`) }}
               </StatusPill>
               <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-white/10 dark:text-slate-200">
                 Layer: {{ module.layerKey }}
               </span>
-              <StatusPill v-if="module.tenantDisabled" variant="warning">
-                {{ t('settings.modules.tenantDeactivated') }}
-              </StatusPill>
-              <StatusPill v-else-if="!module.tenantEnabled" variant="danger">
-                {{ t('settings.modules.tenantDisabled') }}
-              </StatusPill>
             </div>
             <p class="text-sm text-slate-600 dark:text-slate-400">
               {{ module.description }}
@@ -117,37 +112,7 @@
             </div>
           </div>
 
-          <div class="flex flex-col items-start gap-3 md:items-end">
-            <div class="flex items-center gap-2">
-              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                <input
-                  :checked="module.orgEnabled"
-                  :disabled="!module.tenantEnabled"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand disabled:opacity-50 dark:border-white/20"
-                  @change="onToggleEnabled(module, ($event.target as HTMLInputElement).checked)"
-                />
-                <span>
-                  {{
-                    module.tenantEnabled
-                      ? t('settings.modules.toggleEnabled')
-                      : t('settings.modules.lockedByTenant')
-                  }}
-                </span>
-              </label>
-            </div>
-            <div class="flex items-center gap-2">
-              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                <input
-                  :checked="module.orgDisabled"
-                  :disabled="!module.tenantEnabled || !module.orgEnabled"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500 disabled:opacity-50 dark:border-white/20"
-                  @change="onToggleDisabled(module, ($event.target as HTMLInputElement).checked)"
-                />
-                <span>{{ t('settings.modules.toggleDisabled') }}</span>
-              </label>
-            </div>
+          <div class="flex flex-col items-start gap-2 md:items-end">
             <NuxtLink
               :to="module.rootRoute"
               class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
@@ -158,20 +123,27 @@
               {{ t('adminModules.openModule') }}
             </NuxtLink>
             <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ t('settings.modules.routeLabel') }} {{ module.rootRoute }}
+              {{ t('adminModules.routeLabel') }} {{ module.rootRoute }}
             </p>
           </div>
         </div>
+      </div>
+
+      <div
+        v-if="!filteredModules.length"
+        class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+      >
+        {{ t('adminModules.empty') }}
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useFetch, useI18n } from '#imports'
+import { computed, ref, useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
-import { useAuth } from '~/composables/useAuth'
+import { getAllModules } from '~/lib/modules-helpers'
 import type { ModuleStatus } from '~/lib/module-registry'
 
 definePageMeta({
@@ -179,49 +151,20 @@ definePageMeta({
 })
 
 const { t } = useI18n()
-const auth = useAuth()
-const currentOrgId = computed(() => auth.currentOrg.value?.id)
 
-interface OrgModuleDto {
-  key: string
-  name: string
-  description: string
-  category: string
-  layerKey: string
-  rootRoute: string
-  scopes: string[]
-  status?: ModuleStatus
-  featureFlag?: string
-  requiredPermissions: string[]
-  tenantEnabled: boolean
-  tenantDisabled: boolean
-  orgEnabled: boolean
-  orgDisabled: boolean
-  effectiveEnabled: boolean
-  effectiveDisabled: boolean
-}
-
-const {
-  data,
-  pending,
-  error,
-  refresh
-} = await useFetch<{ modules: OrgModuleDto[] }>(() =>
-  currentOrgId.value ? `/api/organizations/${currentOrgId.value}/modules` : null
-)
-
-const modules = computed(() => data.value?.modules ?? [])
-const modulesError = computed(() => error.value?.message ?? '')
-
+const modules = ref(getAllModules())
 const searchInput = ref('')
 const categoryFilter = ref<string>('all')
+const scopeFilter = ref<'all' | 'tenant' | 'org' | 'user'>('all')
 
 const categories = computed(() => {
   const unique = new Set(modules.value.map((module) => module.category))
   return Array.from(unique)
 })
 
-const normalize = (value: string) =>
+const scopeOptions: Array<'tenant' | 'org' | 'user'> = ['tenant', 'org', 'user']
+
+const normalized = (value: string) =>
   value
     .toLowerCase()
     .normalize('NFD')
@@ -229,16 +172,19 @@ const normalize = (value: string) =>
     .trim()
 
 const filteredModules = computed(() => {
-  const query = normalize(searchInput.value)
+  const query = normalized(searchInput.value)
   return modules.value.filter((module) => {
     const matchesSearch =
       !query ||
-      normalize(module.name).includes(query) ||
-      normalize(module.description).includes(query) ||
-      normalize(module.category).includes(query)
+      normalized(module.name).includes(query) ||
+      normalized(module.description).includes(query) ||
+      normalized(module.category).includes(query)
 
     const matchesCategory = categoryFilter.value === 'all' || module.category === categoryFilter.value
-    return matchesSearch && matchesCategory
+    const matchesScope =
+      scopeFilter.value === 'all' || module.scopes.includes(scopeFilter.value as any)
+
+    return matchesSearch && matchesCategory && matchesScope
   })
 })
 
@@ -253,47 +199,6 @@ const statusVariant = (status: ModuleStatus | undefined) => {
     default:
       return 'success'
   }
-}
-
-const updateModule = async (module: OrgModuleDto, payload: Record<string, any>) => {
-  const originalEnabled = module.orgEnabled
-  const originalDisabled = module.orgDisabled
-
-  if (payload.enabled !== undefined) {
-    module.orgEnabled = payload.enabled
-    if (!payload.enabled) {
-      module.orgDisabled = false
-    }
-  }
-  if (payload.disabled !== undefined) {
-    module.orgDisabled = payload.disabled
-  }
-
-  try {
-    const response = await $fetch<OrgModuleDto>(`/api/organizations/${currentOrgId.value}/modules`, {
-      method: 'PUT',
-      body: {
-        moduleId: module.key,
-        ...payload
-      }
-    })
-    module.orgEnabled = response.orgEnabled
-    module.orgDisabled = response.orgDisabled
-  } catch (err: any) {
-    module.orgEnabled = originalEnabled
-    module.orgDisabled = originalDisabled
-    console.error('Failed to update module', err)
-  } finally {
-    await refresh()
-  }
-}
-
-const onToggleEnabled = (module: OrgModuleDto, enabled: boolean) => {
-  updateModule(module, { enabled })
-}
-
-const onToggleDisabled = (module: OrgModuleDto, disabled: boolean) => {
-  updateModule(module, { disabled })
 }
 </script>
 

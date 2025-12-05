@@ -283,6 +283,23 @@
     "title": "Settings",
     "administration": "Administration",
     "open": "Open",
+    "modules": {
+      "title": "Modules",
+      "pageDescription": "Choose which tenant modules your organization will use.",
+      "searchPlaceholder": "Search modules...",
+      "filters": {
+        "allCategories": "All categories"
+      },
+      "results": "{count} modules",
+      "loading": "Loading modules...",
+      "noModules": "No modules are available for your organization. Contact your tenant admin if something is missing.",
+      "toggleEnabled": "Enable for this organization",
+      "toggleDisabled": "Show as deactivated (greyed)",
+      "lockedByTenant": "Disabled by tenant",
+      "tenantDisabled": "Disabled by tenant",
+      "tenantDeactivated": "Deactivated by tenant",
+      "routeLabel": "Route:"
+    },
     "organizations": {
       "title": "Organizations",
       "titleForTenant": "Organizations for {tenant}",
@@ -864,6 +881,12 @@
         "badge": "Identity",
         "category": "Users"
       },
+      "modules": {
+        "title": "Modules",
+        "description": "Global registry of all Nuxt layers/modules and entry point to manage tenant/org activation.",
+        "badge": "Modules",
+        "category": "Extensions"
+      },
       "customDomains": {
         "title": "Custom domains",
         "description": "Verify tenant domains and follow up DNS status for CNAME configurations.",
@@ -881,6 +904,32 @@
       "viewer": "Viewer",
       "support": "Support"
     }
+  },
+  "adminModules": {
+    "title": "Modules",
+    "description": "Global registry of all Nuxt layers/modules available in the portal.",
+    "info": "Each module corresponds to a Nuxt layer. Tenant admins can enable modules for their tenants, and org admins decide which modules to use inside their organization.",
+    "searchPlaceholder": "Search modules...",
+    "clearSearch": "Clear search",
+    "filters": {
+      "allCategories": "All categories",
+      "allScopes": "All scopes"
+    },
+    "scopes": {
+      "tenant": "Tenant",
+      "org": "Organization",
+      "user": "User"
+    },
+    "status": {
+      "active": "Active",
+      "beta": "Beta",
+      "deprecated": "Deprecated",
+      "coming-soon": "Coming soon"
+    },
+    "openModule": "Open module",
+    "routeLabel": "Route:",
+    "results": "{count} modules",
+    "empty": "No modules registered yet."
   },
   "adminTenants": {
     "title": "Tenants",
@@ -912,6 +961,21 @@
     "toggleOrgs": {
       "show": "Show organizations",
       "hide": "Hide organizations"
+    },
+    "modules": {
+      "back": "Back to tenant",
+      "title": "Modules for {name}",
+      "description": "Enable or deactivate modules for this tenant. Organizations under the tenant can only use modules that are enabled here.",
+      "searchPlaceholder": "Search modules...",
+      "filters": {
+        "allCategories": "All categories"
+      },
+      "results": "{count} modules",
+      "loading": "Loading modules...",
+      "empty": "No modules available yet.",
+      "toggleEnabled": "Enable module for this tenant",
+      "toggleDisabled": "Show as deactivated (greyed)",
+      "routeLabel": "Route:"
     },
     "emailOverride": {
       "active": "Email override active",

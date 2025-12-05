@@ -283,6 +283,23 @@
     "title": "Inställningar",
     "administration": "Administration",
     "open": "Öppna",
+    "modules": {
+      "title": "Moduler",
+      "pageDescription": "Välj vilka tenant-moduler er organisation ska använda.",
+      "searchPlaceholder": "Sök moduler...",
+      "filters": {
+        "allCategories": "Alla kategorier"
+      },
+      "results": "{count} moduler",
+      "loading": "Laddar moduler...",
+      "noModules": "Inga moduler är tillgängliga för organisationen. Kontakta tenant-admin om något saknas.",
+      "toggleEnabled": "Aktivera för denna organisation",
+      "toggleDisabled": "Visa som avstängd (grå)",
+      "lockedByTenant": "Avstängd av tenant",
+      "tenantDisabled": "Avstängd av tenant",
+      "tenantDeactivated": "Avaktiverad av tenant",
+      "routeLabel": "Route:"
+    },
     "organizations": {
       "title": "Organisationer",
       "titleForTenant": "Organisationer för {tenant}",
@@ -858,6 +875,12 @@
         "badge": "Kommunikation",
         "category": "E-post"
       },
+      "modules": {
+        "title": "Moduler",
+        "description": "Globalt register över alla Nuxt-lager/moduler och startpunkt för aktivering på tenant/organisation.",
+        "badge": "Moduler",
+        "category": "Extensioner"
+      },
       "users": {
         "title": "Användare (globalt)",
         "description": "Granska hela användarregistret, hantera status, roller och tvinga lösenordsbyten.",
@@ -881,6 +904,32 @@
       "viewer": "Visare",
       "support": "Support"
     }
+  },
+  "adminModules": {
+    "title": "Moduler",
+    "description": "Globalt register över alla Nuxt-lager/moduler i portalen.",
+    "info": "Varje modul motsvarar ett Nuxt-lager. Tenant-admins aktiverar moduler per tenant och org-admins väljer vilka moduler som används i organisationen.",
+    "searchPlaceholder": "Sök moduler...",
+    "clearSearch": "Rensa sök",
+    "filters": {
+      "allCategories": "Alla kategorier",
+      "allScopes": "Alla nivåer"
+    },
+    "scopes": {
+      "tenant": "Tenant",
+      "org": "Organisation",
+      "user": "Användare"
+    },
+    "status": {
+      "active": "Aktiv",
+      "beta": "Beta",
+      "deprecated": "Utfasas",
+      "coming-soon": "Kommer snart"
+    },
+    "openModule": "Öppna modul",
+    "routeLabel": "Route:",
+    "results": "{count} moduler",
+    "empty": "Inga moduler registrerade ännu."
   },
   "adminTenants": {
     "title": "Tenants",
@@ -912,6 +961,21 @@
     "toggleOrgs": {
       "show": "Visa organisationer",
       "hide": "Dölj organisationer"
+    },
+    "modules": {
+      "back": "Tillbaka till tenant",
+      "title": "Moduler för {name}",
+      "description": "Aktivera eller avaktivera moduler för denna tenant. Organisationer under tenant:en kan bara använda moduler som är aktiverade här.",
+      "searchPlaceholder": "Sök moduler...",
+      "filters": {
+        "allCategories": "Alla kategorier"
+      },
+      "results": "{count} moduler",
+      "loading": "Laddar moduler...",
+      "empty": "Inga moduler tillgängliga ännu.",
+      "toggleEnabled": "Aktivera modul för denna tenant",
+      "toggleDisabled": "Visa som avstängd (grå)",
+      "routeLabel": "Route:"
     },
     "emailOverride": {
       "active": "E-post override aktiv",
