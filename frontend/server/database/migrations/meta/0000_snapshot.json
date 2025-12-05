@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "72937a8f-f244-4f24-af2b-f27c1703e939",
+  "id": "45de1e08-9a13-4d84-8d92-887a43dc27aa",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "container_instances": {
@@ -880,14 +880,6 @@
           "autoincrement": false,
           "default": 0
         },
-        "self_signup_enabled": {
-          "name": "self_signup_enabled",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
         "logo_url": {
           "name": "logo_url",
           "type": "text",
@@ -971,14 +963,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'active'"
-        },
-        "is_super_admin": {
-          "name": "is_super_admin",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         },
         "is_mfa_enabled": {
           "name": "is_mfa_enabled",

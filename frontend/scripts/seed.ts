@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { createId } from '@paralleldrive/cuid2'
-import { getDb, resetDbInstance } from '../src/server/utils/db'
+import { getDb, resetDbInstance } from '../server/utils/db'
 import {
   containerInstances,
   containerProjects,
@@ -8,14 +8,17 @@ import {
   dnsZones,
   monitoringAlerts,
   ncentralDevices,
+  organizationAuthSettings,
   organizationInvitations,
   organizationMemberships,
   organizations,
+  tenantMemberships,
+  tenants,
   users,
   vmInstances,
   wordpressSites
-} from '../src/server/database/schema'
-import { hashPassword } from '../src/server/utils/crypto'
+} from '../server/database/schema'
+import { hashPassword } from '../server/utils/crypto'
 
 const ownerOrgId = 'org-coreit'
 const internalOrgId = 'org-internal'
@@ -38,6 +41,7 @@ const seed = async () => {
   const viewerPasswordHash = await hashPassword('ViewerPass123!')
 
   await db.transaction((tx) => {
+    // Delete in correct order (respecting foreign keys)
     tx.delete(dnsRecords).run()
     tx.delete(dnsZones).run()
     tx.delete(containerInstances).run()
@@ -46,17 +50,51 @@ const seed = async () => {
     tx.delete(containerProjects).run()
     tx.delete(vmInstances).run()
     tx.delete(wordpressSites).run()
+    tx.delete(organizationAuthSettings).run()
     tx.delete(organizationInvitations).run()
     tx.delete(organizationMemberships).run()
-    tx.delete(users).run()
     tx.delete(organizations).run()
+    tx.delete(tenantMemberships).run()
+    tx.delete(tenants).run()
+    // Keep users but clear their defaultOrgId
+    tx.update(users).set({ defaultOrgId: null }).run()
 
+    // Create tenant structure: Provider -> Distributor -> Organizations
+    const providerId = createId()
+    const distributorId = createId()
+
+    // 1. Create provider tenant
+    tx.insert(tenants)
+      .values({
+        id: providerId,
+        name: 'CoreIT Provider',
+        slug: 'coreit-provider',
+        type: 'provider',
+        parentTenantId: null,
+        status: 'active'
+      })
+      .run()
+
+    // 2. Create distributor tenant under provider
+    tx.insert(tenants)
+      .values({
+        id: distributorId,
+        name: 'CoreIT Distributor',
+        slug: 'coreit-distributor',
+        type: 'distributor',
+        parentTenantId: providerId,
+        status: 'active'
+      })
+      .run()
+
+    // 3. Create organizations under distributor
     tx.insert(organizations)
       .values([
         {
           id: ownerOrgId,
           name: 'CoreIT Shared Services',
           slug: 'coreit-shared',
+          tenantId: distributorId,
           status: 'active',
           defaultRole: 'owner',
           requireSso: 0,
@@ -66,10 +104,29 @@ const seed = async () => {
           id: internalOrgId,
           name: 'Internal IT',
           slug: 'internal-it',
+          tenantId: distributorId,
           status: 'active',
           defaultRole: 'viewer',
           requireSso: 0,
           allowSelfSignup: 0
+        }
+      ])
+      .run()
+
+    // 4. Create organization auth settings
+    tx.insert(organizationAuthSettings)
+      .values([
+        {
+          organizationId: ownerOrgId,
+          idpType: 'none',
+          ssoEnforced: 0,
+          allowLocalLoginForOwners: 1
+        },
+        {
+          organizationId: internalOrgId,
+          idpType: 'none',
+          ssoEnforced: 0,
+          allowLocalLoginForOwners: 1
         }
       ])
       .run()
@@ -96,6 +153,19 @@ const seed = async () => {
       ])
       .run()
 
+    // 5. Create tenant memberships (super admin as provider admin with includeChildren)
+    tx.insert(tenantMemberships)
+      .values({
+        id: createId(),
+        tenantId: providerId,
+        userId: ownerUserId,
+        role: 'admin',
+        includeChildren: true,
+        status: 'active'
+      })
+      .run()
+
+    // 6. Create organization memberships
     tx.insert(organizationMemberships)
       .values([
         {

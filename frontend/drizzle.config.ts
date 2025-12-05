@@ -12,8 +12,8 @@ const mysqlCredentials = {
 }
 
 export default defineConfig({
-  schema: './src/server/database/schema.ts',
-  out: process.env.DRIZZLE_OUT ?? './src/server/database/migrations',
+  schema: './server/database/schema.ts',
+  out: process.env.DRIZZLE_OUT ?? './server/database/migrations',
   dialect,
   dbCredentials: dialect === 'mysql' ? mysqlCredentials : sqliteCredentials,
   strict: true,

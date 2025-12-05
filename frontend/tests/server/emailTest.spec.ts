@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeEmailSendError } from '~/server/utils/emailTest'
+import { describeEmailSendError } from '~~/server/utils/emailTest'
 
 describe('describeEmailSendError', () => {
   it('ger tydligt felmeddelande för självsignerade certifikat', () => {

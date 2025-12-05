@@ -1,0 +1,1405 @@
+{
+  "common": {
+    "save": "Save",
+    "saving": "Saving...",
+    "update": "Update",
+    "updating": "Updating...",
+    "cancel": "Cancel",
+    "unknown": "Unknown"
+  },
+  "auth": {
+    "logout": "Log out",
+    "login": "Log in",
+    "loginTitle": "Log in",
+    "loginSubtitle": "Connect with email and password or add SSO later per organization.",
+    "email": "Email",
+    "emailPlaceholder": "you{'@'}example.com",
+    "password": "Password",
+    "changeEmail": "Change email address",
+    "forgotPassword": "Forgot password?",
+    "continue": "Continue",
+    "restrictSso": "At least one organization requires SSO. Use the buttons below to initiate the SSO flow or select an org that allows passwords.",
+    "ssoOrganizations": "SSO-enabled organizations",
+    "cloudflareNote": "Protected behind Cloudflare Zero Trust? Add your Access token in the header",
+    "cloudflareCode": "CF_Authorization",
+    "cloudflareNoteEnd": "for seamless SSO.",
+    "loginBranding": "Login branding:",
+    "globalDefault": "Global default",
+    "errors": {
+      "invalidEmail": "Invalid email address. Check that the email address is correctly formatted.",
+      "serverError": "The email address seems invalid or the server could not verify it. Check the spelling and try again.",
+      "notFound": "Email address could not be found. Check that it is correct.",
+      "verifyFailed": "Could not verify the email address. Check that it is correctly formatted and try again.",
+      "invalidCredentials": "Wrong email or password. Try again.",
+      "ssoRequired": "The organization requires SSO. Use SSO login.",
+      "loginFailed": "Could not log in right now."
+    },
+    "providers": {
+      "entra": "Microsoft Entra ID",
+      "openid": "OpenID Connect",
+      "saml": "SAML"
+    }
+  },
+  "forgotPassword": {
+    "title": "Reset password",
+    "subtitle": "Enter your email address and we will send a link to choose a new password.",
+    "backToLogin": "Back to login",
+    "email": "Email",
+    "sendLink": "Send reset link",
+    "sending": "Sending...",
+    "successTitle": "If the address exists in the system, an email will be sent within a few minutes.",
+    "successMessage": "Follow the link in the email to choose a new password.",
+    "backToLoginLink": "Back to login",
+    "helpText": "Need help? Contact your administrator or",
+    "support": "support",
+    "error": "Could not send the email right now. Try again later."
+  },
+  "resetPassword": {
+    "title": "Choose new password",
+    "subtitle": "Enter your new password. Once saved, you will be logged in automatically.",
+    "invalidToken": "The link is missing a valid token. Check that you have used the latest link from the email.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "save": "Save new password",
+    "saving": "Saving...",
+    "successTitle": "Password updated.",
+    "successMessage": "You are now logged in and will be redirected to the home page.",
+    "continueToDashboard": "Continue to dashboard",
+    "errors": {
+      "missingToken": "Token is missing.",
+      "mismatch": "Passwords do not match.",
+      "resetFailed": "Could not reset the password.",
+      "resetFailedGeneric": "Could not reset the password. Check that the link is valid."
+    }
+  },
+  "invite": {
+    "title": "Invitation",
+    "acceptProvider": "Accept provider invitation",
+    "acceptDistributor": "Accept distributor invitation",
+    "acceptOrganization": "Accept organization invitation",
+    "subtitleProvider": "Connect to the provider by confirming below.",
+    "subtitleDistributor": "Connect to the distributor by confirming below.",
+    "subtitleOrganization": "Connect to the organization by confirming below.",
+    "notFound": "No invitation found. Check that the link contains a valid token.",
+    "loading": "Loading invitation...",
+    "sentTo": "Invitation sent to",
+    "role": "Role",
+    "status": "Status",
+    "expiresAt": "Valid until",
+    "invitedBy": "Invited by",
+    "system": "System",
+    "statusLabels": {
+      "accepted": "Already accepted",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "pending": "Waiting for response"
+    },
+    "loginPrompt": "Log in to accept the invitation.",
+    "goToLogin": "Go to login",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "First name Last name",
+    "fullNameHelper": "Enter both first and last name.",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "createAccount": "Create account and join",
+    "creatingAccount": "Creating account...",
+    "mismatchNotice": "You are logged in as {email} but the invitation was sent to {inviteEmail}. Log out and log in with the correct account to continue.",
+    "accept": "Accept invitation",
+    "accepting": "Accepting...",
+    "toSettings": "To settings",
+    "registrationIntro": {
+      "organization": "An administrator has created an organization and invited you as owner.",
+      "provider": "An administrator has created a provider and invited you as owner.",
+      "distributor": "An administrator has created a distributor and invited you as owner.",
+      "withOrgName": "When you complete the registration, the organization \"{orgName}\" will be created.",
+      "createPassword": "Create a password below to join."
+    },
+    "entityBadge": {
+      "organization": "Organization",
+      "provider": "Provider",
+      "distributor": "Distributor",
+      "willCreate": "Organization · Created on accept"
+    },
+    "errors": {
+      "expired": "This invitation has expired. Contact your administrator to get a new link.",
+      "cancelled": "The invitation has been revoked by an administrator.",
+      "alreadyAccepted": "The invitation is already accepted.",
+      "notFound": "Invitation not found. Check that the link is correct.",
+      "loadFailed": "Could not load the invitation right now.",
+      "passwordMismatch": "Passwords do not match.",
+      "createFailed": "Could not create the account.",
+      "acceptExpired": "The invitation has expired. Ask an administrator to send a new invitation before trying again.",
+      "acceptInvalid": "The invitation is no longer valid. Contact the administrator for a new link.",
+      "acceptMismatch": "The invitation does not match the account you are logged in with. Check that you are using the correct email address.",
+      "acceptFailed": "Could not accept the invitation."
+    },
+    "success": {
+      "accountCreated": "Account created and invitation accepted.",
+      "memberAdded": "You are now a member of the organization."
+    }
+  },
+  "mfa": {
+    "title": "Step-up verification required",
+    "subtitle": "This action requires additional verification. Please enter your MFA code to continue.",
+    "codeLabel": "MFA code",
+    "codePlaceholder": "000000",
+    "verify": "Verify",
+    "verifying": "Verifying...",
+    "errors": {
+      "invalidCode": "Invalid MFA code. Try again.",
+      "verifyFailed": "Verification failed. Try again.",
+      "generic": "An error occurred. Try again."
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "showMore": "Show more modules",
+    "adminSection": "Settings",
+    "tenants": "Tenants",
+    "superadmin": "Superadmin"
+  },
+  "topBar": {
+    "searchLabel": "Search",
+    "searchPlaceholder": "Search DNS, containers, VMs...",
+    "toggleSearchOpen": "Open search",
+    "toggleSearchClose": "Close search",
+    "docs": "Documentation",
+    "support": "Support",
+    "profile": "Profile"
+  },
+  "theme": {
+    "ariaLabel": "Change theme",
+    "options": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    }
+  },
+  "language": {
+    "switcher": {
+      "label": "Select language"
+    }
+  },
+  "contextSwitcher": {
+    "searchPlaceholder": "Search for organization...",
+    "organizations": "Organizations",
+    "noContexts": "No contexts available.",
+    "selectContext": "Select context",
+    "errors": {
+      "switchTenantFailed": "Could not switch to this tenant.",
+      "switchContextFailed": "Could not switch context.",
+      "ssoRequired": "The organization requires SSO. Start the SSO flow to continue.",
+      "switchOrgFailed": "Could not switch to this organization."
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Manage your account and password.",
+    "forcePasswordReset": "You must update your password before continuing.",
+    "sections": {
+      "account": "Account",
+      "organizations": "Organizations",
+      "password": "Change password"
+    },
+    "fields": {
+      "email": "Email",
+      "name": "Name",
+      "status": "Status"
+    },
+    "language": {
+      "label": "Language",
+      "description": "Choose which language you want to use in the portal."
+    },
+    "form": {
+      "nameLabel": "Change name",
+      "namePlaceholder": "First name Last name",
+      "nameHelper": "Enter both first and last name.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password"
+    },
+    "organizations": {
+      "count": "You are a member of {count} organizations."
+    },
+    "password": {
+      "helper": "Choose a strong password. See the requirements below."
+    },
+    "actions": {
+      "saveName": "Save name",
+      "savingName": "Saving...",
+      "updatePassword": "Update password",
+      "savingPassword": "Saving...",
+      "logout": "Log out"
+    },
+    "messages": {
+      "nameSaved": "Name saved.",
+      "nameError": "Could not update the name. Please try again.",
+      "languageSaved": "Language updated.",
+      "languageError": "Could not update the language.",
+      "passwordMismatch": "Passwords do not match.",
+      "passwordSaved": "Password updated.",
+      "passwordError": "Could not update the password. Verify your current password and try again."
+    },
+    "notProvided": "Not specified"
+  },
+  "password": {
+    "requirements": {
+      "length": "At least 12 characters long",
+      "uppercase": "At least one uppercase letter, e.g. A-Z",
+      "lowercase": "At least one lowercase letter, e.g. a-z",
+      "digit": "At least one digit, e.g. 0-9",
+      "symbol": "At least one special character, e.g. period or exclamation mark"
+    }
+  },
+  "dashboard": {
+    "title": "Single pane of glass",
+    "subtitle": "Manage DNS, containers, virtual machines and WordPress sites from a single interface.",
+    "allSystemsOperational": "All systems operational",
+    "organizations": "Organizations",
+    "noModules": "No modules are available for your organization.",
+    "status": "Status",
+    "news": "News",
+    "module": "Module",
+    "statusLabels": {
+      "ok": "OK",
+      "degraded": "Degraded",
+      "maintenance": "Maintenance"
+    },
+    "newsItems": {
+      "firstSite": {
+        "title": "Your first website? Get started smoothly",
+        "summary": "Follow our five steps for a quick and secure launch.",
+        "date": "Oct 28"
+      },
+      "dnsEmail": {
+        "title": "How do DNS and email work together?",
+        "summary": "Quick guide to SPF, DKIM and MX.",
+        "date": "Oct 14"
+      }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "administration": "Administration",
+    "open": "Open",
+    "organizations": {
+      "title": "Organizations",
+      "titleForTenant": "Organizations for {tenant}",
+      "description": "Switch active organization and view roles.",
+      "showingOnly": "Showing only organizations under {tenant}.",
+      "primary": "Primary",
+      "notPrimary": "Not primary",
+      "role": "Role",
+      "activeNow": "Active now",
+      "setAsPrimary": "Set as primary organization",
+      "isPrimary": "Primary organization",
+      "noActiveOrg": "No organization is active right now. Select one from the list to view organization-specific settings.",
+      "otherOrganizations": "Other organizations",
+      "searchPlaceholder": "Search for organization...",
+      "select": "Select",
+      "inactive": "Inactive",
+      "viaTenant": "Via tenant",
+      "adminViaTenant": "Admin via tenant",
+      "viewerViaTenant": "Viewer via tenant",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {current} of {total}",
+      "noOrganizations": "No organizations are linked to the current provider. Add an organization or switch provider in the context switcher."
+    },
+    "members": {
+      "title": "Members",
+      "description": "List all members of the organization and manage roles.",
+      "pageDescription": "Manage roles, view pending invitations and remove access for the active organization.",
+      "backToSettings": "← Back to settings",
+      "open": "Open",
+      "noActiveOrg": "You need to select an active organization before you can manage members.",
+      "activeOrganization": "Active organization",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing...",
+      "inviteMember": "Invite member",
+      "loading": "Loading members...",
+      "noMembers": "No members found. Use the button above to invite new people.",
+      "noSearchResults": "No members matched your search.",
+      "clearFilters": "Clear filters",
+      "searchPlaceholder": "Search by name or email",
+      "clear": "Clear",
+      "showOnlyOverrides": "Show only members with manual module roles",
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "lastUpdated": "Last updated",
+        "actions": "Actions",
+        "unknownName": "Unknown name",
+        "hasOverrides": "Has manually customized module roles",
+        "count": "{count}",
+        "of": "of {total}"
+      },
+      "invitations": {
+        "title": "Pending invitations",
+        "none": "No active invitations right now.",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "invitedBy": "Invited by",
+        "expiresAt": "Valid until",
+        "actions": "Actions",
+        "resend": "Resend",
+        "resending": "Sending...",
+        "cancel": "Cancel",
+        "cancelling": "Cancelling..."
+      },
+      "moduleRoles": {
+        "title": "Module roles",
+        "loading": "Loading module roles...",
+        "none": "No modules with module-specific roles found.",
+        "policy": "Policy: {source}",
+        "allowedRoles": "Allowed roles: {roles}",
+        "blocked": "Module roles are blocked by {source}.",
+        "save": "Save changes",
+        "saving": "Saving...",
+        "saved": "Changes saved",
+        "error": "Could not save changes",
+        "button": "Module roles",
+        "policyLabel": "Policy",
+        "allowedRolesLabel": "Allowed roles",
+        "sourceLabel": "Source",
+        "resetToDefault": "Reset to default",
+        "unsavedChanges": "There are unsaved changes.",
+        "noChanges": "No changes to save.",
+        "close": "Close",
+        "policySources": {
+          "moduleDefault": "module default",
+          "distributor": "distributor level",
+          "provider": "provider level",
+          "organization": "organization",
+          "higherLevel": "higher level"
+        },
+        "roleBadges": {
+          "added": "+ Added",
+          "removed": "− Removed"
+        },
+        "sourceLabels": {
+          "custom": "Manually assigned roles",
+          "rbacInherited": "Inherited from RBAC ({role})",
+          "none": "No module roles assigned"
+        }
+      },
+      "summary": {
+        "none": "No members or pending invitations registered.",
+        "format": "{active} active · {invited} invited · {pending} pending invitations"
+      },
+      "status": {
+        "active": "Active",
+        "invited": "Invited",
+        "inactive": "Terminated",
+        "notLinked": "Not linked"
+      },
+      "invitationStatus": {
+        "pending": "Pending",
+        "accepted": "Accepted",
+        "cancelled": "Cancelled",
+        "expired": "Expired"
+      },
+      "actions": {
+        "editRoles": "Edit roles",
+        "enable": "Enable",
+        "enabling": "Enabling...",
+        "disable": "Disable",
+        "disabling": "Disabling...",
+        "remove": "Remove permanently",
+        "removing": "Removing..."
+      },
+      "features": {
+        "status": "View member status and activity",
+        "roles": "Manage roles and permissions",
+        "remove": "Remove members from the organization"
+      }
+    },
+    "auth": {
+      "title": "Auth & SSO",
+      "description": "Enable Identity Provider, configure OpenID or Entra and control whether SSO should be required.",
+      "pageDescription": "Select Identity Provider, follow the guide and control whether SSO should be required for the organization.",
+      "backToSettings": "← Back to settings",
+      "noActiveOrg": "You need to select an active organization before you can configure SSO.",
+      "loading": "Loading auth settings...",
+      "organization": "Organization",
+      "slug": "Slug",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "idp": {
+        "title": "Identity Provider",
+        "description": "Select which IdP should be active and fill in OIDC details. The organization can only have one IdP at a time.",
+        "redirectUriHint": "Fill in the information according to the guide. Redirect URL for this organization:",
+        "providers": {
+          "none": "No IdP",
+          "openid": "OpenID Connect",
+          "entra": "Microsoft Entra ID",
+          "saml": "SAML 2.0"
+        },
+        "openid": {
+          "issuer": "Issuer (Discovery URL)",
+          "metadataUrl": "Metadata URL (optional)",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "redirectUri": "Redirect URL",
+          "scopes": "Scopes (optional)"
+        },
+        "entra": {
+          "tenantId": "Tenant ID",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "redirectUri": "Redirect URL",
+          "scopes": "Scopes (optional)"
+        },
+        "saml": {
+          "entryPoint": "Entry Point (SSO URL)",
+          "issuer": "Issuer (Entity ID)",
+          "audience": "Audience (optional)",
+          "certificate": "Public certificate",
+          "signRequest": {
+            "title": "Sign AuthnRequest",
+            "description": "Recommended: IdP expects signed requests."
+          },
+          "wantAssertionsSigned": {
+            "title": "Require signed assertions",
+            "description": "Ensures that IdP signs the responses."
+          }
+        },
+        "requireSsoDisabled": {
+          "noIdp": "Configure an IdP before SSO can be required.",
+          "incomplete": "Fill in all required IdP fields to be able to require SSO."
+        },
+        "validation": {
+          "incomplete": "Fill in all required IdP fields before saving.",
+          "noOrg": "No organization is selected."
+        },
+        "messages": {
+          "saved": "Auth settings updated.",
+          "saveError": "Could not save auth settings.",
+          "loadError": "Could not load auth settings."
+        }
+      },
+      "configGuide": {
+        "title": "Configuration guide",
+        "description": "Quick guide to configure {idp}.",
+        "readMore": "Read more in docs",
+        "openid": {
+          "title": "OpenID Connect (OneLogin etc.)",
+          "steps": {
+            "0": "Create a new OIDC app in your IdP (e.g. OneLogin) and select Web client.",
+            "1": "Set {redirect} as Redirect URL in your IdP.",
+            "2": "Copy Issuer/Discovery URL, Client ID and Client Secret from the IdP.",
+            "3": "Fill in these values in CloudPortal under Auth settings for your organization.",
+            "4": "Test the login before enabling \"Require SSO\" in CloudPortal."
+          }
+        },
+        "entra": {
+          "title": "Microsoft Entra ID (Azure AD)",
+          "steps": {
+            "0": "Register a new Entra app (App registration) and select Web as platform.",
+            "1": "Set Redirect URI to {redirect} in Microsoft Entra ID.",
+            "2": "Note Application (client) ID, Directory (tenant) ID and create a Client secret.",
+            "3": "Fill in these values in CloudPortal under Auth settings for your organization.",
+            "4": "Assign users and test the login, then fill in Tenant ID, Client ID/Secret here before requiring SSO."
+          }
+        },
+        "saml": {
+          "title": "SAML 2.0 (Azure AD, Okta etc.)",
+          "steps": {
+            "0": "Create a new SAML app in your IdP and set ACS/Callback URL to the redirect URL above.",
+            "1": "Copy Issuer/Entity ID, Entry Point (SSO URL) and public X.509 certificate from the IdP.",
+            "2": "Fill in these values in CloudPortal under Auth settings for your organization.",
+            "3": "Enter any Audience/Entity ID expected by the IdP and select whether AuthnRequests should be signed.",
+            "4": "Test the login before enabling \"Require SSO\" in CloudPortal."
+          }
+        }
+      },
+      "requireSso": {
+        "title": "Require SSO",
+        "description": "All users must log in via selected IdP."
+      },
+      "allowLocalLogin": {
+        "title": "Allow local login for owners",
+        "description": "Keep fallback via password for owners."
+      },
+      "features": {
+        "idp": "Select IdP type (OpenID or Entra AD)",
+        "cloudflare": "Follow the guide to configure Cloudflare Access",
+        "require": "Enable \"Require SSO\" when IdP is ready"
+      }
+    },
+    "email": {
+      "title": "Email settings",
+      "pageTitle": "Email settings",
+      "description": "Set up the organization's own SMTP or Graph provider, including branding and test sending.",
+      "pageDescription": "Manage the organization's own sending. Enable override to use your own SMTP/Graph settings.",
+      "backToSettings": "← Back to settings",
+      "noActiveOrg": "You need to select an active organization before you can update email settings.",
+      "noPermission": "You lack the permission to update email settings for {orgName}. Ask an owner or administrator (permission {permission}) to adjust this for you.",
+      "activeOrg": "Active organization: {orgName}. All sending (invitations, reports, etc.) uses these settings when override is active.",
+      "loading": "Loading email settings...",
+      "inherited": "Email settings are inherited from a higher level",
+      "inheritedDescription": "If no own settings are enabled, settings from provider → distributor → global are used.",
+      "messages": {
+        "loadError": "Could not load email settings.",
+        "saved": "Email settings saved.",
+        "saveError": "Could not save email settings.",
+        "testSent": "Test email sent to {email}.",
+        "testError": "Could not send test email."
+      },
+      "form": {
+        "titles": {
+          "global": "Global sender",
+          "provider": "Email settings for provider",
+          "distributor": "Email settings for distributor",
+          "organization": "Email settings for organization"
+        },
+        "description": "Enter sender address, reply email and provider that should apply for sending.",
+        "useOverride": "Use organization-specific email provider",
+        "fields": {
+          "fromName": "Sender name",
+          "fromEmail": "Sender address",
+          "subjectPrefix": "Subject prefix (optional)",
+          "supportContact": "Support contact (optional)",
+          "replyToEmail": "Reply-to address",
+          "active": "Active",
+          "emailTheme": "Email theme"
+        },
+        "active": {
+          "enabled": "Sending enabled",
+          "disabled": "Sending disabled"
+        },
+        "emailDarkMode": {
+          "label": "Dark mode (default is light mode)",
+          "description": "In dark mode, dark colors are used for email content and background. The background behind the logo uses the NavBar color from branding."
+        },
+        "provider": {
+          "title": "Provider",
+          "description": "Select SMTP or Microsoft Graph and fill in necessary values.",
+          "smtp": "SMTP",
+          "graph": "Microsoft Graph",
+          "smtpFields": {
+            "host": "SMTP host",
+            "port": "Port",
+            "secure": "Connection with TLS/SSL",
+            "ignoreTls": "Allow unsigned certificates",
+            "authUser": "Username",
+            "authPass": "Password",
+            "keepSecret": "Leave empty to keep"
+          },
+          "graphFields": {
+            "tenantId": "Tenant ID",
+            "clientId": "Client ID",
+            "clientSecret": "Client Secret",
+            "senderUserId": "Sender ID (optional)",
+            "scope": "Scope (optional)",
+            "endpoint": "Endpoint (optional)",
+            "keepSecret": "Leave empty to keep"
+          }
+        },
+        "disclaimer": {
+          "title": "Custom disclaimer",
+          "description": "The text is added at the bottom of all sending (even if email provider is inherited). Markdown is supported for links, lists and emphasis.",
+          "placeholder": "Example: This message is confidential...",
+          "emptyHint": "Leave empty to use the chain's default text.",
+          "preview": "Preview",
+          "noText": "No text specified yet."
+        },
+        "status": {
+          "title": "Status & Test",
+          "lastTest": "Last test: {date} • {status}",
+          "statusSuccess": "Succeeded",
+          "statusFailed": "Failed",
+          "noTests": "No tests run yet for {provider}.",
+          "oauthVerified": "✓ OAuth token verified",
+          "lastGranted": "Last granted: {date}"
+        },
+        "testEmail": {
+          "placeholder": "Test recipient",
+          "send": "Send test",
+          "sending": "Sending...",
+          "reconnect": "Reconnect Microsoft 365",
+          "reconnectAlert": "Enter a test recipient to reconnect."
+        },
+        "preview": {
+          "invitation": "Preview invitation email",
+          "passwordReset": "Preview password reset email",
+          "modalTitleInvitation": "Preview invitation email",
+          "modalTitlePasswordReset": "Preview password reset email"
+        },
+        "save": {
+          "button": "Save settings",
+          "saving": "Saving..."
+        }
+      },
+      "features": {
+        "override": "Enable override for sending within the organization",
+        "configure": "Configure SMTP with or without auth, or Microsoft Graph",
+        "customize": "Customize logo, colors and test run directly from the form"
+      }
+    },
+    "branding": {
+      "title": "Branding & login",
+      "description": "Manage logo, accent color and login branding for {orgName}.",
+      "backToSettings": "← Settings",
+      "pageDescription": "Manage logos, accent color and login branding for {orgName}.",
+      "loading": "Loading organization information...",
+      "noActiveOrg": "Select an active organization to be able to change branding.",
+      "category": "Branding",
+      "logoPreview": "Logo preview for {orgName}",
+      "noFileSelected": "No file selected",
+      "palette": {
+        "ocean": "Ocean",
+        "teal": "Teal",
+        "emerald": "Emerald",
+        "amber": "Amber",
+        "rose": "Rose",
+        "violet": "Violet",
+        "slate": "Slate",
+        "charcoal": "Charcoal"
+      },
+      "appBranding": {
+        "title": "App branding",
+        "description": "Controls logo and accent color displayed throughout the portal.",
+        "logoSource": "Logo source: {source}",
+        "changeLogo": "Change logo",
+        "uploading": "Uploading...",
+        "removeLogo": "Remove logo",
+        "removing": "Removing...",
+        "maxSize": "Max 2 MB",
+        "loadingBranding": "Loading branding information..."
+      },
+      "accentColor": {
+        "title": "Accent color",
+        "description": "Use a custom color or reset to inheritance.",
+        "label": "Accent",
+        "save": "Save",
+        "saving": "Saving...",
+        "reset": "Reset",
+        "select": "Select {label}"
+      },
+      "navigation": {
+        "title": "Navigation",
+        "description": "The background color used in the main menu.",
+        "label": "Nav",
+        "select": "Select {label}"
+      },
+      "loginBranding": {
+        "title": "Login branding",
+        "description": "Upload separate logos (light/dark) and background image for the login page.",
+        "autoSelect": "Branding is automatically selected based on host (slug or verified custom domain) and inherits from provider/distributor.",
+        "assets": {
+          "logoLight": {
+            "title": "Logo (light background)",
+            "description": "Shown when the user has a light theme."
+          },
+          "logoDark": {
+            "title": "Logo (dark background)",
+            "description": "Shown when the user has a dark theme."
+          },
+          "background": {
+            "title": "Background image",
+            "description": "Optional image displayed behind the login form."
+          },
+          "noLogo": "No logo",
+          "preview": "Preview",
+          "noBackground": "No background",
+          "changeFile": "Change file",
+          "uploading": "Uploading...",
+          "remove": "Remove",
+          "removing": "Removing...",
+          "source": "Source:",
+          "updated": "Updated.",
+          "removed": "Removed.",
+          "uploadFailed": "Upload failed.",
+          "removeFailed": "Could not remove file.",
+          "invalidFormat": "Invalid format. Allowed: {formats}.",
+          "maxSize": "File must be max {size} MB.",
+          "confirmRemove": "Do you want to remove this file?"
+        },
+        "tint": {
+          "title": "Background tint",
+          "description": "Enter hex color for overlay on background image. Leave empty for default.",
+          "intensity": "Intensity",
+          "save": "Save",
+          "saving": "Saving...",
+          "reset": "Reset",
+          "noBackgroundHint": "Upload a background image to be able to adjust tint.",
+          "saved": "Background tint saved.",
+          "saveError": "Could not save tint."
+        }
+      },
+      "messages": {
+        "logoUpdated": "Logo updated.",
+        "logoRemoved": "Logo removed.",
+        "logoUploadError": "Could not upload logo.",
+        "logoUploadErrorNoResponse": "Could not upload logo. No response from server.",
+        "logoRemoveError": "Could not remove logo.",
+        "logoRemoveConfirm": "Do you want to remove the custom logo? The default logo will be used instead.",
+        "noActiveOrg": "No active organization selected.",
+        "brandingLoadError": "Could not load branding information.",
+        "invalidFileFormat": "Invalid file format. Allowed formats: .jpg, .png, .svg, .webp.",
+        "fileTooLarge": "File must be max 2 MB.",
+        "accentUpdated": "Accent color updated.",
+        "accentReset": "Accent color reset.",
+        "accentUpdateError": "Could not update accent color.",
+        "accentResetError": "Could not reset accent color.",
+        "accentInvalidColor": "Invalid color code.",
+        "accentMissingColor": "Enter a valid color code.",
+        "navUpdated": "Navigation background updated.",
+        "navUpdateError": "Could not update navigation background."
+      },
+      "sourceLabels": {
+        "default": "Default",
+        "global": "Global default",
+        "organization": "Organization",
+        "provider": "Provider",
+        "distributor": "Distributor"
+      },
+      "features": {
+        "logos": "Upload separate logos for light/dark background",
+        "color": "Set accent color or choose from palette with inheritance per tenant",
+        "login": "Manage login branding and custom domains (CNAME)"
+      }
+    },
+    "modules": {
+      "title": "Module permissions",
+      "description": "Manage which modules are visible and which permissions are available for your organization.",
+      "pageDescription": "Manage which modules are visible and which permissions are available for your organization. You can also set granular permissions per user for each module.",
+      "searchPlaceholder": "Search for modules...",
+      "showAll": "Show all permissions",
+      "hideAll": "Hide all permissions",
+      "noModules": "No modules found for your organization.",
+      "noSearchResults": "No modules matched the search",
+      "disabled": "Disabled",
+      "deactivated": "Deactivated",
+      "features": {
+        "enable": "Enable or disable modules for the organization",
+        "permissions": "Manage permissions per module (read/write)",
+        "granular": "Set granular permissions per user"
+      }
+    },
+    "audit": {
+      "title": "Audit Logs",
+      "description": "View security events and administrative activities for the organization.",
+      "pageDescription": "View security events and administrative activities for this organization.",
+      "noActiveOrg": "Select an organization to view audit logs.",
+      "eventType": "Event Type",
+      "all": "All",
+      "fromDate": "From date",
+      "toDate": "To date",
+      "filter": "Filter",
+      "clear": "Clear",
+      "loading": "Loading...",
+      "table": {
+        "timestamp": "Timestamp",
+        "event": "Event",
+        "user": "User",
+        "details": "Details",
+        "view": "View",
+        "na": "N/A"
+      },
+      "noLogs": "No logs found for the selected filters.",
+      "features": {
+        "events": "View logins and security events",
+        "track": "Track changes in roles and members",
+        "overview": "Overview of module activations"
+      }
+    },
+    "apiTokens": {
+      "title": "API tokens",
+      "description": "Manage authentication against external providers.",
+      "configure": "Configure"
+    }
+  },
+  "admin": {
+    "title": "Superadmin settings",
+    "subtitle": "Central starting page for all tools that require superadmin access.",
+    "open": "Open",
+    "quickTip": "Quick tip",
+    "quickTipText": "Bookmark this page – new superadmin tools are always added here first.",
+    "sections": {
+      "tenants": {
+        "title": "Tenants",
+        "description": "Manage distributors and providers, create new tenants and administer inheritance.",
+        "badge": "Structure",
+        "category": "Multitenancy"
+      },
+      "organizations": {
+        "title": "Organizations",
+        "description": "Overview of organizations, memberships and their authentication.",
+        "badge": "Customers",
+        "category": "Organizations"
+      },
+      "globalBranding": {
+        "title": "Global branding",
+        "description": "Set the portal's default logos, accent colors and login branding.",
+        "badge": "Branding",
+        "category": "Design"
+      },
+      "rbacMatrix": {
+        "title": "RBAC matrix",
+        "description": "Review roles, module permissions and make adjustments in one central place.",
+        "badge": "Security",
+        "category": "Permissions"
+      },
+      "auditLogs": {
+        "title": "Audit logs",
+        "description": "Inspect critical events, login attempts and administrative traces.",
+        "badge": "Audit",
+        "category": "Logs"
+      },
+      "adminEmail": {
+        "title": "Admin email",
+        "description": "Configure the portal's global email profiles and test sending.",
+        "badge": "Communication",
+        "category": "Email"
+      },
+      "users": {
+        "title": "Users (global)",
+        "description": "Review the entire user registry, manage status, roles and force password changes.",
+        "badge": "Identity",
+        "category": "Users"
+      },
+      "customDomains": {
+        "title": "Custom domains",
+        "description": "Verify tenant domains and follow up DNS status for CNAME configurations.",
+        "badge": "Routing",
+        "category": "Domains"
+      }
+    }
+  },
+  "rbac": {
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "operator": "Operator",
+      "member": "Member",
+      "viewer": "Viewer",
+      "support": "Support"
+    }
+  },
+  "adminTenants": {
+    "title": "Tenants",
+    "description": "Manage distributors and providers. Distributors can create providers, providers can create organizations.",
+    "searchPlaceholder": "Search by name or slug...",
+    "clearSearch": "Clear search",
+    "createDistributor": "Create distributor",
+    "createProvider": "Create provider",
+    "allTenants": "All tenants",
+    "results": "{count} results",
+    "for": "for \"{query}\"",
+    "showAllOrganizations": "Show all organizations",
+    "refresh": "Refresh",
+    "loading": "Loading tenants...",
+    "noResults": "No results matched your search.",
+    "noTenants": "No tenants found.",
+    "badges": {
+      "distributor": "Distributor",
+      "provider": "Provider",
+      "organization": "Organization"
+    },
+    "members": "{count} members",
+    "organizations": "{count} organizations",
+    "toggleOrgs": {
+      "show": "Show organizations",
+      "hide": "Hide organizations"
+    },
+    "emailOverride": {
+      "active": "Email override active",
+      "label": "Email override",
+      "short": "Email"
+    },
+    "viewDetails": "View details",
+    "create": {
+      "category": "Superadmin",
+      "title": {
+        "distributor": "Create distributor",
+        "provider": "Create provider"
+      },
+      "description": {
+        "distributor": "Distributors are the top level and can be linked to providers.",
+        "provider": "Providers can create organizations and be linked to distributors."
+      },
+      "tenantDetails": {
+        "title": "Tenant details",
+        "name": "Name",
+        "namePlaceholder": "Ex. Acme Suppliers AB",
+        "slug": "Slug",
+        "slugPlaceholder": "acme-suppliers",
+        "slugHint": "Leave blank for automatic generation.",
+        "distributors": "Distributors",
+        "loadingDistributors": "Loading distributors...",
+        "noDistributors": "No distributors available. Create a distributor first.",
+        "distributorsHint": "Select which distributors this provider should be linked to."
+      },
+      "ownerAccount": {
+        "title": "Owner account",
+        "description": "Create a user account for the tenant owner. An invitation link will be sent via email.",
+        "email": "Email",
+        "emailPlaceholder": "owner{'@'}example.com",
+        "checkingEmail": "Checking if the email address exists in the system...",
+        "accountExists": "Account already exists in the system",
+        "accountExistsDescription": "The person will get direct access to the provider without you needing to create a new organization.",
+        "invalidEmail": "Enter a valid email address to continue.",
+        "createOrganization": {
+          "title": "Create organization at the same time",
+          "description": "Recommended if the provider needs a first customer organization immediately."
+        },
+        "organizationDetails": {
+          "title": "Organization details",
+          "description": "This organization will be created automatically when the owner accepts the invitation.",
+          "name": "Name",
+          "namePlaceholder": "Ex. CoreIT AB",
+          "slug": "Slug (optional)",
+          "slugPlaceholder": "coreit-ab",
+          "billingEmail": "Billing email (optional)",
+          "billingEmailPlaceholder": "billing{'@'}example.com",
+          "coreId": "CORE ID (optional)",
+          "coreIdPlaceholder": "ABCD",
+          "coreIdHint": "4 characters. Leave blank if unknown."
+        }
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "create": "Create tenant",
+        "creating": "Creating..."
+      },
+      "errors": {
+        "organizationNameRequired": "Enter an organization name if you want to create the organization directly.",
+        "invalidBillingEmail": "The billing email address for the organization is invalid.",
+        "invalidCoreId": "CORE ID must consist of exactly 4 characters.",
+        "createFailed": "Could not create tenant right now."
+      }
+    },
+    "members": {
+      "backToTenant": "← Back to tenant",
+      "title": "Members",
+      "description": "Manage roles, invite new users and view pending invitations.",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing...",
+      "inviteMember": "Invite member",
+      "loading": "Loading members...",
+      "searchPlaceholder": "Search members...",
+      "noSearchResults": "No members matched the search \"{query}\".",
+      "noMembers": "No members found.",
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "mspRoles": "MSP roles",
+        "allOrgs": "All orgs",
+        "status": "Status",
+        "added": "Added",
+        "actions": "Actions"
+      },
+      "tooltip": {
+        "hasAccess": "Has access to all organizations under this provider",
+        "addMspRole": "Add an MSP role in the list above to be able to enable access to all organizations."
+      },
+      "mspRoles": {
+        "none": "No MSP roles available"
+      },
+      "includeChildren": {
+        "updating": "Updating...",
+        "enabled": "Enabled",
+        "notEnabled": "Not enabled"
+      },
+      "actions": {
+        "disable": "Disable",
+        "disabling": "Disabling...",
+        "enable": "Enable",
+        "enabling": "Enabling...",
+        "remove": "Remove permanently",
+        "removing": "Removing..."
+      },
+      "inviteModal": {
+        "title": "Invite member",
+        "email": "Email",
+        "role": "Role",
+        "checking": "Checking...",
+        "includeChildren": {
+          "label": "Access to all organizations",
+          "description": "Gives the user access to all customers under {tenantName} via the selected role.",
+          "warning": "Use only for trusted administrators. All organizations will then appear in the context switcher."
+        },
+        "error": "Could not send invitation",
+        "cancel": "Cancel",
+        "send": "Send invitation",
+        "sending": "Sending..."
+      },
+      "invitations": {
+        "title": "Pending invitations",
+        "none": "No active invitations.",
+        "invitedBy": "Invited by",
+        "expiresAt": "Valid until",
+        "organization": "Organization",
+        "willCreate": "Will create: {name}",
+        "resend": "Resend",
+        "resending": "Sending...",
+        "cancel": "Cancel",
+        "cancelling": "Cancelling...",
+        "cancelConfirm": "Cancel this invitation?",
+        "cancelled": "Invitation cancelled.",
+        "resent": "Invitation to {email} re-sent.",
+        "cancelError": "Could not cancel invitation.",
+        "resendError": "Could not resend invitation."
+      },
+      "messages": {
+        "inviteSent": "Invitation sent.",
+        "inviteError": "Could not send invitation.",
+        "roleUpdateError": "You cannot demote your own admin rights. Only other admins can make this change.",
+        "roleUpdated": "Role for {email} updated to {role}.",
+        "roleUpdateFailed": "Could not update role.",
+        "statusUpdateFailed": "Could not update member status.",
+        "includeChildrenEnabled": "Member now has access to all organizations.",
+        "includeChildrenDisabled": "Access to all organizations has been removed.",
+        "includeChildrenUpdateFailed": "Could not update access to all organizations.",
+        "mspRolesUpdated": "MSP roles updated.",
+        "mspRolesUpdateFailed": "Could not update MSP roles.",
+        "disableConfirm": "Disable {email}? The person cannot log in until the account is reactivated.",
+        "removeConfirm": "Remove {email} permanently? The person must be invited again to gain access.",
+        "removeFailed": "Could not remove member."
+      }
+    },
+    "email": {
+      "backToTenant": "← Back to tenant",
+      "category": "Superadmin",
+      "title": "Email settings - {name}",
+      "loading": "Loading...",
+      "loadingSettings": "Loading settings...",
+      "types": {
+        "provider": "Provider - These settings are inherited by all distributors and organizations under this provider.",
+        "distributor": "Distributor - These settings are inherited by all organizations under this distributor."
+      },
+      "messages": {
+        "saved": "Settings saved.",
+        "saveError": "Could not save settings.",
+        "testSent": "Test email sent to {email}.",
+        "testError": "Could not send test email."
+      },
+      "chain": {
+        "overview": "Overview",
+        "title": "Effective email chain",
+        "description": "Shows where the current sender and provider are retrieved from.",
+        "active": "Active",
+        "inactive": "Inactive",
+        "from": "From:",
+        "notProvided": "Not provided",
+        "noSender": "No sender configured.",
+        "provider": "Provider:",
+        "levels": {
+          "organization": "Organization",
+          "provider": "Provider",
+          "distributor": "Distributor",
+          "global": "Global"
+        },
+        "globalDefault": "Global default",
+        "level": "Level"
+      }
+    },
+    "branding": {
+      "backToTenant": "← Back",
+      "category": "Branding",
+      "loading": "Loading...",
+      "loadingBranding": "Loading branding information...",
+      "title": "Branding",
+      "description": "Update logo and accent color for {tenantType}.",
+      "types": {
+        "provider": "Provider",
+        "distributor": "Distributor"
+      },
+      "logo": {
+        "source": "Logo source: {source}",
+        "change": "Change logo",
+        "uploading": "Uploading...",
+        "remove": "Remove logo",
+        "removing": "Removing...",
+        "maxSize": "Max 2 MB",
+        "updated": "Logo updated.",
+        "removed": "Logo removed.",
+        "uploadError": "Could not upload logo.",
+        "uploadErrorNoResponse": "Could not upload logo. No response from server.",
+        "removeError": "Could not remove logo.",
+        "removeConfirm": "Do you want to remove the custom logo?",
+        "invalidFormat": "Invalid file format. Allowed formats: .jpg, .png, .svg, .webp.",
+        "fileTooLarge": "File size max 2 MB."
+      },
+      "accentColor": {
+        "title": "Accent color",
+        "description": "Enter a custom color or select a predefined tone.",
+        "label": "Accent",
+        "save": "Save",
+        "saving": "Saving...",
+        "reset": "Reset",
+        "select": "Select {label}",
+        "updated": "Accent color updated.",
+        "resetMessage": "Accent color reset.",
+        "updateError": "Could not update accent color.",
+        "resetError": "Could not reset accent color.",
+        "invalidColor": "Invalid hex color.",
+        "missingColor": "Enter a valid hex color."
+      },
+      "navigation": {
+        "title": "Navigation",
+        "description": "The background color used in the portal top.",
+        "label": "Nav",
+        "save": "Save",
+        "saving": "Saving...",
+        "reset": "Reset",
+        "select": "Select {label}",
+        "updated": "Navigation background updated.",
+        "updateError": "Could not update navigation background."
+      },
+      "inheritedChain": {
+        "title": "Inherited chain",
+        "logo": "Logo:",
+        "accent": "Accent:",
+        "custom": "Custom",
+        "inherited": "Inherited"
+      },
+      "loginBranding": {
+        "title": "Login branding",
+        "description": "Controls how the login page is displayed for this {tenantType}."
+      },
+      "loginDomain": {
+        "title": "Login domain",
+        "description": "Link a custom domain for the login page or use the default address.",
+        "default": "Default:",
+        "customDomain": "Custom domain",
+        "placeholder": "portal.example.com",
+        "save": "Save",
+        "saving": "Saving...",
+        "verify": "Verify",
+        "verifying": "Verifying...",
+        "updated": "Domain updated.",
+        "verified": "Domain verified.",
+        "saveError": "Could not save domain.",
+        "verifyError": "Verification failed.",
+        "cnameHint": "Point a CNAME to {domain} and verify the domain before it is put into use.",
+        "status": {
+          "notConfigured": "Not configured",
+          "verified": "Verified",
+          "pending": "Pending",
+          "failed": "Failed",
+          "unverified": "Unverified"
+        }
+      },
+      "sourceLabels": {
+        "default": "Default",
+        "organization": "Organization",
+        "provider": "Provider",
+        "distributor": "Distributor"
+      },
+      "errors": {
+        "loadFailed": "Could not load branding information."
+      }
+    },
+    "detail": {
+      "backToList": "← Back to list",
+      "category": "Superadmin",
+      "loading": "Loading...",
+      "loadingDetails": "Loading tenant details...",
+      "types": {
+        "distributor": "Distributor - can create providers",
+        "provider": "Provider - can create organizations",
+        "organization": "Organization"
+      },
+      "sections": {
+        "information": "Information",
+        "linkedTenants": {
+          "providers": "Providers",
+          "distributors": "Distributors",
+          "countProviders": "{count} providers",
+          "countDistributors": "{count} distributors",
+          "noneProviders": "No providers linked.",
+          "noneDistributors": "No distributors linked."
+        },
+        "organizations": {
+          "title": "Organizations",
+          "count": "{count} organizations"
+        },
+        "pendingInvitations": {
+          "title": "Pending invitations",
+          "viewAllMembers": "View all members →",
+          "none": "No active invitations."
+        },
+        "dangerZone": {
+          "title": "Danger zone"
+        }
+      },
+      "fields": {
+        "name": "Name",
+        "slug": "Slug",
+        "type": "Type",
+        "status": "Status",
+        "email": "Email",
+        "organization": "Organization"
+      },
+      "actions": {
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "createProvider": "Create provider",
+        "createOrganization": "Create organization",
+        "members": "Members",
+        "emailSettings": "Email settings",
+        "modulePermissions": "Module permissions",
+        "branding": "Branding",
+        "auditLogs": "Audit Logs",
+        "delete": "Delete permanently",
+        "deleting": "Deleting..."
+      },
+      "form": {
+        "slugHint": "Only lowercase letters, numbers and hyphens",
+        "saveError": "Could not save changes."
+      },
+      "email": {
+        "override": "Override",
+        "inherited": "Inherited"
+      },
+      "invitations": {
+        "invitedBy": "Invited by",
+        "expiresAt": "Valid until",
+        "willCreate": "Will create: {name}",
+        "resend": "Resend",
+        "resending": "Sending...",
+        "cancel": "Cancel",
+        "cancelling": "Cancelling...",
+        "cancelConfirm": "Do you really want to cancel this invitation?",
+        "cancelled": "Invitation cancelled.",
+        "resent": "Invitation re-sent.",
+        "cancelError": "Could not cancel invitation.",
+        "resendError": "Could not resend invitation."
+      },
+      "editDistributors": {
+        "title": "Edit distributor links",
+        "label": "Distributors",
+        "none": "No distributors available.",
+        "hint": "Select which distributors this provider should be linked to.",
+        "saveError": "Could not save changes."
+      },
+      "delete": {
+        "distributor": {
+          "description": "Deletion removes the distributor and all linked data. The distributor can only be deleted if all organizations linked via providers are first removed. This cannot be undone.",
+          "button": "Delete distributor",
+          "modalTitle": "Delete distributor",
+          "possessive": "the distributor's",
+          "extra": "The distributor can only be deleted if all organizations linked via providers are first removed.",
+          "acknowledgement": "I understand that the distributor and all linked data (provider links, memberships, etc.) will be permanently deleted. The distributor can only be deleted if all organizations linked via providers are first removed.",
+          "error": "Could not delete distributor."
+        },
+        "provider": {
+          "description": "Deletion removes the provider and all linked data. The provider can only be deleted if all organizations under it are first removed. This cannot be undone.",
+          "button": "Delete provider",
+          "modalTitle": "Delete provider",
+          "possessive": "the provider's",
+          "extra": "The provider can only be deleted if all organizations under it are first removed.",
+          "acknowledgement": "I understand that the provider and all linked data (organizations, memberships, etc.) will be permanently deleted. The provider can only be deleted if all organizations under it are first removed.",
+          "error": "Could not delete provider."
+        },
+        "confirmSlug": "Confirm slug",
+        "confirmText": "Confirm the action by entering {possessive} slug ({slug}) and check that you understand the consequences. {extra}"
+      }
+    }
+  },
+  "adminOrganizations": {
+    "title": "Organizations",
+    "description": "Manage all customer accounts, search for organizations and open detailed views for members and settings.",
+    "deleted": "Organization \"{slug}\" was permanently deleted.",
+    "searchPlaceholder": "Search by name or slug",
+    "clear": "Clear",
+    "status": "Status:",
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive",
+    "tenant": "Tenant:",
+    "auditLogs": "Audit Logs",
+    "globalEmail": "Global email",
+    "manageUsers": "Manage users",
+    "createOrganization": "Create organization",
+    "allOrganizations": "All organizations",
+    "results": "{count} results",
+    "for": "for \"{query}\"",
+    "loading": "Loading organizations...",
+    "noResults": "No organizations matched your search.",
+    "noOrganizations": "No organizations found.",
+    "refresh": "Refresh",
+    "table": {
+      "organization": "Organization",
+      "slug": "Slug",
+      "status": "Status",
+      "tenant": "Tenant",
+      "members": "Members",
+      "email": "Email",
+      "sso": "SSO",
+      "created": "Created"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "sso": {
+      "on": "On",
+      "off": "Off"
+    },
+    "filters": {
+      "statusLabel": "Status:",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "tenantLabel": "Tenant:"
+    },
+    "noTenant": "No tenant",
+    "memberCount": "{count}",
+    "emailOverride": {
+      "active": "Email override active",
+      "override": "Override",
+      "inherited": "Inherited"
+    }
+  },
+  "adminSettingsEmail": {
+    "category": "Superadmin",
+    "title": "Global email provider",
+    "description": "Configure the global sending used for passwords, invitations and other notifications. These settings are inherited by all providers if they do not have their own settings.",
+    "loading": "Loading settings...",
+    "messages": {
+      "saved": "Settings saved.",
+      "saveError": "Could not save settings.",
+      "testSent": "Test email sent to {email}.",
+      "testError": "Could not send test email."
+    }
+  },
+  "adminUsers": {
+    "title": "Users",
+    "description": "Manage user accounts, status and password resets.",
+    "backToOrganizations": "← To organizations",
+    "searchPlaceholder": "Search by email or name",
+    "search": "Search",
+    "clear": "Clear",
+    "allUsers": "All users",
+    "results": "{count} results",
+    "for": "for \"{query}\"",
+    "manageOrganizations": "Manage organizations",
+    "loading": "Loading users...",
+    "noResults": "No users matched your search.",
+    "table": {
+      "email": "Email",
+      "name": "Name",
+      "status": "Status",
+      "orgActive": "Org (active)",
+      "created": "Created",
+      "actions": "Actions",
+      "manage": "Manage",
+      "active": "Active",
+      "inactive": "Inactive",
+      "requiresPasswordReset": "Requires password reset",
+      "count": "{count}",
+      "activeCount": "({count} active)"
+    }
+  }
+}
+

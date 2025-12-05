@@ -3,19 +3,19 @@ import type { Config } from 'tailwindcss'
 export default <Partial<Config>>{
   darkMode: 'class',
   content: [
-    './src/components/**/*.{vue,js,ts}',
-    './src/layouts/**/*.vue',
-    './src/pages/**/*.vue',
-    './src/plugins/**/*.{js,ts}',
-    './src/app.vue'
+    './app/components/**/*.{vue,js,ts}',
+    './app/layouts/**/*.vue',
+    './app/pages/**/*.vue',
+    './app/plugins/**/*.{js,ts}',
+    './app/app.vue'
   ],
   theme: {
     extend: {
       colors: {
         brand: {
-          DEFAULT: '#1c6dd0',
-          dark: '#0f3b73',
-          light: '#eaf2ff'
+          DEFAULT: 'rgb(var(--brand, 28 109 208) / <alpha-value>)',
+          dark: 'rgb(var(--brand-dark, 15 59 115) / <alpha-value>)',
+          light: 'rgb(var(--brand-light, 234 242 255) / <alpha-value>)'
         }
       },
       boxShadow: {

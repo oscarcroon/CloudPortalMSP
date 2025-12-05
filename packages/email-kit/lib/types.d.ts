@@ -7,7 +7,10 @@ export interface EmailBranding {
     logoUrl?: string;
     accentColor?: string;
     backgroundColor?: string;
+    logoBackgroundColor?: string;
+    isDarkMode?: boolean;
     footerText?: string;
+    footerTextPlain?: string;
 }
 export interface EmailContent {
     subject: string;

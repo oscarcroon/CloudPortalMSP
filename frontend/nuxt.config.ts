@@ -1,11 +1,16 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './app/constants/i18n'
+
 const backendApiBase = process.env.API_BASE || 'http://localhost:4000/api'
 const backendProxyBase = backendApiBase
+const loginBrandingSlugSuffixes = (process.env.LOGIN_BRANDING_SLUG_SUFFIXES || '.portal.coreit.cloud')
+  .split(',')
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean)
 
 export default defineNuxtConfig({
-  srcDir: 'src/',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode', '@nuxtjs/i18n'],
   css: ['~/assets/css/tailwind.css'],
   postcss: {
     plugins: {
@@ -31,14 +36,22 @@ export default defineNuxtConfig({
       cloudflareZeroTrustSecret: process.env.CLOUDFLARE_ZT_JWT_SECRET || '',
       allowSelfRegistration: process.env.AUTH_ALLOW_SELF_REGISTRATION === 'true'
     },
+    loginBranding: {
+      slugSuffixes: loginBrandingSlugSuffixes,
+      allowUnverifiedCustomDomains: process.env.LOGIN_BRANDING_ALLOW_UNVERIFIED === 'true'
+    },
     apiBase: backendApiBase,
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || '/backend',
-      appName: 'Cloud Portal'
+      appName: 'Cloud Portal',
+      appUrl: process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      loginBranding: {
+        slugSuffixes: loginBrandingSlugSuffixes
+      }
     }
   },
   nitro: {
-    compatibilityDate: '2025-11-21',
+    compatibilityDate: '2025-11-29',
     devProxy: {
       '/backend': {
         target: process.env.NUXT_DEV_PROXY_API || backendProxyBase,
@@ -55,6 +68,17 @@ export default defineNuxtConfig({
     }
   },
   pinia: {},
+  i18n: {
+    strategy: 'no_prefix',
+    lazy: true,
+    langDir: 'locales',
+    defaultLocale: DEFAULT_LOCALE,
+    fallbackLocale: DEFAULT_LOCALE,
+    locales: SUPPORTED_LOCALES.map((locale) => ({
+      ...locale,
+      file: `${locale.code}.json`
+    }))
+  },
   typescript: {
     typeCheck: false,
     strict: true

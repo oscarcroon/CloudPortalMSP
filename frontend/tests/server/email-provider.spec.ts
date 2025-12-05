@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EmailProviderProfile } from '@coreit/email-kit'
-import { buildSecretsFromPayload } from '../../src/server/utils/emailProviderPayload'
+import { buildSecretsFromPayload } from '../../server/utils/emailProviderPayload'
 
 describe('buildSecretsFromPayload', () => {
   it('bevarar tidigare SMTP-lösenord när fältet lämnas tomt', () => {

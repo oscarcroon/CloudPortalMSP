@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   serializeAuthSettings,
   stringifyIdpConfig
-} from '~/server/api/admin/organizations/utils'
-import { statusSchema } from '~/server/api/admin/organizations/[orgId]/members/[memberId]/status.patch'
-import { deleteSchema } from '~/server/api/admin/organizations/[orgId]/delete.post'
+} from '~~/server/api/admin/organizations/utils'
+import { statusSchema } from '~~/server/api/admin/organizations/[orgId]/members/[memberId]/status.patch'
+import { deleteSchema } from '~~/server/api/admin/organizations/[orgId]/delete.post'
 
 describe('stringifyIdpConfig', () => {
   it('serializes valid objects', () => {

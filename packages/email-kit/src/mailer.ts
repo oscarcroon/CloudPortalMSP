@@ -76,14 +76,16 @@ export const buildTestEmail = (branding?: EmailBranding): EmailContent => {
     {
       subject: 'Testmail från Cloud Portal',
       pretitle: 'Testutskick',
-      title: 'Allt är kopplat!',
-      intro: 'Hej!',
+      title: '',
+      intro: 'Hej,',
       body: [
-        'Detta är ett testmail som låter dig verifiera att SMTP/OAuth-konfigurationen fungerar.',
-        `Skickades ${timestamp}.`
+        'Detta är ett automatiskt testmeddelande som används för att verifiera att e-postkonfigurationen fungerar korrekt.',
+        `Meddelandet skickades ${timestamp}.`,
+        'Om du kan läsa detta har testet lyckats och meddelanden kommer att levereras till dina användare på samma sätt (inklusive eventuell branding).'
       ],
       outro: [
-        'Om leveransen lyckades ser du detta exakt som dina användare kommer göra (inklusive branding).'
+        'Vänliga hälsningar,',
+        'Detta meddelande skickades automatiskt - svara inte på det.'
       ]
     },
     branding

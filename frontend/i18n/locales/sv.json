@@ -1,0 +1,1405 @@
+{
+  "common": {
+    "save": "Spara",
+    "saving": "Sparar...",
+    "update": "Uppdatera",
+    "updating": "Uppdaterar...",
+    "cancel": "Avbryt",
+    "unknown": "Okänd"
+  },
+  "auth": {
+    "logout": "Logga ut",
+    "login": "Logga in",
+    "loginTitle": "Logga in",
+    "loginSubtitle": "Anslut med e-post och lösenord eller lägg till SSO senare per organisation.",
+    "email": "E-post",
+    "emailPlaceholder": "you{'@'}example.com",
+    "password": "Lösenord",
+    "changeEmail": "Byt e-postadress",
+    "forgotPassword": "Glömt lösenord?",
+    "continue": "Fortsätt",
+    "restrictSso": "Minst en organisation kräver SSO. Använd knapparna nedan för att initiera SSO-flödet eller välj en org som tillåter lösenord.",
+    "ssoOrganizations": "SSO-aktiverade organisationer",
+    "cloudflareNote": "Skyddat bakom Cloudflare Zero Trust? Lägg till ditt Access-token i headern",
+    "cloudflareCode": "CF_Authorization",
+    "cloudflareNoteEnd": "för sömlös SSO.",
+    "loginBranding": "Login-branding:",
+    "globalDefault": "Global standard",
+    "errors": {
+      "invalidEmail": "Ogiltig e-postadress. Kontrollera att e-postadressen är korrekt formaterad.",
+      "serverError": "E-postadressen verkar vara ogiltig eller så kunde servern inte verifiera den. Kontrollera stavningen och försök igen.",
+      "notFound": "E-postadressen kunde inte hittas. Kontrollera att den är korrekt.",
+      "verifyFailed": "Kunde inte verifiera e-postadressen. Kontrollera att den är korrekt formaterad och försök igen.",
+      "invalidCredentials": "Fel e-post eller lösenord. Försök igen.",
+      "ssoRequired": "Organisationen kräver SSO. Använd SSO-inloggning.",
+      "loginFailed": "Kunde inte logga in just nu."
+    },
+    "providers": {
+      "entra": "Microsoft Entra ID",
+      "openid": "OpenID Connect",
+      "saml": "SAML"
+    }
+  },
+  "forgotPassword": {
+    "title": "Återställ lösenord",
+    "subtitle": "Ange din e-postadress så skickar vi en länk för att välja ett nytt lösenord.",
+    "backToLogin": "Tillbaka till inloggning",
+    "email": "E-post",
+    "sendLink": "Skicka återställningslänk",
+    "sending": "Skickar...",
+    "successTitle": "Om adressen finns i systemet skickas ett mejl inom några minuter.",
+    "successMessage": "Följ länken i mejlet för att välja ett nytt lösenord.",
+    "backToLoginLink": "Tillbaka till inloggningen",
+    "helpText": "Behöver du hjälp? Kontakta din administratör eller",
+    "support": "supporten",
+    "error": "Kunde inte skicka mejlet just nu. Försök igen senare."
+  },
+  "resetPassword": {
+    "title": "Välj nytt lösenord",
+    "subtitle": "Ange ditt nya lösenord. När det är sparat loggas du in automatiskt.",
+    "invalidToken": "Länken saknar en giltig token. Kontrollera att du har använt den senaste länken från mejlet.",
+    "newPassword": "Nytt lösenord",
+    "confirmPassword": "Bekräfta nytt lösenord",
+    "save": "Spara nytt lösenord",
+    "saving": "Sparar...",
+    "successTitle": "Lösenordet uppdaterades.",
+    "successMessage": "Du är nu inloggad och skickas vidare till startsidan.",
+    "continueToDashboard": "Fortsätt till dashboard",
+    "errors": {
+      "missingToken": "Token saknas.",
+      "mismatch": "Lösenorden matchar inte.",
+      "resetFailed": "Kunde inte återställa lösenordet.",
+      "resetFailedGeneric": "Kunde inte återställa lösenordet. Kontrollera att länken är giltig."
+    }
+  },
+  "invite": {
+    "title": "Inbjudan",
+    "acceptProvider": "Acceptera leverantörsinbjudan",
+    "acceptDistributor": "Acceptera distributörsinbjudan",
+    "acceptOrganization": "Acceptera organisationsinbjudan",
+    "subtitleProvider": "Anslut dig till leverantören genom att bekräfta nedan.",
+    "subtitleDistributor": "Anslut dig till distributören genom att bekräfta nedan.",
+    "subtitleOrganization": "Anslut dig till organisationen genom att bekräfta nedan.",
+    "notFound": "Ingen inbjudan hittades. Kontrollera att länken innehåller ett giltigt token.",
+    "loading": "Laddar inbjudan...",
+    "sentTo": "Inbjudan skickad till",
+    "role": "Roll",
+    "status": "Status",
+    "expiresAt": "Gäller till",
+    "invitedBy": "Inbjuden av",
+    "system": "System",
+    "statusLabels": {
+      "accepted": "Redan accepterad",
+      "cancelled": "Avbruten",
+      "expired": "Utgången",
+      "pending": "Väntar på svar"
+    },
+    "loginPrompt": "Logga in för att acceptera inbjudan.",
+    "goToLogin": "Gå till inloggningen",
+    "fullName": "Fullständigt namn",
+    "fullNamePlaceholder": "Förnamn Efternamn",
+    "fullNameHelper": "Ange både för- och efternamn.",
+    "password": "Lösenord",
+    "confirmPassword": "Bekräfta lösenord",
+    "createAccount": "Skapa konto och gå med",
+    "creatingAccount": "Skapar konto...",
+    "mismatchNotice": "Du är inloggad som {email} men inbjudan skickades till {inviteEmail}. Logga ut och logga in med rätt konto för att fortsätta.",
+    "accept": "Acceptera inbjudan",
+    "accepting": "Accepterar...",
+    "toSettings": "Till inställningar",
+    "registrationIntro": {
+      "organization": "En administratör har skapat en organisation och bjudit in dig som ägare.",
+      "provider": "En administratör har skapat en leverantör och bjudit in dig som ägare.",
+      "distributor": "En administratör har skapat en distributör och bjudit in dig som ägare.",
+      "withOrgName": "När du slutför registreringen skapas organisationen \"{orgName}\".",
+      "createPassword": "Skapa ett lösenord nedan för att gå med."
+    },
+    "entityBadge": {
+      "organization": "Organisation",
+      "provider": "Leverantör",
+      "distributor": "Distributör",
+      "willCreate": "Organisation · Skapas vid accept"
+    },
+    "errors": {
+      "expired": "Den här inbjudan har gått ut. Kontakta din administratör för att få en ny länk.",
+      "cancelled": "Inbjudan har återkallats av en administratör.",
+      "alreadyAccepted": "Inbjudan är redan accepterad.",
+      "notFound": "Inbjudan hittades inte. Kontrollera att länken är korrekt.",
+      "loadFailed": "Kunde inte hämta inbjudan just nu.",
+      "passwordMismatch": "Lösenorden matchar inte.",
+      "createFailed": "Kunde inte skapa kontot.",
+      "acceptExpired": "Inbjudan har gått ut. Be en administratör att skicka en ny inbjudan innan du försöker igen.",
+      "acceptInvalid": "Inbjudan är inte längre giltig. Kontakta administratören för en ny länk.",
+      "acceptMismatch": "Inbjudan matchar inte det konto du är inloggad med. Kontrollera att du använder rätt e-postadress.",
+      "acceptFailed": "Kunde inte acceptera inbjudan."
+    },
+    "success": {
+      "accountCreated": "Kontot skapades och inbjudan accepterades.",
+      "memberAdded": "Du är nu medlem i organisationen."
+    }
+  },
+  "mfa": {
+    "title": "Steguppverifiering krävs",
+    "subtitle": "Denna åtgärd kräver ytterligare verifiering. Vänligen ange din MFA-kod för att fortsätta.",
+    "codeLabel": "MFA-kod",
+    "codePlaceholder": "000000",
+    "verify": "Verifiera",
+    "verifying": "Verifierar...",
+    "errors": {
+      "invalidCode": "Ogiltig MFA-kod. Försök igen.",
+      "verifyFailed": "Verifiering misslyckades. Försök igen.",
+      "generic": "Ett fel uppstod. Försök igen."
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Inställningar",
+    "showMore": "Visa fler moduler",
+    "adminSection": "Inställningar",
+    "tenants": "Tenants",
+    "superadmin": "Superadmin"
+  },
+  "topBar": {
+    "searchLabel": "Sök",
+    "searchPlaceholder": "Sök DNS, containers, VMs...",
+    "toggleSearchOpen": "Öppna sök",
+    "toggleSearchClose": "Stäng sök",
+    "docs": "Dokumentation",
+    "support": "Support",
+    "profile": "Profil"
+  },
+  "theme": {
+    "ariaLabel": "Ändra tema",
+    "options": {
+      "system": "System",
+      "light": "Ljust",
+      "dark": "Mörkt"
+    }
+  },
+  "language": {
+    "switcher": {
+      "label": "Välj språk"
+    }
+  },
+  "contextSwitcher": {
+    "searchPlaceholder": "Sök efter organisation...",
+    "organizations": "Organisationer",
+    "noContexts": "Inga kontexter tillgängliga.",
+    "selectContext": "Välj kontext",
+    "errors": {
+      "switchTenantFailed": "Kunde inte byta till denna tenant.",
+      "switchContextFailed": "Kunde inte byta kontext.",
+      "ssoRequired": "Organisationen kräver SSO. Starta SSO-flödet för att fortsätta.",
+      "switchOrgFailed": "Kunde inte byta till denna organisation."
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Hantera ditt konto och lösenord.",
+    "forcePasswordReset": "Du måste uppdatera ditt lösenord innan du fortsätter.",
+    "sections": {
+      "account": "Konto",
+      "organizations": "Organisationer",
+      "password": "Byt lösenord"
+    },
+    "fields": {
+      "email": "E-post",
+      "name": "Namn",
+      "status": "Status"
+    },
+    "language": {
+      "label": "Språk",
+      "description": "Välj vilket språk du vill använda i portalen."
+    },
+    "form": {
+      "nameLabel": "Ändra namn",
+      "namePlaceholder": "Förnamn Efternamn",
+      "nameHelper": "Ange både för- och efternamn.",
+      "currentPassword": "Nuvarande lösenord",
+      "newPassword": "Nytt lösenord",
+      "confirmPassword": "Bekräfta nytt lösenord"
+    },
+    "organizations": {
+      "count": "Du är medlem i {count} organisationer."
+    },
+    "password": {
+      "helper": "Välj ett starkt lösenord. Se kraven nedan."
+    },
+    "actions": {
+      "saveName": "Spara namn",
+      "savingName": "Sparar...",
+      "updatePassword": "Uppdatera lösenord",
+      "savingPassword": "Sparar...",
+      "logout": "Logga ut"
+    },
+    "messages": {
+      "nameSaved": "Namnet sparades.",
+      "nameError": "Kunde inte uppdatera namnet. Försök igen.",
+      "languageSaved": "Språket uppdaterades.",
+      "languageError": "Kunde inte uppdatera språket.",
+      "passwordMismatch": "Lösenorden matchar inte.",
+      "passwordSaved": "Lösenordet uppdaterades.",
+      "passwordError": "Kunde inte uppdatera lösenordet. Kontrollera ditt nuvarande lösenord och försök igen."
+    },
+    "notProvided": "Ej angivet"
+  },
+  "password": {
+    "requirements": {
+      "length": "Minst 12 tecken långt",
+      "uppercase": "Minst en versal, t.ex. A-Z",
+      "lowercase": "Minst en gemen, t.ex. a-z",
+      "digit": "Minst en siffra, t.ex. 0-9",
+      "symbol": "Minst ett specialtecken, t.ex. punkt eller utropstecken"
+    }
+  },
+  "dashboard": {
+    "title": "Single pane of glass",
+    "subtitle": "Hantera DNS, containrar, virtuella maskiner och WordPress-webbplatser från ett enda gränssnitt.",
+    "allSystemsOperational": "All systems operational",
+    "organizations": "Organisationer",
+    "noModules": "Inga moduler är tillgängliga för din organisation.",
+    "status": "Status",
+    "news": "Nyheter",
+    "module": "Modul",
+    "statusLabels": {
+      "ok": "OK",
+      "degraded": "Degraded",
+      "maintenance": "Maintenance"
+    },
+    "newsItems": {
+      "firstSite": {
+        "title": "Din första webbplats? Kom igång smidigt",
+        "summary": "Följ våra fem steg för en snabb och säker lansering.",
+        "date": "28 okt"
+      },
+      "dnsEmail": {
+        "title": "Hur hänger DNS och e-post ihop?",
+        "summary": "Kort guide för SPF, DKIM och MX.",
+        "date": "14 okt"
+      }
+    }
+  },
+  "settings": {
+    "title": "Inställningar",
+    "administration": "Administration",
+    "open": "Öppna",
+    "organizations": {
+      "title": "Organisationer",
+      "titleForTenant": "Organisationer för {tenant}",
+      "description": "Byt aktiv organisation och se roller.",
+      "showingOnly": "Visar endast organisationer under {tenant}.",
+      "primary": "Primär",
+      "notPrimary": "Ej primär",
+      "role": "Roll",
+      "activeNow": "Aktiv nu",
+      "setAsPrimary": "Sätt som primär organisation",
+      "isPrimary": "Primär organisation",
+      "noActiveOrg": "Ingen organisation är aktiv just nu. Välj en i listan för att visa organisationsspecifika inställningar.",
+      "otherOrganizations": "Övriga organisationer",
+      "searchPlaceholder": "Sök efter organisation...",
+      "select": "Välj",
+      "inactive": "Inaktiv",
+      "viaTenant": "Via tenant",
+      "adminViaTenant": "Admin via tenant",
+      "viewerViaTenant": "Viewer via tenant",
+      "previous": "Föregående",
+      "next": "Nästa",
+      "page": "Sida {current} av {total}",
+      "noOrganizations": "Inga organisationer är kopplade till den aktuella leverantören. Lägg till en organisation eller byt leverantör i context switchern."
+    },
+    "members": {
+      "title": "Medlemmar",
+      "description": "Lista alla medlemmar i organisationen och hantera roller.",
+      "pageDescription": "Hantera roller, se väntande inbjudningar och ta bort åtkomst för den aktiva organisationen.",
+      "backToSettings": "← Tillbaka till inställningar",
+      "open": "Öppna",
+      "noActiveOrg": "Du behöver välja en aktiv organisation innan du kan hantera medlemmar.",
+      "activeOrganization": "Aktiv organisation",
+      "refresh": "Uppdatera",
+      "refreshing": "Uppdaterar...",
+      "inviteMember": "Bjud in medlem",
+      "loading": "Laddar medlemmar...",
+      "noMembers": "Inga medlemmar hittades. Använd knappen ovan för att bjuda in nya personer.",
+      "noSearchResults": "Inga medlemmar matchade din sökning.",
+      "clearFilters": "Rensa filter",
+      "searchPlaceholder": "Sök efter namn eller e-post",
+      "clear": "Rensa",
+      "showOnlyOverrides": "Visa bara medlemmar med manuella modulroller",
+      "table": {
+        "name": "Namn",
+        "email": "E-post",
+        "role": "Roll",
+        "status": "Status",
+        "lastUpdated": "Senast uppdaterad",
+        "actions": "Åtgärder",
+        "unknownName": "Okänt namn",
+        "hasOverrides": "Har manuellt anpassade modulroller",
+        "count": "{count} st",
+        "of": "av {total}"
+      },
+      "invitations": {
+        "title": "Väntande inbjudningar",
+        "none": "Inga aktiva inbjudningar just nu.",
+        "email": "E-post",
+        "role": "Roll",
+        "status": "Status",
+        "invitedBy": "Bjuden av",
+        "expiresAt": "Gäller till",
+        "actions": "Åtgärder",
+        "resend": "Skicka igen",
+        "resending": "Skickar...",
+        "cancel": "Avbryt",
+        "cancelling": "Avbryter..."
+      },
+      "moduleRoles": {
+        "title": "Modulroller",
+        "loading": "Laddar modulroller...",
+        "none": "Inga moduler med modulspecifika roller hittades.",
+        "policy": "Policy: {source}",
+        "allowedRoles": "Tillåtna roller: {roles}",
+        "blocked": "Modulroller blockeras av {source}.",
+        "save": "Spara ändringar",
+        "saving": "Sparar...",
+        "saved": "Ändringar sparade",
+        "error": "Kunde inte spara ändringar",
+        "button": "Modulroller",
+        "policyLabel": "Policy",
+        "allowedRolesLabel": "Tillåtna roller",
+        "sourceLabel": "Källa",
+        "resetToDefault": "Återställ till standard",
+        "unsavedChanges": "Det finns osparade ändringar.",
+        "noChanges": "Inga ändringar att spara.",
+        "close": "Stäng",
+        "policySources": {
+          "moduleDefault": "modulens standard",
+          "distributor": "distributörsnivå",
+          "provider": "leverantörsnivå",
+          "organization": "organisationen",
+          "higherLevel": "högre nivå"
+        },
+        "roleBadges": {
+          "added": "+ Tillagd",
+          "removed": "− Borttagen"
+        },
+        "sourceLabels": {
+          "custom": "Manuellt tilldelade roller",
+          "rbacInherited": "Ärvda från RBAC ({role})",
+          "none": "Inga modulroller tilldelade"
+        }
+      },
+      "summary": {
+        "none": "Inga medlemmar eller väntande inbjudningar registrerade.",
+        "format": "{active} aktiva · {invited} inbjudna · {pending} väntande inbjudningar"
+      },
+      "status": {
+        "active": "Aktiv",
+        "invited": "Inbjuden",
+        "inactive": "Avslutad",
+        "notLinked": "Ej kopplad"
+      },
+      "invitationStatus": {
+        "pending": "Avvaktar",
+        "accepted": "Accepterad",
+        "cancelled": "Avbruten",
+        "expired": "Utgången"
+      },
+      "actions": {
+        "editRoles": "Redigera roller",
+        "enable": "Aktivera",
+        "enabling": "Aktiverar...",
+        "disable": "Inaktivera",
+        "disabling": "Inaktiverar...",
+        "remove": "Ta bort permanent",
+        "removing": "Tar bort..."
+      },
+      "features": {
+        "status": "Visa medlemsstatus och aktivitet",
+        "roles": "Hantera roller och behörigheter",
+        "remove": "Ta bort medlemmar från organisationen"
+      }
+    },
+    "auth": {
+      "title": "Auth & SSO",
+      "description": "Aktivera Identity Provider, konfigurera OpenID eller Entra och styr om SSO ska krävas.",
+      "pageDescription": "Välj Identity Provider, följ guiden och styr om SSO ska krävas för organisationen.",
+      "backToSettings": "← Tillbaka till inställningar",
+      "noActiveOrg": "Du behöver välja en aktiv organisation innan du kan konfigurera SSO.",
+      "loading": "Hämtar auth-inställningar...",
+      "organization": "Organisation",
+      "slug": "Slug",
+      "save": "Spara ändringar",
+      "saving": "Sparar...",
+      "idp": {
+        "title": "Identity Provider",
+        "description": "Välj vilken IdP som ska vara aktiv och fyll i OIDC-detaljer. Organisationen kan endast ha en IdP åt gången.",
+        "redirectUriHint": "Fyll i uppgifterna enligt guiden. Redirect-URL för denna organisation:",
+        "providers": {
+          "none": "Ingen IdP",
+          "openid": "OpenID Connect",
+          "entra": "Microsoft Entra ID",
+          "saml": "SAML 2.0"
+        },
+        "openid": {
+          "issuer": "Issuer (Discovery URL)",
+          "metadataUrl": "Metadata URL (valfri)",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "redirectUri": "Redirect URL",
+          "scopes": "Scopes (valfri)"
+        },
+        "entra": {
+          "tenantId": "Tenant ID",
+          "clientId": "Client ID",
+          "clientSecret": "Client Secret",
+          "redirectUri": "Redirect URL",
+          "scopes": "Scopes (valfri)"
+        },
+        "saml": {
+          "entryPoint": "Entry Point (SSO URL)",
+          "issuer": "Issuer (Entity ID)",
+          "audience": "Audience (valfri)",
+          "certificate": "Publikt certifikat",
+          "signRequest": {
+            "title": "Signera AuthnRequest",
+            "description": "Rekommenderas: IdP förväntar sig signerade requests."
+          },
+          "wantAssertionsSigned": {
+            "title": "Kräv signerade assertioner",
+            "description": "Säkerställer att IdP signerar svaren."
+          }
+        },
+        "requireSsoDisabled": {
+          "noIdp": "Konfigurera en IdP innan SSO kan krävas.",
+          "incomplete": "Fyll i alla obligatoriska IdP-fält för att kunna kräva SSO."
+        },
+        "validation": {
+          "incomplete": "Fyll i alla obligatoriska IdP-fält innan du sparar.",
+          "noOrg": "Ingen organisation är vald."
+        },
+        "messages": {
+          "saved": "Auth-inställningarna uppdaterades.",
+          "saveError": "Kunde inte spara auth-inställningarna.",
+          "loadError": "Kunde inte hämta auth-inställningar."
+        }
+      },
+      "configGuide": {
+        "title": "Konfigurationsguide",
+        "description": "Snabbguide för att konfigurera {idp}.",
+        "readMore": "Läs mer i docs",
+        "openid": {
+          "title": "OpenID Connect (OneLogin m.fl.)",
+          "steps": {
+            "0": "Skapa en ny OIDC-app i din IdP (t.ex. OneLogin) och välj Web-klient.",
+            "1": "Ange {redirect} som Redirect URL i din IdP.",
+            "2": "Kopiera Issuer/Discovery URL, Client ID och Client Secret från IdP:n.",
+            "3": "Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.",
+            "4": "Testa inloggningen innan du aktiverar \"Kräv SSO\" i CloudPortal."
+          }
+        },
+        "entra": {
+          "title": "Microsoft Entra ID (Azure AD)",
+          "steps": {
+            "0": "Registrera en ny Entra-app (App registration) och välj Web som plattform.",
+            "1": "Sätt Redirect URI till {redirect} i Microsoft Entra ID.",
+            "2": "Anteckna Application (client) ID, Directory (tenant) ID och skapa ett Client secret.",
+            "3": "Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.",
+            "4": "Tilldela användare och testa inloggningen, fyll sedan i Tenant ID, Client ID/Secret här innan du kräver SSO."
+          }
+        },
+        "saml": {
+          "title": "SAML 2.0 (Azure AD, Okta m.fl.)",
+          "steps": {
+            "0": "Skapa en ny SAML-app i din IdP och ange ACS/Callback URL till redirect-URL:en ovan.",
+            "1": "Kopiera Issuer/Entity ID, Entry Point (SSO URL) och publik X.509-certifikat från IdP:n.",
+            "2": "Fyll i dessa värden i CloudPortal under Auth-inställningar för din organisation.",
+            "3": "Ange eventuella Audience/Entity ID som förväntas av IdP:n och välj om AuthnRequests ska signeras.",
+            "4": "Testa inloggningen innan du aktiverar \"Kräv SSO\" i CloudPortal."
+          }
+        }
+      },
+      "requireSso": {
+        "title": "Kräv SSO",
+        "description": "Alla användare måste logga in via vald IdP."
+      },
+      "allowLocalLogin": {
+        "title": "Tillåt lokalt login för ägare",
+        "description": "Behåll fallback via lösenord för ägare."
+      },
+      "features": {
+        "idp": "Välj IdP-typ (OpenID eller Entra AD)",
+        "cloudflare": "Följ guiden för att konfigurera Cloudflare Access",
+        "require": "Aktivera \"Kräv SSO\" när IdP är klar"
+      }
+    },
+    "email": {
+      "title": "E-postinställningar",
+      "pageTitle": "E-postinställningar",
+      "description": "Ställ in organisationens egen SMTP- eller Graph-provider, inklusive branding och testutskick.",
+      "pageDescription": "Hantera organisationens egna utskick. Aktivera override för att använda egna SMTP-/Graph-inställningar.",
+      "backToSettings": "← Tillbaka till inställningar",
+      "noActiveOrg": "Du behöver välja en aktiv organisation innan du kan uppdatera e-postinställningarna.",
+      "noPermission": "Du saknar behörigheten att uppdatera e-postinställningar för {orgName}. Be en ägare eller administratör (permisson {permission}) att justera detta åt dig.",
+      "activeOrg": "Aktiv organisation: {orgName}. Alla utskick (inbjudningar, rapporter m.m.) använder dessa inställningar när override är aktiv.",
+      "loading": "Hämtar e-postinställningar...",
+      "inherited": "E-postinställningar ärvs från högre nivå",
+      "inheritedDescription": "Om inga egna inställningar är aktiverade används inställningarna från leverantör → distributör → global.",
+      "messages": {
+        "loadError": "Kunde inte hämta e-postinställningarna.",
+        "saved": "E-postinställningen sparades.",
+        "saveError": "Kunde inte spara e-postinställningen.",
+        "testSent": "Testmail skickades till {email}.",
+        "testError": "Kunde inte skicka testmail."
+      },
+      "form": {
+        "titles": {
+          "global": "Global avsändare",
+          "provider": "E-postinställning för leverantör",
+          "distributor": "E-postinställning för distributör",
+          "organization": "E-postinställning för organisationen"
+        },
+        "description": "Ange avsändaradress, svarsmail och leverantör som ska gälla för utskick.",
+        "useOverride": "Använd organisationsspecifik e-postprovider",
+        "fields": {
+          "fromName": "Avsändarnamn",
+          "fromEmail": "Avsändaradress",
+          "subjectPrefix": "Ämnesprefix (valfritt)",
+          "supportContact": "Supportkontakt (valfritt)",
+          "replyToEmail": "Svar-adress",
+          "active": "Aktiv",
+          "emailTheme": "E-posttema"
+        },
+        "active": {
+          "enabled": "Utskick aktiverat",
+          "disabled": "Utskick inaktiverat"
+        },
+        "emailDarkMode": {
+          "label": "Mörkt läge (standard är ljust läge)",
+          "description": "I mörkt läge används mörka färger för e-postinnehållet och bakgrunden. Bakgrunden bakom loggan använder NavBar-färgen från brandingen."
+        },
+        "provider": {
+          "title": "Leverantör",
+          "description": "Välj SMTP eller Microsoft Graph och fyll i nödvändiga värden.",
+          "smtp": "SMTP",
+          "graph": "Microsoft Graph",
+          "smtpFields": {
+            "host": "SMTP-host",
+            "port": "Port",
+            "secure": "Anslutning med TLS/SSL",
+            "ignoreTls": "Tillåt osignerade certifikat",
+            "authUser": "Användarnamn",
+            "authPass": "Lösenord",
+            "keepSecret": "Lämna tomt för att behålla"
+          },
+          "graphFields": {
+            "tenantId": "Tenant ID",
+            "clientId": "Client ID",
+            "clientSecret": "Client Secret",
+            "senderUserId": "Avsändar-ID (valfritt)",
+            "scope": "Scope (valfritt)",
+            "endpoint": "Endpoint (valfritt)",
+            "keepSecret": "Lämna tomt för att behålla"
+          }
+        },
+        "disclaimer": {
+          "title": "Egen disclaimer",
+          "description": "Texten läggs längst ner i alla utskick (även om e-post provider ärvs). Markdown stöds för länkar, listor och betoning.",
+          "placeholder": "Exempel: Detta meddelande är konfidentiellt...",
+          "emptyHint": "Lämna tomt för att använda kedjans standardtext.",
+          "preview": "Förhandsvisning",
+          "noText": "Ingen text angiven ännu."
+        },
+        "status": {
+          "title": "Status & Test",
+          "lastTest": "Senaste test: {date} • {status}",
+          "statusSuccess": "Lyckades",
+          "statusFailed": "Misslyckades",
+          "noTests": "Inga tester körda ännu för {provider}.",
+          "oauthVerified": "✓ OAuth-token verifierad",
+          "lastGranted": "Senast beviljad: {date}"
+        },
+        "testEmail": {
+          "placeholder": "Testmottagare",
+          "send": "Skicka test",
+          "sending": "Skickar...",
+          "reconnect": "Återanslut Microsoft 365",
+          "reconnectAlert": "Ange en testmottagare för att återansluta."
+        },
+        "preview": {
+          "invitation": "Förhandsgranska inbjudningsmail",
+          "passwordReset": "Förhandsgranska återställningsmail",
+          "modalTitleInvitation": "Förhandsgranska inbjudningsmail",
+          "modalTitlePasswordReset": "Förhandsgranska återställningsmail"
+        },
+        "save": {
+          "button": "Spara inställningar",
+          "saving": "Sparar..."
+        }
+      },
+      "features": {
+        "override": "Aktivera override för utskick inom organisationen",
+        "configure": "Konfigurera SMTP med eller utan auth, eller Microsoft Graph",
+        "customize": "Anpassa logotyp, färger och testkör direkt från formuläret"
+      }
+    },
+    "branding": {
+      "title": "Branding & login",
+      "description": "Hantera logotyp, accentfärg och login-branding för {orgName}.",
+      "backToSettings": "← Inställningar",
+      "pageDescription": "Hantera logotyper, accentfärg och login-branding för {orgName}.",
+      "loading": "Hämtar organisationsinformation...",
+      "noActiveOrg": "Välj en aktiv organisation för att kunna ändra branding.",
+      "category": "Branding",
+      "logoPreview": "Logoförhandsvisning för {orgName}",
+      "noFileSelected": "Ingen fil har valts",
+      "palette": {
+        "ocean": "Ocean",
+        "teal": "Teal",
+        "emerald": "Emerald",
+        "amber": "Amber",
+        "rose": "Rose",
+        "violet": "Violet",
+        "slate": "Slate",
+        "charcoal": "Charcoal"
+      },
+      "appBranding": {
+        "title": "App-branding",
+        "description": "Styr logotyp och accentfärg som visas i hela portalen.",
+        "logoSource": "Logokälla: {source}",
+        "changeLogo": "Byt logotyp",
+        "uploading": "Laddar upp...",
+        "removeLogo": "Ta bort logotyp",
+        "removing": "Tar bort...",
+        "maxSize": "Max 2 MB",
+        "loadingBranding": "Hämtar brandinginformation..."
+      },
+      "accentColor": {
+        "title": "Accentfärg",
+        "description": "Använd en egen färg eller återställ till arv.",
+        "label": "Accent",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "reset": "Återställ",
+        "select": "Välj {label}"
+      },
+      "navigation": {
+        "title": "Navigation",
+        "description": "Bakgrundsfärgen som används i huvudmenyn.",
+        "label": "Nav",
+        "select": "Välj {label}"
+      },
+      "loginBranding": {
+        "title": "Login-branding",
+        "description": "Ladda upp separata logotyper (ljus/mörk) och bakgrundsbild för inloggningssidan.",
+        "autoSelect": "Branding väljs automatiskt baserat på host (slug eller verifierad custom domain) och ärver från leverantör/distributör.",
+        "assets": {
+          "logoLight": {
+            "title": "Logotyp (ljus bakgrund)",
+            "description": "Visas när användaren har ljust tema."
+          },
+          "logoDark": {
+            "title": "Logotyp (mörk bakgrund)",
+            "description": "Visas när användaren har mörkt tema."
+          },
+          "background": {
+            "title": "Bakgrundsbild",
+            "description": "Valfri bild som visas bakom login-formuläret."
+          },
+          "noLogo": "Ingen logotyp",
+          "preview": "Förhandsvisning",
+          "noBackground": "Ingen bakgrund",
+          "changeFile": "Byt fil",
+          "uploading": "Laddar upp...",
+          "remove": "Ta bort",
+          "removing": "Tar bort...",
+          "source": "Källa:",
+          "updated": "Uppdaterad.",
+          "removed": "Borttagen.",
+          "uploadFailed": "Uppladdningen misslyckades.",
+          "removeFailed": "Kunde inte ta bort filen.",
+          "invalidFormat": "Ogiltigt format. Tillåtna: {formats}.",
+          "maxSize": "Filen får vara max {size} MB.",
+          "confirmRemove": "Vill du ta bort denna fil?"
+        },
+        "tint": {
+          "title": "Bakgrundstint",
+          "description": "Ange hex-färg för överlägg på bakgrundsbilden. Lämna tomt för standard.",
+          "intensity": "Intensitet",
+          "save": "Spara",
+          "saving": "Sparar...",
+          "reset": "Återställ",
+          "noBackgroundHint": "Ladda upp en bakgrundsbild för att kunna justera tint.",
+          "saved": "Bakgrundstint sparades.",
+          "saveError": "Kunde inte spara tint."
+        }
+      },
+      "messages": {
+        "logoUpdated": "Logotypen uppdaterades.",
+        "logoRemoved": "Logotypen togs bort.",
+        "logoUploadError": "Kunde inte ladda upp logotypen.",
+        "logoUploadErrorNoResponse": "Kunde inte ladda upp logotypen. Inget svar från servern.",
+        "logoRemoveError": "Kunde inte ta bort logotypen.",
+        "logoRemoveConfirm": "Vill du ta bort den anpassade logotypen? Standardlogotypen kommer att användas istället.",
+        "noActiveOrg": "Ingen aktiv organisation vald.",
+        "brandingLoadError": "Kunde inte hämta brandinginformation.",
+        "invalidFileFormat": "Ogiltigt filformat. Tillåtna format: .jpg, .png, .svg, .webp.",
+        "fileTooLarge": "Filen får vara max 2 MB.",
+        "accentUpdated": "Accentfärgen uppdaterades.",
+        "accentReset": "Accentfärgen återställdes.",
+        "accentUpdateError": "Kunde inte uppdatera accentfärgen.",
+        "accentResetError": "Kunde inte återställa accentfärgen.",
+        "accentInvalidColor": "Ogiltig färgkod.",
+        "accentMissingColor": "Ange en giltig färgkod.",
+        "navUpdated": "Navigationsbakgrunden uppdaterades.",
+        "navUpdateError": "Kunde inte uppdatera navigationsbakgrunden."
+      },
+      "sourceLabels": {
+        "default": "Standard",
+        "global": "Global standard",
+        "organization": "Organisation",
+        "provider": "Leverantör",
+        "distributor": "Distributör"
+      },
+      "features": {
+        "logos": "Ladda upp separata logotyper för ljus/mörk bakgrund",
+        "color": "Sätt accentfärg eller välj från palett med arv per tenant",
+        "login": "Hantera login-branding och custom domains (CNAME)"
+      }
+    },
+    "modules": {
+      "title": "Modulrättigheter",
+      "description": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation.",
+      "pageDescription": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation. Du kan också sätta granulära rättigheter per användare för varje modul.",
+      "searchPlaceholder": "Sök efter moduler...",
+      "showAll": "Visa alla rättigheter",
+      "hideAll": "Dölj alla rättigheter",
+      "noModules": "Inga moduler hittades för din organisation.",
+      "noSearchResults": "Inga moduler matchade sökningen",
+      "disabled": "Inaktiverad",
+      "deactivated": "Avaktiverad",
+      "features": {
+        "enable": "Aktivera eller inaktivera moduler för organisationen",
+        "permissions": "Hantera rättigheter per modul (read/write)",
+        "granular": "Sätt granulära rättigheter per användare"
+      }
+    },
+    "audit": {
+      "title": "Audit Loggar",
+      "description": "Visa säkerhetshändelser och administrativa aktiviteter för organisationen.",
+      "pageDescription": "Visa säkerhetshändelser och administrativa aktiviteter för denna organisation.",
+      "noActiveOrg": "Välj en organisation för att visa audit loggar.",
+      "eventType": "Event Type",
+      "all": "Alla",
+      "fromDate": "Från datum",
+      "toDate": "Till datum",
+      "filter": "Filtrera",
+      "clear": "Rensa",
+      "loading": "Laddar...",
+      "table": {
+        "timestamp": "Tidpunkt",
+        "event": "Event",
+        "user": "Användare",
+        "details": "Detaljer",
+        "view": "Visa",
+        "na": "N/A"
+      },
+      "noLogs": "Inga loggar hittades för de valda filtren.",
+      "features": {
+        "events": "Visa inloggningar och säkerhetshändelser",
+        "track": "Spåra ändringar i roller och medlemmar",
+        "overview": "Översikt över modulaktiveringar"
+      }
+    },
+    "apiTokens": {
+      "title": "API tokens",
+      "description": "Hantera autentisering mot externa leverantörer.",
+      "configure": "Konfigurera"
+    }
+  },
+  "admin": {
+    "title": "Superadmin-inställningar",
+    "subtitle": "Samlad startsida för alla verktyg som kräver superadmintillgång.",
+    "open": "Öppna",
+    "quickTip": "Snabbtips",
+    "quickTipText": "Bokmärk den här sidan – nya superadminverktyg läggs alltid till här först.",
+    "sections": {
+      "tenants": {
+        "title": "Tenants",
+        "description": "Hantera distributörer och leverantörer, skapa nya tenants och administrera arv.",
+        "badge": "Struktur",
+        "category": "Multitenancy"
+      },
+      "organizations": {
+        "title": "Organisationer",
+        "description": "Överblicka organisationer, medlemskap och deras autentisering.",
+        "badge": "Kunder",
+        "category": "Organisationer"
+      },
+      "globalBranding": {
+        "title": "Global branding",
+        "description": "Sätt portalens standardlogotyper, accentfärger och login-branding.",
+        "badge": "Branding",
+        "category": "Design"
+      },
+      "rbacMatrix": {
+        "title": "RBAC-matris",
+        "description": "Granska roller, modulrättigheter och gör justeringar på en central plats.",
+        "badge": "Säkerhet",
+        "category": "Behörigheter"
+      },
+      "auditLogs": {
+        "title": "Audit-loggar",
+        "description": "Inspektera kritiska händelser, loginförsök och administrativa spår.",
+        "badge": "Revision",
+        "category": "Loggar"
+      },
+      "adminEmail": {
+        "title": "Admin-email",
+        "description": "Konfigurera portalens globala e-postprofiler och testutskick.",
+        "badge": "Kommunikation",
+        "category": "E-post"
+      },
+      "users": {
+        "title": "Användare (globalt)",
+        "description": "Granska hela användarregistret, hantera status, roller och tvinga lösenordsbyten.",
+        "badge": "Identitet",
+        "category": "Användare"
+      },
+      "customDomains": {
+        "title": "Custom domains",
+        "description": "Verifiera tenant-domäner och följ upp DNS-status för CNAME-konfigurationer.",
+        "badge": "Routing",
+        "category": "Domäner"
+      }
+    }
+  },
+  "rbac": {
+    "roles": {
+      "owner": "Ägare",
+      "admin": "Administratör",
+      "operator": "Operatör",
+      "member": "Medlem",
+      "viewer": "Visare",
+      "support": "Support"
+    }
+  },
+  "adminTenants": {
+    "title": "Tenants",
+    "description": "Hantera distributörer och leverantörer. Distributörer kan skapa leverantörer, leverantörer kan skapa organisationer.",
+    "searchPlaceholder": "Sök efter namn eller slug...",
+    "clearSearch": "Rensa sökning",
+    "createDistributor": "Skapa distributör",
+    "createProvider": "Skapa leverantör",
+    "allTenants": "Alla tenants",
+    "results": "{count} resultat",
+    "for": "för \"{query}\"",
+    "showAllOrganizations": "Visa alla organisationer",
+    "refresh": "Uppdatera",
+    "loading": "Laddar tenants...",
+    "noResults": "Inga resultat matchade din sökning.",
+    "noTenants": "Inga tenants hittades.",
+    "badges": {
+      "distributor": "Distributör",
+      "provider": "Leverantör",
+      "organization": "Organisation"
+    },
+    "members": "{count} medlemmar",
+    "organizations": "{count} organisationer",
+    "toggleOrgs": {
+      "show": "Visa organisationer",
+      "hide": "Dölj organisationer"
+    },
+    "emailOverride": {
+      "active": "E-post override aktiv",
+      "label": "E-post override",
+      "short": "E-post"
+    },
+    "viewDetails": "Visa detaljer",
+    "create": {
+      "category": "Superadmin",
+      "title": {
+        "distributor": "Skapa distributör",
+        "provider": "Skapa leverantör"
+      },
+      "description": {
+        "distributor": "Distributörer är högsta nivån och kan kopplas till leverantörer.",
+        "provider": "Leverantörer kan skapa organisationer och kopplas till distributörer."
+      },
+      "tenantDetails": {
+        "title": "Tenant-detaljer",
+        "name": "Namn",
+        "namePlaceholder": "Ex. Acme Suppliers AB",
+        "slug": "Slug",
+        "slugPlaceholder": "acme-suppliers",
+        "slugHint": "Lämna tomt för automatisk generering.",
+        "distributors": "Distributörer",
+        "loadingDistributors": "Laddar distributörer...",
+        "noDistributors": "Inga distributörer tillgängliga. Skapa en distributör först.",
+        "distributorsHint": "Välj vilka distributörer denna leverantör ska kopplas till."
+      },
+      "ownerAccount": {
+        "title": "Ägarkonto",
+        "description": "Skapa ett användarkonto för tenant-ägaren. En inbjudningslänk kommer att skickas via e-post.",
+        "email": "E-post",
+        "emailPlaceholder": "owner{'@'}example.com",
+        "checkingEmail": "Kontrollerar om e-postadressen finns i systemet...",
+        "accountExists": "Kontot finns redan i systemet",
+        "accountExistsDescription": "Personen får direkt åtkomst till leverantören utan att du behöver skapa en ny organisation.",
+        "invalidEmail": "Ange en giltig e-postadress för att fortsätta.",
+        "createOrganization": {
+          "title": "Skapa organisation samtidigt",
+          "description": "Rekommenderas om leverantören behöver en första kundorganisation direkt."
+        },
+        "organizationDetails": {
+          "title": "Organisationsdetaljer",
+          "description": "Denna organisation skapas automatiskt när ägaren accepterar inbjudan.",
+          "name": "Namn",
+          "namePlaceholder": "Ex. CoreIT AB",
+          "slug": "Slug (valfritt)",
+          "slugPlaceholder": "coreit-ab",
+          "billingEmail": "Fakturae-post (valfritt)",
+          "billingEmailPlaceholder": "billing{'@'}example.com",
+          "coreId": "CORE ID (valfritt)",
+          "coreIdPlaceholder": "ABCD",
+          "coreIdHint": "4 tecken. Lämna tomt om okänt."
+        }
+      },
+      "actions": {
+        "cancel": "Avbryt",
+        "create": "Skapa tenant",
+        "creating": "Skapar..."
+      },
+      "errors": {
+        "organizationNameRequired": "Ange ett organisationsnamn om du vill skapa organisationen direkt.",
+        "invalidBillingEmail": "Billing-e-postadressen för organisationen är ogiltig.",
+        "invalidCoreId": "COREID måste bestå av exakt 4 tecken.",
+        "createFailed": "Kunde inte skapa tenant just nu."
+      }
+    },
+    "members": {
+      "backToTenant": "← Tillbaka till tenant",
+      "title": "Medlemmar",
+      "description": "Hantera roller, bjud in nya användare och se väntande inbjudningar.",
+      "refresh": "Uppdatera",
+      "refreshing": "Uppdaterar...",
+      "inviteMember": "Bjud in medlem",
+      "loading": "Laddar medlemmar...",
+      "searchPlaceholder": "Sök medlemmar...",
+      "noSearchResults": "Inga medlemmar matchade sökningen \"{query}\".",
+      "noMembers": "Inga medlemmar hittades.",
+      "table": {
+        "name": "Namn",
+        "email": "E-post",
+        "role": "Roll",
+        "mspRoles": "MSP-roller",
+        "allOrgs": "Alla orgar",
+        "status": "Status",
+        "added": "Tillagd",
+        "actions": "Åtgärder"
+      },
+      "tooltip": {
+        "hasAccess": "Har åtkomst till alla organisationer hos denna leverantör",
+        "addMspRole": "Lägg till en MSP-roll i listan ovan för att kunna aktivera åtkomst till alla organisationer."
+      },
+      "mspRoles": {
+        "none": "Inga MSP-roller tillgängliga"
+      },
+      "includeChildren": {
+        "updating": "Uppdaterar...",
+        "enabled": "Aktiverad",
+        "notEnabled": "Inte aktiv"
+      },
+      "actions": {
+        "disable": "Inaktivera",
+        "disabling": "Inaktiverar...",
+        "enable": "Aktivera",
+        "enabling": "Aktiverar...",
+        "remove": "Ta bort permanent",
+        "removing": "Tar bort..."
+      },
+      "inviteModal": {
+        "title": "Bjud in medlem",
+        "email": "E-post",
+        "role": "Roll",
+        "checking": "Kontrollerar...",
+        "includeChildren": {
+          "label": "Tillgång till alla organisationer",
+          "description": "Ger användaren åtkomst till samtliga kunder under {tenantName} via vald roll.",
+          "warning": "Använd endast för betrodda administratörer. Alla organisationer visas då i context switcher."
+        },
+        "error": "Kunde inte skicka inbjudan",
+        "cancel": "Avbryt",
+        "send": "Skicka inbjudan",
+        "sending": "Skickar..."
+      },
+      "invitations": {
+        "title": "Väntande inbjudningar",
+        "none": "Inga aktiva inbjudningar.",
+        "invitedBy": "Inbjuden av",
+        "expiresAt": "Gäller till",
+        "organization": "Organisation",
+        "willCreate": "Kommer skapa: {name}",
+        "resend": "Skicka igen",
+        "resending": "Skickar...",
+        "cancel": "Avbryt",
+        "cancelling": "Avbryter...",
+        "cancelConfirm": "Avbryt denna inbjudan?",
+        "cancelled": "Inbjudan avbröts.",
+        "resent": "Inbjudan till {email} skickades igen.",
+        "cancelError": "Kunde inte avbryta inbjudan.",
+        "resendError": "Kunde inte skicka om inbjudan."
+      },
+      "messages": {
+        "inviteSent": "Inbjudan skickad.",
+        "inviteError": "Kunde inte skicka inbjudan.",
+        "roleUpdateError": "Du kan inte nedgradera dina egna admin-rättigheter. Endast andra admins kan göra denna ändring.",
+        "roleUpdated": "Rollen för {email} uppdaterades till {role}.",
+        "roleUpdateFailed": "Kunde inte uppdatera rollen.",
+        "statusUpdateFailed": "Kunde inte uppdatera medlemsstatus.",
+        "includeChildrenEnabled": "Medlemmen har nu tillgång till alla organisationer.",
+        "includeChildrenDisabled": "Åtkomst till alla organisationer har tagits bort.",
+        "includeChildrenUpdateFailed": "Kunde inte uppdatera åtkomst till alla organisationer.",
+        "mspRolesUpdated": "MSP-roller uppdaterades.",
+        "mspRolesUpdateFailed": "Kunde inte uppdatera MSP-roller.",
+        "disableConfirm": "Inaktivera {email}? Personen kan inte logga in förrän kontot aktiveras igen.",
+        "removeConfirm": "Ta bort {email} permanent? Personen måste bjudas in på nytt för att få åtkomst.",
+        "removeFailed": "Kunde inte ta bort medlemmen."
+      }
+    },
+    "email": {
+      "backToTenant": "← Tillbaka till tenant",
+      "category": "Superadmin",
+      "title": "E-postinställningar - {name}",
+      "loading": "Laddar...",
+      "loadingSettings": "Hämtar inställningar...",
+      "types": {
+        "provider": "Leverantör - Dessa inställningar ärvs av alla distributörer och organisationer under denna leverantör.",
+        "distributor": "Distributör - Dessa inställningar ärvs av alla organisationer under denna distributör."
+      },
+      "messages": {
+        "saved": "Inställningarna sparades.",
+        "saveError": "Kunde inte spara inställningarna.",
+        "testSent": "Testmail skickades till {email}.",
+        "testError": "Kunde inte skicka testmail."
+      },
+      "chain": {
+        "overview": "Översikt",
+        "title": "Effektiv e-postkedja",
+        "description": "Visar varifrån nuvarande avsändare och leverantör hämtas.",
+        "active": "Aktiv",
+        "inactive": "Inaktiv",
+        "from": "Från:",
+        "notProvided": "Ej angivet",
+        "noSender": "Ingen avsändare konfigurerad.",
+        "provider": "Leverantör:",
+        "levels": {
+          "organization": "Organisation",
+          "provider": "Leverantör",
+          "distributor": "Distributör",
+          "global": "Global"
+        },
+        "globalDefault": "Global standard",
+        "level": "Nivå"
+      }
+    },
+    "branding": {
+      "backToTenant": "← Tillbaka",
+      "category": "Branding",
+      "loading": "Laddar...",
+      "loadingBranding": "Hämtar brandinginformation...",
+      "title": "Branding",
+      "description": "Uppdatera logotyp och accentfärg för {tenantType}.",
+      "types": {
+        "provider": "Leverantör",
+        "distributor": "Distributör"
+      },
+      "logo": {
+        "source": "Logokälla: {source}",
+        "change": "Byt logotyp",
+        "uploading": "Laddar upp...",
+        "remove": "Ta bort logotyp",
+        "removing": "Tar bort...",
+        "maxSize": "Max 2 MB",
+        "updated": "Logotypen uppdaterades.",
+        "removed": "Logotypen togs bort.",
+        "uploadError": "Kunde inte ladda upp logotypen.",
+        "uploadErrorNoResponse": "Kunde inte ladda upp logotypen. Inget svar från servern.",
+        "removeError": "Kunde inte ta bort logotypen.",
+        "removeConfirm": "Vill du ta bort den anpassade logotypen?",
+        "invalidFormat": "Ogiltigt filformat. Tillåtna format: .jpg, .png, .svg, .webp.",
+        "fileTooLarge": "Filen får vara max 2 MB."
+      },
+      "accentColor": {
+        "title": "Accentfärg",
+        "description": "Ange egen färg eller välj en fördefinierad ton.",
+        "label": "Accent",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "reset": "Återställ",
+        "select": "Välj {label}",
+        "updated": "Accentfärgen uppdaterades.",
+        "resetMessage": "Accentfärgen återställdes.",
+        "updateError": "Kunde inte uppdatera accentfärgen.",
+        "resetError": "Kunde inte återställa accentfärgen.",
+        "invalidColor": "Ogiltig färgkod.",
+        "missingColor": "Ange en giltig färgkod."
+      },
+      "navigation": {
+        "title": "Navigation",
+        "description": "Bakgrundsfärgen som används i portaltoppen.",
+        "label": "Nav",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "reset": "Återställ",
+        "select": "Välj {label}",
+        "updated": "Navigationsbakgrunden uppdaterades.",
+        "updateError": "Kunde inte uppdatera navigationsbakgrunden."
+      },
+      "inheritedChain": {
+        "title": "Ärvd kedja",
+        "logo": "Logo:",
+        "accent": "Accent:",
+        "custom": "Egen",
+        "inherited": "Ärvs"
+      },
+      "loginBranding": {
+        "title": "Login-branding",
+        "description": "Styr hur login-sidan visas för denna {tenantType}."
+      },
+      "loginDomain": {
+        "title": "Login-domän",
+        "description": "Koppla en egen domän för login-sidan eller använd standardadressen.",
+        "default": "Standard:",
+        "customDomain": "Custom domain",
+        "placeholder": "portal.exempel.se",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "verify": "Verifiera",
+        "verifying": "Verifierar...",
+        "updated": "Domänen uppdaterades.",
+        "verified": "Domänen verifierades.",
+        "saveError": "Kunde inte spara domänen.",
+        "verifyError": "Verifieringen misslyckades.",
+        "cnameHint": "Peka ett CNAME till {domain} och verifiera domänen innan den tas i bruk.",
+        "status": {
+          "notConfigured": "Ej konfigurerad",
+          "verified": "Verifierad",
+          "pending": "Avvaktar",
+          "failed": "Misslyckades",
+          "unverified": "Overifierad"
+        }
+      },
+      "sourceLabels": {
+        "default": "Standard",
+        "organization": "Organisation",
+        "provider": "Leverantör",
+        "distributor": "Distributör"
+      },
+      "errors": {
+        "loadFailed": "Kunde inte hämta brandinginformation."
+      }
+    },
+    "detail": {
+      "backToList": "← Tillbaka till listan",
+      "category": "Superadmin",
+      "loading": "Laddar...",
+      "loadingDetails": "Laddar tenant-detaljer...",
+      "types": {
+        "distributor": "Distributör - kan skapa leverantörer",
+        "provider": "Leverantör - kan skapa organisationer",
+        "organization": "Organisation"
+      },
+      "sections": {
+        "information": "Information",
+        "linkedTenants": {
+          "providers": "Leverantörer",
+          "distributors": "Distributörer",
+          "countProviders": "{count} leverantörer",
+          "countDistributors": "{count} distributörer",
+          "noneProviders": "Inga leverantörer kopplade.",
+          "noneDistributors": "Inga distributörer kopplade."
+        },
+        "organizations": {
+          "title": "Organisationer",
+          "count": "{count} organisationer"
+        },
+        "pendingInvitations": {
+          "title": "Väntande inbjudningar",
+          "viewAllMembers": "Visa alla medlemmar →",
+          "none": "Inga aktiva inbjudningar."
+        },
+        "dangerZone": {
+          "title": "Danger zone"
+        }
+      },
+      "fields": {
+        "name": "Namn",
+        "slug": "Slug",
+        "type": "Typ",
+        "status": "Status",
+        "email": "E-post",
+        "organization": "Organisation"
+      },
+      "actions": {
+        "edit": "Redigera",
+        "cancel": "Avbryt",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "createProvider": "Skapa leverantör",
+        "createOrganization": "Skapa organisation",
+        "members": "Medlemmar",
+        "emailSettings": "E-postinställningar",
+        "modulePermissions": "Modulrättigheter",
+        "branding": "Branding",
+        "auditLogs": "Audit Loggar",
+        "delete": "Ta bort permanent",
+        "deleting": "Raderar..."
+      },
+      "form": {
+        "slugHint": "Endast små bokstäver, siffror och bindestreck",
+        "saveError": "Kunde inte spara ändringarna."
+      },
+      "email": {
+        "override": "Override",
+        "inherited": "Ärvs"
+      },
+      "invitations": {
+        "invitedBy": "Inbjuden av",
+        "expiresAt": "Gäller till",
+        "willCreate": "Kommer skapa: {name}",
+        "resend": "Skicka igen",
+        "resending": "Skickar...",
+        "cancel": "Avbryt",
+        "cancelling": "Avbryter...",
+        "cancelConfirm": "Vill du verkligen avbryta denna inbjudan?",
+        "cancelled": "Inbjudan avbröts.",
+        "resent": "Inbjudan skickades igen.",
+        "cancelError": "Kunde inte avbryta inbjudan.",
+        "resendError": "Kunde inte skicka om inbjudan."
+      },
+      "editDistributors": {
+        "title": "Redigera distributör-kopplingar",
+        "label": "Distributörer",
+        "none": "Inga distributörer tillgängliga.",
+        "hint": "Välj vilka distributörer denna leverantör ska kopplas till.",
+        "saveError": "Kunde inte spara ändringarna."
+      },
+      "delete": {
+        "distributor": {
+          "description": "Radering tar bort distributören och all kopplad data. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna. Detta kan inte ångras.",
+          "button": "Ta bort distributör",
+          "modalTitle": "Ta bort distributör",
+          "possessive": "distributörens",
+          "extra": "Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.",
+          "acknowledgement": "Jag förstår att distributören och all kopplad data (leverantörskopplingar, medlemskap m.m.) raderas permanent. Distributören kan endast raderas om alla organisationer kopplade via leverantörer först är borttagna.",
+          "error": "Kunde inte radera distributören."
+        },
+        "provider": {
+          "description": "Radering tar bort leverantören och all kopplad data. Leverantören kan endast raderas om alla organisationer under den först är borttagna. Detta kan inte ångras.",
+          "button": "Ta bort leverantör",
+          "modalTitle": "Ta bort leverantör",
+          "possessive": "leverantörens",
+          "extra": "Leverantören kan endast raderas om alla organisationer under den först är borttagna.",
+          "acknowledgement": "Jag förstår att leverantören och all kopplad data (organisationer, medlemskap m.m.) raderas permanent. Leverantören kan endast raderas om alla organisationer under den först är borttagna.",
+          "error": "Kunde inte radera leverantören."
+        },
+        "confirmSlug": "Bekräfta slug",
+        "confirmText": "Bekräfta åtgärden genom att skriva in {possessive} slug ({slug}) och markera att du förstår konsekvenserna. {extra}"
+      }
+    }
+  },
+  "adminOrganizations": {
+    "title": "Organisationer",
+    "description": "Hantera alla kundkonton, sök efter organisationer och öppna detaljerade vyer för medlemmar och inställningar.",
+    "deleted": "Organisationen \"{slug}\" raderades permanent.",
+    "searchPlaceholder": "Sök efter namn eller slug",
+    "clear": "Rensa",
+    "status": "Status:",
+    "all": "Alla",
+    "active": "Aktiva",
+    "inactive": "Inaktiva",
+    "tenant": "Tenant:",
+    "auditLogs": "Audit Loggar",
+    "globalEmail": "Global e-post",
+    "manageUsers": "Hantera användare",
+    "createOrganization": "Skapa organisation",
+    "allOrganizations": "Alla organisationer",
+    "results": "{count} resultat",
+    "for": "för \"{query}\"",
+    "loading": "Laddar organisationer...",
+    "noResults": "Inga organisationer matchade din sökning.",
+    "noOrganizations": "Inga organisationer hittades.",
+    "refresh": "Uppdatera",
+    "table": {
+      "organization": "Organisation",
+      "slug": "Slug",
+      "status": "Status",
+      "tenant": "Tenant",
+      "members": "Medlemmar",
+      "email": "E-post",
+      "sso": "SSO",
+      "created": "Skapad"
+    },
+    "status": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv"
+    },
+    "sso": {
+      "on": "På",
+      "off": "Av"
+    },
+    "filters": {
+      "statusLabel": "Status:",
+      "statusActive": "Aktiva",
+      "statusInactive": "Inaktiva",
+      "tenantLabel": "Tenant:"
+    },
+    "noTenant": "Ingen tenant",
+    "memberCount": "{count} st",
+    "emailOverride": {
+      "active": "E-post override aktiv",
+      "override": "Override",
+      "inherited": "Ärvs"
+    }
+  },
+  "adminSettingsEmail": {
+    "category": "Superadmin",
+    "title": "Global e-postprovider",
+    "description": "Konfigurera det globala utskicket som används för lösenord, inbjudningar och andra notifieringar. Dessa inställningar ärvs av alla leverantörer om de inte har egna inställningar.",
+    "loading": "Hämtar inställningar...",
+    "messages": {
+      "saved": "Inställningarna sparades.",
+      "saveError": "Kunde inte spara inställningarna.",
+      "testSent": "Testmail skickades till {email}.",
+      "testError": "Kunde inte skicka testmail."
+    }
+  },
+  "adminUsers": {
+    "title": "Användare",
+    "description": "Hantera användarkonton, status och lösenordsåterställningar.",
+    "backToOrganizations": "← Till organisationer",
+    "searchPlaceholder": "Sök efter e-post eller namn",
+    "search": "Sök",
+    "clear": "Rensa",
+    "allUsers": "Alla användare",
+    "results": "{count} resultat",
+    "for": "för \"{query}\"",
+    "manageOrganizations": "Hantera organisationer",
+    "loading": "Laddar användare...",
+    "noResults": "Inga användare matchade din sökning.",
+    "table": {
+      "email": "E-post",
+      "name": "Namn",
+      "status": "Status",
+      "orgActive": "Org (aktiva)",
+      "created": "Skapad",
+      "actions": "Åtgärder",
+      "manage": "Hantera",
+      "active": "Aktiv",
+      "inactive": "Inaktiverad",
+      "requiresPasswordReset": "Kräver lösenordsbyte",
+      "count": "{count} st",
+      "activeCount": "({count} aktiva)"
+    }
+  }
+}
+
