@@ -1,15 +1,10 @@
-import type {
-  ModuleCategory,
-  ModuleDefinition,
-  ModuleId,
-  ModuleScope
-} from '~/constants/modules'
+import type { ModuleCategory, ModuleDefinition, ModuleId, ModuleScope } from '~/constants/modules'
 import { ALL_MODULES, type ModuleMeta } from './module-registry'
 
 const metaToDefinition = (meta: ModuleMeta): ModuleDefinition => ({
   ...meta,
   id: meta.key as ModuleId,
-  permissions: meta.requiredPermissions,
+  permissions: meta.requiredPermissions ?? [],
   routePath: meta.rootRoute
 })
 

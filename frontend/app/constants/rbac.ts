@@ -1,4 +1,4 @@
-export const rbacRoles = ['owner', 'admin', 'member', 'operator', 'viewer'] as const
+export const rbacRoles = ['owner', 'admin', 'operator', 'member', 'viewer', 'support'] as const
 
 export type RbacRole = (typeof rbacRoles)[number]
 
@@ -52,14 +52,6 @@ export const rbacPermissions = [
   'users:invite',
   'users:read',
   'users:manage',
-  'cloudflare:read',
-  'cloudflare:write',
-  'containers:read',
-  'containers:write',
-  'vms:read',
-  'vms:write',
-  'wordpress:read',
-  'wordpress:write',
   'audit:read',
   'tenants:read',
   'tenants:manage',
@@ -77,50 +69,22 @@ export const rolePermissionMap: Record<RbacRole, RbacPermission[]> = {
     'org:manage',
     'org:billing',
     'users:invite',
+    'users:read',
     'users:manage',
-    'cloudflare:read',
-    'cloudflare:write',
-    'containers:read',
-    'containers:write',
-    'vms:read',
-    'vms:write',
-    'wordpress:read',
-    'wordpress:write',
     'audit:read'
   ],
   admin: [
     'org:read',
     'org:manage',
     'users:invite',
+    'users:read',
     'users:manage',
-    'cloudflare:read',
-    'cloudflare:write',
-    'containers:read',
-    'containers:write',
-    'vms:read',
-    'vms:write',
-    'wordpress:read',
-    'wordpress:write',
     'audit:read'
   ],
-  member: ['org:read', 'cloudflare:read', 'containers:read', 'vms:read', 'wordpress:read'],
-  operator: [
-    'org:read',
-    'cloudflare:read',
-    'cloudflare:write',
-    'containers:read',
-    'containers:write',
-    'vms:read',
-    'wordpress:read',
-    'wordpress:write'
-  ],
-  viewer: [
-    'org:read',
-    'cloudflare:read',
-    'containers:read',
-    'vms:read',
-    'wordpress:read'
-  ]
+  operator: ['org:read', 'users:read'],
+  member: ['org:read'],
+  viewer: ['org:read'],
+  support: ['org:read', 'users:read', 'audit:read']
 }
 
 export const defaultRole: RbacRole = 'member'
@@ -137,31 +101,15 @@ export const tenantRolePermissionMap: Record<TenantRole, RbacPermission[]> = {
     'tenants:create-customer',
     'org:read',
     'org:manage',
+    'org:billing',
     'users:invite',
+    'users:read',
     'users:manage',
     'audit:read'
   ],
-  user: [
-    'org:read',
-    'cloudflare:read',
-    'containers:read',
-    'vms:read',
-    'wordpress:read'
-  ],
-  viewer: [
-    'org:read',
-    'tenants:read',
-    'cloudflare:read',
-    'containers:read',
-    'vms:read',
-    'wordpress:read'
-  ],
-  support: [
-    'tenants:read',
-    'org:read',
-    'users:read',
-    'audit:read'
-  ],
+  user: ['org:read'],
+  viewer: ['org:read', 'tenants:read'],
+  support: ['tenants:read', 'org:read', 'users:read', 'audit:read'],
   'msp-global-admin': [
     'tenants:read',
     'tenants:manage',
@@ -173,68 +121,33 @@ export const tenantRolePermissionMap: Record<TenantRole, RbacPermission[]> = {
     'org:manage',
     'org:billing',
     'users:invite',
+    'users:read',
     'users:manage',
-    'cloudflare:read',
-    'cloudflare:write',
-    'containers:read',
-    'containers:write',
-    'vms:read',
-    'vms:write',
-    'wordpress:read',
-    'wordpress:write',
     'audit:read'
   ],
-  'msp-global-reader': [
-    'tenants:read',
-    'org:read',
-    'cloudflare:read',
-    'containers:read',
-    'vms:read',
-    'wordpress:read',
-    'audit:read'
-  ],
-  'msp-cloudflare-admin': ['tenants:read', 'org:read', 'org:manage', 'cloudflare:read', 'cloudflare:write'],
-  'msp-containers-admin': ['tenants:read', 'org:read', 'org:manage', 'containers:read', 'containers:write'],
-  'msp-vms-admin': ['tenants:read', 'org:read', 'org:manage', 'vms:read', 'vms:write'],
-  'msp-wordpress-admin': ['tenants:read', 'org:read', 'org:manage', 'wordpress:read', 'wordpress:write'],
-  'msp-ncentral-admin': ['tenants:read', 'org:read', 'org:manage'],
-  'msp-monitoring-admin': ['tenants:read', 'org:read', 'org:manage'],
-  'msp-managed-server-admin': ['tenants:read', 'org:read', 'org:manage'],
-  'msp-dns-containers-admin': [
-    'tenants:read',
-    'org:read',
-    'org:manage',
-    'cloudflare:read',
-    'cloudflare:write',
-    'containers:read',
-    'containers:write'
-  ],
-  'msp-infrastructure-admin': [
-    'tenants:read',
-    'org:read',
-    'org:manage',
-    'containers:read',
-    'containers:write',
-    'vms:read',
-    'vms:write',
-    'wordpress:read',
-    'wordpress:write'
-  ],
+  'msp-global-reader': ['tenants:read', 'org:read', 'audit:read'],
+  'msp-cloudflare-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
+  'msp-containers-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
+  'msp-vms-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
+  'msp-wordpress-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
+  'msp-ncentral-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
+  'msp-monitoring-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
+  'msp-managed-server-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
+  'msp-dns-containers-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
+  'msp-infrastructure-admin': ['tenants:read', 'org:read', 'org:manage', 'users:read'],
   'msp-full-admin': [
     'tenants:read',
+    'tenants:manage',
+    'tenants:manage-members',
+    'tenants:create-distributor',
+    'tenants:create-provider',
+    'tenants:create-customer',
     'org:read',
     'org:manage',
     'org:billing',
     'users:invite',
+    'users:read',
     'users:manage',
-    'cloudflare:read',
-    'cloudflare:write',
-    'containers:read',
-    'containers:write',
-    'vms:read',
-    'vms:write',
-    'wordpress:read',
-    'wordpress:write',
     'audit:read'
   ]
 }

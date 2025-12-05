@@ -2,14 +2,14 @@ import type { RbacPermission } from './rbac'
 import {
   ALL_MODULES,
   type ModuleMeta,
-  type ModuleRoleDefinition,
+  type ModuleRoleMeta,
   type ModuleScope,
   type ModuleVisibilityMode
 } from '~/lib/module-registry'
 
 export type ModuleId = ModuleMeta['key']
 export type ModuleCategory = ModuleMeta['category']
-export { ModuleScope, ModuleRoleDefinition, ModuleVisibilityMode }
+export { ModuleScope, ModuleRoleMeta as ModuleRoleDefinition, ModuleVisibilityMode }
 
 export type ModuleRoleKey = string
 

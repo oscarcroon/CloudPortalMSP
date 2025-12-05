@@ -1,26 +1,20 @@
 ﻿import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
 import { requirePermission } from '~~/server/utils/rbac'
 import {
-  setOrganizationModulePolicy,
-  getEffectiveModulePolicyForOrg,
-  getTenantModulePolicy,
-  getOrganizationModulePolicy
+  getOrganizationModulePolicy,
+  getOrganizationModulesStatus,
+  setOrganizationModulePolicy
 } from '~~/server/utils/modulePolicy'
 import { getModuleById } from '~/lib/modules'
-import { getDb } from '~~/server/utils/db'
-import { organizations } from '~~/server/database/schema'
-import type { ModuleId, ModuleRoleDefinition } from '~/constants/modules'
-import type { ModulePermissionOverrides } from '~~/server/utils/modulePolicy'
+import type { ModuleId } from '~/constants/modules'
+import type { ModulePolicy } from '~/types/modules'
 import { logOrganizationAction } from '~~/server/utils/audit'
 
 const bodySchema = z.object({
-  moduleId: z.string(),
-  enabled: z.boolean().optional(),
-  disabled: z.boolean().optional(),
-  permissionOverrides: z.record(z.boolean()).optional(),
-  allowedRoles: z.array(z.string()).nullable().optional()
+  moduleKey: z.string(),
+  mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']),
+  allowedRoles: z.array(z.string()).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -30,165 +24,86 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleId, enabled, disabled, permissionOverrides, allowedRoles } = body
+  const { moduleKey, mode, allowedRoles } = body
 
-  // Require org:manage permission to update module policies
   await requirePermission(event, 'org:manage', orgId)
 
-  // Validate module ID
-  const module = getModuleById(moduleId as ModuleId)
+  const module = getModuleById(moduleKey as ModuleId)
+  if (!module) {
+    throw createError({ statusCode: 400, message: `Invalid module key: ${moduleKey}` })
+  }
 
-  if (allowedRoles !== undefined) {
-    if (!module) {
+  const roleDefinitions = module.moduleRoles ?? module.roles ?? []
+  if (allowedRoles && allowedRoles.length > 0) {
+    const validRoleKeys = new Set(roleDefinitions.map((role) => role.key))
+    const invalid = allowedRoles.filter((role) => !validRoleKeys.has(role))
+    if (invalid.length) {
       throw createError({
         statusCode: 400,
-        message: `Invalid module ID: ${moduleId}`
+        message: `Invalid module roles for ${moduleKey}: ${invalid.join(', ')}`
       })
-    }
-
-    if (!module.roles || module.roles.length === 0) {
-      if (allowedRoles && allowedRoles.length > 0) {
-        throw createError({
-          statusCode: 400,
-          message: `Module ${moduleId} does not define module-specific roles`
-        })
-      }
-    } else if (allowedRoles) {
-      const validRoleKeys = new Set(
-        module.roles.map((role: ModuleRoleDefinition) => role.key)
-      )
-      const invalidRoles = allowedRoles.filter((role) => !validRoleKeys.has(role))
-      if (invalidRoles.length > 0) {
-        throw createError({
-          statusCode: 400,
-          message: `Invalid module roles for ${moduleId}: ${invalidRoles.join(', ')}`
-        })
-      }
     }
   }
 
-  if (!module) {
+  const currentModules = await getOrganizationModulesStatus(orgId)
+  const current = currentModules.find((m) => m.key === moduleKey)
+  if (current?.tenantPolicy?.mode === 'blocked' && mode !== 'blocked') {
     throw createError({
-      statusCode: 400,
-      message: `Invalid module ID: ${moduleId}`
+      statusCode: 403,
+      message: 'Module is blocked at tenant level'
     })
   }
 
-  // Get current effective policy to ensure we're not expanding permissions
-  const currentPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)
-  
-  // Get organization and its tenant to check tenant-level policy
-  const db = getDb()
-  const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId))
-  
-  const tenantPolicy = org?.tenantId
-    ? await getTenantModulePolicy(org.tenantId, moduleId as ModuleId)
-    : null
+  const normalizedRoles =
+    mode === 'allowlist'
+      ? Array.from(new Set(allowedRoles ?? [])).filter(Boolean)
+      : []
 
-  const tenantLevelEnabled = tenantPolicy === null ? true : tenantPolicy.enabled
-  const tenantLevelDisabled = tenantPolicy === null ? false : tenantPolicy.disabled
+  const previousPolicy = await getOrganizationModulePolicy(orgId, moduleKey as ModuleId)
 
-  // If setting enabled, ensure we're not enabling something that's disabled at tenant level
-  if (enabled !== undefined) {
-    if (enabled && !tenantLevelEnabled) {
-      throw createError({
-        statusCode: 403,
-        message: 'Cannot enable module that is disabled at tenant level'
-      })
-    }
+  const policy: ModulePolicy = {
+    moduleKey,
+    mode,
+    allowedRoles: normalizedRoles
   }
 
-  // If setting permission overrides, ensure we're only restricting (not expanding)
-  if (permissionOverrides) {
-    for (const [permission, value] of Object.entries(permissionOverrides)) {
-      if (value === true && currentPolicy.permissionOverrides[permission] === false) {
-        throw createError({
-          statusCode: 403,
-          message: `Cannot enable permission ${permission} that is disabled at tenant level`
-        })
-      }
-    }
+  await setOrganizationModulePolicy(orgId, moduleKey as ModuleId, policy)
+
+  const updatedModules = await getOrganizationModulesStatus(orgId)
+  const updated = updatedModules.find((item) => item.key === moduleKey)
+
+  if (previousPolicy?.mode !== policy.mode || previousPolicy?.allowedRoles !== policy.allowedRoles) {
+    await logOrganizationAction(
+      event,
+      policy.mode === 'blocked' ? 'MODULE_DISABLED' : 'MODULE_ENABLED',
+      {
+        moduleKey,
+        previousMode: previousPolicy?.mode ?? 'inherit',
+        newMode: policy.mode,
+        previousAllowedRoles: previousPolicy?.allowedRoles ?? [],
+        newAllowedRoles: policy.allowedRoles
+      },
+      orgId
+    )
   }
 
-  // Update policy
-  // If enabled is explicitly set, use it
-  // Otherwise, if we're only updating disabled/permissionOverrides, we need to check
-  // what the organization's own policy is (not the effective policy which includes tenant)
-  const orgOwnPolicy = await getOrganizationModulePolicy(orgId, moduleId as ModuleId)
-  
-  // If enabled is explicitly provided, use it
-  // Otherwise, if there's an existing org policy, keep its enabled value
-  // If no org policy exists and enabled is not provided, inherit from tenant (which means enabled=true by default)
-  const finalEnabled: boolean = Boolean(enabled ?? orgOwnPolicy?.enabled ?? tenantLevelEnabled)
-  
-  const finalDisabled = disabled !== undefined ? disabled : (orgOwnPolicy?.disabled ?? false)
-  const finalOverrides: ModulePermissionOverrides = {
-    ...currentPolicy.permissionOverrides,
-    ...(permissionOverrides || {})
-  }
-
-  // Get old policy for audit log
-  const oldPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)
-  const oldEnabled = oldPolicy.enabled
-  const oldDisabled = oldPolicy.disabled
-
-  const finalEnabledBool = Boolean(finalEnabled)
-
-  await setOrganizationModulePolicy(
-    orgId,
-    moduleId as ModuleId,
-    finalEnabledBool,
-    finalOverrides,
-    finalDisabled,
-    allowedRoles === undefined ? undefined : allowedRoles
-  )
-
-  // Log audit event
-  if (finalEnabledBool !== oldEnabled || finalDisabled !== oldDisabled) {
-    await logOrganizationAction(event, finalEnabledBool ? 'MODULE_ENABLED' : 'MODULE_DISABLED', {
-      moduleId,
-      oldEnabled,
-      newEnabled: finalEnabledBool,
-      oldDisabled,
-      newDisabled: finalDisabled
-    }, orgId)
-  }
-
-  // Return updated policy
-  const updatedPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)
-  const orgPolicy = await getOrganizationModulePolicy(orgId, moduleId as ModuleId)
-
-  const toBoolean = (value: unknown, fallback: boolean) => {
-    if (typeof value === 'boolean') return value
-    if (typeof value === 'number') return value === 1
-    return fallback
-  }
-
-  const tenantEnabled = toBoolean(tenantPolicy?.enabled, true)
-  const tenantDisabled = toBoolean(tenantPolicy?.disabled, false)
-  const orgEnabled = toBoolean(orgPolicy?.enabled, tenantEnabled)
-  const orgDisabled = toBoolean(orgPolicy?.disabled, false)
-
-  return {
+  return updated ?? {
     key: module.id,
-    moduleId: module.id,
     name: module.name,
     description: module.description,
     category: module.category,
     layerKey: module.layerKey,
     rootRoute: module.routePath,
-    scopes: module.scopes,
     status: module.status ?? 'active',
+    scopes: module.scopes,
     featureFlag: module.featureFlag,
     requiredPermissions: module.permissions,
-    tenantEnabled,
-    tenantDisabled,
-    orgEnabled,
-    orgDisabled,
-    effectiveEnabled: updatedPolicy.enabled,
-    effectiveDisabled: updatedPolicy.disabled,
-    permissionOverrides: updatedPolicy.permissionOverrides,
-    allowedRoles: updatedPolicy.allowedRoles
+    moduleRoles: roleDefinitions,
+    orgPolicy: policy,
+    effectivePolicy: policy,
+    tenantEnabled: true,
+    orgEnabled: policy.mode !== 'blocked',
+    effectiveEnabled: policy.mode !== 'blocked'
   }
 })
 

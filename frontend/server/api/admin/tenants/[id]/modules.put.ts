@@ -1,18 +1,20 @@
 ﻿import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
 import { requireTenantPermission } from '~~/server/utils/rbac'
-import { setTenantModulePolicy, getTenantModulePolicy } from '~~/server/utils/modulePolicy'
+import {
+  getTenantModulePolicy,
+  getTenantModulesStatus,
+  setTenantModulePolicy
+} from '~~/server/utils/modulePolicy'
 import { getModuleById } from '~/lib/modules'
 import type { ModuleId } from '~/constants/modules'
-import type { ModulePermissionOverrides } from '~~/server/utils/modulePolicy'
+import type { ModulePolicy } from '~/types/modules'
 import { logTenantAction } from '~~/server/utils/audit'
 
 const bodySchema = z.object({
-  moduleId: z.string(),
-  enabled: z.boolean().optional(),
-  disabled: z.boolean().optional(),
-  permissionOverrides: z.record(z.boolean()).optional(),
-  allowedRoles: z.array(z.string()).nullable().optional()
+  moduleKey: z.string(),
+  mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']),
+  allowedRoles: z.array(z.string()).optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -22,121 +24,74 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleId, enabled, disabled, permissionOverrides, allowedRoles } = body
+  const { moduleKey, mode, allowedRoles } = body
 
-  // Require tenant:manage permission
   await requireTenantPermission(event, 'tenants:manage', tenantId)
 
-  // Validate module ID
-  const module = getModuleById(moduleId as ModuleId)
+  const module = getModuleById(moduleKey as ModuleId)
   if (!module) {
-    throw createError({
-      statusCode: 400,
-      message: `Invalid module ID: ${moduleId}`
-    })
+    throw createError({ statusCode: 400, message: `Invalid module key: ${moduleKey}` })
   }
 
-  // If only permissionOverrides is provided (not enabled/disabled), keep the existing state
-  // This allows toggling permissions without affecting module enabled/disabled state
-  let finalEnabled = enabled
-  let finalDisabled = disabled
-  let finalPermissionOverrides = permissionOverrides
-  
-  if (enabled === undefined && disabled === undefined && permissionOverrides !== undefined) {
-    // Only permission overrides changed, get current state
-    const currentPolicy = await getTenantModulePolicy(tenantId, moduleId as ModuleId)
-    finalEnabled = currentPolicy?.enabled ?? true
-    finalDisabled = currentPolicy?.disabled ?? false
-  } else if ((enabled !== undefined || disabled !== undefined) && permissionOverrides === undefined) {
-    // Only enabled/disabled changed, keep existing permission overrides
-    const currentPolicy = await getTenantModulePolicy(tenantId, moduleId as ModuleId)
-    finalPermissionOverrides = currentPolicy?.permissionOverrides
-    if (enabled === undefined) {
-      finalEnabled = currentPolicy?.enabled ?? true
-    }
-    if (disabled === undefined) {
-      finalDisabled = currentPolicy?.disabled ?? false
-    }
-  } else {
-    // Both or neither provided
-    finalEnabled = enabled ?? true
-    finalDisabled = disabled ?? false
-  }
-
-  // Get old policy for audit log
-  const oldPolicy = await getTenantModulePolicy(tenantId, moduleId as ModuleId)
-  const oldEnabled = oldPolicy?.enabled ?? true
-  const oldDisabled = oldPolicy?.disabled ?? false
-
-  if (allowedRoles !== undefined) {
-    if (!module.roles || module.roles.length === 0) {
-      if (allowedRoles && allowedRoles.length > 0) {
-        throw createError({
-          statusCode: 400,
-          message: `Module ${moduleId} does not define module-specific roles`
-        })
-      }
-    } else if (allowedRoles) {
-      const validRoleKeys = new Set(module.roles.map((role) => role.key))
-      const invalidRoles = allowedRoles.filter((role) => !validRoleKeys.has(role))
-      if (invalidRoles.length > 0) {
-        throw createError({
-          statusCode: 400,
-          message: `Invalid module roles for ${moduleId}: ${invalidRoles.join(', ')}`
-        })
-      }
+  if (allowedRoles && allowedRoles.length > 0) {
+    const validRoleKeys = new Set((module.moduleRoles ?? module.roles ?? []).map((role) => role.key))
+    const invalid = allowedRoles.filter((role) => !validRoleKeys.has(role))
+    if (invalid.length) {
+      throw createError({
+        statusCode: 400,
+        message: `Invalid module roles for ${moduleKey}: ${invalid.join(', ')}`
+      })
     }
   }
 
-  // Update policy
-  await setTenantModulePolicy(
-    tenantId,
-    moduleId as ModuleId,
-    Boolean(finalEnabled),
-    finalPermissionOverrides as ModulePermissionOverrides | undefined,
-    finalDisabled,
-    allowedRoles === undefined ? undefined : allowedRoles
-  )
+  const normalizedAllowedRoles =
+    mode === 'allowlist' ? Array.from(new Set(allowedRoles ?? [])) : []
 
-  // Log audit event
-  if (finalEnabled !== oldEnabled || finalDisabled !== oldDisabled) {
-    await logTenantAction(event, finalEnabled ? 'MODULE_ENABLED' : 'MODULE_DISABLED', {
-      moduleId,
-      oldEnabled,
-      newEnabled: finalEnabled,
-      oldDisabled,
-      newDisabled: finalDisabled
-    }, tenantId)
+  const previousPolicy = await getTenantModulePolicy(tenantId, moduleKey as ModuleId)
+
+  const policy: ModulePolicy = {
+    moduleKey,
+    mode,
+    allowedRoles: normalizedAllowedRoles
   }
 
-  // Return updated policy
-  const updatedPolicy = await getTenantModulePolicy(tenantId, moduleId as ModuleId)
-  const tenantEnabled =
-    updatedPolicy === null ? true : typeof updatedPolicy.enabled === 'boolean'
-      ? updatedPolicy.enabled
-      : updatedPolicy.enabled === 1
-  const tenantDisabled =
-    updatedPolicy === null ? false : typeof updatedPolicy.disabled === 'boolean'
-      ? updatedPolicy.disabled
-      : updatedPolicy.disabled === 1
+  await setTenantModulePolicy(tenantId, moduleKey as ModuleId, policy)
 
-  return {
+  const updatedModules = await getTenantModulesStatus(tenantId)
+  const updated = updatedModules.find((item) => item.key === moduleKey)
+
+  if (previousPolicy?.mode !== policy.mode || previousPolicy?.allowedRoles !== policy.allowedRoles) {
+    await logTenantAction(
+      event,
+      policy.mode === 'blocked' ? 'MODULE_DISABLED' : 'MODULE_ENABLED',
+      {
+        moduleKey,
+        previousMode: previousPolicy?.mode ?? 'inherit',
+        newMode: policy.mode,
+        previousAllowedRoles: previousPolicy?.allowedRoles ?? [],
+        newAllowedRoles: policy.allowedRoles
+      },
+      tenantId
+    )
+  }
+
+  return updated ?? {
     key: module.id,
-    moduleId: module.id,
     name: module.name,
     description: module.description,
     category: module.category,
     layerKey: module.layerKey,
     rootRoute: module.routePath,
-    scopes: module.scopes,
     status: module.status ?? 'active',
+    scopes: module.scopes,
     featureFlag: module.featureFlag,
     requiredPermissions: module.permissions,
-    tenantEnabled,
-    tenantDisabled,
-    effectiveEnabled: tenantEnabled,
-    permissionOverrides: updatedPolicy?.permissionOverrides ?? {},
-    allowedRoles: updatedPolicy?.allowedRoles ?? null
+    moduleRoles: module.moduleRoles ?? module.roles ?? [],
+    tenantPolicy: policy,
+    effectivePolicy: policy,
+    tenantEnabled: policy.mode !== 'blocked',
+    orgEnabled: policy.mode !== 'blocked',
+    effectiveEnabled: policy.mode !== 'blocked'
   }
 })
 

@@ -285,6 +285,9 @@
     "open": "Open",
     "modules": {
       "title": "Modules",
+      "description": "Manage which modules are visible and which permissions are available for the organization.",
+      "cta": "Manage module access",
+      "empty": "No modules available right now.",
       "pageDescription": "Choose which tenant modules your organization will use.",
       "searchPlaceholder": "Search modules...",
       "filters": {
@@ -293,12 +296,18 @@
       "results": "{count} modules",
       "loading": "Loading modules...",
       "noModules": "No modules are available for your organization. Contact your tenant admin if something is missing.",
-      "toggleEnabled": "Enable for this organization",
-      "toggleDisabled": "Show as deactivated (greyed)",
+      "routeLabel": "Route:",
+      "policyTitle": "Module policy",
+      "tenantBlocked": "Blocked by tenant",
       "lockedByTenant": "Disabled by tenant",
-      "tenantDisabled": "Disabled by tenant",
-      "tenantDeactivated": "Deactivated by tenant",
-      "routeLabel": "Route:"
+      "modes": {
+        "inherit": "Inherit tenant",
+        "defaultClosed": "Default off (user override only)",
+        "allowlist": "Allow specific roles",
+        "blocked": "Blocked"
+      },
+      "allowedRolesLabel": "Allowed roles",
+      "updateFailed": "Could not update module policy."
     },
     "organizations": {
       "title": "Organizations",
@@ -926,6 +935,8 @@
       "deprecated": "Deprecated",
       "coming-soon": "Coming soon"
     },
+    "layerLabel": "Layer:",
+    "moduleRoles": "Module roles",
     "openModule": "Open module",
     "routeLabel": "Route:",
     "results": "{count} modules",
@@ -973,9 +984,16 @@
       "results": "{count} modules",
       "loading": "Loading modules...",
       "empty": "No modules available yet.",
-      "toggleEnabled": "Enable module for this tenant",
-      "toggleDisabled": "Show as deactivated (greyed)",
-      "routeLabel": "Route:"
+      "routeLabel": "Route:",
+      "policyTitle": "Module policy",
+      "modes": {
+        "inherit": "Inherit upstream",
+        "defaultClosed": "Default off (user override only)",
+        "allowlist": "Allow specific roles",
+        "blocked": "Blocked"
+      },
+      "allowedRolesLabel": "Allowed roles",
+      "updateFailed": "Could not update module policy."
     },
     "emailOverride": {
       "active": "Email override active",

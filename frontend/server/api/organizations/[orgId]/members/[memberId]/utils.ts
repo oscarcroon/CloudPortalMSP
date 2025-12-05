@@ -1,9 +1,9 @@
-import { getAllModules } from '~/lib/modules'
-import { getEffectiveModulePolicyForOrg } from '~~/server/utils/modulePolicy'
+import { getOrganizationModulesStatus } from '~~/server/utils/modulePolicy'
 import { getModuleRoleOverridesForMember } from '~~/server/utils/userModuleRoles'
 import { createModuleRoleDefaultResolver } from '~~/server/utils/moduleRoleDefaults'
 import { resolveModuleRoleState } from '~~/server/utils/moduleRoleState'
 import type { ModuleRoleDefinition, ModuleRoleKey } from '~/constants/modules'
+import type { PolicyMode } from '~/types/modules'
 import type { RbacRole } from '~/constants/rbac'
 
 export interface MemberModuleRoleEntry {
@@ -19,6 +19,7 @@ export interface MemberModuleRoleEntry {
   effectiveRoles: ModuleRoleKey[]
   editable: boolean
   roleSource: 'custom' | 'rbac' | 'none'
+  policyMode: PolicyMode
 }
 
 export const getMemberModuleRolePayload = async (
@@ -26,42 +27,56 @@ export const getMemberModuleRolePayload = async (
   userId: string,
   memberRole: RbacRole
 ): Promise<MemberModuleRoleEntry[]> => {
-  const modulesWithRoles = getAllModules().filter(
-    (module) => Array.isArray(module.roles) && module.roles.length > 0
+  const modules = await getOrganizationModulesStatus(organizationId)
+  const modulesWithRoles = modules.filter(
+    (module) =>
+      module.effectiveEnabled &&
+      Array.isArray(module.moduleRoles) &&
+      module.moduleRoles.length > 0
   )
-
-  if (modulesWithRoles.length === 0) {
-    return []
-  }
-
   const overridesByModule = await getModuleRoleOverridesForMember(organizationId, userId)
   const resolveDefaultRoles = createModuleRoleDefaultResolver()
 
   return Promise.all(
     modulesWithRoles.map(async (module) => {
-      const policy = await getEffectiveModulePolicyForOrg(organizationId, module.id)
-      const blocked = Array.isArray(policy.allowedRoles) && policy.allowedRoles.length === 0
-      const defaultRoles = await resolveDefaultRoles(module.id, memberRole)
-      const overrideSet = overridesByModule.get(module.id)
+      const policy = module.effectivePolicy
+      const moduleRoles = module.moduleRoles || []
+
+      const allowedRoles =
+        policy.mode === 'allowlist' ? policy.allowedRoles ?? [] : null
+
+      const blocked =
+        policy.mode === 'blocked' || (policy.mode === 'allowlist' && allowedRoles?.length === 0)
+
+      const rawDefaults = await resolveDefaultRoles(module.key as any, memberRole)
+      const defaultRoles =
+        policy.mode === 'default-closed'
+          ? []
+          : allowedRoles
+          ? rawDefaults.filter((role) => allowedRoles.includes(role))
+          : rawDefaults
+
+      const overrideSet = overridesByModule.get(module.key as any)
       const state = resolveModuleRoleState({
         defaultRoles,
         overrides: overrideSet,
-        allowedRoles: policy.allowedRoles
+        allowedRoles
       })
 
       return {
-        moduleId: module.id,
+        moduleId: module.key,
         name: module.name,
         description: module.description,
-        roleDefinitions: module.roles || [],
-        allowedRoles: policy.allowedRoles,
-        allowedRolesSource: policy.allowedRolesSource,
+        roleDefinitions: moduleRoles,
+        allowedRoles,
+        allowedRolesSource: 'organization',
         defaultRoles: state.defaultRoles,
         grantOverrides: state.grantOverrides,
         denyOverrides: state.denyOverrides,
         effectiveRoles: state.effectiveRoles,
         editable: !blocked,
-        roleSource: state.source
+        roleSource: state.source,
+        policyMode: policy.mode
       }
     })
   )

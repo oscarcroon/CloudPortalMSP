@@ -76,13 +76,10 @@
                 {{ t(`adminModules.status.${module.status ?? 'active'}`) }}
               </StatusPill>
               <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-white/10 dark:text-slate-200">
-                Layer: {{ module.layerKey }}
+                {{ t('adminModules.layerLabel') }} {{ module.layerKey }}
               </span>
-              <StatusPill v-if="module.tenantDisabled" variant="warning">
-                {{ t('settings.modules.tenantDeactivated') }}
-              </StatusPill>
-              <StatusPill v-else-if="!module.tenantEnabled" variant="danger">
-                {{ t('settings.modules.tenantDisabled') }}
+              <StatusPill v-if="module.tenantPolicy?.mode === 'blocked'" variant="danger">
+                {{ t('settings.modules.tenantBlocked') }}
               </StatusPill>
             </div>
             <p class="text-sm text-slate-600 dark:text-slate-400">
@@ -118,35 +115,54 @@
           </div>
 
           <div class="flex flex-col items-start gap-3 md:items-end">
-            <div class="flex items-center gap-2">
-              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                <input
-                  :checked="module.orgEnabled"
-                  :disabled="!module.tenantEnabled"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand disabled:opacity-50 dark:border-white/20"
-                  @change="onToggleEnabled(module, ($event.target as HTMLInputElement).checked)"
-                />
-                <span>
-                  {{
-                    module.tenantEnabled
-                      ? t('settings.modules.toggleEnabled')
-                      : t('settings.modules.lockedByTenant')
-                  }}
-                </span>
-              </label>
-            </div>
-            <div class="flex items-center gap-2">
-              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                <input
-                  :checked="module.orgDisabled"
-                  :disabled="!module.tenantEnabled || !module.orgEnabled"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500 disabled:opacity-50 dark:border-white/20"
-                  @change="onToggleDisabled(module, ($event.target as HTMLInputElement).checked)"
-                />
-                <span>{{ t('settings.modules.toggleDisabled') }}</span>
-              </label>
+            <div class="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                {{ t('settings.modules.policyTitle') }}
+              </p>
+              <div class="flex flex-col gap-2">
+                <label
+                  v-for="option in modeOptions"
+                  :key="option.value"
+                  class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
+                >
+                  <input
+                    :checked="module.uiMode === option.value"
+                    :disabled="module.updating || module.tenantPolicy?.mode === 'blocked'"
+                    type="radio"
+                    class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
+                    :value="option.value"
+                    :name="`policy-${module.key}`"
+                    @change="onModeChange(module, option.value)"
+                  />
+                  <span>{{ option.label }}</span>
+                </label>
+              </div>
+              <div v-if="module.uiMode === 'allowlist'" class="space-y-1">
+                <label class="text-xs text-slate-500 dark:text-slate-300">
+                  {{ t('settings.modules.allowedRolesLabel') }}
+                </label>
+                <select
+                  multiple
+                  class="w-64 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                  :value="module.uiAllowedRoles"
+                  :disabled="module.updating || module.tenantPolicy?.mode === 'blocked' || (module.moduleRoles?.length ?? 0) === 0"
+                  @change="onAllowedRolesChange(module, $event)"
+                >
+                  <option
+                    v-for="role in module.moduleRoles"
+                    :key="role.key"
+                    :value="role.key"
+                  >
+                    {{ role.label }}
+                  </option>
+                </select>
+              </div>
+              <p v-if="module.error" class="text-xs text-red-600 dark:text-red-400">
+                {{ module.error }}
+              </p>
+              <p v-else-if="module.tenantPolicy?.mode === 'blocked'" class="text-xs text-slate-500 dark:text-slate-300">
+                {{ t('settings.modules.lockedByTenant') }}
+              </p>
             </div>
             <NuxtLink
               :to="module.rootRoute"
@@ -168,11 +184,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useFetch, useI18n } from '#imports'
+import { computed, ref, useFetch, useI18n, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { useAuth } from '~/composables/useAuth'
 import type { ModuleStatus } from '~/lib/module-registry'
+import type { ModuleStatusDto, PolicyMode } from '~/types/modules'
 
 definePageMeta({
   layout: 'default'
@@ -182,42 +199,47 @@ const { t } = useI18n()
 const auth = useAuth()
 const currentOrgId = computed(() => auth.currentOrg.value?.id)
 
-interface OrgModuleDto {
-  key: string
-  name: string
-  description: string
-  category: string
-  layerKey: string
-  rootRoute: string
-  scopes: string[]
-  status?: ModuleStatus
-  featureFlag?: string
-  requiredPermissions: string[]
-  tenantEnabled: boolean
-  tenantDisabled: boolean
-  orgEnabled: boolean
-  orgDisabled: boolean
-  effectiveEnabled: boolean
-  effectiveDisabled: boolean
+type UiModule = ModuleStatusDto & {
+  uiMode: PolicyMode
+  uiAllowedRoles: string[]
+  updating?: boolean
+  error?: string | null
 }
 
-const {
-  data,
-  pending,
-  error,
-  refresh
-} = await useFetch<{ modules: OrgModuleDto[] }>(() =>
+const modeOptions: { value: PolicyMode; label: string }[] = [
+  { value: 'inherit', label: t('settings.modules.modes.inherit') },
+  { value: 'default-closed', label: t('settings.modules.modes.defaultClosed') },
+  { value: 'allowlist', label: t('settings.modules.modes.allowlist') },
+  { value: 'blocked', label: t('settings.modules.modes.blocked') }
+]
+
+const { data, pending, error, refresh } = await useFetch<{ modules: ModuleStatusDto[] }>(() =>
   currentOrgId.value ? `/api/organizations/${currentOrgId.value}/modules` : null
 )
 
 const modules = computed(() => data.value?.modules ?? [])
+const moduleRows = ref<UiModule[]>([])
 const modulesError = computed(() => error.value?.message ?? '')
+
+watch(
+  modules,
+  (list) => {
+    moduleRows.value = list.map((module) => ({
+      ...module,
+      uiMode: module.orgPolicy?.mode ?? 'inherit',
+      uiAllowedRoles: module.orgPolicy?.allowedRoles ?? module.effectivePolicy.allowedRoles ?? [],
+      updating: false,
+      error: null
+    }))
+  },
+  { immediate: true }
+)
 
 const searchInput = ref('')
 const categoryFilter = ref<string>('all')
 
 const categories = computed(() => {
-  const unique = new Set(modules.value.map((module) => module.category))
+  const unique = new Set(moduleRows.value.map((module) => module.category))
   return Array.from(unique)
 })
 
@@ -230,7 +252,7 @@ const normalize = (value: string) =>
 
 const filteredModules = computed(() => {
   const query = normalize(searchInput.value)
-  return modules.value.filter((module) => {
+  return moduleRows.value.filter((module) => {
     const matchesSearch =
       !query ||
       normalize(module.name).includes(query) ||
@@ -255,45 +277,60 @@ const statusVariant = (status: ModuleStatus | undefined) => {
   }
 }
 
-const updateModule = async (module: OrgModuleDto, payload: Record<string, any>) => {
-  const originalEnabled = module.orgEnabled
-  const originalDisabled = module.orgDisabled
-
-  if (payload.enabled !== undefined) {
-    module.orgEnabled = payload.enabled
-    if (!payload.enabled) {
-      module.orgDisabled = false
-    }
+const updatePolicy = async (
+  module: UiModule,
+  patch: { mode?: PolicyMode; allowedRoles?: string[] }
+) => {
+  if (module.tenantPolicy?.mode === 'blocked') {
+    return
   }
-  if (payload.disabled !== undefined) {
-    module.orgDisabled = payload.disabled
+
+  module.updating = true
+  module.error = null
+
+  const payload = {
+    moduleKey: module.key,
+    mode: patch.mode ?? module.uiMode,
+    allowedRoles:
+      (patch.mode ?? module.uiMode) === 'allowlist'
+        ? patch.allowedRoles ?? module.uiAllowedRoles
+        : []
   }
 
   try {
-    const response = await $fetch<OrgModuleDto>(`/api/organizations/${currentOrgId.value}/modules`, {
-      method: 'PUT',
-      body: {
-        moduleId: module.key,
-        ...payload
+    const response = await $fetch<ModuleStatusDto>(
+      `/api/organizations/${currentOrgId.value}/modules`,
+      {
+        method: 'PUT',
+        body: payload
       }
-    })
-    module.orgEnabled = response.orgEnabled
-    module.orgDisabled = response.orgDisabled
+    )
+
+    module.uiMode = response.orgPolicy?.mode ?? 'inherit'
+    module.uiAllowedRoles =
+      response.orgPolicy?.allowedRoles ?? response.effectivePolicy.allowedRoles ?? []
+    Object.assign(module, response)
   } catch (err: any) {
-    module.orgEnabled = originalEnabled
-    module.orgDisabled = originalDisabled
-    console.error('Failed to update module', err)
+    module.error = err?.data?.message ?? err?.message ?? t('settings.modules.updateFailed')
   } finally {
+    module.updating = false
     await refresh()
   }
 }
 
-const onToggleEnabled = (module: OrgModuleDto, enabled: boolean) => {
-  updateModule(module, { enabled })
+const onModeChange = async (module: UiModule, mode: PolicyMode) => {
+  module.uiMode = mode
+  if (mode !== 'allowlist') {
+    module.uiAllowedRoles = []
+  }
+  await updatePolicy(module, { mode, allowedRoles: module.uiAllowedRoles })
 }
 
-const onToggleDisabled = (module: OrgModuleDto, disabled: boolean) => {
-  updateModule(module, { disabled })
+const onAllowedRolesChange = async (module: UiModule, event: Event) => {
+  const target = event.target as HTMLSelectElement
+  const values = Array.from(target.selectedOptions).map((option) => option.value)
+  module.uiAllowedRoles = values
+  await updatePolicy(module, { allowedRoles: values })
 }
 </script>
 

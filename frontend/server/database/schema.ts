@@ -24,6 +24,47 @@ const timestampColumns = () => ({
 
 const softDeleteColumn = () => integer('deleted_at', { mode: 'timestamp_ms' })
 
+/**
+ * Registry of plugin modules (plugin/layer metadata)
+ */
+export const modules = sqliteTable(
+  'modules',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    key: text('key').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    category: text('category'),
+    ...timestampColumns()
+  },
+  (table) => ({
+    keyIdx: index('modules_key_idx').on(table.key),
+    keyUnique: uniqueIndex('modules_key_unique').on(table.key)
+  })
+)
+
+/**
+ * Module-level permissions declared by plugins
+ */
+export const modulePermissions = sqliteTable(
+  'module_permissions',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    moduleKey: text('module_key')
+      .notNull()
+      .references(() => modules.key, { onDelete: 'cascade' }),
+    permissionKey: text('permission_key').notNull(),
+    description: text('description'),
+    ...timestampColumns()
+  },
+  (table) => ({
+    modulePermIdx: index('module_permissions_module_perm_idx').on(
+      table.moduleKey,
+      table.permissionKey
+    )
+  })
+)
+
 export const tenants = sqliteTable(
   'tenants',
   {
@@ -816,6 +857,10 @@ export const tenantModulePolicies = sqliteTable(
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
     moduleId: text('module_id').notNull(),
+    mode: text('mode', { enum: ['inherit', 'default-closed', 'allowlist', 'blocked'] })
+      .$type<'inherit' | 'default-closed' | 'allowlist' | 'blocked'>()
+      .notNull()
+      .default('inherit'),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
     // If disabled is true, module is visible but grayed out (deactivated)
     // If enabled is false, module is hidden completely (inactivated)
@@ -850,6 +895,10 @@ export const organizationModulePolicies = sqliteTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     moduleId: text('module_id').notNull(),
+    mode: text('mode', { enum: ['inherit', 'default-closed', 'allowlist', 'blocked'] })
+      .$type<'inherit' | 'default-closed' | 'allowlist' | 'blocked'>()
+      .notNull()
+      .default('inherit'),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
     // If disabled is true, module is visible but grayed out (deactivated)
     // If enabled is false, module is hidden completely (inactivated)
@@ -946,6 +995,7 @@ export const moduleRoles = sqliteTable(
     description: text('description', { length: 512 }),
     // JSON encoded capabilities for UI/logic hints
     capabilities: text('capabilities', { length: 2048 }),
+    sortOrder: integer('sort_order').notNull().default(0),
     ...timestampColumns()
   },
   table => ({
@@ -970,6 +1020,48 @@ export const roleModuleRoleMappings = sqliteTable(
       table.moduleRoleKey
     ),
     roleModuleRoleMappingModuleIdx: index('role_module_role_mapping_module_idx').on(table.moduleId)
+  })
+)
+
+/**
+ * Module role → permission mapping per module (plugin-driven)
+ */
+export const moduleRolePermissions = sqliteTable(
+  'module_role_permissions',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    moduleKey: text('module_key')
+      .notNull()
+      .references(() => modules.key, { onDelete: 'cascade' }),
+    roleKey: text('role_key').notNull(),
+    permissionKey: text('permission_key').notNull(),
+    ...timestampColumns()
+  },
+  (table) => ({
+    moduleRolePermIdx: index('module_role_permissions_idx').on(
+      table.moduleKey,
+      table.roleKey,
+      table.permissionKey
+    )
+  })
+)
+
+/**
+ * Default module roles for each app/org role
+ */
+export const moduleRoleDefaults = sqliteTable(
+  'module_role_defaults',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    moduleKey: text('module_key')
+      .notNull()
+      .references(() => modules.key, { onDelete: 'cascade' }),
+    appRoleKey: text('app_role_key').notNull(),
+    moduleRoleKey: text('module_role_key').notNull(),
+    ...timestampColumns()
+  },
+  (table) => ({
+    moduleRoleDefaultsIdx: index('module_role_defaults_idx').on(table.moduleKey, table.appRoleKey)
   })
 )
 
@@ -1076,4 +1168,52 @@ export const memberModuleRoleOverrideRelations = relations(memberModuleRoleOverr
     references: [users.id]
   })
 }))
+
+/**
+ * Windows DNS plugin tables (prefixed with windows_dns_)
+ */
+export const windowsDnsZones = sqliteTable(
+  'windows_dns_zones',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    ...timestampColumns()
+  },
+  (table) => ({
+    orgIdx: index('windows_dns_zones_org_idx').on(table.organizationId)
+  })
+)
+
+export const windowsDnsZoneMemberships = sqliteTable(
+  'windows_dns_zone_memberships',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    zoneId: text('zone_id')
+      .notNull()
+      .references(() => windowsDnsZones.id, { onDelete: 'cascade' }),
+    principalType: text('principal_type', { enum: ['user', 'org-role'] })
+      .$type<'user' | 'org-role'>()
+      .notNull(),
+    principalId: text('principal_id').notNull(),
+    role: text('role', { enum: ['viewer', 'editor', 'admin'] })
+      .$type<'viewer' | 'editor' | 'admin'>()
+      .notNull(),
+    ...timestampColumns()
+  },
+  (table) => ({
+    zoneIdx: index('windows_dns_zone_memberships_zone_idx').on(table.organizationId, table.zoneId),
+    principalIdx: index('windows_dns_zone_memberships_principal_idx').on(
+      table.organizationId,
+      table.principalType,
+      table.principalId
+    )
+  })
+)
 

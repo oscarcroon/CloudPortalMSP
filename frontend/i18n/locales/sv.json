@@ -285,6 +285,9 @@
     "open": "Öppna",
     "modules": {
       "title": "Moduler",
+      "description": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för organisationen.",
+      "cta": "Hantera modulåtkomst",
+      "empty": "Inga moduler tillgängliga just nu.",
       "pageDescription": "Välj vilka tenant-moduler er organisation ska använda.",
       "searchPlaceholder": "Sök moduler...",
       "filters": {
@@ -293,12 +296,18 @@
       "results": "{count} moduler",
       "loading": "Laddar moduler...",
       "noModules": "Inga moduler är tillgängliga för organisationen. Kontakta tenant-admin om något saknas.",
-      "toggleEnabled": "Aktivera för denna organisation",
-      "toggleDisabled": "Visa som avstängd (grå)",
+      "routeLabel": "Route:",
+      "policyTitle": "Modulpolicy",
+      "tenantBlocked": "Blockerad på tenant-nivå",
       "lockedByTenant": "Avstängd av tenant",
-      "tenantDisabled": "Avstängd av tenant",
-      "tenantDeactivated": "Avaktiverad av tenant",
-      "routeLabel": "Route:"
+      "modes": {
+        "inherit": "Ärver från tenant",
+        "defaultClosed": "Default av (endast användaröverskrivningar)",
+        "allowlist": "Tillåt specifika roller",
+        "blocked": "Blockerad"
+      },
+      "allowedRolesLabel": "Tillåtna roller",
+      "updateFailed": "Kunde inte uppdatera modulpolicy."
     },
     "organizations": {
       "title": "Organisationer",
@@ -926,6 +935,8 @@
       "deprecated": "Utfasas",
       "coming-soon": "Kommer snart"
     },
+    "layerLabel": "Lager:",
+    "moduleRoles": "Modulroller",
     "openModule": "Öppna modul",
     "routeLabel": "Route:",
     "results": "{count} moduler",
@@ -973,9 +984,16 @@
       "results": "{count} moduler",
       "loading": "Laddar moduler...",
       "empty": "Inga moduler tillgängliga ännu.",
-      "toggleEnabled": "Aktivera modul för denna tenant",
-      "toggleDisabled": "Visa som avstängd (grå)",
-      "routeLabel": "Route:"
+      "routeLabel": "Route:",
+      "policyTitle": "Modulpolicy",
+      "modes": {
+        "inherit": "Ärver uppströms",
+        "defaultClosed": "Default av (endast användaröverskrivningar)",
+        "allowlist": "Tillåt specifika roller",
+        "blocked": "Blockerad"
+      },
+      "allowedRolesLabel": "Tillåtna roller",
+      "updateFailed": "Kunde inte uppdatera modulpolicy."
     },
     "emailOverride": {
       "active": "E-post override aktiv",

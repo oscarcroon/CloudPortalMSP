@@ -1,5 +1,6 @@
 import type { RbacRole } from '~/constants/rbac'
 import type { ModuleRoleDefinition, ModuleRoleKey } from '~/constants/modules'
+import type { PolicyMode } from '~/types/modules'
 
 export type OrganizationMemberRole = RbacRole
 
@@ -97,6 +98,7 @@ export interface MemberModuleRoleEntry {
   effectiveRoles: ModuleRoleKey[]
   editable: boolean
   roleSource: 'custom' | 'rbac' | 'none'
+  policyMode: PolicyMode
 }
 
 export interface MemberModuleRolesResponse {

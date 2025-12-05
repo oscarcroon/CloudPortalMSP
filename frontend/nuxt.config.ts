@@ -10,6 +10,9 @@ const loginBrandingSlugSuffixes = (process.env.LOGIN_BRANDING_SLUG_SUFFIXES || '
 
 export default defineNuxtConfig({
   extends: ['./layers/windows-dns'],
+  imports: {
+    dirs: ['layers']
+  },
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode', '@nuxtjs/i18n'],
   css: ['~/assets/css/tailwind.css'],

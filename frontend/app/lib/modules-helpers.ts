@@ -1,21 +1,20 @@
-import {
-  ALL_MODULES,
-  type ModuleMeta,
-  type ModuleScope,
-  type ModuleStatus
-} from './module-registry'
-import type {
-  ModuleCategory,
-  ModuleDefinition,
-  ModuleId
-} from '~/constants/modules'
+import { ALL_MODULES, type ModuleMeta, type ModuleScope, type ModuleStatus } from './module-registry'
+import type { ModuleCategory, ModuleDefinition, ModuleId } from '~/constants/modules'
 
 export type ModuleWithStatus = ModuleDefinition & { status: ModuleStatus }
 
-const metaToDefinition = (meta: ModuleMeta): ModuleDefinition => ({
+const normalizeMeta = (meta: ModuleMeta): ModuleMeta => ({
   ...meta,
+  requiredPermissions: meta.requiredPermissions ?? [],
+  moduleRoles: meta.moduleRoles ?? meta.roles ?? [],
+  roles: meta.moduleRoles ?? meta.roles ?? [],
+  defaultAllowedRoles: meta.defaultAllowedRoles ?? []
+})
+
+const metaToDefinition = (meta: ModuleMeta): ModuleDefinition => ({
+  ...normalizeMeta(meta),
   id: meta.key as ModuleId,
-  permissions: meta.requiredPermissions,
+  permissions: meta.requiredPermissions ?? [],
   routePath: meta.rootRoute
 })
 
@@ -36,6 +35,11 @@ export const getModuleByKey = (key: string): ModuleWithStatus | undefined => {
 
 export const getModulesByCategory = (category: ModuleCategory): ModuleWithStatus[] =>
   ALL_MODULES.filter((module) => module.category === category).map(metaToDefinitionWithStatus)
+
+export const getModuleRoles = (moduleKey: string) => {
+  const module = getModuleByKey(moduleKey)
+  return module?.moduleRoles ?? []
+}
 
 export const filterModulesByFeatureFlags = (
   modules: ModuleWithStatus[],

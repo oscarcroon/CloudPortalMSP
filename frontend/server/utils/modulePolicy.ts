@@ -1,539 +1,191 @@
 import { createId } from '@paralleldrive/cuid2'
-import { eq, and } from 'drizzle-orm'
-import { getDb } from './db'
+import { and, eq } from 'drizzle-orm'
 import {
-  tenantModulePolicies,
+  distributorProviders,
   organizationModulePolicies,
   organizations,
-  tenants,
-  distributorProviders
+  tenantModulePolicies,
+  tenants
 } from '../database/schema'
-import type { ModuleId, ModuleRoleKey } from '~/constants/modules'
-import type { RbacPermission } from '~/constants/rbac'
+import { getDb } from './db'
+import { getModuleById, getModulesByScope } from '~/lib/modules'
+import type { ModuleId } from '~/constants/modules'
 import { getModulePermissions } from '~/constants/modules'
-import { getModuleById } from '~/lib/modules'
+import type { ModulePolicy, ModuleStatusDto, PolicyMode } from '~/types/modules'
 
-/**
- * Module policy permission overrides structure
- * Maps permission names to boolean values (true = allowed, false = denied)
- */
-export interface ModulePermissionOverrides {
-  [permission: string]: boolean
-}
+type TenantPolicyRow = typeof tenantModulePolicies.$inferSelect
+type OrgPolicyRow = typeof organizationModulePolicies.$inferSelect
+type FeatureFlags = Record<string, boolean | undefined>
 
-/**
- * Effective module policy for an organization
- * Combines tenant-level and organization-level policies
- */
-export type ModuleRoleSource = 'module-default' | 'distributor' | 'provider' | 'organization' | null
-
-export interface EffectiveModulePolicy {
-  enabled: boolean
-  disabled: boolean
-  permissionOverrides: ModulePermissionOverrides
-  allowedRoles: ModuleRoleKey[] | null
-  allowedRolesSource: ModuleRoleSource
-}
-
-const parseAllowedRoles = (raw?: string | null): ModuleRoleKey[] | null => {
-  if (!raw) {
-    return null
+const parseMode = (raw?: string | null): PolicyMode => {
+  switch (raw) {
+    case 'blocked':
+    case 'allowlist':
+    case 'default-closed':
+    case 'inherit':
+      return raw
+    default:
+      return 'inherit'
   }
+}
 
+const parseAllowedRoles = (raw?: string | null): string[] => {
+  if (!raw) return []
   try {
     const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) {
-      return null
-    }
-
-    const deduped = Array.from(
-      new Set(parsed.filter((role): role is string => typeof role === 'string'))
-    )
-    return deduped.length === 0 ? [] : (deduped as ModuleRoleKey[])
+    if (!Array.isArray(parsed)) return []
+    return Array.from(new Set(parsed.filter((role): role is string => typeof role === 'string')))
   } catch {
-    return null
+    return []
   }
 }
 
-const normalizeDefaultAllowedRoles = (
-  roles?: ModuleRoleKey[] | null
-): ModuleRoleKey[] | null => {
-  if (roles === undefined || roles === null) {
-    return null
-  }
+const serializeAllowedRoles = (roles: string[]): string => JSON.stringify(Array.from(new Set(roles)))
 
-  if (roles.length === 0) {
-    return []
-  }
-
-  return Array.from(new Set(roles)) as ModuleRoleKey[]
-}
-
-const mergeAllowedRoles = (
-  inherited: ModuleRoleKey[] | null | undefined,
-  current: ModuleRoleKey[] | null | undefined
-): ModuleRoleKey[] | null => {
-  // Once blocked upstream, it stays blocked
-  if (Array.isArray(inherited) && inherited.length === 0) {
-    return []
-  }
-
-  if (current === undefined || current === null) {
-    return inherited ?? null
-  }
-
-  if (current.length === 0) {
-    return []
-  }
-
-  const deduped = Array.from(new Set(current)) as ModuleRoleKey[]
-
-  if (!inherited || inherited === null) {
-    return deduped
-  }
-
-  const allowedSet = new Set(inherited)
-  const filtered = deduped.filter(role => allowedSet.has(role))
-  return filtered
-}
-
-/**
- * Get tenant module policy
- * Returns null if no policy exists (meaning default enabled)
- */
-export const getTenantModulePolicy = async (
-  tenantId: string,
-  moduleId: ModuleId
-): Promise<EffectiveModulePolicy | null> => {
-  const db = getDb()
-  const [policy] = await db
-    .select()
-    .from(tenantModulePolicies)
-    .where(and(eq(tenantModulePolicies.tenantId, tenantId), eq(tenantModulePolicies.moduleId, moduleId)))
-
-  if (!policy) {
-    // No policy = default enabled
-    return null
-  }
-
-  const overrides: ModulePermissionOverrides = policy.permissionOverrides
-    ? JSON.parse(policy.permissionOverrides)
-    : {}
-
-  // Handle both boolean and integer modes
-  const enabledValue = typeof policy.enabled === 'boolean' 
-    ? policy.enabled 
-    : policy.enabled === 1
-  
-  const disabledValue = typeof policy.disabled === 'boolean'
-    ? policy.disabled
-    : policy.disabled === 1
-
+const toPolicy = (
+  moduleKey: string,
+  row?: TenantPolicyRow | OrgPolicyRow | null
+): ModulePolicy | null => {
+  if (!row) return null
   return {
-    enabled: enabledValue,
-    disabled: disabledValue,
-    permissionOverrides: overrides,
-    allowedRoles: parseAllowedRoles(policy.allowedRoles),
-    allowedRolesSource: null
+    moduleKey,
+    mode: parseMode((row as any).mode),
+    allowedRoles: parseAllowedRoles((row as any).allowedRoles)
   }
 }
 
-/**
- * Get organization module policy
- */
-export const getOrganizationModulePolicy = async (
-  organizationId: string,
-  moduleId: ModuleId
-): Promise<EffectiveModulePolicy | null> => {
-  const db = getDb()
-  const [policy] = await db
-    .select()
-    .from(organizationModulePolicies)
-    .where(
-      and(
-        eq(organizationModulePolicies.organizationId, organizationId),
-        eq(organizationModulePolicies.moduleId, moduleId)
-      )
-    )
-
-  if (!policy) {
-    return null
-  }
-
-  const overrides: ModulePermissionOverrides = policy.permissionOverrides
-    ? JSON.parse(policy.permissionOverrides)
-    : {}
-
-  // Handle both boolean and integer modes
-  const enabledValue = typeof policy.enabled === 'boolean' 
-    ? policy.enabled 
-    : policy.enabled === 1
-  
-  const disabledValue = typeof policy.disabled === 'boolean'
-    ? policy.disabled
-    : policy.disabled === 1
-
+const basePolicyForModule = (moduleKey: string, defaultAllowedRoles?: string[]): ModulePolicy => {
+  const roles = defaultAllowedRoles ?? []
   return {
-    enabled: enabledValue,
-    disabled: disabledValue,
-    permissionOverrides: overrides,
-    allowedRoles: parseAllowedRoles(policy.allowedRoles),
-    allowedRolesSource: policy.allowedRoles ? 'organization' : null
+    moduleKey,
+    mode: roles.length > 0 ? 'allowlist' : 'default-closed',
+    allowedRoles: roles
   }
 }
 
-/**
- * Get effective module policy for an organization
- * This combines tenant-level (distributor/provider) and organization-level policies
- * with inheritance rules:
- * - Distributor sets baseline
- * - Provider can only restrict (not expand)
- * - Organization can only restrict (not expand)
- */
-export const getEffectiveModulePolicyForOrg = async (
-  organizationId: string,
-  moduleId: ModuleId
-): Promise<EffectiveModulePolicy> => {
-  const db = getDb()
+const mergePolicies = (upstream: ModulePolicy, current?: ModulePolicy | null): ModulePolicy => {
+  if (!current || current.mode === 'inherit') {
+    return upstream
+  }
 
-  // Get organization and its tenant
-  const [org] = await db.select().from(organizations).where(eq(organizations.id, organizationId))
+  if (upstream.mode === 'blocked') {
+    return { ...upstream, mode: 'blocked', allowedRoles: [] }
+  }
 
-  if (!org || !org.tenantId) {
-    // No tenant = default enabled
+  if (current.mode === 'blocked') {
+    return { moduleKey: upstream.moduleKey, mode: 'blocked', allowedRoles: [] }
+  }
+
+  if (current.mode === 'default-closed') {
+    return { moduleKey: upstream.moduleKey, mode: 'default-closed', allowedRoles: [] }
+  }
+
+  // allowlist
+  const deduped = Array.from(new Set(current.allowedRoles ?? []))
+  if (upstream.mode === 'allowlist') {
+    const allowedSet = new Set(upstream.allowedRoles ?? [])
     return {
-      enabled: true,
-      disabled: false,
-      permissionOverrides: {},
-      allowedRoles: null,
-      allowedRolesSource: null
+      moduleKey: upstream.moduleKey,
+      mode: 'allowlist',
+      allowedRoles: deduped.filter((role) => allowedSet.has(role))
     }
   }
 
-  // Get organization's tenant
-  const [orgTenant] = await db.select().from(tenants).where(eq(tenants.id, org.tenantId))
-
-  if (!orgTenant) {
-    return {
-      enabled: true,
-      disabled: false,
-      permissionOverrides: {},
-      allowedRoles: null,
-      allowedRolesSource: null
-    }
-  }
-
-  // Start with distributor-level policy (if tenant is a provider, check its distributor)
-  let distributorPolicy: EffectiveModulePolicy | null = null
-  let providerPolicy: EffectiveModulePolicy | null = null
-
-  if (orgTenant.type === 'provider') {
-    // Find the distributor linked to this provider
-    const [link] = await db
-      .select()
-      .from(distributorProviders)
-      .where(eq(distributorProviders.providerId, orgTenant.id))
-
-    if (link) {
-      distributorPolicy = await getTenantModulePolicy(link.distributorId, moduleId)
-    }
-  } else if (orgTenant.type === 'distributor') {
-    distributorPolicy = await getTenantModulePolicy(orgTenant.id, moduleId)
-  }
-
-  // Get provider-level policy (if tenant is a provider)
-  if (orgTenant.type === 'provider') {
-    providerPolicy = await getTenantModulePolicy(orgTenant.id, moduleId)
-  }
-
-  // Get organization-level policy
-  const orgPolicy = await getOrganizationModulePolicy(organizationId, moduleId)
-
-  // Combine policies with inheritance rules
-  // Enabled: must be enabled at all levels
-  // If no policy exists (null), default is enabled (true)
-  const distributorEnabled = distributorPolicy === null ? true : distributorPolicy.enabled
-  // Provider can only restrict, not expand
-  const providerEnabled = providerPolicy === null 
-    ? distributorEnabled 
-    : (distributorEnabled && providerPolicy.enabled)
-  // Organization can only restrict, not expand
-  const orgEnabled = orgPolicy === null 
-    ? true 
-    : (providerEnabled && orgPolicy.enabled)
-  
-  const enabled = distributorEnabled && providerEnabled && orgEnabled
-
-  // Disabled: if any level has disabled=true, module is disabled (grayed out)
-  // If no policy exists (null), default is disabled=false
-  const distributorDisabled = distributorPolicy === null ? false : distributorPolicy.disabled
-  const providerDisabled = providerPolicy === null ? distributorDisabled : (distributorDisabled || providerPolicy.disabled)
-  const orgDisabled = orgPolicy === null ? providerDisabled : (providerDisabled || orgPolicy.disabled)
-  
-  const disabled = distributorDisabled || providerDisabled || orgDisabled
-
-  // Permission overrides: merge with most restrictive wins
-  const combinedOverrides: ModulePermissionOverrides = {}
-
-  // Start with distributor overrides
-  if (distributorPolicy?.permissionOverrides) {
-    Object.assign(combinedOverrides, distributorPolicy.permissionOverrides)
-  }
-
-  // Apply provider overrides (can only restrict)
-  if (providerPolicy?.permissionOverrides) {
-    for (const [permission, value] of Object.entries(providerPolicy.permissionOverrides)) {
-      // Provider can only set to false
-      if (value === false) {
-        combinedOverrides[permission] = false
-      }
-    }
-  }
-
-  // Apply organization overrides (can only restrict)
-  if (orgPolicy?.permissionOverrides) {
-    for (const [permission, value] of Object.entries(orgPolicy.permissionOverrides)) {
-      // Organization can only set to false
-      if (value === false) {
-        combinedOverrides[permission] = false
-      }
-    }
-  }
-
-  const moduleDefinition = getModuleById(moduleId)
-  let allowedRoles: ModuleRoleKey[] | null = normalizeDefaultAllowedRoles(
-    moduleDefinition?.defaultAllowedRoles
-  )
-  let allowedRolesSource: ModuleRoleSource = allowedRoles !== null ? 'module-default' : null
-
-  if (distributorPolicy && distributorPolicy.allowedRoles !== undefined) {
-    allowedRoles = mergeAllowedRoles(allowedRoles, distributorPolicy.allowedRoles)
-    if (distributorPolicy.allowedRoles !== null) {
-      allowedRolesSource = 'distributor'
-    }
-  }
-
-  if (providerPolicy && providerPolicy.allowedRoles !== undefined) {
-    allowedRoles = mergeAllowedRoles(allowedRoles, providerPolicy.allowedRoles)
-    if (providerPolicy.allowedRoles !== null) {
-      allowedRolesSource = 'provider'
-    }
-  }
-
-  if (orgPolicy && orgPolicy.allowedRoles !== undefined) {
-    allowedRoles = mergeAllowedRoles(allowedRoles, orgPolicy.allowedRoles)
-    if (orgPolicy.allowedRoles !== null) {
-      allowedRolesSource = 'organization'
-    }
-  }
-
-  return {
-    enabled,
-    disabled,
-    permissionOverrides: combinedOverrides,
-    allowedRoles,
-    allowedRolesSource
-  }
+  // upstream default-closed -> downstream may open specific roles
+  return { moduleKey: upstream.moduleKey, mode: 'allowlist', allowedRoles: deduped }
 }
 
-/**
- * Check if a module is enabled for an organization
- */
-export const isModuleEnabledForOrg = async (
-  organizationId: string,
-  moduleId: ModuleId
-): Promise<boolean> => {
-  const policy = await getEffectiveModulePolicyForOrg(organizationId, moduleId)
-  // Ensure we return a boolean
-  return Boolean(policy.enabled)
-}
-
-export const getAllowedModuleRolesForOrg = async (
-  organizationId: string,
-  moduleId: ModuleId
-): Promise<ModuleRoleKey[] | null> => {
-  const policy = await getEffectiveModulePolicyForOrg(organizationId, moduleId)
-  return policy.allowedRoles
-}
-
-/**
- * Check if a specific permission is allowed for a module in an organization
- * This checks both the module policy and the permission override
- */
-export const isModulePermissionAllowed = async (
-  organizationId: string,
-  moduleId: ModuleId,
-  permission: RbacPermission
-): Promise<boolean> => {
-  // First check if module is enabled
-  const enabled = await isModuleEnabledForOrg(organizationId, moduleId)
-  if (!enabled) {
-    return false
+const isFeatureFlagEnabled = (featureFlag: string | undefined, featureFlags: FeatureFlags) => {
+  if (!featureFlag) return true
+  if (featureFlag in featureFlags) {
+    return Boolean(featureFlags[featureFlag])
   }
-
-  // Get effective policy
-  const policy = await getEffectiveModulePolicyForOrg(organizationId, moduleId)
-
-  // Check if permission is explicitly overridden
-  if (policy.permissionOverrides[permission] === false) {
-    return false
-  }
-
-  // Check if permission belongs to this module
-  const modulePermissions = getModulePermissions(moduleId)
-  if (!modulePermissions.includes(permission)) {
-    // Permission doesn't belong to this module, so module policy doesn't apply
-    return true
-  }
-
-  // If no override exists, permission is allowed (assuming user has RBAC permission)
   return true
 }
 
-/**
- * Set or update tenant module policy
- * If enabled is true and there are no permission overrides, we can delete the policy
- * to return to default state
- */
-export const setTenantModulePolicy = async (
-  tenantId: string,
-  moduleId: ModuleId,
-  enabled: boolean,
-  permissionOverrides?: ModulePermissionOverrides,
-  disabled?: boolean,
-  allowedRoles?: ModuleRoleKey[] | null
-): Promise<void> => {
-  const db = getDb()
+const toDto = ({
+  moduleMeta,
+  tenantPolicy,
+  orgPolicy,
+  effectivePolicy,
+  featureFlags
+}: {
+  moduleMeta: ReturnType<typeof getModuleById>
+  tenantPolicy?: ModulePolicy | null
+  orgPolicy?: ModulePolicy | null
+  effectivePolicy: ModulePolicy
+  featureFlags: FeatureFlags
+}): ModuleStatusDto => {
+  const featureEnabled = isFeatureFlagEnabled(moduleMeta?.featureFlag, featureFlags)
+  const statusEnabled = moduleMeta?.status !== 'deprecated'
+  const tenantEnabled = featureEnabled && statusEnabled && (tenantPolicy?.mode !== 'blocked')
+  const orgEnabled = featureEnabled && statusEnabled && (orgPolicy?.mode !== 'blocked')
+  const effectiveEnabled =
+    featureEnabled && statusEnabled && effectivePolicy.mode !== 'blocked'
+  const tenantDisabled = tenantPolicy?.mode === 'blocked'
+  const orgDisabled = orgPolicy?.mode === 'blocked'
+  const effectiveDisabled = effectivePolicy.mode === 'blocked'
 
-  // Try to find existing policy
+  return {
+    key: moduleMeta?.key ?? '',
+    name: moduleMeta?.name ?? '',
+    description: moduleMeta?.description ?? '',
+    category: moduleMeta?.category ?? '',
+    layerKey: moduleMeta?.layerKey ?? '',
+    rootRoute: moduleMeta?.rootRoute ?? '',
+    status: moduleMeta?.status ?? 'active',
+    scopes: moduleMeta?.scopes ?? [],
+    featureFlag: moduleMeta?.featureFlag,
+    requiredPermissions: moduleMeta?.requiredPermissions ?? [],
+    moduleRoles: moduleMeta?.moduleRoles ?? [],
+    roles: moduleMeta?.moduleRoles ?? [],
+    tenantPolicy: tenantPolicy ?? undefined,
+    orgPolicy: orgPolicy ?? undefined,
+    effectivePolicy,
+    tenantEnabled,
+    orgEnabled,
+    effectiveEnabled,
+    tenantDisabled,
+    orgDisabled,
+    effectiveDisabled
+  }
+}
+
+const upsertTenantPolicy = async (tenantId: string, moduleId: ModuleId, policy: ModulePolicy) => {
+  const db = getDb()
   const [existing] = await db
     .select()
     .from(tenantModulePolicies)
     .where(and(eq(tenantModulePolicies.tenantId, tenantId), eq(tenantModulePolicies.moduleId, moduleId)))
 
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-
-  // Convert permissionOverrides to JSON
-  // If permissionOverrides is explicitly provided (even if empty), save it
-  // If undefined, it means "don't change overrides", so use existing or null
-  let overridesJson: string | null = null
-  if (permissionOverrides !== undefined) {
-    // Explicitly provided - save it even if empty (empty object means no overrides)
-    overridesJson = Object.keys(permissionOverrides).length > 0 
-      ? JSON.stringify(permissionOverrides)
-      : '{}'
-  } else if (existing && existing.permissionOverrides) {
-    // Not provided, but existing policy has overrides - keep them
-    overridesJson = existing.permissionOverrides
+  const values = {
+    tenantId,
+    moduleId,
+    mode: policy.mode,
+    allowedRoles: serializeAllowedRoles(policy.allowedRoles ?? []),
+    enabled: policy.mode !== 'blocked',
+    disabled: policy.mode === 'default-closed' ? false : false,
+    permissionOverrides: null
   }
 
-  // Handle disabled parameter - if undefined, keep existing value or default to false
-  let finalDisabled = disabled
-  if (disabled === undefined && existing) {
-    const disabledValue = typeof existing.disabled === 'boolean' 
-      ? existing.disabled 
-      : existing.disabled === 1
-    finalDisabled = disabledValue
-  } else if (disabled === undefined) {
-    finalDisabled = false
-  }
-
-  let allowedRolesJson: string | null | undefined
-  if (allowedRoles !== undefined) {
-    if (allowedRoles === null) {
-      allowedRolesJson = null
-    } else {
-      const dedupedRoles = Array.from(new Set(allowedRoles)) as ModuleRoleKey[]
-      allowedRolesJson = JSON.stringify(dedupedRoles)
-    }
-  } else if (existing) {
-    allowedRolesJson = existing.allowedRoles ?? null
-  }
-
-  if (allowedRolesJson === undefined) {
-    allowedRolesJson = null
-  }
-
-  // Always create/update policy when enabled is explicitly set
-  // This ensures the UI can properly track module state
-  // We never skip creating/updating the policy - it's needed to track explicit state changes
   if (existing) {
-    // Update existing policy
-    if (isSqlite) {
-      db.update(tenantModulePolicies)
-        .set({
-          enabled: Boolean(enabled),
-          disabled: Boolean(finalDisabled),
-          permissionOverrides: overridesJson,
-          allowedRoles: allowedRolesJson,
-          updatedAt: new Date()
-        })
-        .where(eq(tenantModulePolicies.id, existing.id))
-        .run()
-    } else {
-      await db
-        .update(tenantModulePolicies)
-        .set({
-          enabled: Boolean(enabled),
-          disabled: Boolean(finalDisabled),
-          permissionOverrides: overridesJson,
-          allowedRoles: allowedRolesJson,
-          updatedAt: new Date()
-        })
-        .where(eq(tenantModulePolicies.id, existing.id))
-    }
+    await db
+      .update(tenantModulePolicies)
+      .set({
+        ...values,
+        updatedAt: new Date()
+      })
+      .where(eq(tenantModulePolicies.id, existing.id))
   } else {
-    // Create new policy
-    if (isSqlite) {
-      db.insert(tenantModulePolicies)
-        .values({
-          id: createId(),
-          tenantId,
-          moduleId,
-          enabled: Boolean(enabled),
-          disabled: Boolean(finalDisabled),
-          permissionOverrides: overridesJson,
-          allowedRoles: allowedRolesJson
-        } as any)
-        .run()
-    } else {
-      await db
-        .insert(tenantModulePolicies)
-        .values({
-          id: createId(),
-          tenantId,
-          moduleId,
-          enabled: Boolean(enabled),
-          disabled: Boolean(finalDisabled),
-          permissionOverrides: overridesJson,
-          allowedRoles: allowedRolesJson
-        } as any)
-    }
+    await db.insert(tenantModulePolicies).values({
+      id: createId(),
+      ...values
+    } as any)
   }
 }
 
-/**
- * Set or update organization module policy
- */
-export const setOrganizationModulePolicy = async (
-  organizationId: string,
-  moduleId: ModuleId,
-  enabled: boolean,
-  permissionOverrides?: ModulePermissionOverrides,
-  disabled?: boolean,
-  allowedRoles?: ModuleRoleKey[] | null
-): Promise<void> => {
+const upsertOrgPolicy = async (organizationId: string, moduleId: ModuleId, policy: ModulePolicy) => {
   const db = getDb()
-
-  const overridesJson =
-    permissionOverrides && Object.keys(permissionOverrides).length > 0
-      ? JSON.stringify(permissionOverrides)
-      : permissionOverrides
-      ? '{}'
-      : null
-
-  // Try to update existing policy
   const [existing] = await db
     .select()
     .from(organizationModulePolicies)
@@ -544,55 +196,235 @@ export const setOrganizationModulePolicy = async (
       )
     )
 
-  // Handle disabled parameter - if undefined, keep existing value or default to false
-  let finalDisabled = disabled
-  if (disabled === undefined && existing) {
-    const disabledValue = typeof existing.disabled === 'boolean' 
-      ? existing.disabled 
-      : existing.disabled === 1
-    finalDisabled = disabledValue
-  } else if (disabled === undefined) {
-    finalDisabled = false
-  }
-
-  let allowedRolesJson: string | null | undefined
-  if (allowedRoles !== undefined) {
-    if (allowedRoles === null) {
-      allowedRolesJson = null
-    } else {
-      const dedupedRoles = Array.from(new Set(allowedRoles)) as ModuleRoleKey[]
-      allowedRolesJson = JSON.stringify(dedupedRoles)
-    }
-  } else if (existing) {
-    allowedRolesJson = existing.allowedRoles ?? null
-  }
-
-  if (allowedRolesJson === undefined) {
-    allowedRolesJson = null
+  const values = {
+    organizationId,
+    moduleId,
+    mode: policy.mode,
+    allowedRoles: serializeAllowedRoles(policy.allowedRoles ?? []),
+    enabled: policy.mode !== 'blocked',
+    disabled: policy.mode === 'default-closed' ? false : false,
+    permissionOverrides: null
   }
 
   if (existing) {
     await db
       .update(organizationModulePolicies)
       .set({
-        enabled: Boolean(enabled),
-        disabled: Boolean(finalDisabled),
-        permissionOverrides: overridesJson,
-        allowedRoles: allowedRolesJson,
+        ...values,
         updatedAt: new Date()
       })
       .where(eq(organizationModulePolicies.id, existing.id))
   } else {
-    // Create new policy
     await db.insert(organizationModulePolicies).values({
       id: createId(),
-      organizationId,
-      moduleId,
-      enabled: Boolean(enabled),
-      disabled: Boolean(finalDisabled),
-      permissionOverrides: overridesJson,
-      allowedRoles: allowedRolesJson
+      ...values
     } as any)
   }
+}
+
+export const getTenantModulePolicy = async (
+  tenantId: string,
+  moduleId: ModuleId
+): Promise<ModulePolicy | null> => {
+  const db = getDb()
+  const [row] = await db
+    .select()
+    .from(tenantModulePolicies)
+    .where(and(eq(tenantModulePolicies.tenantId, tenantId), eq(tenantModulePolicies.moduleId, moduleId)))
+  return toPolicy(moduleId, row)
+}
+
+export const getOrganizationModulePolicy = async (
+  organizationId: string,
+  moduleId: ModuleId
+): Promise<ModulePolicy | null> => {
+  const db = getDb()
+  const [row] = await db
+    .select()
+    .from(organizationModulePolicies)
+    .where(
+      and(
+        eq(organizationModulePolicies.organizationId, organizationId),
+        eq(organizationModulePolicies.moduleId, moduleId)
+      )
+    )
+  return toPolicy(moduleId, row)
+}
+
+export const setTenantModulePolicy = async (
+  tenantId: string,
+  moduleId: ModuleId,
+  policy: ModulePolicy
+) => {
+  await upsertTenantPolicy(tenantId, moduleId, policy)
+}
+
+export const setOrganizationModulePolicy = async (
+  organizationId: string,
+  moduleId: ModuleId,
+  policy: ModulePolicy
+) => {
+  await upsertOrgPolicy(organizationId, moduleId, policy)
+}
+
+const resolveDistributorPolicy = async (
+  tenantId: string,
+  moduleId: ModuleId
+): Promise<ModulePolicy | null> => {
+  const db = getDb()
+  const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId))
+  if (!tenant || tenant.type !== 'provider') return null
+
+  const [link] = await db
+    .select()
+    .from(distributorProviders)
+    .where(eq(distributorProviders.providerId, tenantId))
+
+  if (!link) return null
+  return getTenantModulePolicy(link.distributorId, moduleId)
+}
+
+const buildTenantDto = async (
+  tenantId: string,
+  featureFlags: FeatureFlags
+): Promise<ModuleStatusDto[]> => {
+  const modules = getModulesByScope('tenant')
+  const db = getDb()
+  const policies = await db
+    .select()
+    .from(tenantModulePolicies)
+    .where(eq(tenantModulePolicies.tenantId, tenantId))
+  const policyMap = new Map(policies.map((row) => [row.moduleId, row]))
+
+  const results: ModuleStatusDto[] = []
+  for (const module of modules) {
+    const base = basePolicyForModule(module.key, module.defaultAllowedRoles)
+    const distributorPolicy = await resolveDistributorPolicy(tenantId, module.key as ModuleId)
+    const tenantPolicy = toPolicy(module.key, policyMap.get(module.key))
+    const upstream = mergePolicies(base, distributorPolicy)
+    const effectivePolicy = mergePolicies(upstream, tenantPolicy)
+
+    results.push(
+      toDto({
+        moduleMeta: module,
+        tenantPolicy,
+        effectivePolicy,
+        featureFlags
+      })
+    )
+  }
+
+  return results
+}
+
+export const getTenantModulesStatus = async (
+  tenantId: string,
+  featureFlags: FeatureFlags = {}
+): Promise<ModuleStatusDto[]> => {
+  return buildTenantDto(tenantId, featureFlags)
+}
+
+export const getOrganizationModulesStatus = async (
+  organizationId: string,
+  featureFlags: FeatureFlags = {}
+): Promise<ModuleStatusDto[]> => {
+  const db = getDb()
+  const [org] = await db.select().from(organizations).where(eq(organizations.id, organizationId))
+  if (!org) {
+    return []
+  }
+
+  const orgPolicies = await db
+    .select()
+    .from(organizationModulePolicies)
+    .where(eq(organizationModulePolicies.organizationId, organizationId))
+  const orgPolicyMap = new Map(orgPolicies.map((row) => [row.moduleId, row]))
+
+  const tenantPolicies = org.tenantId
+    ? await db
+        .select()
+        .from(tenantModulePolicies)
+        .where(eq(tenantModulePolicies.tenantId, org.tenantId))
+    : []
+  const tenantPolicyMap = new Map(tenantPolicies.map((row) => [row.moduleId, row]))
+
+  const modulesMap = new Map<string, ReturnType<typeof getModuleById>>()
+  ;[...getModulesByScope('org'), ...getModulesByScope('user')].forEach((module) => {
+    modulesMap.set(module.key, module)
+  })
+
+  const results: ModuleStatusDto[] = []
+  for (const module of modulesMap.values()) {
+    const base = basePolicyForModule(module.key, module.defaultAllowedRoles)
+    const distributorPolicy =
+      org.tenantId && module.key
+        ? await resolveDistributorPolicy(org.tenantId, module.key as ModuleId)
+        : null
+    const tenantPolicy = toPolicy(module.key, tenantPolicyMap.get(module.key))
+    const orgPolicy = toPolicy(module.key, orgPolicyMap.get(module.key))
+
+    const tenantEffective = mergePolicies(mergePolicies(base, distributorPolicy), tenantPolicy)
+    const effectivePolicy = mergePolicies(tenantEffective, orgPolicy)
+
+    results.push(
+      toDto({
+        moduleMeta: module,
+        tenantPolicy: tenantEffective,
+        orgPolicy,
+        effectivePolicy,
+        featureFlags
+      })
+    )
+  }
+
+  return results
+}
+
+export const getEffectiveModulePolicyForOrg = async (
+  organizationId: string,
+  moduleId: ModuleId
+): Promise<ModulePolicy & { enabled: boolean; disabled: boolean }> => {
+  const modules = await getOrganizationModulesStatus(organizationId)
+  const match = modules.find((mod) => mod.key === moduleId)
+  const moduleMeta = getModuleById(moduleId)
+  const policy =
+    match?.effectivePolicy ??
+    basePolicyForModule(moduleId, moduleMeta?.defaultAllowedRoles ?? [])
+
+  return {
+    ...policy,
+    enabled: policy.mode !== 'blocked',
+    disabled: policy.mode === 'blocked'
+  }
+}
+
+export const isModuleEnabledForOrg = async (
+  organizationId: string,
+  moduleId: ModuleId
+): Promise<boolean> => {
+  const policy = await getEffectiveModulePolicyForOrg(organizationId, moduleId)
+  return policy.mode !== 'blocked'
+}
+
+export const isModulePermissionAllowed = async (
+  organizationId: string,
+  moduleId: ModuleId,
+  permission: string
+): Promise<boolean> => {
+  const policy = await getEffectiveModulePolicyForOrg(organizationId, moduleId)
+
+  // Blocked modules always deny
+  if (policy.mode === 'blocked') {
+    return false
+  }
+
+  // If the permission is not part of this module, allow (handled by RBAC elsewhere)
+  const modulePermissions = getModulePermissions(moduleId as any)
+  if (!modulePermissions.includes(permission as any)) {
+    return true
+  }
+
+  // No per-permission overrides implemented in new model; rely on mode
+  return true
 }
 

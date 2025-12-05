@@ -110,6 +110,20 @@
                 {{ permission }}
               </span>
             </div>
+            <div v-if="module.moduleRoles?.length" class="space-y-1">
+              <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {{ t('adminModules.moduleRoles') }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="role in module.moduleRoles"
+                  :key="role.key"
+                  class="rounded-md border border-slate-200 bg-indigo-50 px-2 py-1 text-[11px] text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-900/30 dark:text-indigo-100"
+                >
+                  {{ role.label }} <span class="text-[10px] text-indigo-500">({{ role.key }})</span>
+                </span>
+              </div>
+            </div>
           </div>
 
           <div class="flex flex-col items-start gap-2 md:items-end">

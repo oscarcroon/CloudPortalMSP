@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `tenant_member_roles`;
+--> statement-breakpoint
 CREATE TABLE `tenant_member_roles` (
 	`id` text PRIMARY KEY NOT NULL,
 	`membership_id` text NOT NULL,

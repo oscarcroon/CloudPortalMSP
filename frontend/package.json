@@ -6,6 +6,9 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "predev": "npm run generate:rbac-types",
+    "prebuild": "npm run generate:rbac-types",
+    "generate:rbac-types": "tsx scripts/generate-rbac-types.ts",
     "dev": "nuxt dev",
     "build": "nuxt build",
     "preview": "nuxt preview --port 3001 --host 0.0.0.0",

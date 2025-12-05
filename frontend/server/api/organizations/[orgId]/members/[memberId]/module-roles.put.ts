@@ -93,8 +93,9 @@ const updateModuleRolesForMember = async (
   resolveDefaultRoles: ReturnType<typeof createModuleRoleDefaultResolver>
 ) => {
   const module = getModuleById(moduleId)
+  const moduleRoles = module?.moduleRoles ?? module?.roles ?? []
 
-  if (!module || !module.roles || module.roles.length === 0) {
+  if (!module || moduleRoles.length === 0) {
     if (roleKeys.length > 0) {
       throw createError({
         statusCode: 400,
@@ -106,14 +107,14 @@ const updateModuleRolesForMember = async (
 
   const policy = await getEffectiveModulePolicyForOrg(organizationId, moduleId)
 
-  if (Array.isArray(policy.allowedRoles) && policy.allowedRoles.length === 0) {
+  if (policy.mode === 'blocked') {
     throw createError({
       statusCode: 403,
       message: 'Module roles are blocked for this module at a higher level'
     })
   }
 
-  const validRoleKeys = new Set(module.roles.map((role) => role.key))
+  const validRoleKeys = new Set(moduleRoles.map((role) => role.key))
   const invalidRoles = roleKeys.filter((role) => !validRoleKeys.has(role))
   if (invalidRoles.length > 0) {
     throw createError({
@@ -122,8 +123,14 @@ const updateModuleRolesForMember = async (
     })
   }
 
-  if (Array.isArray(policy.allowedRoles) && policy.allowedRoles.length > 0) {
+  if (policy.mode === 'allowlist' && Array.isArray(policy.allowedRoles)) {
     const allowedSet = new Set(policy.allowedRoles)
+    if (policy.allowedRoles.length === 0) {
+      throw createError({
+        statusCode: 403,
+        message: 'Module roles are blocked for this module at a higher level'
+      })
+    }
     const disallowed = roleKeys.filter((role) => !allowedSet.has(role))
     if (disallowed.length > 0) {
       throw createError({

@@ -1,25 +1,7 @@
 import { computed, useAsyncData, useRequestHeaders } from '#imports'
 import { useAuth } from './useAuth'
 import { usePermission } from './usePermission'
-import type { RbacPermission } from '~/constants/rbac'
-
-interface AvailableModule {
-  key: string
-  name: string
-  description: string
-  category: string
-  layerKey: string
-  rootRoute: string
-  scopes: string[]
-  featureFlag?: string
-  requiredPermissions: RbacPermission[]
-  tenantEnabled?: boolean
-  tenantDisabled?: boolean
-  orgEnabled?: boolean
-  orgDisabled?: boolean
-  effectiveEnabled: boolean
-  effectiveDisabled?: boolean
-}
+import type { ModuleStatusDto } from '~/types/modules'
 
 export const useAvailableModules = () => {
   const auth = useAuth()
@@ -31,7 +13,7 @@ export const useAvailableModules = () => {
     data,
     pending,
     refresh
-  } = useAsyncData<{ modules: AvailableModule[] }>(
+  } = useAsyncData<{ modules: ModuleStatusDto[] }>(
     () => `available-modules-${currentOrgId.value || 'none'}`,
     async () => {
       const orgId = currentOrgId.value
@@ -39,7 +21,7 @@ export const useAvailableModules = () => {
         return { modules: [] }
       }
 
-      const response = await $fetch<{ modules: AvailableModule[] }>(
+      const response = await $fetch<{ modules: ModuleStatusDto[] }>(
         `/api/organizations/${orgId}/modules`,
         {
           credentials: 'include',

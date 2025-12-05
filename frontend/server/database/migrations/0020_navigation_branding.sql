@@ -1,3 +1,3 @@
-ALTER TABLE `branding_themes`
-  ADD COLUMN `navigation_background_color` text;
+-- No-op for fresh DB to avoid duplicate column
+SELECT 1;
 
