@@ -33,14 +33,15 @@ export default defineEventHandler(async (event) => {
   // Validate module ID
   const modules = getAllModules()
   const module = modules.find((m) => m.id === moduleId)
-  if (!module) {
-    throw createError({
-      statusCode: 400,
-      message: `Invalid module ID: ${moduleId}`
-    })
-  }
 
   if (allowedRoles !== undefined) {
+    if (!module) {
+      throw createError({
+        statusCode: 400,
+        message: `Invalid module ID: ${moduleId}`
+      })
+    }
+
     if (!module.roles || module.roles.length === 0) {
       if (allowedRoles && allowedRoles.length > 0) {
         throw createError({
@@ -60,6 +61,13 @@ export default defineEventHandler(async (event) => {
         })
       }
     }
+  }
+
+  if (!module) {
+    throw createError({
+      statusCode: 400,
+      message: `Invalid module ID: ${moduleId}`
+    })
   }
 
   // Get current effective policy to ensure we're not expanding permissions

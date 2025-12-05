@@ -159,7 +159,7 @@ const searchInput = ref('')
 const tenants = computed(() => contextTenants.value ?? auth.tenants.value)
 const organizations = computed(() => contextOrganizations.value ?? auth.organizations.value)
 const navBackgroundColor = computed(
-  () => auth.branding.value?.activeTheme.navBackgroundColor ?? DEFAULT_NAV_BACKGROUND
+  () => auth.branding.value?.activeTheme.navigationBackgroundColor ?? DEFAULT_NAV_BACKGROUND
 )
 const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobileDropdown = breakpoints.smaller('md')

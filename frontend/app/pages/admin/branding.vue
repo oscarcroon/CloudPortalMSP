@@ -294,7 +294,7 @@ const activeAccentColor = computed(
   () => brandingDetails.value?.activeTheme.accentColor ?? DEFAULT_BRANDING_ACCENT
 )
 const activeNavBackgroundColor = computed(
-  () => brandingDetails.value?.activeTheme.navBackgroundColor ?? DEFAULT_NAV_BACKGROUND
+  () => brandingDetails.value?.activeTheme.navigationBackgroundColor ?? DEFAULT_NAV_BACKGROUND
 )
 const navColorInput = computed({
   get: () => navColor.value || activeNavBackgroundColor.value,
@@ -309,7 +309,7 @@ const logoSourceLabel = computed(() => formatBrandingSource(brandingDetails.valu
 const globalHasCustomAccent = computed(() => Boolean(globalTheme.value?.accentColor))
 
 watch(
-  () => globalTheme.value?.navBackgroundColor,
+  () => globalTheme.value?.navigationBackgroundColor,
   value => {
     navColor.value = value ?? ''
   },

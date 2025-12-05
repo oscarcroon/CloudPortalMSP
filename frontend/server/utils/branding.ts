@@ -81,7 +81,6 @@ export interface BrandingActiveTheme extends BrandingMediaFields {
   accentColor: string
   paletteKey: string | null
   loginBackgroundTintOpacity: number
-  navBackgroundColor: string
   logoSource: BrandingSourceInfo
   accentSource: BrandingSourceInfo
   loginLogoSource: BrandingSourceInfo
@@ -521,7 +520,6 @@ function buildResolution(
     loginBackgroundTint: loginBackgroundTint.value,
     loginBackgroundTintOpacity: loginBackgroundTintOpacity.value,
     navigationBackgroundColor: navBackground.value ?? DEFAULT_NAV_BACKGROUND,
-    navBackgroundColor: navBackground.value ?? DEFAULT_NAV_BACKGROUND,
     accentColor: accentSource.color,
     paletteKey: accentSource.paletteKey,
     logoSource: appLogoLight.source,
@@ -643,7 +641,6 @@ export function getDefaultBrandingResolution(): BrandingResolution {
     loginBackgroundTint: null,
     loginBackgroundTintOpacity: DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY,
     navigationBackgroundColor: DEFAULT_NAV_BACKGROUND,
-    navBackgroundColor: DEFAULT_NAV_BACKGROUND,
     accentColor: DEFAULT_BRANDING_ACCENT,
     paletteKey: DEFAULT_BRANDING_PALETTE_KEY,
     logoSource: DEFAULT_BRANDING_SOURCE,

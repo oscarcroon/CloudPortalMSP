@@ -103,12 +103,16 @@
               {{ getTypeLabel(node.tenant.type) }}
             </span>
             <StatusPill :variant="node.tenant.status === 'active' ? 'success' : 'warning'" class="shrink-0 text-xs">
-              {{ node.tenant.status }}
+              {{ t(`adminTenants.statuses.${node.tenant.status}`) }}
             </StatusPill>
           </div>
-          <div class="mt-1 flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+          <div
+            class="mt-1 flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400"
+          >
             <span class="font-mono truncate max-w-[120px] sm:max-w-none">{{ node.tenant.slug }}</span>
-            <span class="whitespace-nowrap">{{ t('adminTenants.members', { count: node.tenant.memberCount }) }}</span>
+            <span class="whitespace-nowrap">
+              {{ t('adminTenants.membersCount', { count: node.tenant.memberCount }) }}
+            </span>
             <span v-if="node.tenant.type === 'provider' && node.tenant.organizationCount !== undefined" class="whitespace-nowrap">
               {{ t('adminTenants.organizations', { count: node.tenant.organizationCount }) }}
             </span>

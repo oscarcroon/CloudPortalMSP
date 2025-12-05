@@ -109,7 +109,7 @@ export interface BrandingActiveTheme {
   loginBackgroundUrl: string | null
   loginBackgroundTint: string | null
   loginBackgroundTintOpacity: number
-  navBackgroundColor: string
+  navigationBackgroundColor: string
   accentColor: string
   paletteKey: string | null
   logoSource: BrandingThemeSource

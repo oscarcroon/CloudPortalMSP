@@ -321,7 +321,7 @@ export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
     logoUrl: logoDataUri ?? logoSource ?? undefined,
     accentColor: theme.accentColor ?? undefined,
     backgroundColor: undefined, // Bakgrunden på e-postet ändras baserat på dark mode
-    logoBackgroundColor: theme.navBackgroundColor ?? undefined, // Bakgrunden bakom loggan använder NavBar-färgen
+    logoBackgroundColor: theme.navigationBackgroundColor ?? undefined, // Bakgrunden bakom loggan använder NavBar-färgen
     isDarkMode: options.isDarkMode === true
   }
   const footer = buildFooterContent({

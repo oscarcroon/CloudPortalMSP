@@ -23,7 +23,9 @@ const allowedAttributes: Record<string, string[]> = {
 const allowedSchemes = ['http', 'https', 'mailto']
 
 marked.setOptions({
-  breaks: true
+  breaks: true,
+  mangle: false,
+  headerIds: false
 })
 
 export interface RenderedMarkdown {

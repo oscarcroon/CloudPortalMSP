@@ -181,7 +181,7 @@ const activeOrganisationName = computed(
   () => auth.currentOrg.value?.name ?? 'CoreIT Cloud Portal'
 )
 const navBackgroundColor = computed(
-  () => auth.branding.value?.activeTheme.navBackgroundColor ?? DEFAULT_NAV_BACKGROUND
+  () => auth.branding.value?.activeTheme.navigationBackgroundColor ?? DEFAULT_NAV_BACKGROUND
 )
 const navHoverColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0.10))
 const navActiveColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0))

@@ -64,7 +64,7 @@
           <div>
             <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.detail.fields.status') }}</p>
             <StatusPill :variant="tenant.status === 'active' ? 'success' : 'warning'" class="mt-1">
-              {{ tenant.status }}
+              {{ t(`adminTenants.statuses.${tenant.status}`) }}
             </StatusPill>
           </div>
         </div>
@@ -256,7 +256,7 @@
                 </td>
                 <td class="px-6 py-3">
                   <StatusPill :variant="linked.status === 'active' ? 'success' : 'warning'">
-                    {{ linked.status }}
+                    {{ t(`adminTenants.statuses.${linked.status}`) }}
                   </StatusPill>
                 </td>
               </tr>
@@ -310,7 +310,7 @@
                 </td>
                 <td class="px-6 py-3">
                   <StatusPill :variant="org.status === 'active' ? 'success' : 'warning'">
-                    {{ org.status }}
+                    {{ t(`adminTenants.statuses.${org.status}`) }}
                   </StatusPill>
                 </td>
               </tr>

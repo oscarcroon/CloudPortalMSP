@@ -902,7 +902,12 @@
       "provider": "Provider",
       "organization": "Organization"
     },
-    "members": "{count} members",
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended"
+    },
+    "membersCount": "{count} members",
     "organizations": "{count} organizations",
     "toggleOrgs": {
       "show": "Show organizations",
