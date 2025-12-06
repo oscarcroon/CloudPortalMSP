@@ -17,7 +17,8 @@ export default defineNuxtPlugin(() => {
     const targetValue: 'dark' | 'light' = prefersDark ? 'dark' : 'light'
 
     if (colorMode.value !== targetValue) {
-      colorMode.preference = targetValue
+      // Update only the active value; keep preference as 'system' so future changes propagate
+      colorMode.value = targetValue
     }
   }
 
