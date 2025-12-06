@@ -47,6 +47,7 @@
     <CloudflareZoneRecordsTable
       v-if="zoneId && recordsData?.records"
       :zone-id="zoneId"
+      :zone-name="zoneData?.zone?.name ?? ''"
       :records="recordsData.records"
       :can-edit="recordsData.access?.canEditRecords ?? false"
       @refresh="refreshRecords"
