@@ -44,6 +44,7 @@ export interface CloudflareDnsRecord {
   ttl?: number | null
   proxied?: boolean | null
   priority?: number | null
+  comment?: string | null
 }
 
 export interface CloudflareApiErrorPayload {

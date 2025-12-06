@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
     ttl?: number | null
     proxied?: boolean | null
     priority?: number | null
+    comment?: string | null
   }>(event)
 
   const client = await getClientForOrg(orgId)
@@ -38,7 +39,8 @@ export default defineEventHandler(async (event) => {
     content: body?.content,
     ttl: body?.ttl ?? undefined,
     proxied: body?.proxied ?? undefined,
-    priority: body?.priority ?? undefined
+    priority: body?.priority ?? undefined,
+    comment: body?.comment ?? undefined
   })
 
   return { record }

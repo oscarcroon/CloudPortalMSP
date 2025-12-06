@@ -27,6 +27,7 @@ export default defineEventHandler(async (event) => {
     ttl?: number | null
     proxied?: boolean | null
     priority?: number | null
+    comment?: string | null
   }>(event)
 
   if (!body?.type || !body.name || !body.content) {
@@ -43,7 +44,8 @@ export default defineEventHandler(async (event) => {
     content: body.content,
     ttl: body.ttl ?? null,
     proxied: body.proxied ?? null,
-    priority: body.priority ?? null
+    priority: body.priority ?? null,
+    comment: body.comment ?? null
   })
 
   return { record }

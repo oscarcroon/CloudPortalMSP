@@ -140,7 +140,8 @@ export class CloudflareClient {
             content: row.content,
             ttl: row.ttl ?? null,
             proxied: row.proxied ?? null,
-            priority: row.priority ?? null
+            priority: row.priority ?? null,
+            comment: row.comment ?? null
           }) satisfies CloudflareDnsRecord
       ) ?? []
     )
@@ -153,7 +154,8 @@ export class CloudflareClient {
       content: record.content,
       ttl: record.ttl,
       proxied: record.proxied,
-      priority: record.priority
+      priority: record.priority,
+      comment: record.comment
     }
     const { result } = await this.request<any>(`/zones/${zoneId}/dns_records`, {
       method: 'POST',
@@ -166,7 +168,8 @@ export class CloudflareClient {
       content: result.content,
       ttl: result.ttl ?? null,
       proxied: result.proxied ?? null,
-      priority: result.priority ?? null
+      priority: result.priority ?? null,
+      comment: result.comment ?? null
     } satisfies CloudflareDnsRecord
   }
 
@@ -178,6 +181,7 @@ export class CloudflareClient {
     if (record.ttl !== undefined) body.ttl = record.ttl
     if (record.proxied !== undefined) body.proxied = record.proxied
     if (record.priority !== undefined) body.priority = record.priority
+    if (record.comment !== undefined) body.comment = record.comment
 
     const { result } = await this.request<any>(`/zones/${zoneId}/dns_records/${recordId}`, {
       method: 'PATCH',
@@ -191,7 +195,8 @@ export class CloudflareClient {
       content: result.content,
       ttl: result.ttl ?? null,
       proxied: result.proxied ?? null,
-      priority: result.priority ?? null
+      priority: result.priority ?? null,
+      comment: result.comment ?? null
     } satisfies CloudflareDnsRecord
   }
 

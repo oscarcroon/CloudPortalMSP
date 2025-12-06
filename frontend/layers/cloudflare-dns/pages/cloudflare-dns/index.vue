@@ -1,25 +1,37 @@
 <template>
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
-    <header class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-      <div>
+    <header class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div class="flex flex-col gap-2">
         <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">Cloudflare</p>
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">DNS-zoner</h1>
         <p class="text-sm text-slate-600 dark:text-slate-300">
           Förenklat gränssnitt för zoner och DNS records. Behörigheter styrs av modulroller och zon-ACL.
         </p>
+        <div class="mt-1 relative w-full max-w-md">
+          <Icon icon="mdi:magnify" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            v-model="searchTerm"
+            type="search"
+            placeholder="Sök zoner (domän, plan, status)…"
+            class="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
+          />
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          Visar {{ pagedZones.length }} av {{ filteredZones.length }} zoner (totalt {{ totalZones }})
+        </p>
       </div>
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+      <div class="flex items-center gap-2 self-start">
         <button
-          class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:cursor-not-allowed disabled:opacity-60"
+          class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="coolingDown"
+          title="Tvinga uppdatering"
           @click="forceRefresh"
         >
-          <Icon icon="mdi:refresh" class="h-4 w-4" />
-          Tvinga uppdatering
+          <Icon icon="mdi:refresh" class="h-5 w-5" />
         </button>
         <NuxtLink
           to="/cloudflare-dns/admin"
-          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+          class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
         >
           <Icon icon="mdi:cog-outline" class="h-4 w-4" />
           Admin
@@ -60,11 +72,34 @@
 
     <CloudflareZoneList
       v-else
-      :zones="state.data?.zones ?? []"
+      :zones="pagedZones"
       :module-rights="state.data?.moduleRights ?? { canManageZones: false }"
       :loading="state.pending"
       @refresh="() => fetchZones(true)"
     />
+
+    <div
+      v-if="pageCount > 1"
+      class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+    >
+      <span>Sida {{ currentPage }} / {{ pageCount }}</span>
+      <div class="flex items-center gap-2">
+        <button
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-100"
+          :disabled="currentPage === 1"
+          @click="currentPage = Math.max(1, currentPage - 1)"
+        >
+          <Icon icon="mdi:chevron-left" class="h-4 w-4" />
+        </button>
+        <button
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-100"
+          :disabled="currentPage === pageCount"
+          @click="currentPage = Math.min(pageCount, currentPage + 1)"
+        >
+          <Icon icon="mdi:chevron-right" class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
 
     <div v-if="state.data?.fromCache" class="text-xs text-slate-500 dark:text-slate-400">
       Visar cachelagrade zoner. För att hämta färska data, klicka ”Tvinga uppdatering”.
@@ -95,6 +130,9 @@ const state = reactive<{
 
 const coolingDown = ref(false)
 let cooldownTimer: ReturnType<typeof setTimeout> | null = null
+const searchTerm = ref('')
+const pageSize = 20
+const currentPage = ref(1)
 
 const loadZones = async (forceRefresh = false): Promise<ZonesResponse> => {
   try {
@@ -137,6 +175,26 @@ const forceRefresh = async () => {
     coolingDown.value = false
   }, 2000)
 }
+
+const filteredZones = computed(() => {
+  const zones = state.data?.zones ?? []
+  const term = searchTerm.value.trim().toLowerCase()
+  const filtered = !term
+    ? zones
+    : zones.filter((z) => {
+    const hay = `${z.name ?? ''} ${z.plan ?? ''} ${z.status ?? ''}`.toLowerCase()
+    return hay.includes(term)
+  })
+  currentPage.value = Math.min(currentPage.value, Math.max(1, Math.ceil(filtered.length / pageSize) || 1))
+  return filtered
+})
+
+const totalZones = computed(() => state.data?.zones?.length ?? 0)
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredZones.value.length / pageSize)))
+const pagedZones = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredZones.value.slice(start, start + pageSize)
+})
 
 if (process.client) {
   onMounted(() => {
