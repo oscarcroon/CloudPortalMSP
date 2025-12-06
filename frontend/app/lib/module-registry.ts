@@ -1,4 +1,5 @@
 import type { RbacPermission } from '~/constants/rbac'
+import { manifests } from '../../layers/plugin-manifests'
 
 export type ModuleScope = 'tenant' | 'org' | 'user'
 export type ModuleStatus = 'active' | 'beta' | 'deprecated' | 'coming-soon'
@@ -45,9 +46,50 @@ export interface ModuleMeta {
   visibilityMode?: ModuleVisibilityMode
 }
 
+/**
+ * Convert plugin manifest (from layers/plugin-manifests) to ModuleMeta used by app
+ */
+const manifestToModuleMeta = (manifest: (typeof manifests)[number]): ModuleMeta => {
+  const { module, permissions, roles } = manifest
+  const scopes: ModuleScope[] = ['org', 'user']
+
+  const moduleRoles = (roles ?? []).map((role) => ({
+    key: role.key,
+    label: role.label,
+    description: role.description,
+    requiredPermissions: role.permissions as RbacPermission[],
+    capabilities: {
+      read: role.permissions.some((p) => p.includes(':read') || p.includes(':view')),
+      write: role.permissions.some((p) => p.includes(':write') || p.includes(':edit')),
+      manage: role.permissions.some((p) => p.includes(':admin') || p.includes(':manage')) || role.key.includes('admin')
+    }
+  }))
+
+  const requiredPermissions: RbacPermission[] =
+    permissions && permissions.length > 0 ? [permissions[0].key as RbacPermission] : []
+
+  const rootRoute = `/${module.key.replace(/_/g, '-')}`
+
+  return defineModule({
+    key: module.key,
+    name: module.name,
+    description: module.description ?? '',
+    category: module.category ?? 'infrastructure',
+    layerKey: module.key,
+    rootRoute,
+    scopes,
+    status: 'active',
+    requiredPermissions,
+    moduleRoles,
+    defaultAllowedRoles: roles?.map((r) => r.key) ?? [],
+    icon: 'mdi:puzzle',
+    badge: module.category ? module.category.charAt(0).toUpperCase() + module.category.slice(1) : undefined
+  })
+}
+
 const warn = (message: string, payload?: Record<string, unknown>) => {
   if (process.dev) {
-    // eslint-disable-next-line no-console
+     
     console.warn(`[module-registry] ${message}`, payload ?? {})
   }
 }
@@ -98,7 +140,8 @@ export const defineModule = (meta: ModuleMeta): ModuleMeta => {
   return normalized
 }
 
-export const ALL_MODULES: ModuleMeta[] = [
+// Legacy modules that are not plugin-based
+const legacyModules: ModuleMeta[] = [
   defineModule({
     key: 'windows-dns',
     name: 'Windows DNS',
@@ -138,5 +181,13 @@ export const ALL_MODULES: ModuleMeta[] = [
     badge: 'DNS'
   })
 ]
+
+// Plugin-based modules (loaded from layer manifests) but skip keys that already exist in legacy set
+const legacyKeys = new Set(legacyModules.map((m) => m.key))
+const pluginModules = manifests
+  .filter((manifest) => !legacyKeys.has(manifest.module.key))
+  .map(manifestToModuleMeta)
+
+export const ALL_MODULES: ModuleMeta[] = [...legacyModules, ...pluginModules]
 
 

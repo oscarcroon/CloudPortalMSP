@@ -56,7 +56,7 @@ export type ModuleRoleKey = ${moduleRoleKeyUnion}
   fs.mkdirSync(path.dirname(outPath), { recursive: true })
   fs.writeFileSync(outPath, content, 'utf8')
 
-  // eslint-disable-next-line no-console
+   
   console.log(`Generated RBAC types to: ${outPath}`)
 }
 

@@ -243,6 +243,23 @@
     },
     "notProvided": "Not specified"
   },
+  "settings": {
+    "modules": {
+      "modes": {
+        "inherit": "Inherit",
+        "defaultClosed": "Default closed",
+        "allowlist": "Allowlist",
+        "blocked": "Blocked"
+      },
+      "filters": {
+        "allCategories": "All categories"
+      },
+      "results": "Results",
+      "policyTitle": "Policy",
+      "allowedRolesLabel": "Allowed roles",
+      "routeLabel": "Route"
+    }
+  },
   "password": {
     "requirements": {
       "length": "At least 12 characters long",
@@ -940,7 +957,12 @@
     "openModule": "Open module",
     "routeLabel": "Route:",
     "results": "{count} modules",
-    "empty": "No modules registered yet."
+    "empty": "No modules registered yet.",
+    "loading": "Loading modules...",
+    "enabledStatus": "Enabled status",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "disabledNote": "Module must be enabled before it appears for distributors, providers and organizations."
   },
   "adminTenants": {
     "title": "Tenants",

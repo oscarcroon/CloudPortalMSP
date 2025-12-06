@@ -1,0 +1,11 @@
+@layer components {
+  .mod-example-module-panel {
+    @apply border border-slate-200 bg-white/90 text-slate-900 shadow-sm rounded-2xl p-6 transition dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50;
+  }
+
+  .mod-example-module-tag {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200;
+  }
+}
+
+

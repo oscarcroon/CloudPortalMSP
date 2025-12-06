@@ -61,11 +61,20 @@
       </div>
     </div>
 
-    <div class="space-y-3">
+    <div v-if="pending" class="rounded-xl border border-dashed border-slate-200 p-6 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300">
+      {{ t('adminModules.loading') }}
+    </div>
+
+    <div v-else class="space-y-3">
       <div
         v-for="module in filteredModules"
         :key="module.key"
-        class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5"
+        :class="[
+          'rounded-xl border p-4 shadow-sm',
+          module.enabled
+            ? 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5'
+            : 'border-slate-300 bg-slate-50 dark:border-white/5 dark:bg-slate-900/50'
+        ]"
       >
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div class="space-y-2">
@@ -126,7 +135,25 @@
             </div>
           </div>
 
-          <div class="flex flex-col items-start gap-2 md:items-end">
+          <div class="flex flex-col items-start gap-3 md:items-end">
+            <div class="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                {{ t('adminModules.enabledStatus') }}
+              </p>
+              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                <input
+                  :checked="module.enabled"
+                  :disabled="module.updating"
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20"
+                  @change="onEnabledChange(module, ($event.target as HTMLInputElement).checked)"
+                />
+                <span>{{ module.enabled ? t('adminModules.enabled') : t('adminModules.disabled') }}</span>
+              </label>
+              <p v-if="!module.enabled" class="text-xs text-slate-500 dark:text-slate-400">
+                {{ t('adminModules.disabledNote') }}
+              </p>
+            </div>
             <NuxtLink
               :to="module.rootRoute"
               class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
@@ -154,11 +181,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useI18n } from '#imports'
+import { computed, ref, useI18n, useFetch } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
-import { getAllModules } from '~/lib/modules-helpers'
 import type { ModuleStatus } from '~/lib/module-registry'
+import type { ModuleMeta } from '~/lib/module-registry'
 
 definePageMeta({
   layout: 'default'
@@ -166,7 +193,10 @@ definePageMeta({
 
 const { t } = useI18n()
 
-const modules = ref(getAllModules())
+type ModuleWithEnabled = ModuleMeta & { enabled: boolean; updating?: boolean }
+
+const { data, pending, refresh } = await useFetch<{ modules: ModuleWithEnabled[] }>('/api/admin/modules')
+const modules = computed(() => data.value?.modules ?? [])
 const searchInput = ref('')
 const categoryFilter = ref<string>('all')
 const scopeFilter = ref<'all' | 'tenant' | 'org' | 'user'>('all')
@@ -212,6 +242,24 @@ const statusVariant = (status: ModuleStatus | undefined) => {
       return 'info'
     default:
       return 'success'
+  }
+}
+
+const onEnabledChange = async (module: ModuleWithEnabled, enabled: boolean) => {
+  module.updating = true
+  try {
+    await $fetch(`/api/admin/modules/${module.key}/enable`, {
+      method: 'PUT',
+      body: { enabled }
+    })
+    module.enabled = enabled
+    await refresh()
+  } catch (error: any) {
+    console.error('Failed to update module enabled status:', error)
+    // Revert checkbox on error
+    module.enabled = !enabled
+  } finally {
+    module.updating = false
   }
 }
 </script>

@@ -5,13 +5,16 @@ import {
   organizationModulePolicies,
   organizations,
   tenantModulePolicies,
-  tenants
+  tenants,
+  modules as modulesTable
 } from '../database/schema'
 import { getDb } from './db'
 import { getModuleById, getModulesByScope } from '~/lib/modules'
 import type { ModuleId } from '~/constants/modules'
 import { getModulePermissions } from '~/constants/modules'
 import type { ModulePolicy, ModuleStatusDto, PolicyMode } from '~/types/modules'
+import { getAllPluginModules } from '~~/server/lib/plugin-registry/registry'
+import type { ModuleScope } from '~/lib/module-registry'
 
 type TenantPolicyRow = typeof tenantModulePolicies.$inferSelect
 type OrgPolicyRow = typeof organizationModulePolicies.$inferSelect
@@ -288,8 +291,22 @@ const buildTenantDto = async (
   tenantId: string,
   featureFlags: FeatureFlags
 ): Promise<ModuleStatusDto[]> => {
-  const modules = getModulesByScope('tenant')
   const db = getDb()
+
+  // Get enabled modules from DB
+  const enabledModules = await db
+    .select({ key: modulesTable.key })
+    .from(modulesTable)
+    .where(eq(modulesTable.enabled, true))
+  const enabledKeys = new Set(enabledModules.map((m) => m.key))
+
+  // Combine legacy modules and plugin modules
+  const legacyModules = getModulesByScope('tenant')
+  const pluginModules = getAllPluginModules().filter(
+    (m) => m.scopes.includes('tenant') && enabledKeys.has(m.key)
+  )
+  const moduleList = [...legacyModules, ...pluginModules]
+
   const policies = await db
     .select()
     .from(tenantModulePolicies)
@@ -297,7 +314,11 @@ const buildTenantDto = async (
   const policyMap = new Map(policies.map((row) => [row.moduleId, row]))
 
   const results: ModuleStatusDto[] = []
-  for (const module of modules) {
+  for (const module of moduleList) {
+    // Only include enabled modules
+    if (!enabledKeys.has(module.key)) {
+      continue
+    }
     const base = basePolicyForModule(module.key, module.defaultAllowedRoles)
     const distributorPolicy = await resolveDistributorPolicy(tenantId, module.key as ModuleId)
     const tenantPolicy = toPolicy(module.key, policyMap.get(module.key))
@@ -348,9 +369,25 @@ export const getOrganizationModulesStatus = async (
     : []
   const tenantPolicyMap = new Map(tenantPolicies.map((row) => [row.moduleId, row]))
 
+  // Get enabled modules from DB
+  const enabledModules = await db
+    .select({ key: modulesTable.key })
+    .from(modulesTable)
+    .where(eq(modulesTable.enabled, true))
+  const enabledKeys = new Set(enabledModules.map((m) => m.key))
+
+  // Combine legacy modules and plugin modules
+  const legacyModules = [...getModulesByScope('org'), ...getModulesByScope('user')]
+  const pluginModules = getAllPluginModules().filter((m) =>
+    (m.scopes.includes('org') || m.scopes.includes('user')) && enabledKeys.has(m.key)
+  )
+
   const modulesMap = new Map<string, ReturnType<typeof getModuleById>>()
-  ;[...getModulesByScope('org'), ...getModulesByScope('user')].forEach((module) => {
-    modulesMap.set(module.key, module)
+  ;[...legacyModules, ...pluginModules].forEach((module) => {
+    // Only include enabled modules
+    if (enabledKeys.has(module.key)) {
+      modulesMap.set(module.key, module)
+    }
   })
 
   const results: ModuleStatusDto[] = []

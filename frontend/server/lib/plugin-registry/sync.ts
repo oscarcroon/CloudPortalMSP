@@ -12,27 +12,58 @@ import { getDb } from '~~/server/utils/db'
 export async function syncPluginRegistry() {
   const db = getDb()
 
+  // Check if enabled column exists by trying to query it
+  let hasEnabledColumn = false
+  try {
+    await db.execute('SELECT enabled FROM modules LIMIT 1')
+    hasEnabledColumn = true
+  } catch {
+    // Column doesn't exist yet, migration hasn't run
+    hasEnabledColumn = false
+  }
+
   for (const manifest of manifests) {
     const { module, permissions, roles, roleDefaults } = manifest
 
+    // Check if module already exists to preserve enabled status
+    let existing: { enabled?: boolean } | undefined
+    if (hasEnabledColumn) {
+      const [row] = await db.select().from(modules).where(eq(modules.key, module.key))
+      existing = row
+    }
+
+    const baseValues: any = {
+      key: module.key,
+      name: module.name,
+      description: module.description ?? null,
+      category: module.category ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    // Only include enabled if column exists
+    if (hasEnabledColumn) {
+      baseValues.enabled = existing?.enabled ?? false
+    }
+
+    const updateValues: any = {
+      name: module.name,
+      description: module.description ?? null,
+      category: module.category ?? null,
+      updatedAt: new Date()
+    }
+
+    // Only include enabled in update if column exists
+    if (hasEnabledColumn) {
+      updateValues.enabled = existing?.enabled ?? false
+    }
+
     await db
       .insert(modules)
-      .values({
-        key: module.key,
-        name: module.name,
-        description: module.description ?? null,
-        category: module.category ?? null,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
+      .values(baseValues)
       .onConflictDoUpdate({
         target: modules.key,
-        set: {
-          name: module.name,
-          description: module.description ?? null,
-          category: module.category ?? null,
-          updatedAt: new Date()
-        }
+        set: updateValues
       })
 
     await db.delete(modulePermissions).where(eq(modulePermissions.moduleKey, module.key))

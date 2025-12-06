@@ -11,6 +11,9 @@ export default <Partial<Config>>{
   ],
   theme: {
     extend: {
+      // NOTE: Public API för plugins/layers. Ändra inte från en plugin:
+      // - brand-färger används via klasser (text-brand, bg-brand/10 etc.)
+      // - card-shadow används av kort/panel-komponenter
       colors: {
         brand: {
           DEFAULT: 'rgb(var(--brand, 28 109 208) / <alpha-value>)',

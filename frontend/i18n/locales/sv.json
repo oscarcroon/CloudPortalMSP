@@ -243,6 +243,23 @@
     },
     "notProvided": "Ej angivet"
   },
+  "settings": {
+    "modules": {
+      "modes": {
+        "inherit": "Ärv",
+        "defaultClosed": "Stängd som standard",
+        "allowlist": "Tillåtlista",
+        "blocked": "Blockerad"
+      },
+      "filters": {
+        "allCategories": "Alla kategorier"
+      },
+      "results": "Resultat",
+      "policyTitle": "Policy",
+      "allowedRolesLabel": "Tillåtna roller",
+      "routeLabel": "Route"
+    }
+  },
   "password": {
     "requirements": {
       "length": "Minst 12 tecken långt",
@@ -940,7 +957,12 @@
     "openModule": "Öppna modul",
     "routeLabel": "Route:",
     "results": "{count} moduler",
-    "empty": "Inga moduler registrerade ännu."
+    "empty": "Inga moduler registrerade ännu.",
+    "loading": "Laddar moduler...",
+    "enabledStatus": "Aktiveringsstatus",
+    "enabled": "Aktiverad",
+    "disabled": "Ej aktiverad",
+    "disabledNote": "Modulen måste aktiveras innan den syns för distributörer, leverantörer och organisationer."
   },
   "adminTenants": {
     "title": "Tenants",

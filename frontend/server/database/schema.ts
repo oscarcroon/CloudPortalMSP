@@ -35,6 +35,7 @@ export const modules = sqliteTable(
     name: text('name').notNull(),
     description: text('description'),
     category: text('category'),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
     ...timestampColumns()
   },
   (table) => ({
@@ -1168,6 +1169,84 @@ export const memberModuleRoleOverrideRelations = relations(memberModuleRoleOverr
     references: [users.id]
   })
 }))
+
+/**
+ * Cloudflare DNS plugin tables (prefixed with cloudflare_dns_)
+ */
+export const cloudflareDnsOrgConfig = sqliteTable(
+  'cloudflare_dns_org_config',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    encryptedApiToken: text('encrypted_api_token', { length: 4096 }).notNull(),
+    encryptionIv: text('encryption_iv').notNull(),
+    encryptionAuthTag: text('encryption_auth_tag').notNull(),
+    accountId: text('account_id'),
+    lastSyncAt: integer('last_sync_at', { mode: 'timestamp_ms' }),
+    lastSyncStatus: text('last_sync_status'),
+    lastSyncError: text('last_sync_error'),
+    lastValidatedAt: integer('last_validated_at', { mode: 'timestamp_ms' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    orgUnique: uniqueIndex('cloudflare_dns_org_config_org_idx').on(table.organizationId)
+  })
+)
+
+export const cloudflareDnsZonesCache = sqliteTable(
+  'cloudflare_dns_zones_cache',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    zoneId: text('zone_id').notNull(),
+    name: text('name').notNull(),
+    status: text('status'),
+    plan: text('plan'),
+    recordCount: integer('record_count'),
+    lastSyncedAt: integer('last_synced_at', { mode: 'timestamp_ms' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    orgZoneIdx: uniqueIndex('cloudflare_dns_zones_cache_org_zone_idx').on(
+      table.organizationId,
+      table.zoneId
+    ),
+    orgIdx: index('cloudflare_dns_zones_cache_org_idx').on(table.organizationId)
+  })
+)
+
+export const cloudflareDnsZoneAcls = sqliteTable(
+  'cloudflare_dns_zone_acls',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    zoneId: text('zone_id').notNull(),
+    principalType: text('principal_type', { enum: ['user', 'org-role'] })
+      .$type<'user' | 'org-role'>()
+      .notNull(),
+    principalId: text('principal_id').notNull(),
+    role: text('role', {
+      enum: ['viewer', 'editor', 'admin', 'records-only']
+    })
+      .$type<'viewer' | 'editor' | 'admin' | 'records-only'>()
+      .notNull(),
+    ...timestampColumns()
+  },
+  (table) => ({
+    zoneIdx: index('cloudflare_dns_zone_acls_zone_idx').on(table.organizationId, table.zoneId),
+    principalIdx: index('cloudflare_dns_zone_acls_principal_idx').on(
+      table.organizationId,
+      table.principalType,
+      table.principalId
+    )
+  })
+)
 
 /**
  * Windows DNS plugin tables (prefixed with windows_dns_)

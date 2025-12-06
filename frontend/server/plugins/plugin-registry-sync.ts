@@ -8,7 +8,7 @@ export default async () => {
   try {
     await syncPluginRegistry()
   } catch (error) {
-    // eslint-disable-next-line no-console
+     
     console.error('[plugin-registry] Sync failed', error)
   }
 }
