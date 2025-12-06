@@ -65,7 +65,8 @@ export class CloudflareClient {
         name: zone.name,
         status: zone.status ?? null,
         plan: zone.plan?.name ?? null,
-        recordCount: zone.meta?.page || null
+        recordCount: zone.meta?.page || null,
+        nameServers: zone.name_servers ?? null
       })) ?? []
 
     return { zones }
@@ -89,7 +90,8 @@ export class CloudflareClient {
       name: result.name,
       status: result.status ?? null,
       plan: result.plan?.name ?? null,
-      recordCount: result.meta?.page || null
+      recordCount: result.meta?.page || null,
+      nameServers: result.name_servers ?? null
     }
   }
 
@@ -116,7 +118,8 @@ export class CloudflareClient {
       id: result.id,
       name: result.name,
       status: result.status ?? null,
-      plan: result.plan?.name ?? null
+      plan: result.plan?.name ?? null,
+      nameServers: result.name_servers ?? null
     }
   }
 

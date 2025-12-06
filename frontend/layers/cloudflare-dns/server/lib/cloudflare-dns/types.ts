@@ -30,6 +30,7 @@ export interface CloudflareZoneSummary {
   status?: string | null
   plan?: string | null
   recordCount?: number | null
+  nameServers?: string[] | null
   effectiveRole?: CloudflareZoneRole | null
   canEdit?: boolean
   canManage?: boolean

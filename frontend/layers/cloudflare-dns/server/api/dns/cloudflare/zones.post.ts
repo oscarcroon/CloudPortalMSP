@@ -29,7 +29,13 @@ export default defineEventHandler(async (event) => {
   })
 
   await upsertZoneCache(orgId, [
-    { id: zone.id, name: zone.name, status: zone.status ?? null, plan: zone.plan ?? null }
+    {
+      id: zone.id,
+      name: zone.name,
+      status: zone.status ?? null,
+      plan: zone.plan ?? null,
+      recordCount: zone.recordCount ?? null
+    }
   ])
 
   return { zone }
