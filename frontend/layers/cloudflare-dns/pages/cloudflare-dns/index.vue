@@ -2,29 +2,33 @@
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
     <header class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div class="flex flex-col gap-2">
-        <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">Cloudflare</p>
-        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">DNS-zoner</h1>
+        <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {{ t('cloudflareDns.index.label') }}
+        </p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">
+          {{ t('cloudflareDns.index.title') }}
+        </h1>
         <p class="text-sm text-slate-600 dark:text-slate-300">
-          Förenklat gränssnitt för zoner och DNS records. Behörigheter styrs av modulroller och zon-ACL.
+          {{ t('cloudflareDns.index.subtitle') }}
         </p>
         <div class="mt-1 relative w-full max-w-md">
           <Icon icon="mdi:magnify" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             v-model="searchTerm"
             type="search"
-            placeholder="Sök zoner (domän, plan, status)…"
+            :placeholder="t('cloudflareDns.index.searchPlaceholder')"
             class="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
           />
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400">
-          Visar {{ pagedZones.length }} av {{ filteredZones.length }} zoner (totalt {{ totalZones }})
+          {{ t('cloudflareDns.index.showing', { visible: pagedZones.length, filtered: filteredZones.length, total: totalZones }) }}
         </p>
       </div>
       <div class="flex items-center gap-2 self-start">
         <button
           class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="coolingDown"
-          title="Tvinga uppdatering"
+          :title="t('cloudflareDns.index.forceRefreshTitle')"
           @click="forceRefresh"
         >
           <Icon icon="mdi:refresh" class="h-5 w-5" />
@@ -34,12 +38,14 @@
           class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
         >
           <Icon icon="mdi:cog-outline" class="h-4 w-4" />
-          Admin
+          {{ t('cloudflareDns.index.adminLink') }}
         </NuxtLink>
       </div>
     </header>
 
-    <div v-if="state.pending" class="text-sm text-slate-500 dark:text-slate-400">Laddar zoner...</div>
+    <div v-if="state.pending" class="text-sm text-slate-500 dark:text-slate-400">
+      {{ t('cloudflareDns.index.loading') }}
+    </div>
 
     <div
       v-else-if="state.error"
@@ -48,7 +54,7 @@
       <div class="flex items-start gap-3">
         <Icon icon="mdi:alert-circle-outline" class="mt-0.5 h-4 w-4 flex-shrink-0" />
         <div class="space-y-2">
-          <p class="font-semibold">Kunde inte hämta zoner</p>
+          <p class="font-semibold">{{ t('cloudflareDns.index.errorTitle') }}</p>
           <p class="whitespace-pre-line">{{ state.error }}</p>
           <div class="flex gap-2">
             <button
@@ -56,14 +62,14 @@
               @click="fetchZones(false)"
             >
               <Icon icon="mdi:refresh" class="h-4 w-4" />
-              Försök igen
+              {{ t('cloudflareDns.index.retry') }}
             </button>
             <button
               class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
               @click="fetchZones(true)"
             >
               <Icon icon="mdi:refresh-circle" class="h-4 w-4" />
-              Tvinga uppdatering
+              {{ t('cloudflareDns.index.forceRefresh') }}
             </button>
           </div>
         </div>
@@ -82,7 +88,7 @@
       v-if="pageCount > 1"
       class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
     >
-      <span>Sida {{ currentPage }} / {{ pageCount }}</span>
+      <span>{{ t('cloudflareDns.index.pagination', { page: currentPage, pages: pageCount }) }}</span>
       <div class="flex items-center gap-2">
         <button
           class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-100"
@@ -102,7 +108,7 @@
     </div>
 
     <div v-if="state.data?.fromCache" class="text-xs text-slate-500 dark:text-slate-400">
-      Visar cachelagrade zoner. För att hämta färska data, klicka ”Tvinga uppdatering”.
+      {{ t('cloudflareDns.index.cached') }}
     </div>
   </div>
 </template>
@@ -110,6 +116,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import CloudflareZoneList from '@cloudflare-dns/components/CloudflareZoneList.vue'
+import { useI18n } from '#imports'
 
 type ZonesResponse = {
   zones: any[]
@@ -133,6 +140,7 @@ let cooldownTimer: ReturnType<typeof setTimeout> | null = null
 const searchTerm = ref('')
 const pageSize = 20
 const currentPage = ref(1)
+const { t } = useI18n()
 
 const loadZones = async (forceRefresh = false): Promise<ZonesResponse> => {
   try {

@@ -1,7 +1,191 @@
 {
-  "title": "Cloudflare DNS",
-  "description": "Manage Cloudflare DNS zones, records and access.",
-  "cta": "Create zone",
-  "empty": "No zones yet."
-}
+  "cloudflareDns": {
+    "title": "Cloudflare DNS",
+    "description": "Manage Cloudflare DNS zones, records and access.",
+    "cta": "Create zone",
+    "empty": "No zones yet.",
 
+    "statusCard": {
+      "label": "Status",
+      "title": "Cloudflare DNS",
+      "zoneCount": "{count} zones",
+      "lastSyncTitle": "Last sync",
+      "noSync": "No sync yet",
+      "statusLabel": "Status: {status}",
+      "lastValidatedTitle": "Token validated",
+      "notValidated": "Not validated"
+    },
+
+    "acl": {
+      "label": "Access",
+      "title": "Zone ACL",
+      "readOnly": "Read-only",
+      "principal": "Principal",
+      "principalPlaceholder": "user-id or org-role",
+      "type": "Type",
+      "role": "Role",
+      "actions": "Actions",
+      "principalType": {
+        "user": "User",
+        "orgRole": "Org-role"
+      },
+      "roleOptions": {
+        "viewer": "Viewer",
+        "recordsOnly": "Records only",
+        "editor": "Editor",
+        "admin": "Admin"
+      },
+      "addRow": "Add row",
+      "save": "Save ACL",
+      "remove": "Remove"
+    },
+
+    "zoneList": {
+      "label": "Zones",
+      "title": "Cloudflare zones",
+      "create": "Create DNS zone",
+      "loading": "Loading zones...",
+      "planUnknown": "Plan unknown",
+      "statusUnknown": "status unknown",
+      "recordCount": "{count} records",
+      "view": "View",
+      "onboard": {
+        "label": "Onboarding",
+        "title": "Create DNS zone",
+        "subtitle": "We guide you through adding the domain. Point name servers at your registrar; propagation can take up to 24 hours.",
+        "domainLabel": "Domain",
+        "domainPlaceholder": "example.com",
+        "bullet1": "Change name servers at your registrar to the ones Cloudflare provides (shown after creation).",
+        "bullet2": "Propagation can take up to 24 hours after changing name servers.",
+        "bullet3": {
+          "prefix": "You will see status as",
+          "pending": "pending",
+          "suffix": "on the overview until DNS is active."
+        },
+        "createdTitle": "Zone created",
+        "createdHint": "Use these name servers at your registrar:",
+        "createAndShow": "Create and show name servers",
+        "openZone": "Open zone"
+      }
+    },
+
+    "index": {
+      "label": "Cloudflare",
+      "title": "DNS zones",
+      "subtitle": "Simplified UI for zones and DNS records. Permissions are controlled by module roles and zone ACL.",
+      "searchPlaceholder": "Search zones (domain, plan, status)…",
+      "showing": "Showing {visible} of {filtered} zones (total {total})",
+      "forceRefreshTitle": "Force refresh",
+      "adminLink": "Admin",
+      "loading": "Loading zones...",
+      "errorTitle": "Could not fetch zones",
+      "retry": "Retry",
+      "forceRefresh": "Force refresh",
+      "pagination": "Page {page} / {pages}",
+      "cached": "Showing cached zones. To fetch fresh data, click 'Force refresh'."
+    },
+
+    "admin": {
+      "label": "Cloudflare DNS",
+      "title": "Organization configuration",
+      "subtitle": "Store API token per organization and verify the connection. The token is not shown after save.",
+      "token": {
+        "label": "API token",
+        "title": "Cloudflare credentials",
+        "helper": "Token is stored encrypted. We never show the full token."
+      },
+      "form": {
+        "apiToken": "API token",
+        "apiTokenPlaceholder": "Cloudflare API token",
+        "lastSaved": "Last saved: {value}",
+        "none": "none",
+        "accountId": "Account ID (optional)",
+        "accountIdPlaceholder": "Account ID",
+        "accountIdHelper": "Used when creating zones. Leave empty if the token already has scope."
+      },
+      "actions": {
+        "saveVerify": "Save and verify",
+        "test": "Test connection"
+      },
+      "messages": {
+        "saved": "Token saved and verified.",
+        "saveError": "Could not save token.",
+        "testOk": "Connection verified.",
+        "testError": "Test failed."
+      }
+    },
+
+    "zone": {
+      "label": "Cloudflare",
+      "loadingZone": "Loading zone...",
+      "back": "Back",
+      "loadingStatus": "Fetching status...",
+      "unknown": "unknown",
+      "statusLine": "Status: {status} · Plan: {plan}",
+      "pending": {
+        "title": "Zone is pending",
+        "description": "The domain is not active yet. Point the name servers at your registrar to Cloudflare.",
+        "propagation": "DNS changes can take up to 24 hours to propagate, often faster.",
+        "pointTo": "Point the domain to:"
+      },
+      "danger": {
+        "label": "Danger zone",
+        "title": "Delete DNS zone",
+        "description": "This deletes the zone in Cloudflare and all DNS records. Cannot be undone.",
+        "deleteAction": "Delete zone"
+      },
+      "delete": {
+        "confirmLabel": "Confirm deletion",
+        "confirmTitle": "Delete DNS zone",
+        "confirmDescription": "This removes the zone and all records in Cloudflare. Cannot be undone.",
+        "enterName": "Type the zone name to confirm:",
+        "ack": "I understand this deletion cannot be undone."
+      }
+    },
+
+    "records": {
+      "label": "DNS records",
+      "title": "Records",
+      "searchPlaceholder": "Search records (type, name, content)…",
+      "hideForm": "Hide form",
+      "addRecord": "Add record",
+      "preview": "Preview",
+      "fields": {
+        "type": "Type",
+        "name": "Name",
+        "ttl": "TTL",
+        "content": "Content",
+        "mxPriority": "MX priority",
+        "mxHost": "MX host (content)",
+        "caaFlag": "Flag",
+        "caaTag": "Tag",
+        "caaValue": "Value",
+        "srvService": "Service (_sip)",
+        "srvProto": "Proto (_tcp/_udp)",
+        "priority": "Priority",
+        "weight": "Weight",
+        "port": "Port",
+        "target": "Target",
+        "params": "Params (e.g. alpn=h2,h3)",
+        "proxied": "Proxied",
+        "comment": "Comment (optional)"
+      },
+      "proxiedTitle": "Proxied via Cloudflare",
+      "proxied": "Proxied",
+      "dnsOnlyTitle": "DNS only (no proxy)",
+      "dnsOnly": "DNS only",
+      "actions": {
+        "save": "Save"
+      },
+      "table": {
+        "type": "Type",
+        "name": "Name",
+        "content": "Content",
+        "ttl": "TTL",
+        "proxied": "Proxied",
+        "actions": "Actions"
+      },
+      "pagination": "Page {page} / {pages} · showing {shown} of {total} records"
+    }
+  }
+}

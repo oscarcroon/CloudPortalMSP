@@ -3,15 +3,19 @@
     <header class="flex flex-col gap-3">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">DNS records</p>
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Records</h3>
+          <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ t('cloudflareDns.records.label') }}
+          </p>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            {{ t('cloudflareDns.records.title') }}
+          </h3>
         </div>
         <div class="relative w-full max-w-xs">
           <Icon icon="mdi:magnify" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             v-model="searchTerm"
             type="search"
-            placeholder="Sök records (typ, namn, content)…"
+            :placeholder="t('cloudflareDns.records.searchPlaceholder')"
             class="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
           />
         </div>
@@ -23,7 +27,7 @@
           @click="showCreateForm = !showCreateForm"
         >
           <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
-          {{ showCreateForm ? 'Dölj formulär' : 'Lägg till record' }}
+          {{ showCreateForm ? t('cloudflareDns.records.hideForm') : t('cloudflareDns.records.addRecord') }}
         </button>
       </div>
     </header>
@@ -36,7 +40,7 @@
       <div
         class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-3 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-100"
       >
-        <p class="font-semibold">Preview</p>
+        <p class="font-semibold">{{ t('cloudflareDns.records.preview') }}</p>
         <p class="mt-1 break-all text-base font-medium text-slate-800 dark:text-slate-100">
           {{ previewLine(newRecord) }}
         </p>
@@ -44,18 +48,18 @@
 
       <div class="grid gap-3 md:grid-cols-4">
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Type</label>
+          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.type') }}</label>
           <select v-model="newRecord.type" class="input" required>
             <option v-for="t in recordTypes" :key="t" :value="t">{{ t }}</option>
           </select>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">{{ typeHelp(newRecord.type) }}</p>
         </div>
         <div class="flex flex-col gap-1 md:col-span-2">
-          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Name</label>
+          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.name') }}</label>
           <input v-model="newRecord.name" class="input" required placeholder="www" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">TTL</label>
+          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.ttl') }}</label>
           <select v-model.number="newRecord.ttl" class="input">
             <option v-for="opt in ttlOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
@@ -201,12 +205,12 @@
       <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
         <thead class="bg-slate-50 dark:bg-slate-800/40">
           <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
-            <th class="px-4 py-2">Type</th>
-            <th class="px-4 py-2">Name</th>
-            <th class="px-4 py-2">Content</th>
-            <th class="px-4 py-2">TTL</th>
-            <th class="px-4 py-2">Proxied</th>
-            <th v-if="canEdit" class="px-4 py-2 text-right">Actions</th>
+            <th class="px-4 py-2">{{ t('cloudflareDns.records.table.type') }}</th>
+            <th class="px-4 py-2">{{ t('cloudflareDns.records.table.name') }}</th>
+            <th class="px-4 py-2">{{ t('cloudflareDns.records.table.content') }}</th>
+            <th class="px-4 py-2">{{ t('cloudflareDns.records.table.ttl') }}</th>
+            <th class="px-4 py-2">{{ t('cloudflareDns.records.table.proxied') }}</th>
+            <th v-if="canEdit" class="px-4 py-2 text-right">{{ t('cloudflareDns.records.table.actions') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
@@ -231,16 +235,16 @@
               <span
                 v-if="record.proxied === true"
                 class="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand"
-                title="Proxied via Cloudflare"
+                :title="t('cloudflareDns.records.proxiedTitle')"
               >
-                <Icon icon="mdi:cloud-check-outline" class="h-3 w-3" /> Proxied
+                <Icon icon="mdi:cloud-check-outline" class="h-3 w-3" /> {{ t('cloudflareDns.records.proxied') }}
               </span>
               <span
                 v-else-if="record.proxied === false"
                 class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-200"
-                title="Endast DNS"
+                :title="t('cloudflareDns.records.dnsOnlyTitle')"
               >
-                <Icon icon="mdi:server" class="h-3 w-3" /> DNS only
+                <Icon icon="mdi:server" class="h-3 w-3" /> {{ t('cloudflareDns.records.dnsOnly') }}
               </span>
               <span v-else class="text-xs text-slate-400">-</span>
               </td>
@@ -280,24 +284,24 @@
                     </div>
                     <template v-if="shouldShowContent(editForm.type)">
                       <div class="flex flex-col gap-1 md:col-span-3">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Content</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.content') }}</label>
                         <input v-model="editForm.content" class="input" required />
                       </div>
                     </template>
                     <div v-if="editForm.type === 'MX'" class="flex flex-col gap-1 md:col-span-2">
-                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">MX priority</label>
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.mxPriority') }}</label>
                       <input v-model.number="editExtras.mxPriority" class="input" type="number" min="0" placeholder="10" />
                     </div>
                     <div v-if="editForm.type === 'MX'" class="flex flex-col gap-1 md:col-span-2">
-                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">MX host (content)</label>
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.mxHost') }}</label>
                       <input v-model="editExtras.mxTarget" class="input" placeholder="mail.example.com" />
                     </div>
                     <div v-if="editForm.type === 'CAA'" class="flex flex-col gap-1">
-                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Flag</label>
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.caaFlag') }}</label>
                       <input v-model.number="editExtras.caaFlag" class="input" type="number" min="0" />
                     </div>
                     <div v-if="editForm.type === 'CAA'" class="flex flex-col gap-1">
-                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Tag</label>
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.caaTag') }}</label>
                       <select v-model="editExtras.caaTag" class="input">
                         <option value="issue">issue</option>
                         <option value="issuewild">issuewild</option>
@@ -305,51 +309,51 @@
                       </select>
                     </div>
                     <div v-if="editForm.type === 'CAA'" class="flex flex-col gap-1 md:col-span-3">
-                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Value</label>
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.caaValue') }}</label>
                       <input v-model="editExtras.caaValue" class="input" placeholder="letsencrypt.org" />
                     </div>
                     <template v-if="editForm.type === 'SRV'">
                       <div class="flex flex-col gap-1">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Service (_sip)</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.srvService') }}</label>
                         <input v-model="editExtras.srvService" class="input" placeholder="_sip" />
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Proto (_tcp/_udp)</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.srvProto') }}</label>
                         <input v-model="editExtras.srvProto" class="input" placeholder="_tcp" />
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Priority</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.priority') }}</label>
                         <input v-model.number="editExtras.srvPriority" class="input" type="number" min="0" />
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Weight</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.weight') }}</label>
                         <input v-model.number="editExtras.srvWeight" class="input" type="number" min="0" />
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Port</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.port') }}</label>
                         <input v-model.number="editExtras.srvPort" class="input" type="number" min="0" />
                       </div>
                       <div class="flex flex-col gap-1 md:col-span-2">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Target</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.target') }}</label>
                         <input v-model="editExtras.srvTarget" class="input" placeholder="target.example.com" />
                       </div>
                     </template>
                     <template v-if="editForm.type === 'HTTPS' || editForm.type === 'SVCB'">
                       <div class="flex flex-col gap-1">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Priority</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.priority') }}</label>
                         <input v-model.number="editExtras.svcbPriority" class="input" type="number" min="0" />
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Target</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.target') }}</label>
                         <input v-model="editExtras.svcbTarget" class="input" placeholder="." />
                       </div>
                       <div class="flex flex-col gap-1 md:col-span-3">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Params (t.ex. alpn=h2,h3)</label>
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.params') }}</label>
                         <input v-model="editExtras.svcbParams" class="input" placeholder="alpn=h2,h3" />
                       </div>
                     </template>
                     <div class="flex flex-col gap-1">
-                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Proxied</label>
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ t('cloudflareDns.records.fields.proxied') }}</label>
                       <div class="flex gap-2">
                         <button
                           type="button"
@@ -360,10 +364,10 @@
                               : 'border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-100'
                           "
                           @click="editProxiedString = editProxiedString === 'true' ? '' : 'true'"
-                          title="Proxied = trafik via Cloudflare CDN/edge"
+                          :title="t('cloudflareDns.records.proxiedTitle')"
                         >
                           <Icon icon="mdi:cloud-check-outline" class="h-4 w-4" />
-                          Proxied
+                          {{ t('cloudflareDns.records.proxied') }}
                         </button>
                         <button
                           type="button"
@@ -374,16 +378,18 @@
                               : 'border-slate-200 text-slate-700 dark:border-slate-700 dark:text-slate-100'
                           "
                           @click="editProxiedString = editProxiedString === 'false' ? '' : 'false'"
-                          title="DNS only = ingen proxning genom Cloudflare"
+                          :title="t('cloudflareDns.records.dnsOnlyTitle')"
                         >
                           <Icon icon="mdi:server" class="h-4 w-4" />
-                          DNS only
+                          {{ t('cloudflareDns.records.dnsOnly') }}
                         </button>
                       </div>
                     </div>
 
                     <div class="flex flex-col gap-1 md:col-span-4">
-                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Kommentar (valfri)</label>
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
+                        {{ t('cloudflareDns.records.fields.comment') }}
+                      </label>
                       <textarea
                         v-model="editForm.comment"
                         rows="2"
@@ -400,10 +406,14 @@
                       @click="updateRecord"
                     >
                       <Icon icon="mdi:content-save-outline" class="h-4 w-4" />
-                      Spara
+                      {{ t('cloudflareDns.records.actions.save') }}
                     </button>
-                    <button class="btn-secondary" type="button" @click="cancelEdit">Avbryt</button>
-                    <button class="btn-danger" type="button" @click="deleteRecord(record.id)">Ta bort</button>
+                    <button class="btn-secondary" type="button" @click="cancelEdit">
+                      {{ t('common.cancel') }}
+                    </button>
+                    <button class="btn-danger" type="button" @click="deleteRecord(record.id)">
+                      {{ t('common.delete') }}
+                    </button>
                   </div>
                 </div>
               </td>
@@ -418,7 +428,7 @@
       class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
     >
       <span>
-        Sida {{ currentRecordPage }} / {{ recordPageCount }} · visar {{ shownRecords }} av {{ totalRecords }} records
+        {{ t('cloudflareDns.records.pagination', { page: currentRecordPage, pages: recordPageCount, shown: shownRecords, total: totalRecords }) }}
       </span>
       <div class="flex items-center gap-2">
         <button
@@ -444,6 +454,7 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from '#imports'
 
 const props = defineProps<{
   zoneId: string
@@ -452,6 +463,8 @@ const props = defineProps<{
   canEdit: boolean
 }>()
 const emit = defineEmits<{ refresh: [] }>()
+
+const { t } = useI18n()
 
 const searchTerm = ref('')
 const recordPageSize = 50

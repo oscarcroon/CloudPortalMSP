@@ -75,8 +75,8 @@ export default defineNuxtConfig({
   pinia: {},
   i18n: {
     strategy: 'no_prefix',
-    // Use absolute path to avoid duplicate-segment resolution issues
-    langDir: resolve('./i18n/locales'),
+    // Path relative to srcDir (app/) to satisfy nuxt-i18n expectations
+    langDir: '../i18n/locales',
     defaultLocale: DEFAULT_LOCALE,
     locales: SUPPORTED_LOCALES.map((locale) => ({
       ...locale,
