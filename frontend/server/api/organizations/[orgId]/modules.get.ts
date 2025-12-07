@@ -8,7 +8,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing organization ID' })
   }
 
-  await requirePermission(event, 'org:manage', orgId)
+  // Läsbehörighet räcker för att se modulstatus
+  await requirePermission(event, 'org:read', orgId)
 
   const modules = await getOrganizationModulesStatus(orgId)
 

@@ -23,6 +23,7 @@ export interface ModuleStatusDto {
   status: ModuleStatus
   scopes: ModuleScope[]
   featureFlag?: string
+  icon?: string | null
   requiredPermissions: string[]
   moduleRoles: ModuleRoleMeta[]
   roles?: ModuleRoleMeta[]

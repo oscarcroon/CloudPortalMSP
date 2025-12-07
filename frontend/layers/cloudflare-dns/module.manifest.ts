@@ -1,11 +1,12 @@
-import type { PluginModuleManifest } from '@/server/lib/plugin-registry/types'
+import { definePluginManifest } from '../_shared/module-manifest'
 
-const manifest: PluginModuleManifest = {
+const manifest = definePluginManifest({
   module: {
     key: 'cloudflare-dns',
     name: 'Cloudflare DNS',
     description: 'Manage Cloudflare DNS zones, records och åtkomst.',
-    category: 'dns'
+    category: 'dns',
+    icon: 'mdi:cloud-outline'
   },
   permissions: [
     { key: 'cloudflare-dns:view', description: 'View Cloudflare DNS zones and records.' },
@@ -62,7 +63,7 @@ const manifest: PluginModuleManifest = {
     { appRoleKey: 'member', moduleRoleKey: 'viewer' },
     { appRoleKey: 'viewer', moduleRoleKey: 'viewer' }
   ]
-}
+})
 
 export default manifest
 

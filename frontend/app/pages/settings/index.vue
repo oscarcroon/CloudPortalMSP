@@ -211,17 +211,30 @@
               {{ t('settings.members.description') }}
             </p>
           </div>
-          <NuxtLink
-            to="/settings/members"
-            :aria-disabled="isSettingsLocked"
-            :tabindex="isSettingsLocked ? -1 : 0"
-            :class="[
-              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
-              { 'pointer-events-none opacity-50': isSettingsLocked }
-            ]"
-          >
-            {{ t('settings.open') }}
-          </NuxtLink>
+          <div class="flex flex-col gap-2">
+            <NuxtLink
+              to="/settings/members"
+              :aria-disabled="isSettingsLocked"
+              :tabindex="isSettingsLocked ? -1 : 0"
+              :class="[
+                'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                { 'pointer-events-none opacity-50': isSettingsLocked }
+              ]"
+            >
+              {{ t('settings.open') }}
+            </NuxtLink>
+            <NuxtLink
+              to="/settings/groups"
+              :aria-disabled="isSettingsLocked"
+              :tabindex="isSettingsLocked ? -1 : 0"
+              :class="[
+                'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                { 'pointer-events-none opacity-50': isSettingsLocked }
+              ]"
+            >
+              {{ t('settings.groups.open') }}
+            </NuxtLink>
+          </div>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
           <li>• {{ t('settings.members.features.status') }}</li>

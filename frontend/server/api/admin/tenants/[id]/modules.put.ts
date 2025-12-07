@@ -14,7 +14,9 @@ import { logTenantAction } from '~~/server/utils/audit'
 const bodySchema = z.object({
   moduleKey: z.string(),
   mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']),
-  allowedRoles: z.array(z.string()).optional()
+  allowedRoles: z.array(z.string()).optional(),
+  enabled: z.boolean().optional(),
+  disabled: z.boolean().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +26,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleKey, mode, allowedRoles } = body
+  const { moduleKey, mode, allowedRoles, enabled, disabled } = body
 
   await requireTenantPermission(event, 'tenants:manage', tenantId)
 
@@ -52,8 +54,11 @@ export default defineEventHandler(async (event) => {
   const policy: ModulePolicy = {
     moduleKey,
     mode,
-    allowedRoles: normalizedAllowedRoles
-  }
+    allowedRoles: normalizedAllowedRoles,
+    // enabled/disabled flags påverkar synlighet på tenant-nivå
+    enabled: enabled ?? true,
+    disabled: disabled ?? false
+  } as any
 
   await setTenantModulePolicy(tenantId, moduleKey as ModuleId, policy)
 

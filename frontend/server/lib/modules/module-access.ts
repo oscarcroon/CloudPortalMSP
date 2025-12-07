@@ -3,9 +3,11 @@ import type { ModuleKey, ModuleRoleKeyMap } from '@/app/generated/rbac-types'
 import {
   memberModuleRoleOverrides,
   moduleRoleDefaults,
-  organizationMemberships
+  organizationMemberships,
+  modules as modulesTable
 } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
+import { getOrganizationModulesStatus } from '~~/server/utils/modulePolicy'
 
 export interface ModuleAccess<TModule extends ModuleKey = ModuleKey> {
   hasAccess: boolean
@@ -90,6 +92,23 @@ export async function getModuleAccessForUser<TModule extends ModuleKey = ModuleK
   if (!member) {
     return { hasAccess: false, roles: [] }
   }
+
+  // Global enable check
+  const [moduleRow] = await db
+    .select({ enabled: modulesTable.enabled })
+    .from(modulesTable)
+    .where(eq(modulesTable.key, moduleKey))
+  if (!moduleRow?.enabled) {
+    return { hasAccess: false, roles: [] }
+  }
+
+  // Org-level enable check (module policy)
+  const orgModules = await getOrganizationModulesStatus(orgId)
+  const orgModule = orgModules.find((m) => m.key === moduleKey)
+  if (!orgModule?.effectiveEnabled) {
+    return { hasAccess: false, roles: [] }
+  }
+
   const appRoleKey = member.role
 
   const defaultRows = await db
@@ -112,7 +131,6 @@ export async function getModuleAccessForUser<TModule extends ModuleKey = ModuleK
     return { hasAccess: false, roles: [] }
   }
 
-  // TODO: module policy chain (inherit/default-closed/allowlist/blocked)
   return { hasAccess: true, roles: effectiveRoles }
 }
 

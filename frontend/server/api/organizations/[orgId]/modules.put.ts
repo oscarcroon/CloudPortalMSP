@@ -14,7 +14,9 @@ import { logOrganizationAction } from '~~/server/utils/audit'
 const bodySchema = z.object({
   moduleKey: z.string(),
   mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']),
-  allowedRoles: z.array(z.string()).optional()
+  allowedRoles: z.array(z.string()).optional(),
+  enabled: z.boolean().optional(),
+  disabled: z.boolean().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +26,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleKey, mode, allowedRoles } = body
+  const { moduleKey, mode, allowedRoles, enabled, disabled } = body
 
   await requirePermission(event, 'org:manage', orgId)
 
@@ -64,8 +66,10 @@ export default defineEventHandler(async (event) => {
   const policy: ModulePolicy = {
     moduleKey,
     mode,
-    allowedRoles: normalizedRoles
-  }
+    allowedRoles: normalizedRoles,
+    enabled: enabled ?? true,
+    disabled: disabled ?? false
+  } as any
 
   await setOrganizationModulePolicy(orgId, moduleKey as ModuleId, policy)
 

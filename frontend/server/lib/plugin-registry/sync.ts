@@ -9,6 +9,8 @@ import {
 } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
 
+const uniqueManifests = Array.from(new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values())
+
 export async function syncPluginRegistry() {
   const db = getDb()
 
@@ -22,7 +24,7 @@ export async function syncPluginRegistry() {
     hasEnabledColumn = false
   }
 
-  for (const manifest of manifests) {
+  for (const manifest of uniqueManifests) {
     const { module, permissions, roles, roleDefaults } = manifest
 
     // Check if module already exists to preserve enabled status

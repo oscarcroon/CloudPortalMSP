@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
@@ -89,7 +89,7 @@ const { t } = useI18n()
 
 const router = useRouter()
 const auth = useAuth()
-const { modules, loading } = useModules()
+const { availableModules: modules, loading, fetchVisibleModules } = useModules()
 const { toggleFavorite, isFavorite, pending: favoritesPending } = useFavorites()
 
 const statusItems = [
@@ -113,6 +113,10 @@ const news = [
 ]
 
 const organisations = auth.organizations
+
+onMounted(async () => {
+  await fetchVisibleModules()
+})
 
 // Dynamic gradient based on branding
 const heroGradientStyle = computed(() => {

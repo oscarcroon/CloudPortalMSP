@@ -4,6 +4,7 @@ export interface PluginModuleManifest {
     name: string
     description?: string
     category?: string
+    icon?: string
   }
   permissions: {
     key: string

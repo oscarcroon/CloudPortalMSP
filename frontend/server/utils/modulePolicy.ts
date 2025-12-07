@@ -111,23 +111,33 @@ const toDto = ({
   tenantPolicy,
   orgPolicy,
   effectivePolicy,
-  featureFlags
+  featureFlags,
+  globalEnabled,
+  tenantVisible,
+  orgVisible
 }: {
   moduleMeta: ReturnType<typeof getModuleById>
   tenantPolicy?: ModulePolicy | null
   orgPolicy?: ModulePolicy | null
   effectivePolicy: ModulePolicy
   featureFlags: FeatureFlags
+  globalEnabled: boolean
+  tenantVisible: boolean
+  orgVisible: boolean
 }): ModuleStatusDto => {
   const featureEnabled = isFeatureFlagEnabled(moduleMeta?.featureFlag, featureFlags)
   const statusEnabled = moduleMeta?.status !== 'deprecated'
-  const tenantEnabled = featureEnabled && statusEnabled && (tenantPolicy?.mode !== 'blocked')
-  const orgEnabled = featureEnabled && statusEnabled && (orgPolicy?.mode !== 'blocked')
-  const effectiveEnabled =
-    featureEnabled && statusEnabled && effectivePolicy.mode !== 'blocked'
-  const tenantDisabled = tenantPolicy?.mode === 'blocked'
-  const orgDisabled = orgPolicy?.mode === 'blocked'
-  const effectiveDisabled = effectivePolicy.mode === 'blocked'
+
+  // Visible flags (global/tenant/org) control whether the module is listed
+  const tenantEnabled = globalEnabled && tenantVisible && featureEnabled && statusEnabled && tenantPolicy?.mode !== 'blocked'
+  const orgEnabled = tenantEnabled && orgVisible && orgPolicy?.mode !== 'blocked'
+
+  // Effective flag is based on merged policy, plus visibility chain
+  const effectiveEnabled = globalEnabled && tenantVisible && orgVisible && featureEnabled && statusEnabled && effectivePolicy.mode !== 'blocked'
+
+  const tenantDisabled = !tenantVisible || tenantPolicy?.mode === 'blocked'
+  const orgDisabled = !orgVisible || orgPolicy?.mode === 'blocked'
+  const effectiveDisabled = !effectiveEnabled
 
   return {
     key: moduleMeta?.key ?? '',
@@ -136,6 +146,7 @@ const toDto = ({
     category: moduleMeta?.category ?? '',
     layerKey: moduleMeta?.layerKey ?? '',
     rootRoute: moduleMeta?.rootRoute ?? '',
+    icon: moduleMeta?.icon ?? null,
     status: moduleMeta?.status ?? 'active',
     scopes: moduleMeta?.scopes ?? [],
     featureFlag: moduleMeta?.featureFlag,
@@ -293,19 +304,15 @@ const buildTenantDto = async (
 ): Promise<ModuleStatusDto[]> => {
   const db = getDb()
 
-  // Get enabled modules from DB
+  // Global enabled modules
   const enabledModules = await db
-    .select({ key: modulesTable.key })
+    .select({ key: modulesTable.key, enabled: modulesTable.enabled })
     .from(modulesTable)
     .where(eq(modulesTable.enabled, true))
-  const enabledKeys = new Set(enabledModules.map((m) => m.key))
+  const enabledKeys = new Set(enabledModules.filter((m) => m.enabled).map((m) => m.key))
 
-  // Combine legacy modules and plugin modules
-  const legacyModules = getModulesByScope('tenant')
-  const pluginModules = getAllPluginModules().filter(
-    (m) => m.scopes.includes('tenant') && enabledKeys.has(m.key)
-  )
-  const moduleList = [...legacyModules, ...pluginModules]
+  // Hämta moduler via registry och filtrera på scope + enabled
+  const moduleList = getModulesByScope('tenant').filter((m) => enabledKeys.has(m.key))
 
   const policies = await db
     .select()
@@ -315,22 +322,26 @@ const buildTenantDto = async (
 
   const results: ModuleStatusDto[] = []
   for (const module of moduleList) {
-    // Only include enabled modules
-    if (!enabledKeys.has(module.key)) {
-      continue
-    }
+    if (!enabledKeys.has(module.key)) continue
+
     const base = basePolicyForModule(module.key, module.defaultAllowedRoles)
     const distributorPolicy = await resolveDistributorPolicy(tenantId, module.key as ModuleId)
     const tenantPolicy = toPolicy(module.key, policyMap.get(module.key))
     const upstream = mergePolicies(base, distributorPolicy)
     const effectivePolicy = mergePolicies(upstream, tenantPolicy)
 
+    const tenantRow = policyMap.get(module.key)
+    const tenantVisible = tenantRow?.enabled !== false
+
     results.push(
       toDto({
         moduleMeta: module,
         tenantPolicy,
         effectivePolicy,
-        featureFlags
+        featureFlags,
+        globalEnabled: true,
+        tenantVisible,
+        orgVisible: true
       })
     )
   }
@@ -369,29 +380,26 @@ export const getOrganizationModulesStatus = async (
     : []
   const tenantPolicyMap = new Map(tenantPolicies.map((row) => [row.moduleId, row]))
 
-  // Get enabled modules from DB
+  // Global enabled modules
   const enabledModules = await db
-    .select({ key: modulesTable.key })
+    .select({ key: modulesTable.key, enabled: modulesTable.enabled })
     .from(modulesTable)
     .where(eq(modulesTable.enabled, true))
-  const enabledKeys = new Set(enabledModules.map((m) => m.key))
+  const enabledKeys = new Set(enabledModules.filter((m) => m.enabled).map((m) => m.key))
 
-  // Combine legacy modules and plugin modules
-  const legacyModules = [...getModulesByScope('org'), ...getModulesByScope('user')]
-  const pluginModules = getAllPluginModules().filter((m) =>
-    (m.scopes.includes('org') || m.scopes.includes('user')) && enabledKeys.has(m.key)
+  // Hämta moduler via registry och filtrera på scopes + enabled
+  const scopedModules = [...getModulesByScope('org'), ...getModulesByScope('user')].filter((m) =>
+    enabledKeys.has(m.key)
   )
-
   const modulesMap = new Map<string, ReturnType<typeof getModuleById>>()
-  ;[...legacyModules, ...pluginModules].forEach((module) => {
-    // Only include enabled modules
-    if (enabledKeys.has(module.key)) {
-      modulesMap.set(module.key, module)
-    }
+  scopedModules.forEach((module) => {
+    if (!module?.key) return
+    modulesMap.set(module.key, module)
   })
 
   const results: ModuleStatusDto[] = []
   for (const module of modulesMap.values()) {
+    if (!module) continue
     const base = basePolicyForModule(module.key, module.defaultAllowedRoles)
     const distributorPolicy =
       org.tenantId && module.key
@@ -403,13 +411,19 @@ export const getOrganizationModulesStatus = async (
     const tenantEffective = mergePolicies(mergePolicies(base, distributorPolicy), tenantPolicy)
     const effectivePolicy = mergePolicies(tenantEffective, orgPolicy)
 
+    const tenantRow = tenantPolicyMap.get(module.key)
+    const orgRow = orgPolicyMap.get(module.key)
+
     results.push(
       toDto({
         moduleMeta: module,
         tenantPolicy: tenantEffective,
         orgPolicy,
         effectivePolicy,
-        featureFlags
+        featureFlags,
+        globalEnabled: true,
+        tenantVisible: tenantRow?.enabled !== false,
+        orgVisible: orgRow?.enabled !== false
       })
     )
   }

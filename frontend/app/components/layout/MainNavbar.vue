@@ -144,7 +144,7 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, ref, useI18n } from '#imports'
+import { computed, onMounted, ref, useI18n, useRoute } from '#imports'
 import { useWindowSize } from '@vueuse/core'
 import ContextSwitcher from '~/components/navigation/ContextSwitcher.vue'
 import { useAuth } from '~/composables/useAuth'
@@ -186,9 +186,11 @@ const navBackgroundColor = computed(
 const navHoverColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0.10))
 const navActiveColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0))
 
-const accessibleModules = computed(() =>
-  modulesStore.modules.value.filter((module: VisibleModule) => !module.disabled)
-)
+const accessibleModules = computed(() => {
+  const list = modulesStore.availableModules.value ?? modulesStore.modules.value
+  if (!Array.isArray(list)) return []
+  return list.filter((module: VisibleModule) => module.effectiveEnabled && !module.disabled)
+})
 
 const dedupeModules = (items: VisibleModule[]) => {
   const seen = new Set<string>()
@@ -292,5 +294,9 @@ function hexToRgbArray(hex: string | null | undefined): [number, number, number]
   }
   return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255]
 }
+
+onMounted(async () => {
+  await modulesStore.fetchVisibleModules()
+})
 </script>
 

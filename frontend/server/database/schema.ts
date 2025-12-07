@@ -111,6 +111,7 @@ export const organizations = sqliteTable(
   })
 )
 
+
 export const users = sqliteTable(
   'users',
   {
@@ -134,6 +135,43 @@ export const users = sqliteTable(
   },
   table => ({
     emailIdx: uniqueIndex('users_email_idx').on(table.email)
+  })
+)
+
+export const orgGroups = sqliteTable(
+  'org_groups',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    description: text('description'),
+    ...timestampColumns()
+  },
+  (table) => ({
+    orgNameUnique: uniqueIndex('org_groups_org_name_unique').on(table.organizationId, table.name),
+    orgSlugUnique: uniqueIndex('org_groups_org_slug_unique').on(table.organizationId, table.slug),
+    orgIdx: index('org_groups_org_idx').on(table.organizationId)
+  })
+)
+
+export const orgGroupMembers = sqliteTable(
+  'org_group_members',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => orgGroups.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    groupUserUnique: uniqueIndex('org_group_members_unique').on(table.groupId, table.userId),
+    groupIdx: index('org_group_members_group_idx').on(table.groupId)
   })
 )
 
@@ -917,6 +955,31 @@ export const organizationModulePolicies = sqliteTable(
       table.moduleId
     ),
     orgIdx: index('organization_module_policy_org_idx').on(table.organizationId)
+  })
+)
+
+export const pluginAclEntries = sqliteTable(
+  'plugin_acl_entries',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    pluginKey: text('plugin_key').notNull(),
+    operation: text('operation').notNull(),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => orgGroups.id, { onDelete: 'cascade' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    orgPluginOpIdx: index('plugin_acl_org_plugin_op_idx').on(table.organizationId, table.pluginKey, table.operation),
+    orgPluginGroupUnique: uniqueIndex('plugin_acl_unique').on(
+      table.organizationId,
+      table.pluginKey,
+      table.operation,
+      table.groupId
+    )
   })
 )
 

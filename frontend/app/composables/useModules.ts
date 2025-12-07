@@ -7,6 +7,8 @@ import type { ModuleDefinition } from '~/constants/modules'
  */
 export interface VisibleModule extends ModuleDefinition {
   disabled?: boolean
+  effectiveEnabled?: boolean
+  effectiveDisabled?: boolean
 }
 
 /**
@@ -17,9 +19,13 @@ export const useModules = () => {
   const currentOrgId = computed(() => auth.currentOrg.value?.id)
 
   const headers = useRequestHeaders(['cookie'])
-  
-  const { data: visibleModules, pending: loading, refresh: fetchVisibleModules } = useAsyncData<VisibleModule[]>(
-    () => `visible-modules-${currentOrgId.value || 'none'}`,
+
+  const {
+    data: visibleModules,
+    pending: loading,
+    refresh: fetchVisibleModules
+  } = useAsyncData<VisibleModule[]>(
+    () => `available-modules-${currentOrgId.value || 'none'}`,
     async () => {
       const orgId = currentOrgId.value
       if (!orgId) {
@@ -27,16 +33,22 @@ export const useModules = () => {
       }
 
       try {
-        const response = await $fetch<{ modules: VisibleModule[] }>(
-          `/api/organizations/${orgId}/modules/visible`,
-          {
-            credentials: 'include',
-            headers: import.meta.server ? headers : undefined
-          }
-        )
-        return response.modules || []
+        const response = await $fetch<{ modules: VisibleModule[] }>(`/api/organizations/${orgId}/modules`, {
+          credentials: 'include',
+          headers: import.meta.server ? headers : undefined
+        })
+        const modules = response.modules || []
+        // Mappa API (ModuleStatusDto) till VisibleModule shape
+        return modules.map((m) => ({
+          ...m,
+          id: m.key,
+          routePath: m.rootRoute,
+          badge: m.category,
+          icon: m.icon,
+          disabled: !m.effectiveEnabled || m.effectiveDisabled
+        }))
       } catch (error) {
-        console.error('Failed to fetch visible modules:', error)
+        console.error('Failed to fetch modules:', error)
         return []
       }
     },
@@ -47,12 +59,21 @@ export const useModules = () => {
   )
 
   /**
-   * Get visible modules (computed for reactivity)
+   * All modules (synliga enl. API, kan inkludera utgråade)
    */
   const modules = computed(() => visibleModules.value || [])
 
   /**
-   * Check if a module is visible (enabled, even if disabled/deactivated)
+   * Only modules that are effectively enabled (used by dashboard/navbar)
+   */
+  const availableModules = computed(() =>
+    modules.value.filter(
+      (module: VisibleModule) => module.effectiveEnabled && !module.effectiveDisabled
+    )
+  )
+
+  /**
+   * Check if a module is visible (enabled)
    */
   const isModuleVisible = (moduleId: string) => {
     return (visibleModules.value || []).some((m: any) => m.id === moduleId)
@@ -68,6 +89,7 @@ export const useModules = () => {
 
   return {
     modules,
+    availableModules,
     visibleModules,
     loading,
     fetchVisibleModules,

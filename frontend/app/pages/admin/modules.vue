@@ -82,8 +82,12 @@
               <p class="text-lg font-semibold text-slate-900 dark:text-white">
                 {{ module.name }}
               </p>
-              <StatusPill :variant="statusVariant(module.status)">
-                {{ t(`adminModules.status.${module.status}`) }}
+              <StatusPill :variant="module.enabled ? 'success' : 'danger'">
+                {{
+                  module.enabled
+                    ? t('adminModules.enabledState.enabled')
+                    : t('adminModules.enabledState.disabled')
+                }}
               </StatusPill>
               <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-white/10 dark:text-slate-200">
                 Layer: {{ module.layerKey }}
@@ -202,7 +206,7 @@ const categoryFilter = ref<string>('all')
 const scopeFilter = ref<'all' | 'tenant' | 'org' | 'user'>('all')
 
 const categories = computed(() => {
-  const unique = new Set(modules.value.map((module) => module.category))
+  const unique = new Set<string>(modules.value.map((module: ModuleWithEnabled) => module.category))
   return Array.from(unique)
 })
 
@@ -217,7 +221,7 @@ const normalized = (value: string) =>
 
 const filteredModules = computed(() => {
   const query = normalized(searchInput.value)
-  return modules.value.filter((module) => {
+  return modules.value.filter((module: ModuleWithEnabled) => {
     const matchesSearch =
       !query ||
       normalized(module.name).includes(query) ||

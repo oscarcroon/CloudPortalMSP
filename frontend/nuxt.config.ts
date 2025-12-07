@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { resolve } from 'node:path'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './app/constants/i18n'
 
 const backendApiBase = process.env.API_BASE || 'http://localhost:4000/api'
@@ -74,7 +75,8 @@ export default defineNuxtConfig({
   pinia: {},
   i18n: {
     strategy: 'no_prefix',
-    langDir: 'locales',
+    // Use absolute path to avoid duplicate-segment resolution issues
+    langDir: resolve('./i18n/locales'),
     defaultLocale: DEFAULT_LOCALE,
     locales: SUPPORTED_LOCALES.map((locale) => ({
       ...locale,

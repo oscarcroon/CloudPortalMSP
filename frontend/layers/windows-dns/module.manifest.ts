@@ -1,6 +1,6 @@
-import type { PluginModuleManifest } from '@/server/lib/plugin-registry/types'
+import { definePluginManifest } from '../_shared/module-manifest'
 
-const manifest: PluginModuleManifest = {
+const manifest = definePluginManifest({
   module: {
     key: 'windows-dns',
     name: 'Windows DNS',
@@ -42,7 +42,7 @@ const manifest: PluginModuleManifest = {
     { appRoleKey: 'member', moduleRoleKey: 'viewer' },
     { appRoleKey: 'viewer', moduleRoleKey: 'viewer' }
   ]
-}
+})
 
 export default manifest
 

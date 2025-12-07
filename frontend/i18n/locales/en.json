@@ -5,7 +5,8 @@
     "update": "Update",
     "updating": "Updating...",
     "cancel": "Cancel",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "refresh": "Refresh"
   },
   "auth": {
     "logout": "Log out",
@@ -33,6 +34,25 @@
       "invalidCredentials": "Wrong email or password. Try again.",
       "ssoRequired": "The organization requires SSO. Use SSO login.",
       "loginFailed": "Could not log in right now."
+    },
+    "groups": {
+      "title": "Groups",
+      "description": "Manage organization groups for plugin ACL.",
+      "open": "Open groups",
+      "createTitle": "Create group",
+      "createHint": "Add a new group to assign plugin permissions.",
+      "name": "Name",
+      "namePlaceholder": "e.g. Operations",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description",
+      "create": "Create group",
+      "listTitle": "Existing groups",
+      "listHint": "Groups can be used when setting ACL for plugins.",
+      "loading": "Loading groups...",
+      "empty": "No groups yet.",
+      "delete": "Delete",
+      "membersCount": "{count} members",
+      "noOrg": "Select an organization to manage groups."
     },
     "providers": {
       "entra": "Microsoft Entra ID",
@@ -243,23 +263,6 @@
     },
     "notProvided": "Not specified"
   },
-  "settings": {
-    "modules": {
-      "modes": {
-        "inherit": "Inherit",
-        "defaultClosed": "Default closed",
-        "allowlist": "Allowlist",
-        "blocked": "Blocked"
-      },
-      "filters": {
-        "allCategories": "All categories"
-      },
-      "results": "Results",
-      "policyTitle": "Policy",
-      "allowedRolesLabel": "Allowed roles",
-      "routeLabel": "Route"
-    }
-  },
   "password": {
     "requirements": {
       "length": "At least 12 characters long",
@@ -307,10 +310,10 @@
       "empty": "No modules available right now.",
       "pageDescription": "Choose which tenant modules your organization will use.",
       "searchPlaceholder": "Search modules...",
+      "results": "{count} modules",
       "filters": {
         "allCategories": "All categories"
       },
-      "results": "{count} modules",
       "loading": "Loading modules...",
       "noModules": "No modules are available for your organization. Contact your tenant admin if something is missing.",
       "routeLabel": "Route:",
@@ -324,7 +327,67 @@
         "blocked": "Blocked"
       },
       "allowedRolesLabel": "Allowed roles",
-      "updateFailed": "Could not update module policy."
+      "allowedRolesLabelViewerEditorAdmin": "Allowed roles: Viewer, Editor, Admin",
+      "updateFailed": "Could not update module policy.",
+      "groups": {
+        "title": "Access groups",
+        "description": "Create org-scoped groups and use them for plugin ACL.",
+        "namePlaceholder": "Group name",
+        "descriptionPlaceholder": "Description (optional)",
+        "membersPlaceholder": "Member IDs (comma separated, optional)",
+        "membersHelp": "Members must already belong to the organization.",
+        "membersInputLabel": "Member IDs (comma separated, use userId)",
+        "membersHelpInline": "Enter userId for members in the organization, separated by commas or new lines.",
+        "saveMembers": "Save members",
+        "manageMembers": "Manage members",
+        "availableMembers": "Available members",
+        "noMembers": "No members in this organization.",
+        "create": "Create group",
+        "loading": "Loading groups...",
+        "empty": "No groups yet. Create one to start assigning ACL.",
+        "delete": "Delete group"
+      },
+      "manageAcl": "Manage ACL",
+      "aclTitle": "Plugin ACL",
+      "aclDescription": "Map CRUD operations to access groups for the plugin.",
+      "aclOperationHint": "Choose which groups may perform this operation.",
+      "saveAcl": "Save ACL",
+      "enabledState": {
+        "enabled": "Enabled (on)",
+        "disabled": "Disabled (off)"
+      }
+    },
+    "groups": {
+      "title": "Groups",
+      "description": "Manage organization groups for plugin ACL and roles.",
+      "open": "Open groups",
+      "confirmDelete": "Are you sure you want to delete this group?",
+      "confirmDeleteNamed": "Are you sure you want to delete the group “{name}”?",
+      "createTitle": "Create group",
+      "createHint": "Add a new group to assign plugin permissions.",
+      "name": "Name",
+      "namePlaceholder": "e.g. Operations",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description",
+      "create": "Create group",
+      "listTitle": "Existing groups",
+      "listHint": "Groups can be used when setting ACL for plugins.",
+      "loading": "Loading groups...",
+      "empty": "No groups yet.",
+      "delete": "Delete",
+      "membersCount": "{count} members",
+      "noOrg": "Select an organization to manage groups.",
+      "membersInputLabel": "Member IDs (comma separated, use userId)",
+      "membersHelpInline": "Enter userId for members in the organization, separated by commas or new lines.",
+      "saveMembers": "Save members",
+      "manageMembers": "Manage members",
+      "availableMembers": "Available members",
+      "noMembers": "No members in this organization.",
+      "searchPlaceholder": "Search by name, email or userId",
+      "searchHint": "Start typing to filter members and add via checkbox.",
+      "searchStartTyping": "Start typing to search members.",
+      "noMembersFound": "No members match your search.",
+      "searchLimit": "Showing the first {count} results."
     },
     "organizations": {
       "title": "Organizations",
@@ -962,6 +1025,10 @@
     "enabledStatus": "Enabled status",
     "enabled": "Enabled",
     "disabled": "Disabled",
+    "enabledState": {
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
     "disabledNote": "Module must be enabled before it appears for distributors, providers and organizations."
   },
   "adminTenants": {

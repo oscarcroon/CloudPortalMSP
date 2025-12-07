@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { manifests } from '../layers/plugin-manifests'
-import type { PluginModuleManifest } from '../server/lib/plugin-registry/types'
+import type { PluginModuleManifest } from '../layers/_shared/module-manifest'
 
 function uniq<T>(arr: T[]): T[] {
   return Array.from(new Set(arr))

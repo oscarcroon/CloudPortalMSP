@@ -15,7 +15,6 @@
     <div v-if="modulesError" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
       {{ modulesError }}
     </div>
-
     <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
       <div class="flex flex-1 flex-col gap-3 md:flex-row">
         <div class="relative flex-1">
@@ -47,6 +46,44 @@
       <div class="text-xs text-slate-500 dark:text-slate-300">
         {{ t('settings.modules.results', { count: filteredModules.length }) }}
       </div>
+    </div>
+
+    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div class="space-y-1">
+          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {{ t('settings.modules.groups.title') }}
+          </p>
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            {{ t('settings.modules.groups.description') }}
+          </p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ t('settings.groups.open') }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <NuxtLink
+            to="/settings/groups"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-white dark:hover:border-brand"
+          >
+            {{ t('settings.groups.open') }}
+          </NuxtLink>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+            :disabled="groupsPending"
+            @click="refreshGroups"
+          >
+            <Icon icon="mdi:refresh" class="h-4 w-4" />
+            {{ t('common.refresh') }}
+          </button>
+        </div>
+      </div>
+      <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+        <span v-if="groupsPending">{{ t('settings.modules.groups.loading') }}</span>
+        <span v-else-if="!groups.length">{{ t('settings.modules.groups.empty') }}</span>
+        <span v-else>{{ t('settings.modules.results', { count: groups.length }) }}</span>
+      </p>
     </div>
 
     <div v-if="pending" class="rounded-xl border border-dashed border-slate-200 p-6 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300">
@@ -164,6 +201,14 @@
                 {{ t('settings.modules.lockedByTenant') }}
               </p>
             </div>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-brand hover:text-brand dark:border-white/20 dark:text-white"
+              @click="openAclDialog(module)"
+            >
+              <Icon icon="mdi:shield-lock" class="h-4 w-4" />
+              {{ t('settings.modules.manageAcl') }}
+            </button>
             <NuxtLink
               :to="module.rootRoute"
               class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
@@ -181,6 +226,93 @@
       </div>
     </div>
   </section>
+
+  <teleport to="body">
+    <div
+      v-if="aclDialog.open && aclDialog.module"
+      class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
+    >
+      <div class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
+              {{ t('settings.modules.aclTitle') }}
+            </p>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
+              {{ aclDialog.module.name }}
+            </h2>
+          </div>
+          <button class="text-slate-500 hover:text-slate-700 dark:text-slate-300" @click="closeAcl">
+            <Icon icon="mdi:close" class="h-5 w-5" />
+          </button>
+        </div>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          {{ t('settings.modules.aclDescription') }}
+        </p>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div
+            v-for="operation in ['read', 'create', 'update', 'delete']"
+            :key="operation"
+            class="rounded-lg border border-slate-200 p-3 dark:border-white/10"
+          >
+            <p class="text-sm font-semibold capitalize text-slate-800 dark:text-slate-100">
+              {{ operation }}
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              {{ t('settings.modules.aclOperationHint') }}
+            </p>
+            <div v-if="!groups.length" class="mt-2 rounded-md border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
+              {{ t('settings.modules.groups.empty') }}
+            </div>
+            <div v-else class="mt-2 flex flex-col gap-2">
+              <label
+                v-for="group in groups"
+                :key="group.id"
+                :class="[
+                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition dark:border-white/10',
+                  isAclGroupSelected(operation as 'create' | 'read' | 'update' | 'delete', group.id)
+                    ? 'border-brand/60 bg-brand/5 text-brand-700 dark:text-brand-200'
+                    : 'border-slate-200 text-slate-700 dark:text-slate-200'
+                ]"
+              >
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
+                  :checked="isAclGroupSelected(operation as 'create' | 'read' | 'update' | 'delete', group.id)"
+                  @change="toggleAclGroup(operation as 'create' | 'read' | 'update' | 'delete', group.id)"
+                />
+                <span class="flex-1">{{ group.name }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="aclDialog.error" class="mt-3 rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+          {{ aclDialog.error }}
+        </div>
+
+        <div class="mt-4 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-white"
+            @click="closeAcl"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600 disabled:opacity-60"
+            :disabled="aclDialog.saving"
+            @click="saveAcl"
+          >
+            <Icon icon="mdi:content-save" class="h-4 w-4" />
+            {{ t('settings.modules.saveAcl') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </teleport>
 </template>
 
 <script setup lang="ts">
@@ -216,10 +348,44 @@ const modeOptions: { value: PolicyMode; label: string }[] = [
 const { data, pending, error, refresh } = await useFetch<{ modules: ModuleStatusDto[] }>(() =>
   currentOrgId.value ? `/api/organizations/${currentOrgId.value}/modules` : null
 )
+const {
+  data: groupsData,
+  pending: groupsPending,
+  error: groupsError,
+  refresh: refreshGroups
+} = await useFetch<{ organizationId: string; groups: Array<{ id: string; name: string; description: string | null }> }>(
+  () => (currentOrgId.value ? `/api/organizations/${currentOrgId.value}/groups` : null)
+)
 
 const modules = computed(() => data.value?.modules ?? [])
 const moduleRows = ref<UiModule[]>([])
 const modulesError = computed(() => error.value?.message ?? '')
+const groups = computed(() => groupsData.value?.groups ?? [])
+const expandedGroups = ref<Record<string, boolean>>({})
+const groupMembersInput = ref<Record<string, string>>({})
+const savingGroupMembers = ref<Record<string, boolean>>({})
+const groupsErrorMessage = computed(() => groupsError.value?.message ?? '')
+const newGroupName = ref('')
+const newGroupDescription = ref('')
+const newGroupMembers = ref('')
+const aclDialog = ref<{
+  open: boolean
+  module: UiModule | null
+  operations: Record<'create' | 'read' | 'update' | 'delete', string[]>
+  saving: boolean
+  error: string | null
+}>({
+  open: false,
+  module: null,
+  operations: {
+    create: [],
+    read: [],
+    update: [],
+    delete: []
+  },
+  saving: false,
+  error: null
+})
 
 watch(
   modules,
@@ -318,6 +484,57 @@ const updatePolicy = async (
   }
 }
 
+const openAclDialog = async (module: UiModule) => {
+  if (!currentOrgId.value) return
+  aclDialog.value = {
+    open: true,
+    module,
+    operations: {
+      create: [],
+      read: [],
+      update: [],
+      delete: []
+    },
+    saving: false,
+    error: null
+  }
+
+  try {
+    const res = await $fetch<{
+      acl: Record<'create' | 'read' | 'update' | 'delete', { groupId: string }[]>
+    }>(`/api/organizations/${currentOrgId.value}/plugins/${module.key}/acl`)
+    aclDialog.value.operations = {
+      create: res.acl.create.map((item) => item.groupId),
+      read: res.acl.read.map((item) => item.groupId),
+      update: res.acl.update.map((item) => item.groupId),
+      delete: res.acl.delete.map((item) => item.groupId)
+    }
+  } catch (err: any) {
+    aclDialog.value.error = err?.data?.message ?? err?.message ?? 'Kunde inte läsa ACL'
+  }
+}
+
+const saveAcl = async () => {
+  if (!currentOrgId.value || !aclDialog.value.module) return
+  aclDialog.value.saving = true
+  aclDialog.value.error = null
+  try {
+    await $fetch(`/api/organizations/${currentOrgId.value}/plugins/${aclDialog.value.module.key}/acl`, {
+      method: 'PUT',
+      body: { operations: aclDialog.value.operations }
+    })
+    aclDialog.value.open = false
+  } catch (err: any) {
+    aclDialog.value.error = err?.data?.message ?? err?.message ?? 'Kunde inte spara ACL'
+  } finally {
+    aclDialog.value.saving = false
+  }
+}
+
+const closeAcl = () => {
+  aclDialog.value.open = false
+}
+
 const onModeChange = async (module: UiModule, mode: PolicyMode) => {
   module.uiMode = mode
   if (mode !== 'allowlist') {
@@ -332,5 +549,21 @@ const onAllowedRolesChange = async (module: UiModule, event: Event) => {
   module.uiAllowedRoles = values
   await updatePolicy(module, { allowedRoles: values })
 }
+
+type AclOperation = 'create' | 'read' | 'update' | 'delete'
+
+const isAclGroupSelected = (operation: AclOperation, groupId: string) =>
+  (aclDialog.value.operations[operation] ?? []).includes(groupId)
+
+const toggleAclGroup = (operation: AclOperation, groupId: string) => {
+  const current = new Set(aclDialog.value.operations[operation] ?? [])
+  if (current.has(groupId)) {
+    current.delete(groupId)
+  } else {
+    current.add(groupId)
+  }
+  aclDialog.value.operations[operation] = Array.from(current)
+}
 </script>
+
 

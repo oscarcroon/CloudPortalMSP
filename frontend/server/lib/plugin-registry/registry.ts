@@ -10,8 +10,8 @@ export function manifestToModuleMeta(manifest: PluginModuleManifest): ModuleMeta
   const { module, permissions, roles } = manifest
 
   // Determine scopes based on module key pattern or default to org/user
-  // Plugins are typically org/user scoped unless explicitly tenant-scoped
-  const scopes: ModuleScope[] = ['org', 'user']
+  // Plugins ska synas på tenant- och org-nivå samt användarnivå
+  const scopes: ModuleScope[] = ['tenant', 'org', 'user']
 
   const moduleRoles: ModuleRoleMeta[] = roles.map((role) => ({
     key: role.key,
@@ -47,23 +47,27 @@ export function manifestToModuleMeta(manifest: PluginModuleManifest): ModuleMeta
     moduleRoles,
     roles: moduleRoles,
     defaultAllowedRoles: roles.map((r) => r.key),
-    icon: 'mdi:puzzle',
+    icon: module.icon ?? 'mdi:puzzle',
     badge: module.category ? module.category.charAt(0).toUpperCase() + module.category.slice(1) : undefined
   }
 }
 
+const uniqueManifests: PluginModuleManifest[] = Array.from(
+  new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values()
+)
+
 /**
- * Get all plugin manifests converted to ModuleMeta
+ * Get a specific plugin module by key
  */
 export function getAllPluginModules(): ModuleMeta[] {
-  return manifests.map(manifestToModuleMeta)
+  return uniqueManifests.map(manifestToModuleMeta)
 }
 
 /**
  * Get a specific plugin module by key
  */
 export function getPluginModuleByKey(key: string): ModuleMeta | undefined {
-  const manifest = manifests.find((m) => m.module.key === key)
+  const manifest = uniqueManifests.find((m) => m.module.key === key)
   return manifest ? manifestToModuleMeta(manifest) : undefined
 }
 

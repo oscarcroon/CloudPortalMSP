@@ -5,7 +5,8 @@
     "update": "Uppdatera",
     "updating": "Uppdaterar...",
     "cancel": "Avbryt",
-    "unknown": "Okänd"
+    "unknown": "Okänd",
+    "refresh": "Uppdatera"
   },
   "auth": {
     "logout": "Logga ut",
@@ -33,6 +34,25 @@
       "invalidCredentials": "Fel e-post eller lösenord. Försök igen.",
       "ssoRequired": "Organisationen kräver SSO. Använd SSO-inloggning.",
       "loginFailed": "Kunde inte logga in just nu."
+    },
+    "groups": {
+      "title": "Grupper",
+      "description": "Hantera organisationsgrupper för plugin-ACL.",
+      "open": "Öppna grupper",
+      "createTitle": "Skapa grupp",
+      "createHint": "Lägg till en ny grupp för att kunna tilldela behörigheter per plugin.",
+      "name": "Namn",
+      "namePlaceholder": "Ex. Operations",
+      "descriptionLabel": "Beskrivning",
+      "descriptionPlaceholder": "Valfri beskrivning",
+      "create": "Skapa grupp",
+      "listTitle": "Befintliga grupper",
+      "listHint": "Grupper kan användas när du sätter ACL för plugins.",
+      "loading": "Laddar grupper...",
+      "empty": "Inga grupper ännu.",
+      "delete": "Ta bort",
+      "membersCount": "{count} medlemmar",
+      "noOrg": "Välj en organisation för att hantera grupper."
     },
     "providers": {
       "entra": "Microsoft Entra ID",
@@ -243,23 +263,6 @@
     },
     "notProvided": "Ej angivet"
   },
-  "settings": {
-    "modules": {
-      "modes": {
-        "inherit": "Ärv",
-        "defaultClosed": "Stängd som standard",
-        "allowlist": "Tillåtlista",
-        "blocked": "Blockerad"
-      },
-      "filters": {
-        "allCategories": "Alla kategorier"
-      },
-      "results": "Resultat",
-      "policyTitle": "Policy",
-      "allowedRolesLabel": "Tillåtna roller",
-      "routeLabel": "Route"
-    }
-  },
   "password": {
     "requirements": {
       "length": "Minst 12 tecken långt",
@@ -307,10 +310,10 @@
       "empty": "Inga moduler tillgängliga just nu.",
       "pageDescription": "Välj vilka tenant-moduler er organisation ska använda.",
       "searchPlaceholder": "Sök moduler...",
+      "results": "{count} moduler",
       "filters": {
         "allCategories": "Alla kategorier"
       },
-      "results": "{count} moduler",
       "loading": "Laddar moduler...",
       "noModules": "Inga moduler är tillgängliga för organisationen. Kontakta tenant-admin om något saknas.",
       "routeLabel": "Route:",
@@ -324,7 +327,67 @@
         "blocked": "Blockerad"
       },
       "allowedRolesLabel": "Tillåtna roller",
-      "updateFailed": "Kunde inte uppdatera modulpolicy."
+      "allowedRolesLabelViewerEditorAdmin": "Tillåtna roller: Viewer, Editor, Admin",
+      "updateFailed": "Kunde inte uppdatera modulpolicy.",
+      "groups": {
+        "title": "Åtkomstgrupper",
+        "description": "Skapa grupper per organisation och använd dem för plugin-ACL.",
+        "namePlaceholder": "Gruppnamn",
+        "descriptionPlaceholder": "Beskrivning (valfritt)",
+        "membersPlaceholder": "Medlems-ID:n (kommaseparerade, valfritt)",
+        "membersHelp": "Medlemmar måste redan finnas i organisationen.",
+        "membersInputLabel": "Medlems-ID:n (kommaseparerade, använd userId)",
+        "membersHelpInline": "Ange userId för medlemmar i organisationen, separerade med kommatecken eller radbrytning.",
+        "saveMembers": "Spara medlemmar",
+        "manageMembers": "Hantera medlemmar",
+        "availableMembers": "Tillgängliga medlemmar",
+        "noMembers": "Inga medlemmar i organisationen.",
+        "create": "Skapa grupp",
+        "loading": "Laddar grupper...",
+        "empty": "Inga grupper ännu. Skapa en för att börja tilldela ACL.",
+        "delete": "Ta bort grupp"
+      },
+      "manageAcl": "Hantera ACL",
+      "aclTitle": "Plugin-ACL",
+      "aclDescription": "Koppla CRUD-operationer till åtkomstgrupper för pluginet.",
+      "aclOperationHint": "Välj grupper som får utföra operationen.",
+      "saveAcl": "Spara ACL",
+      "enabledState": {
+        "enabled": "Aktiv (tänd)",
+        "disabled": "Inaktiv (släckt)"
+      }
+    },
+    "groups": {
+      "title": "Grupper",
+      "description": "Hantera organisationsgrupper för plugin-ACL och roller.",
+      "open": "Öppna grupper",
+      "confirmDelete": "Är du säker på att du vill ta bort gruppen?",
+      "confirmDeleteNamed": "Är du säker på att du vill ta bort gruppen “{name}”?",
+      "createTitle": "Skapa grupp",
+      "createHint": "Lägg till en ny grupp för att kunna tilldela behörigheter per plugin.",
+      "name": "Namn",
+      "namePlaceholder": "Ex. Operations",
+      "descriptionLabel": "Beskrivning",
+      "descriptionPlaceholder": "Valfri beskrivning",
+      "create": "Skapa grupp",
+      "listTitle": "Befintliga grupper",
+      "listHint": "Grupper kan användas när du sätter ACL för plugins.",
+      "loading": "Laddar grupper...",
+      "empty": "Inga grupper ännu.",
+      "delete": "Ta bort",
+      "membersCount": "{count} medlemmar",
+      "noOrg": "Välj en organisation för att hantera grupper.",
+      "membersInputLabel": "Medlems-ID:n (kommaseparerade, använd userId)",
+      "membersHelpInline": "Ange userId för medlemmar i organisationen, separerade med kommatecken eller radbrytning.",
+      "saveMembers": "Spara medlemmar",
+      "manageMembers": "Hantera medlemmar",
+      "availableMembers": "Tillgängliga medlemmar",
+      "noMembers": "Inga medlemmar i organisationen.",
+      "searchPlaceholder": "Sök på namn, e-post eller userId",
+      "searchHint": "Börja skriva för att filtrera medlemmar och lägg till via checkbox.",
+      "searchStartTyping": "Börja skriva för att söka bland medlemmar.",
+      "noMembersFound": "Inga medlemmar matchar sökningen.",
+      "searchLimit": "Visar de första {count} träffarna."
     },
     "organizations": {
       "title": "Organisationer",
@@ -962,6 +1025,10 @@
     "enabledStatus": "Aktiveringsstatus",
     "enabled": "Aktiverad",
     "disabled": "Ej aktiverad",
+    "enabledState": {
+      "enabled": "Aktiverad",
+      "disabled": "Ej aktiverad"
+    },
     "disabledNote": "Modulen måste aktiveras innan den syns för distributörer, leverantörer och organisationer."
   },
   "adminTenants": {

@@ -51,7 +51,7 @@ export interface ModuleMeta {
  */
 const manifestToModuleMeta = (manifest: (typeof manifests)[number]): ModuleMeta => {
   const { module, permissions, roles } = manifest
-  const scopes: ModuleScope[] = ['org', 'user']
+  const scopes: ModuleScope[] = ['tenant', 'org', 'user']
 
   const moduleRoles = (roles ?? []).map((role) => ({
     key: role.key,
@@ -82,7 +82,7 @@ const manifestToModuleMeta = (manifest: (typeof manifests)[number]): ModuleMeta 
     requiredPermissions,
     moduleRoles,
     defaultAllowedRoles: roles?.map((r) => r.key) ?? [],
-    icon: 'mdi:puzzle',
+    icon: module.icon ?? 'mdi:puzzle',
     badge: module.category ? module.category.charAt(0).toUpperCase() + module.category.slice(1) : undefined
   })
 }
@@ -184,7 +184,10 @@ const legacyModules: ModuleMeta[] = [
 
 // Plugin-based modules (loaded from layer manifests) but skip keys that already exist in legacy set
 const legacyKeys = new Set(legacyModules.map((m) => m.key))
-const pluginModules = manifests
+const uniquePluginManifests = Array.from(
+  new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values()
+)
+const pluginModules = uniquePluginManifests
   .filter((manifest) => !legacyKeys.has(manifest.module.key))
   .map(manifestToModuleMeta)
 
