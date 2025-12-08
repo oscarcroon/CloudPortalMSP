@@ -41,10 +41,23 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const currentOrgId = import.meta.server
     ? serverAuth?.currentOrgId ?? null
     : auth?.state.value.data?.currentOrgId ?? null
-  const isSettingsSubRoute = to.path.startsWith('/settings') && to.path !== '/settings'
+  const isSettingsRoot = to.path === '/settings'
+  const isSettingsSubRoute = to.path.startsWith('/settings') && !isSettingsRoot
+  const isSettingsRoute = isSettingsRoot || isSettingsSubRoute
+  const hasOrgManagePermission = (() => {
+    if (!currentOrgId) return false
+    const role = import.meta.server
+      ? serverAuth?.orgRoles?.[currentOrgId]
+      : auth?.state.value.data?.orgRoles?.[currentOrgId]
+    return role ? rolePermissionMap[role]?.includes('org:manage') : false
+  })()
   
-  if (isSettingsSubRoute && !currentOrgId) {
-    return navigateTo('/settings?error=no-org', { replace: true })
+  if (isSettingsRoute && !currentOrgId) {
+    return navigateTo('/?error=no-org', { replace: true })
+  }
+
+  if (isSettingsRoute && !isSuperAdmin && !hasOrgManagePermission) {
+    return navigateTo('/?error=missing-permission', { replace: true })
   }
 
   // Check tenant access for tenant routes

@@ -296,25 +296,15 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
     if (isSuperAdminUser) {
       const org = auth.organizations.value.find(o => o.id === payload.organizationId)
       if (org) {
-        // Only redirect if we are NOT already on an organization-specific page
-        // or if we want to force view the new org.
-        // User requested "stay on same page" but updated context.
-        // However, if we are on Org A overview and switch to Org B, we MUST redirect or reload, 
-        // otherwise we see Org A data with Org B context (or error).
+        // Only redirect if we are on an org-specific admin route so view matches context
         if (router.currentRoute.value.path.includes('/admin/organizations/')) {
-           await router.push(`/admin/organizations/${org.slug}/overview`)
-           return
+          await router.push(`/admin/organizations/${org.slug}/overview`)
         }
-        // If we are on a generic page, stay there.
+        // Otherwise stay on current route; reactive data will follow context
         return
       }
     } else {
-      // For regular users, if they are not on settings, maybe send them to settings?
-      // Or just let them stay.
-      // If they are on a page that requires auth, middleware handles it.
-      if (!router.currentRoute.value.path.startsWith('/settings')) {
-        await router.push('/settings')
-      }
+      // For regular users, stay on current route and rely on middleware/auth to handle access
       return
     }
   }

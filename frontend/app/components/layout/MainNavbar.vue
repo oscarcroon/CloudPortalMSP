@@ -151,6 +151,7 @@ import { useAuth } from '~/composables/useAuth'
 import { useModules, type VisibleModule } from '~/composables/useModules'
 import { useFavorites } from '~/composables/useFavorites'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
+import { usePermission } from '~/composables/usePermission'
 import { normalizeLogoUrl } from '~/utils/logo'
 import { DEFAULT_NAV_BACKGROUND } from '~~/shared/branding'
 
@@ -171,6 +172,7 @@ const defaultLogo = defaultLogoAsset
 const modulesStore = useModules()
 const { favoriteModules, nonFavoriteModules } = useFavorites()
 const { width } = useWindowSize()
+const { can } = usePermission()
 
 const activeLogo = computed(() => {
   const orgLogoUrl = auth.currentOrg.value?.logoUrl
@@ -244,8 +246,14 @@ const mobileNavModules = computed(() => {
   return dedupeModules([...favoriteModules.value, ...nonFavoriteModules.value])
 })
 
+const canManageOrg = can('org:manage')
+
 const adminNavItems = computed(() => {
-  const items = [{ label: t('nav.settings'), to: '/settings', icon: 'mdi:cog' }]
+  const items = []
+
+  if (canManageOrg.value) {
+    items.push({ label: t('nav.settings'), to: '/settings', icon: 'mdi:cog' })
+  }
   const hasTenantAccess =
     auth.isSuperAdmin.value ||
     Object.keys(auth.state.value.data?.tenantRoles ?? {}).length > 0
