@@ -2,6 +2,7 @@ import type {
   EmailBranding,
   EmailContent,
   EmailTemplateInput,
+  EmailLocale,
   InvitationTemplateInput,
   PasswordResetTemplateInput
 } from './types.js'
@@ -23,6 +24,9 @@ const htmlEscapeMap: Record<string, string> = {
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => htmlEscapeMap[char])
 
 const stripHtml = (value: string) => value.replace(/<[^>]+>/g, '')
+
+const normalizeLocale = (value?: EmailTemplateInput['locale'] | null): EmailLocale =>
+  value === 'en' ? 'en' : 'sv'
 
 const normalizeColor = (value: string | undefined, fallback: string) => {
   if (!value) return fallback
@@ -71,14 +75,16 @@ export const renderBrandedTemplate = (
   input: EmailTemplateInput,
   branding?: EmailBranding
 ): EmailContent => {
+  const locale = normalizeLocale(input.locale)
   const accent = normalizeColor(branding?.accentColor, DEFAULT_ACCENT)
   const isDark = branding?.isDarkMode === true
   // Bakgrunden på e-postet ändras baserat på dark mode
   const background = isDark ? '#0f172a' : DEFAULT_BACKGROUND
   // Bakgrunden bakom loggan använder NavBar-färgen från brandingen
+  // Use a darker default behind the logo even in light mode to ensure contrast
   const logoBackground = normalizeColor(
     branding?.logoBackgroundColor,
-    isDark ? DEFAULT_CARD_BG : DEFAULT_BACKGROUND
+    DEFAULT_CARD_BG
   )
   const accentSoft = blendWithWhite(accent, 0.85)
   // Färger för dark mode
@@ -91,6 +97,10 @@ export const renderBrandedTemplate = (
   const bodyLines = input.body ?? []
   const outroLines = input.outro ?? []
   let text = renderText(introLines, bodyLines, outroLines, input.action)
+  const footerMessage: Record<EmailLocale, string> = {
+    sv: 'Det här meddelandet skickades automatiskt – svara bara om du behöver hjälp.',
+    en: 'This message was sent automatically—reply only if you need help.'
+  }
   if (branding?.footerTextPlain) {
     text = `${text}\n\n${branding.footerTextPlain}`
   } else if (branding?.footerText) {
@@ -141,10 +151,10 @@ export const renderBrandedTemplate = (
         ${
           branding?.footerText
             ? `<div style="margin-top:36px;padding-top:20px;border-top:1px solid ${borderTopColor};font-size:13px;color:${textSecondary};">${branding.footerText}</div>`
-            : ''
+            : `<div style="margin-top:36px;padding-top:20px;border-top:1px solid ${borderTopColor};font-size:13px;color:${textSecondary};">${footerMessage[locale]}</div>`
         }
       </div>
-      <p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Det här meddelandet skickades automatiskt – svara bara om du behöver hjälp.</p>
+      <p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">${footerMessage[locale]}</p>
     </div>
   </div>
   `.trim()
@@ -157,18 +167,52 @@ export const renderBrandedTemplate = (
 }
 
 export const renderInvitationEmail = (input: InvitationTemplateInput): EmailContent => {
-  const subject = `Inbjudan till ${input.organisationName}`
+  const locale = normalizeLocale(input.locale)
+  const copy: Record<EmailLocale, {
+    subject: (org: string) => string
+    pretitle: string
+    intro: string
+    invited: (invitedBy: string, org: string, role: string) => string
+    expires: (date: string) => string
+    action: string
+    outro: string
+  }> = {
+    sv: {
+      subject: (org) => `Inbjudan till ${org}`,
+      pretitle: 'Inbjudan',
+      intro: 'Hej!',
+      invited: (invitedBy, org, role) =>
+        `${invitedBy} har bjudit in dig till ${org} med rollen ${role}.`,
+      expires: (date) => `Inbjudan är giltig till ${date}.`,
+      action: 'Acceptera inbjudan',
+      outro: 'Om du inte förväntade dig mejlet kan du ignorera det.'
+    },
+    en: {
+      subject: (org) => `Invitation to ${org}`,
+      pretitle: 'Invitation',
+      intro: 'Hi!',
+      invited: (invitedBy, org, role) =>
+        `${invitedBy} has invited you to ${org} with the role ${role}.`,
+      expires: (date) => `The invitation is valid until ${date}.`,
+      action: 'Accept invitation',
+      outro: 'If you were not expecting this email, you can ignore it.'
+    }
+  }
+
+  const copyForLocale = copy[locale]
+  const subject = copyForLocale.subject(input.organisationName)
   const base = renderBrandedTemplate(
     {
-      pretitle: 'Inbjudan',
+      locale,
+      pretitle: copyForLocale.pretitle,
       title: input.organisationName,
-      intro: 'Hej!',
+      intro: copyForLocale.intro,
       body: [
-        `${input.invitedBy} har bjudit in dig till ${input.organisationName} med rollen ${input.role}.`,
-        `Inbjudan är giltig till ${input.expiresAt}.`
+        copyForLocale.invited(input.invitedBy, input.organisationName, input.role),
+        copyForLocale.expires(input.expiresAt)
       ],
-      action: { label: 'Acceptera inbjudan', url: input.acceptUrl },
-      outro: ['Om du inte förväntade dig mejlet kan du ignorera det.']
+      action: { label: copyForLocale.action, url: input.acceptUrl },
+      outro: [copyForLocale.outro]
     },
     input.branding
   )
@@ -176,21 +220,110 @@ export const renderInvitationEmail = (input: InvitationTemplateInput): EmailCont
 }
 
 export const renderPasswordResetEmail = (input: PasswordResetTemplateInput): EmailContent => {
-  const subject = 'Återställ ditt lösenord'
-  const base = renderBrandedTemplate(
-    {
+  const locale = normalizeLocale(input.locale)
+  const copy: Record<EmailLocale, {
+    subject: string
+    pretitle: string
+    title: string
+    intro: string
+    bodyReset: (expires: string) => string[]
+    action: string
+    outro: string
+  }> = {
+    sv: {
+      subject: 'Återställ ditt lösenord',
       pretitle: 'Säkerhet',
       title: 'Återställ lösenord',
       intro: 'Hej!',
-      body: [
+      bodyReset: (expires) => [
         'Vi tog emot en begäran om att återställa ditt lösenord.',
-        `Länken är giltig till ${input.expiresAt}.`
+        `Länken är giltig till ${expires}.`
       ],
-      action: { label: 'Återställ lösenord', url: input.resetUrl },
-      outro: ['Om du inte begärde detta kan du ignorera mejlet.']
+      action: 'Återställ lösenord',
+      outro: 'Om du inte begärde detta kan du ignorera mejlet.'
+    },
+    en: {
+      subject: 'Reset your password',
+      pretitle: 'Security',
+      title: 'Reset password',
+      intro: 'Hi!',
+      bodyReset: (expires) => [
+        'We received a request to reset your password.',
+        `The link is valid until ${expires}.`
+      ],
+      action: 'Reset password',
+      outro: 'If you did not request this, you can ignore the email.'
+    }
+  }
+
+  const copyForLocale = copy[locale]
+  const subject = copyForLocale.subject
+  const base = renderBrandedTemplate(
+    {
+      locale,
+      pretitle: copyForLocale.pretitle,
+      title: copyForLocale.title,
+      intro: copyForLocale.intro,
+      body: copyForLocale.bodyReset(input.expiresAt),
+      action: { label: copyForLocale.action, url: input.resetUrl },
+      outro: [copyForLocale.outro]
     },
     input.branding
   )
   return { ...base, subject }
+}
+
+export const buildTestEmail = (branding?: EmailBranding, locale: EmailLocale = 'sv'): EmailContent => {
+  const selectedLocale = normalizeLocale(locale)
+  const copy: Record<EmailLocale, {
+    subject: string
+    pretitle: string
+    intro: string
+    body: string[]
+    outro: string[]
+  }> = {
+    sv: {
+      subject: 'Testmail från Cloud Portal',
+      pretitle: 'Testutskick',
+      intro: 'Hej,',
+      body: [
+        'Detta är ett automatiskt testmeddelande som används för att verifiera att e-postkonfigurationen fungerar korrekt.',
+        `Meddelandet skickades ${new Date().toLocaleString('sv-SE')}.`,
+        'Om du kan läsa detta har testet lyckats och meddelanden kommer att levereras till dina användare på samma sätt (inklusive eventuell branding).'
+      ],
+      outro: [
+        'Vänliga hälsningar,',
+        'Detta meddelande skickades automatiskt - svara inte på det.'
+      ]
+    },
+    en: {
+      subject: 'Test email from Cloud Portal',
+      pretitle: 'Test send',
+      intro: 'Hi,',
+      body: [
+        'This is an automated test message used to verify that the email configuration works correctly.',
+        `The message was sent ${new Date().toLocaleString('en-US')}.`,
+        'If you can read this, the test succeeded and messages will be delivered to your users in the same way (including any branding).'
+      ],
+      outro: [
+        'Best regards,',
+        'This message was sent automatically – please do not reply.'
+      ]
+    }
+  }
+
+  const copyForLocale = copy[selectedLocale]
+
+  return renderBrandedTemplate(
+    {
+      locale: selectedLocale,
+      subject: copyForLocale.subject,
+      pretitle: copyForLocale.pretitle,
+      intro: copyForLocale.intro,
+      body: copyForLocale.body,
+      outro: copyForLocale.outro
+    },
+    branding
+  )
 }
 

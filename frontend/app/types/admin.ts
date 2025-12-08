@@ -11,6 +11,7 @@ export interface AdminEmailProviderSummary {
   organisationId?: string | null
   tenantId?: string | null
   providerType?: AdminEmailProviderType
+  emailLanguage?: 'sv' | 'en' | null
   fromEmail?: string
   fromName?: string | null
   replyToEmail?: string | null
@@ -48,6 +49,7 @@ export interface AdminEmailProviderPayload {
   fromName?: string
   replyToEmail?: string
   isActive?: boolean
+  emailLanguage?: 'sv' | 'en'
   subjectPrefix?: string | null
   supportContact?: string | null
   emailDarkMode?: boolean

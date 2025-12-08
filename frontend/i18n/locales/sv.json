@@ -670,10 +670,16 @@
           "fromName": "Avsändarnamn",
           "fromEmail": "Avsändaradress",
           "subjectPrefix": "Ämnesprefix (valfritt)",
+          "emailLanguage": "E-postspråk",
           "supportContact": "Supportkontakt (valfritt)",
           "replyToEmail": "Svar-adress",
           "active": "Aktiv",
           "emailTheme": "E-posttema"
+        },
+        "languages": {
+          "swedish": "Svenska",
+          "english": "Engelska",
+          "helper": "Välj språk för utskick (ämne och brödtext)."
         },
         "active": {
           "enabled": "Utskick aktiverat",

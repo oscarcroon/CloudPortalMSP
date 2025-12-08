@@ -47,6 +47,20 @@
           />
         </div>
         <div>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.emailLanguage') }}</label>
+          <select
+            v-model="form.emailLanguage"
+            :disabled="!isEditable"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+          >
+            <option value="sv">{{ t('settings.email.form.languages.swedish') }}</option>
+            <option value="en">{{ t('settings.email.form.languages.english') }}</option>
+          </select>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {{ t('settings.email.form.languages.helper') }}
+          </p>
+        </div>
+        <div>
           <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.email.form.fields.supportContact') }}</label>
           <input
             v-model="form.supportContact"
@@ -178,6 +192,7 @@
             v-model="form.smtp.authUser"
             type="text"
             :disabled="!isEditable"
+            autocomplete="new-username"
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           />
         </div>
@@ -187,6 +202,7 @@
             v-model="form.smtp.authPass"
             type="password"
             :disabled="!isEditable"
+            autocomplete="new-password"
             class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             :placeholder="form.smtp.hasStoredSecret ? t('settings.email.form.provider.smtpFields.keepSecret') : ''"
           />
@@ -402,6 +418,7 @@
       :tenant-id="previewTenantId"
       :disclaimer-markdown="props.mode === 'organization' ? form.disclaimerMarkdown : null"
       :is-dark-mode="form.emailDarkMode"
+      :email-language="form.emailLanguage"
       @close="previewModalOpen = false"
     />
   </form>
@@ -453,6 +470,7 @@ const form = reactive({
   providerType: 'smtp' as 'smtp' | 'graph',
   isActive: false,
   subjectPrefix: '',
+  emailLanguage: 'sv' as 'sv' | 'en',
   supportContact: '',
   emailDarkMode: false,
   disclaimerMarkdown: '',
@@ -505,6 +523,7 @@ const applySummary = (summary: AdminEmailProviderSummary | null) => {
   form.fromEmail = summary?.fromEmail ?? ''
   form.replyToEmail = summary?.replyToEmail ?? ''
   form.subjectPrefix = summary?.subjectPrefix ?? ''
+  form.emailLanguage = summary?.emailLanguage ?? 'sv'
   form.supportContact = summary?.supportContact ?? ''
   form.emailDarkMode = summary?.emailDarkMode ?? false
   form.disclaimerMarkdown = summary?.disclaimerMarkdown ?? ''
@@ -572,6 +591,7 @@ const buildPayload = (): AdminEmailProviderPayload => {
     fromEmail: normalize(form.fromEmail),
     fromName: form.fromName.trim() || undefined,
     replyToEmail: form.replyToEmail.trim() || undefined,
+    emailLanguage: form.emailLanguage,
     subjectPrefix: form.subjectPrefix,
     supportContact: form.supportContact,
     emailDarkMode: form.emailDarkMode,

@@ -48,21 +48,3 @@ export const buildInvitationEmail = (input) => {
 export const buildPasswordResetEmail = (input) => {
     return renderPasswordResetEmail(input);
 };
-export const buildTestEmail = (branding) => {
-    const timestamp = new Date().toLocaleString('sv-SE');
-    return renderBrandedTemplate({
-        subject: 'Testmail från Cloud Portal',
-        pretitle: 'Testutskick',
-        title: '',
-        intro: 'Hej,',
-        body: [
-            'Detta är ett automatiskt testmeddelande som används för att verifiera att e-postkonfigurationen fungerar korrekt.',
-            `Meddelandet skickades ${timestamp}.`,
-            'Om du kan läsa detta har testet lyckats och meddelanden kommer att levereras till dina användare på samma sätt (inklusive eventuell branding).'
-        ],
-        outro: [
-            'Vänliga hälsningar,',
-            'Detta meddelande skickades automatiskt - svara inte på det.'
-        ]
-    }, branding);
-};

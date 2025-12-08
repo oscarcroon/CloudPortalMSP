@@ -1,4 +1,5 @@
 export type EmailProviderType = 'smtp' | 'graph';
+export type EmailLocale = 'sv' | 'en';
 export interface EmailRecipient {
     email: string;
     name?: string;
@@ -22,6 +23,7 @@ export interface EmailTemplateInput {
     pretitle?: string;
     title?: string;
     intro?: string;
+    locale?: EmailLocale;
     body: string[];
     action?: {
         label: string;
@@ -30,6 +32,7 @@ export interface EmailTemplateInput {
     outro?: string[];
 }
 export interface InvitationTemplateInput {
+    locale?: EmailLocale;
     organisationName: string;
     invitedBy: string;
     role: string;
@@ -38,6 +41,7 @@ export interface InvitationTemplateInput {
     branding?: EmailBranding;
 }
 export interface PasswordResetTemplateInput {
+    locale?: EmailLocale;
     resetUrl: string;
     expiresAt: string;
     branding?: EmailBranding;

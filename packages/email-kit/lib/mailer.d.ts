@@ -10,5 +10,4 @@ export declare const sendTemplatedEmail: (options: SendTemplatedEmailOptions) =>
 }>;
 export declare const buildInvitationEmail: (input: InvitationTemplateInput) => EmailContent;
 export declare const buildPasswordResetEmail: (input: PasswordResetTemplateInput) => EmailContent;
-export declare const buildTestEmail: (branding?: EmailBranding) => EmailContent;
 //# sourceMappingURL=mailer.d.ts.map

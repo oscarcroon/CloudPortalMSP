@@ -31,12 +31,15 @@ const graphSchema = z.object({
   senderUserId: z.string().optional()
 })
 
+const emailLanguageSchema = z.enum(['sv', 'en'])
+
 export const providerSchema = z.discriminatedUnion('type', [smtpSchema, graphSchema])
 
 export const emailProviderPayloadSchema = z.object({
   fromEmail: emailLike,
   fromName: z.string().max(120).optional(),
   replyToEmail: emailLike.optional(),
+  emailLanguage: emailLanguageSchema.optional().default('sv'),
   subjectPrefix: z.string().max(120).optional().nullable(),
   supportContact: z.string().max(160).optional().nullable(),
   emailDarkMode: z.boolean().optional().default(false),

@@ -1,4 +1,4 @@
-﻿import {
+import {
   decryptConfig,
   encryptConfig,
   type EmailProviderProfile,
@@ -67,24 +67,45 @@ const buildSettings = (profile?: EmailProviderProfile | null) => {
   }
 }
 
-const toSummary = (record: ProviderRecord, profile?: EmailProviderProfile | null): EmailProviderSummary => ({
-  targetType: (record.targetType as 'global' | 'provider' | 'distributor' | 'organization') ?? 'organization',
-  organisationId: record.organizationId ?? undefined,
-  tenantId: record.tenantId ?? undefined,
-  providerType: record.providerType as 'smtp' | 'graph',
-  fromEmail: record.fromEmail ?? undefined,
-  fromName: record.fromName ?? undefined,
-  replyToEmail: record.replyToEmail ?? undefined,
-  subjectPrefix: record.subjectPrefix ?? null,
-  supportContact: record.supportContact ?? null,
-  emailDarkMode: Boolean(record.emailDarkMode),
-  isActive: Boolean(record.isActive),
-  hasConfig: Boolean(record.encryptedConfig),
-  lastTestedAt: record.lastTestedAt ? record.lastTestedAt.getTime() : undefined,
-  lastTestStatus: record.lastTestStatus ?? undefined,
-  lastTestError: record.lastTestError ?? undefined,
-  settings: buildSettings(profile)
-})
+type BrandingConfig = {
+  emailLanguage?: 'sv' | 'en'
+}
+
+const normalizeEmailLanguage = (value?: string | null): 'sv' | 'en' => (value === 'en' ? 'en' : 'sv')
+
+const parseBrandingConfig = (value?: string | null): BrandingConfig => {
+  if (!value) return {}
+  try {
+    const parsed = JSON.parse(value)
+    return typeof parsed === 'object' && parsed !== null ? parsed : {}
+  } catch (error) {
+    console.warn('[email-provider] Failed to parse brandingConfig', error)
+    return {}
+  }
+}
+
+const toSummary = (record: ProviderRecord, profile?: EmailProviderProfile | null): EmailProviderSummary => {
+  const brandingConfig = parseBrandingConfig(record.brandingConfig)
+  return {
+    targetType: (record.targetType as 'global' | 'provider' | 'distributor' | 'organization') ?? 'organization',
+    organisationId: record.organizationId ?? undefined,
+    tenantId: record.tenantId ?? undefined,
+    providerType: record.providerType as 'smtp' | 'graph',
+    emailLanguage: normalizeEmailLanguage(brandingConfig.emailLanguage),
+    fromEmail: record.fromEmail ?? undefined,
+    fromName: record.fromName ?? undefined,
+    replyToEmail: record.replyToEmail ?? undefined,
+    subjectPrefix: record.subjectPrefix ?? null,
+    supportContact: record.supportContact ?? null,
+    emailDarkMode: Boolean(record.emailDarkMode),
+    isActive: Boolean(record.isActive),
+    hasConfig: Boolean(record.encryptedConfig),
+    lastTestedAt: record.lastTestedAt ? record.lastTestedAt.getTime() : undefined,
+    lastTestStatus: record.lastTestStatus ?? undefined,
+    lastTestError: record.lastTestError ?? undefined,
+    settings: buildSettings(profile)
+  }
+}
 
 const mapToProfile = (record: ProviderRecord, cryptoKey: string): EmailProviderProfile | null => {
   if (!record.fromEmail || !record.encryptedConfig || !record.encryptionIv || !record.encryptionAuthTag) {
@@ -145,6 +166,7 @@ const baseSummary = (targetType: 'global' | 'provider' | 'distributor' | 'organi
   targetType,
   organisationId: organisationId ?? null,
   tenantId: tenantId ?? null,
+  emailLanguage: 'sv' as const,
   subjectPrefix: null,
   supportContact: null,
   disclaimerMarkdown: null,
@@ -192,6 +214,7 @@ export interface SaveEmailProviderInput {
   fromEmail: string
   fromName?: string
   replyToEmail?: string
+  emailLanguage?: 'sv' | 'en'
   subjectPrefix?: string | null
   supportContact?: string | null
   emailDarkMode?: boolean
@@ -214,6 +237,9 @@ const upsertProvider = async (
 ) => {
   const cryptoKey = ensureCryptoKey()
   const encrypted = encryptConfig(payload.provider, cryptoKey)
+  const brandingConfig: BrandingConfig = {
+    emailLanguage: normalizeEmailLanguage(payload.emailLanguage)
+  }
   const db = getDb()
   await db
     .insert(emailProviderProfiles)
@@ -229,6 +255,8 @@ const upsertProvider = async (
       replyToEmail: payload.replyToEmail ?? null,
       subjectPrefix: normalizeOptionalString(payload.subjectPrefix),
       supportContact: normalizeOptionalString(payload.supportContact),
+      emailDarkMode: payload.emailDarkMode ?? false,
+      brandingConfig: JSON.stringify(brandingConfig),
       encryptedConfig: encrypted.cipherText,
       encryptionIv: encrypted.iv,
       encryptionAuthTag: encrypted.authTag
@@ -247,6 +275,7 @@ const upsertProvider = async (
         subjectPrefix: normalizeOptionalString(payload.subjectPrefix),
         supportContact: normalizeOptionalString(payload.supportContact),
         emailDarkMode: payload.emailDarkMode ?? false,
+        brandingConfig: JSON.stringify(brandingConfig),
         encryptedConfig: encrypted.cipherText,
         encryptionIv: encrypted.iv,
         encryptionAuthTag: encrypted.authTag,
@@ -451,6 +480,7 @@ export interface EmailSenderContext {
   subjectPrefix: string | null
   supportContact: string | null
   emailDarkMode: boolean
+  emailLanguage: 'sv' | 'en'
   source: TargetDescriptor | null
 }
 
@@ -475,6 +505,7 @@ export const getEffectiveEmailSenderContext = async (
       subjectPrefix: record.subjectPrefix ?? null,
       supportContact: record.supportContact ?? null,
       emailDarkMode: Boolean(record.emailDarkMode),
+      emailLanguage: normalizeEmailLanguage(parseBrandingConfig(record.brandingConfig).emailLanguage),
       source: target
     }
   }
@@ -484,6 +515,7 @@ export const getEffectiveEmailSenderContext = async (
     subjectPrefix: null,
     supportContact: null,
     emailDarkMode: false,
+    emailLanguage: 'sv',
     source: null
   }
 }

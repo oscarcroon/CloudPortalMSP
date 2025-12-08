@@ -670,10 +670,16 @@
           "fromName": "Sender name",
           "fromEmail": "Sender address",
           "subjectPrefix": "Subject prefix (optional)",
+          "emailLanguage": "Email language",
           "supportContact": "Support contact (optional)",
           "replyToEmail": "Reply-to address",
           "active": "Active",
           "emailTheme": "Email theme"
+        },
+        "languages": {
+          "swedish": "Swedish",
+          "english": "English",
+          "helper": "Choose language for outgoing emails (subject and body)."
         },
         "active": {
           "enabled": "Sending enabled",

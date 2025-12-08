@@ -75,6 +75,11 @@
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div class="space-y-2">
             <div class="flex items-center gap-2">
+              <Icon
+                v-if="module.icon"
+                :icon="module.icon"
+                class="h-6 w-6 flex-shrink-0 text-brand"
+              />
               <p class="text-lg font-semibold text-slate-900 dark:text-white">
                 {{ module.name }}
               </p>
@@ -135,9 +140,9 @@
                     class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
                     :value="option.value"
                     :name="`policy-${module.key}`"
-                    @change="onModeChange(module, option.value)"
+                    @change="onModeChange(module, option.value as PolicyMode)"
                   />
-                  <span>{{ option.label }}</span>
+                  <span>{{ t(`adminTenants.modules.modes.${option.value}`) }}</span>
                 </label>
               </div>
               <div v-if="module.uiMode === 'allowlist'" class="space-y-1">
@@ -205,11 +210,11 @@ type UiModule = ModuleStatusDto & {
   error?: string | null
 }
 
-const modeOptions: { value: PolicyMode; label: string }[] = [
-  { value: 'inherit', label: t('adminTenants.modules.modes.inherit') },
-  { value: 'default-closed', label: t('adminTenants.modules.modes.defaultClosed') },
-  { value: 'allowlist', label: t('adminTenants.modules.modes.allowlist') },
-  { value: 'blocked', label: t('adminTenants.modules.modes.blocked') }
+const modeOptions: { value: PolicyMode }[] = [
+  { value: 'inherit' },
+  { value: 'default-closed' },
+  { value: 'allowlist' },
+  { value: 'blocked' }
 ]
 
 const { data: tenantResponse } = await useFetch<{ tenant: { name: string } }>(() =>

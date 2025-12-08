@@ -79,6 +79,14 @@
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div class="space-y-2">
             <div class="flex items-center gap-2">
+              <Icon
+                v-if="module.icon"
+                :icon="module.icon"
+                :class="[
+                  'h-6 w-6 flex-shrink-0',
+                  module.enabled ? 'text-brand' : 'text-slate-400 dark:text-slate-500'
+                ]"
+              />
               <p class="text-lg font-semibold text-slate-900 dark:text-white">
                 {{ module.name }}
               </p>

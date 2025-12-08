@@ -40,7 +40,7 @@ export const sendProviderTestEmail = async (
     context: context
   })
   
-  const content = buildTestEmail(branding)
+  const content = buildTestEmail(branding, senderContext.emailLanguage === 'en' ? 'en' : 'sv')
   try {
     return await sendTemplatedEmail({
       profile,

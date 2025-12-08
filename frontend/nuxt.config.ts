@@ -75,14 +75,18 @@ export default defineNuxtConfig({
   pinia: {},
   i18n: {
     strategy: 'no_prefix',
-    // Path relative to srcDir (app/) to satisfy nuxt-i18n expectations
+    // Relativ till srcDir (app/): går upp en nivå till frontend/ och sedan in i i18n/locales
     langDir: '../i18n/locales',
+    lazy: true,
     defaultLocale: DEFAULT_LOCALE,
     locales: SUPPORTED_LOCALES.map((locale) => ({
       ...locale,
       file: `${locale.code}.json`
     })),
-    vueI18n: './i18n.config.ts'
+    vueI18n: './i18n.config.ts',
+    compilation: {
+      strictMessage: false
+    }
   },
   typescript: {
     typeCheck: false,
