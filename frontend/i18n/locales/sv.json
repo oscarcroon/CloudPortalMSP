@@ -4,6 +4,7 @@
     "saving": "Sparar...",
     "update": "Uppdatera",
     "updating": "Uppdaterar...",
+    "load": "Ladda",
     "cancel": "Avbryt",
     "delete": "Ta bort",
     "unknown": "Okänd",
@@ -305,57 +306,51 @@
     "administration": "Administration",
     "open": "Öppna",
     "modules": {
+      "routeLabel": "Route",
       "title": "Moduler",
       "description": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för organisationen.",
       "cta": "Hantera modulåtkomst",
       "empty": "Inga moduler tillgängliga just nu.",
-      "pageDescription": "Välj vilka tenant-moduler er organisation ska använda.",
-      "searchPlaceholder": "Sök moduler...",
+      "pageDescription": "Hantera modulpolicy (inherit/default-closed/allowlist/blocked) och vilka permissions som får användas.",
+      "searchPlaceholder": "Sök modul",
       "results": "{count} moduler",
       "filters": {
         "allCategories": "Alla kategorier"
       },
       "loading": "Laddar moduler...",
       "noModules": "Inga moduler är tillgängliga för organisationen. Kontakta tenant-admin om något saknas.",
-      "routeLabel": "Route:",
-      "policyTitle": "Modulpolicy",
-      "tenantBlocked": "Blockerad på tenant-nivå",
-      "lockedByTenant": "Avstängd av tenant",
+      "policyTitle": "Policy",
+      "tenantBlocked": "Blockerad av tenant",
+      "lockedByTenant": "Låst av tenant-policy",
       "modes": {
-        "inherit": "Ärver från tenant",
-        "defaultClosed": "Default av (endast användaröverskrivningar)",
-        "allowlist": "Tillåt specifika roller",
+        "inherit": "Ärv",
+        "default-closed": "Default stängd",
+        "allowlist": "Allowlist",
         "blocked": "Blockerad"
       },
-      "allowedRolesLabel": "Tillåtna roller",
-      "allowedRolesLabelViewerEditorAdmin": "Tillåtna roller: Viewer, Editor, Admin",
-      "updateFailed": "Kunde inte uppdatera modulpolicy.",
-      "groups": {
-        "title": "Åtkomstgrupper",
-        "description": "Skapa grupper per organisation och använd dem för plugin-ACL.",
-        "namePlaceholder": "Gruppnamn",
-        "descriptionPlaceholder": "Beskrivning (valfritt)",
-        "membersPlaceholder": "Medlems-ID:n (kommaseparerade, valfritt)",
-        "membersHelp": "Medlemmar måste redan finnas i organisationen.",
-        "membersInputLabel": "Medlems-ID:n (kommaseparerade, använd userId)",
-        "membersHelpInline": "Ange userId för medlemmar i organisationen, separerade med kommatecken eller radbrytning.",
-        "saveMembers": "Spara medlemmar",
-        "manageMembers": "Hantera medlemmar",
-        "availableMembers": "Tillgängliga medlemmar",
-        "noMembers": "Inga medlemmar i organisationen.",
-        "create": "Skapa grupp",
-        "loading": "Laddar grupper...",
-        "empty": "Inga grupper ännu. Skapa en för att börja tilldela ACL.",
-        "delete": "Ta bort grupp"
-      },
+      "loadingPermissions": "Laddar permissions...",
+      "noPermissions": "Inga permissions deklarerade",
+      "updateFailed": "Kunde inte uppdatera modulpolicy",
       "manageAcl": "Hantera ACL",
       "aclTitle": "Plugin-ACL",
       "aclDescription": "Koppla CRUD-operationer till åtkomstgrupper för pluginet.",
       "aclOperationHint": "Välj grupper som får utföra operationen.",
       "saveAcl": "Spara ACL",
-      "enabledState": {
-        "enabled": "Aktiv (tänd)",
-        "disabled": "Inaktiv (släckt)"
+      "showAll": "Visa alla rättigheter",
+      "hideAll": "Dölj alla rättigheter",
+      "noSearchResults": "Inga moduler matchade sökningen",
+      "disabled": "Inaktiverad",
+      "deactivated": "Avaktiverad",
+      "features": {
+        "enable": "Aktivera eller inaktivera moduler för organisationen",
+        "permissions": "Hantera rättigheter per modul (read/write)",
+        "granular": "Sätt granulära rättigheter per användare"
+      },
+      "groups": {
+        "title": "Grupper",
+        "description": "Hantera grupper för ACL.",
+        "loading": "Laddar grupper...",
+        "empty": "Inga grupper"
       }
     },
     "groups": {
@@ -878,23 +873,6 @@
         "login": "Hantera login-branding och custom domains (CNAME)"
       }
     },
-    "modules": {
-      "title": "Modulrättigheter",
-      "description": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation.",
-      "pageDescription": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation. Du kan också sätta granulära rättigheter per användare för varje modul.",
-      "searchPlaceholder": "Sök efter moduler...",
-      "showAll": "Visa alla rättigheter",
-      "hideAll": "Dölj alla rättigheter",
-      "noModules": "Inga moduler hittades för din organisation.",
-      "noSearchResults": "Inga moduler matchade sökningen",
-      "disabled": "Inaktiverad",
-      "deactivated": "Avaktiverad",
-      "features": {
-        "enable": "Aktivera eller inaktivera moduler för organisationen",
-        "permissions": "Hantera rättigheter per modul (read/write)",
-        "granular": "Sätt granulära rättigheter per användare"
-      }
-    },
     "audit": {
       "title": "Audit Loggar",
       "description": "Visa säkerhetshändelser och administrativa aktiviteter för organisationen.",
@@ -1084,11 +1062,13 @@
       "policyTitle": "Modulpolicy",
       "modes": {
         "inherit": "Ärver uppströms",
-        "defaultClosed": "Default av (endast användaröverskrivningar)",
-        "allowlist": "Tillåt specifika roller",
+        "default-closed": "Default av (endast användaröverskrivningar)",
+        "allowlist": "Tillåt specifika rättigheter",
         "blocked": "Blockerad"
       },
       "allowedRolesLabel": "Tillåtna roller",
+      "loadingPermissions": "Laddar permissions...",
+      "noPermissions": "Inga permissions deklarerade",
       "updateFailed": "Kunde inte uppdatera modulpolicy."
     },
     "emailOverride": {

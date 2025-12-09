@@ -1,4 +1,4 @@
-import type { EmailBranding, EmailContent, InvitationTemplateInput, PasswordResetTemplateInput, SendTemplatedEmailOptions } from './types.js';
+import type { EmailContent, InvitationTemplateInput, PasswordResetTemplateInput, SendTemplatedEmailOptions } from './types.js';
 export declare const sendTemplatedEmail: (options: SendTemplatedEmailOptions) => Promise<{
     delivered: boolean;
     channel: string;

@@ -8,8 +8,7 @@
       "~~": ["."],
       "~~/*": ["./*"],
       "#imports": ["./.nuxt/imports"],
-      "server/*": ["./server/*"],
-      "@windows-dns/*": ["./layers/windows-dns/*"]
+      "server/*": ["./server/*"]
     },
     "skipLibCheck": true
   },

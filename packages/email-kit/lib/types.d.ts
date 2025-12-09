@@ -1,9 +1,9 @@
 export type EmailProviderType = 'smtp' | 'graph';
-export type EmailLocale = 'sv' | 'en';
 export interface EmailRecipient {
     email: string;
     name?: string;
 }
+export type EmailLocale = 'sv' | 'en';
 export interface EmailBranding {
     logoUrl?: string;
     accentColor?: string;

@@ -1,5 +1,5 @@
 import { writeOutboxPreview } from './outbox.js';
-import { renderBrandedTemplate, renderInvitationEmail, renderPasswordResetEmail } from './templates.js';
+import { renderInvitationEmail, renderPasswordResetEmail } from './templates.js';
 import { sendViaGraph, sendViaSmtp } from './transport.js';
 const toArray = (value) => Array.isArray(value) ? value : [value];
 const logSafeError = (error) => error instanceof Error ? { message: error.message, name: error.name } : { message: String(error) };

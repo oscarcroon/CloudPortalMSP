@@ -2,7 +2,7 @@
 
 ## Grundprinciper
 
-- Varje plugin har en unik `moduleKey`, t.ex. `windows-dns`.
+- Varje plugin har en unik `moduleKey`, t.ex. `cloudflare-dns`.
 - Alla plugin-tabeller i databasen ska prefixas med modulens key, t.ex. `windows_dns_*`.
 - Core-RBAC i `constants/rbac.ts` innehåller **endast** app-roller och core-permissions.
   - Modul-specifika permissions ska **alltid** definieras i pluginets manifest och synkas till DB.
@@ -57,7 +57,7 @@
 ## Namnkonventioner för CSS
 
 - Globala klasser (i `@layer components/@layer utilities`) ska:
-  - Prefixas med `mod-<module-key>-`, t.ex. `.mod-windows-dns-record-row`.
+  - Prefixas med `mod-<module-key>-`, t.ex. `.mod-cloudflare-dns-record-row`.
   - Inte krocka med core-klasser eller generiska namn.
 - Komponentlokal CSS:
   - Använd `<style scoped>` i Vue/Nuxt-komponenter när det går.

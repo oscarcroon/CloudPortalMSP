@@ -1,28 +1,26 @@
 import { and, eq, or } from 'drizzle-orm'
-import { getModuleAccessForUser } from '~~/server/lib/modules/module-access'
-import { getDb } from '~~/server/utils/db'
-import { cloudflareDnsZoneAcls } from '~~/server/database/schema'
-import type { ModuleRoleKeyMap } from '@/app/generated/rbac-types'
+import { getDb } from '../../../../../server/utils/db'
+import { cloudflareDnsZoneAcls } from '../../../../../server/database/schema'
+import { resolveEffectiveModulePermissions } from '../../../../../server/utils/modulePermissions'
 import type {
-  CloudflareDnsModuleRole,
   CloudflareModuleRights,
   CloudflareZoneAccess,
   CloudflareZoneRole
 } from './types'
 
-const MODULE_ROLE_ORDER: CloudflareDnsModuleRole[] = [
-  'viewer',
-  'records-editor',
-  'zone-admin',
-  'module-admin'
-]
-
 const ZONE_ROLE_ORDER: CloudflareZoneRole[] = ['viewer', 'records-only', 'editor', 'admin']
+
+const PERMISSION_TO_CAPABILITY: Record<string, keyof CloudflareModuleRights> = {
+  'cloudflare-dns:view': 'canView',
+  'cloudflare-dns:edit_records': 'canEditRecords',
+  'cloudflare-dns:admin_zones': 'canManageZones',
+  'cloudflare-dns:manage_org_config': 'canManageOrgConfig',
+  'cloudflare-dns:manage_acls': 'canManageAcls'
+}
 
 const zoneRoleCapabilities: Record<CloudflareZoneRole, Omit<CloudflareZoneAccess, 'roles'>> = {
   viewer: {
     zoneRole: 'viewer',
-    roles: [],
     canView: true,
     canEditRecords: false,
     canManageZones: false,
@@ -31,7 +29,6 @@ const zoneRoleCapabilities: Record<CloudflareZoneRole, Omit<CloudflareZoneAccess
   },
   'records-only': {
     zoneRole: 'records-only',
-    roles: [],
     canView: true,
     canEditRecords: true,
     canManageZones: false,
@@ -40,7 +37,6 @@ const zoneRoleCapabilities: Record<CloudflareZoneRole, Omit<CloudflareZoneAccess
   },
   editor: {
     zoneRole: 'editor',
-    roles: [],
     canView: true,
     canEditRecords: true,
     canManageZones: false,
@@ -49,7 +45,6 @@ const zoneRoleCapabilities: Record<CloudflareZoneRole, Omit<CloudflareZoneAccess
   },
   admin: {
     zoneRole: 'admin',
-    roles: [],
     canView: true,
     canEditRecords: true,
     canManageZones: true,
@@ -58,101 +53,7 @@ const zoneRoleCapabilities: Record<CloudflareZoneRole, Omit<CloudflareZoneAccess
   }
 }
 
-const moduleRoleCapabilities: Record<CloudflareDnsModuleRole, CloudflareModuleRights> = {
-  viewer: {
-    roles: ['viewer'],
-    canView: true,
-    canEditRecords: false,
-    canManageZones: false,
-    canManageAcls: false,
-    canManageOrgConfig: false
-  },
-  'records-editor': {
-    roles: ['records-editor'],
-    canView: true,
-    canEditRecords: true,
-    canManageZones: false,
-    canManageAcls: false,
-    canManageOrgConfig: false
-  },
-  'zone-admin': {
-    roles: ['zone-admin'],
-    canView: true,
-    canEditRecords: true,
-    canManageZones: true,
-    canManageAcls: true,
-    canManageOrgConfig: false
-  },
-  'module-admin': {
-    roles: ['module-admin'],
-    canView: true,
-    canEditRecords: true,
-    canManageZones: true,
-    canManageAcls: true,
-    canManageOrgConfig: true
-  }
-}
-
-const mergeModuleRights = (roles: CloudflareDnsModuleRole[]): CloudflareModuleRights => {
-  const rights: CloudflareModuleRights = {
-    roles,
-    canView: false,
-    canEditRecords: false,
-    canManageZones: false,
-    canManageAcls: false,
-    canManageOrgConfig: false
-  }
-
-  for (const role of roles) {
-    const caps = moduleRoleCapabilities[role]
-    rights.canView = rights.canView || caps.canView
-    rights.canEditRecords = rights.canEditRecords || caps.canEditRecords
-    rights.canManageZones = rights.canManageZones || caps.canManageZones
-    rights.canManageAcls = rights.canManageAcls || caps.canManageAcls
-    rights.canManageOrgConfig = rights.canManageOrgConfig || caps.canManageOrgConfig
-  }
-
-  return rights
-}
-
-const clampZoneCapabilities = (
-  moduleRights: CloudflareModuleRights,
-  zoneRole: CloudflareZoneRole | null
-): CloudflareZoneAccess => {
-  if (!zoneRole) {
-    return { ...moduleRights, zoneRole: null }
-  }
-
-  const zoneCaps = zoneRoleCapabilities[zoneRole]
-  return {
-    roles: moduleRights.roles,
-    zoneRole,
-    canView: moduleRights.canView && zoneCaps.canView,
-    canEditRecords: moduleRights.canEditRecords && zoneCaps.canEditRecords,
-    canManageZones: moduleRights.canManageZones && zoneCaps.canManageZones,
-    canManageAcls: moduleRights.canManageAcls && zoneCaps.canManageAcls,
-    canManageOrgConfig: moduleRights.canManageOrgConfig && zoneCaps.canManageOrgConfig
-  }
-}
-
-export const resolveModuleRights = (roles: CloudflareDnsModuleRole[]): CloudflareModuleRights =>
-  mergeModuleRights(roles)
-
-export const highestModuleRole = (roles: CloudflareDnsModuleRole[]) => {
-  let best: CloudflareDnsModuleRole | null = null
-  for (const role of roles) {
-    if (!best) {
-      best = role
-      continue
-    }
-    if (MODULE_ROLE_ORDER.indexOf(role) > MODULE_ROLE_ORDER.indexOf(best)) {
-      best = role
-    }
-  }
-  return best
-}
-
-export const highestZoneRole = (roles: CloudflareZoneRole[]): CloudflareZoneRole | null => {
+const highestZoneRole = (roles: CloudflareZoneRole[]): CloudflareZoneRole | null => {
   let best: CloudflareZoneRole | null = null
   for (const role of roles) {
     if (!best) {
@@ -166,12 +67,38 @@ export const highestZoneRole = (roles: CloudflareZoneRole[]): CloudflareZoneRole
   return best
 }
 
-export const getCloudflareDnsModuleAccessForUser = async (orgId: string, userId: string) => {
-  const moduleAccess = await getModuleAccessForUser(orgId, userId, 'cloudflare-dns')
-  if (!moduleAccess.hasAccess) {
-    return resolveModuleRights([])
+const clampZoneCapabilities = (
+  moduleRights: CloudflareModuleRights,
+  zoneRole: CloudflareZoneRole | null
+): CloudflareZoneAccess => {
+  if (!zoneRole) {
+    return { ...moduleRights, zoneRole: null }
   }
-  return resolveModuleRights(moduleAccess.roles as ModuleRoleKeyMap['cloudflare-dns'][])
+
+  const zoneCaps = zoneRoleCapabilities[zoneRole]
+  return {
+    roles: [],
+    zoneRole,
+    canView: moduleRights.canView && zoneCaps.canView,
+    canEditRecords: moduleRights.canEditRecords && zoneCaps.canEditRecords,
+    canManageZones: moduleRights.canManageZones && zoneCaps.canManageZones,
+    canManageAcls: moduleRights.canManageAcls && zoneCaps.canManageAcls,
+    canManageOrgConfig: moduleRights.canManageOrgConfig && zoneCaps.canManageOrgConfig
+  }
+}
+
+const buildRightsFromPermissions = (perms: Set<string>): CloudflareModuleRights => ({
+  roles: [],
+  canView: perms.has('cloudflare-dns:view'),
+  canEditRecords: perms.has('cloudflare-dns:edit_records'),
+  canManageZones: perms.has('cloudflare-dns:admin_zones'),
+  canManageAcls: perms.has('cloudflare-dns:manage_acls'),
+  canManageOrgConfig: perms.has('cloudflare-dns:manage_org_config')
+})
+
+export const getCloudflareDnsModuleAccessForUser = async (orgId: string, userId: string) => {
+  const perms = await resolveEffectiveModulePermissions({ orgId, moduleKey: 'cloudflare-dns', userId })
+  return buildRightsFromPermissions(perms.effectivePermissions)
 }
 
 export const getCloudflareDnsZoneAccessForUser = async (

@@ -15,6 +15,7 @@ const bodySchema = z.object({
   moduleKey: z.string(),
   mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']),
   allowedRoles: z.array(z.string()).optional(),
+  allowedPermissions: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
   disabled: z.boolean().optional()
 })
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleKey, mode, allowedRoles, enabled, disabled } = body
+  const { moduleKey, mode, allowedRoles, allowedPermissions, enabled, disabled } = body
 
   await requirePermission(event, 'org:manage', orgId)
 
@@ -56,19 +57,38 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const allRoleKeys = roleDefinitions.map((role) => role.key)
+  const allPermissionKeys = module.requiredPermissions ?? []
+
   const normalizedRoles =
     mode === 'allowlist'
-      ? Array.from(new Set(allowedRoles ?? [])).filter(Boolean)
+      ? Array.from(
+          new Set((allowedRoles && allowedRoles.length ? allowedRoles : allRoleKeys).filter(Boolean))
+        )
       : []
 
   const previousPolicy = await getOrganizationModulePolicy(orgId, moduleKey as ModuleId)
+
+  const normalizedAllowedPermissions =
+    mode === 'allowlist'
+      ? Array.from(
+          new Set(
+            (allowedPermissions && allowedPermissions.length ? allowedPermissions : allPermissionKeys).filter(Boolean)
+          )
+        )
+      : []
 
   const policy: ModulePolicy = {
     moduleKey,
     mode,
     allowedRoles: normalizedRoles,
+    allowedPermissions: normalizedAllowedPermissions,
     enabled: enabled ?? true,
-    disabled: disabled ?? false
+    disabled: disabled ?? false,
+    permissionOverrides:
+      mode === 'allowlist'
+        ? Object.fromEntries(normalizedAllowedPermissions.map((key) => [key, true]))
+        : undefined
   } as any
 
   await setOrganizationModulePolicy(orgId, moduleKey as ModuleId, policy)

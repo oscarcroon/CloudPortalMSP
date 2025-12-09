@@ -1,16 +1,41 @@
 #!/usr/bin/env ts-node
 import { getDb, resetDbInstance } from '../server/utils/db'
-import { tenantModulePolicies, organizationModulePolicies } from '../server/database/schema'
+import {
+  tenantModulePolicies,
+  organizationModulePolicies,
+  moduleRoles,
+  moduleRolePermissions,
+  moduleRoleDefaults,
+  memberModuleRoleOverrides
+} from '../server/database/schema'
 import { ALL_MODULES } from '../app/lib/module-registry'
 import { syncModuleRoles } from '../server/utils/syncModuleRoles'
+import { syncPluginRegistry } from '../server/lib/plugin-registry/sync'
 
 const main = async () => {
   const db = getDb()
   const moduleKeys = new Set(ALL_MODULES.map((m) => m.key))
 
-  console.log('[sync-modules] syncing module roles/mappings...')
-  await syncModuleRoles()
-  console.log('[sync-modules] role sync completed')
+  console.log('[sync-modules] syncing plugin registry (modules/permissions/roles)...')
+  await syncPluginRegistry()
+  console.log('[sync-modules] registry sync completed')
+
+  // Legacy modulroller: logga kvarvarande data
+  const legacyRoles = await db.select().from(moduleRoles)
+  const legacyRolePerms = await db.select().from(moduleRolePermissions)
+  const legacyRoleDefaults = await db.select().from(moduleRoleDefaults)
+  const legacyOverrides = await db.select().from(memberModuleRoleOverrides)
+
+  if (legacyRoles.length || legacyRolePerms.length || legacyRoleDefaults.length || legacyOverrides.length) {
+    console.warn('[sync-modules] Legacy module role data still present:')
+    console.warn('  moduleRoles:', legacyRoles.length)
+    console.warn('  moduleRolePermissions:', legacyRolePerms.length)
+    console.warn('  moduleRoleDefaults:', legacyRoleDefaults.length)
+    console.warn('  memberModuleRoleOverrides:', legacyOverrides.length)
+    console.warn('  -> Planera migrering till permissions-tabeller och rensa roll-tabeller.')
+  } else {
+    console.log('[sync-modules] Inga legacy module role-poster kvar.')
+  }
 
   console.log('[sync-modules] checking orphan module policies...')
   const [tenantPolicies, orgPolicies] = await Promise.all([

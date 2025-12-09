@@ -7,29 +7,16 @@ import type { RbacPermission } from '~/constants/rbac'
  * Converts plugin manifest to ModuleMeta format
  */
 export function manifestToModuleMeta(manifest: PluginModuleManifest): ModuleMeta {
-  const { module, permissions, roles } = manifest
+  const { module, permissions } = manifest
 
   // Determine scopes based on module key pattern or default to org/user
   // Plugins ska synas på tenant- och org-nivå samt användarnivå
   const scopes: ModuleScope[] = ['tenant', 'org', 'user']
 
-  const moduleRoles: ModuleRoleMeta[] = roles.map((role) => ({
-    key: role.key,
-    label: role.label,
-    description: role.description,
-    requiredPermissions: role.permissions as RbacPermission[],
-    capabilities: {
-      read: role.permissions.some((p) => p.includes(':read') || p.includes(':view')),
-      write: role.permissions.some((p) => p.includes(':write') || p.includes(':edit')),
-      manage:
-        role.permissions.some((p) => p.includes(':admin') || p.includes(':manage')) ||
-        role.key.includes('admin')
-    }
-  }))
-
-  // Get first permission as required permission (usually the view/read permission)
-  const requiredPermissions: RbacPermission[] =
-    permissions.length > 0 ? [permissions[0].key as RbacPermission] : []
+  // Use all manifest permissions as required permissions for the module
+  const requiredPermissions: RbacPermission[] = permissions.map(
+    (permission) => permission.key as RbacPermission
+  )
 
   // Determine root route from module key (e.g., 'cloudflare-dns' -> '/cloudflare-dns')
   const rootRoute = `/${module.key.replace(/_/g, '-')}`
@@ -44,9 +31,9 @@ export function manifestToModuleMeta(manifest: PluginModuleManifest): ModuleMeta
     scopes,
     status: 'active',
     requiredPermissions,
-    moduleRoles,
-    roles: moduleRoles,
-    defaultAllowedRoles: roles.map((r) => r.key),
+    moduleRoles: [],
+    roles: [],
+    defaultAllowedRoles: [],
     icon: module.icon ?? 'mdi:puzzle',
     badge: module.category ? module.category.charAt(0).toUpperCase() + module.category.slice(1) : undefined
   }

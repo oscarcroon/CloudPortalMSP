@@ -15,6 +15,7 @@ const bodySchema = z.object({
   moduleKey: z.string(),
   mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']),
   allowedRoles: z.array(z.string()).optional(),
+  allowedPermissions: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
   disabled: z.boolean().optional()
 })
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleKey, mode, allowedRoles, enabled, disabled } = body
+  const { moduleKey, mode, allowedRoles, allowedPermissions, enabled, disabled } = body
 
   await requireTenantPermission(event, 'tenants:manage', tenantId)
 
@@ -46,8 +47,23 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const allRoleKeys = (module.moduleRoles ?? module.roles ?? []).map((role) => role.key)
+  const allPermissionKeys = module.requiredPermissions ?? []
+
   const normalizedAllowedRoles =
-    mode === 'allowlist' ? Array.from(new Set(allowedRoles ?? [])) : []
+    mode === 'allowlist'
+      ? Array.from(
+          new Set((allowedRoles && allowedRoles.length ? allowedRoles : allRoleKeys).filter(Boolean))
+        )
+      : []
+  const normalizedAllowedPermissions =
+    mode === 'allowlist'
+      ? Array.from(
+          new Set(
+            (allowedPermissions && allowedPermissions.length ? allowedPermissions : allPermissionKeys).filter(Boolean)
+          )
+        )
+      : []
 
   const previousPolicy = await getTenantModulePolicy(tenantId, moduleKey as ModuleId)
 
@@ -55,9 +71,14 @@ export default defineEventHandler(async (event) => {
     moduleKey,
     mode,
     allowedRoles: normalizedAllowedRoles,
+    allowedPermissions: normalizedAllowedPermissions,
     // enabled/disabled flags påverkar synlighet på tenant-nivå
     enabled: enabled ?? true,
-    disabled: disabled ?? false
+    disabled: disabled ?? false,
+    permissionOverrides:
+      mode === 'allowlist'
+        ? Object.fromEntries(normalizedAllowedPermissions.map((key) => [key, true]))
+        : undefined
   } as any
 
   await setTenantModulePolicy(tenantId, moduleKey as ModuleId, policy)

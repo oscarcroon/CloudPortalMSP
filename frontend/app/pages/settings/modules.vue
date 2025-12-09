@@ -180,24 +180,48 @@
                 </label>
               </div>
               <div v-if="module.uiMode === 'allowlist'" class="space-y-1">
-                <label class="text-xs text-slate-500 dark:text-slate-300">
-                  {{ t('settings.modules.allowedRolesLabel') }}
-                </label>
-                <select
-                  multiple
-                  class="w-64 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-slate-900 dark:text-white"
-                  :value="module.uiAllowedRoles"
-                  :disabled="module.updating || module.tenantPolicy?.mode === 'blocked' || (module.moduleRoles?.length ?? 0) === 0"
-                  @change="onAllowedRolesChange(module, $event)"
-                >
-                  <option
-                    v-for="role in module.moduleRoles"
-                    :key="role.key"
-                    :value="role.key"
-                  >
-                    {{ role.label }}
-                  </option>
-                </select>
+                <div class="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs dark:border-white/10 dark:bg-white/5">
+                  <div class="flex items-center justify-between">
+                    <span class="font-semibold text-slate-700 dark:text-slate-200">Permissions (manifest)</span>
+                    <button
+                      class="rounded border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-white dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
+                      :disabled="permissionState(module.key).loading"
+                      @click="loadModulePermissions(module)"
+                    >
+                      {{ permissionState(module.key).items.length ? t('common.refresh') : t('common.load') }}
+                    </button>
+                  </div>
+                  <p v-if="permissionState(module.key).error" class="text-red-600 dark:text-red-300">
+                    {{ permissionState(module.key).error }}
+                  </p>
+                  <p v-else-if="permissionState(module.key).loading" class="text-slate-500 dark:text-slate-400">
+                    {{ t('settings.modules.loadingPermissions') }}
+                  </p>
+                  <div v-else-if="!permissionState(module.key).items.length" class="text-slate-500 dark:text-slate-400">
+                    {{ t('settings.modules.noPermissions') }}
+                  </div>
+                  <div v-else class="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <label
+                      v-for="perm in permissionState(module.key).items"
+                      :key="perm.key"
+                      class="flex items-start gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+                    >
+                      <input
+                        type="checkbox"
+                        class="mt-1 h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
+                        :checked="module.uiAllowedPermissions.includes(perm.key)"
+                        :disabled="module.updating"
+                        @change="onAllowedPermissionsChange(module, perm.key, ($event.target as HTMLInputElement).checked)"
+                      />
+                      <div class="flex-1">
+                        <p class="font-semibold">{{ perm.key }}</p>
+                        <p v-if="perm.description" class="text-[10px] text-slate-500 dark:text-slate-400">
+                          {{ perm.description }}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
               </div>
               <p v-if="module.error" class="text-xs text-red-600 dark:text-red-400">
                 {{ module.error }}
@@ -338,7 +362,7 @@ const currentOrgId = computed(() => auth.currentOrg.value?.id)
 
 type UiModule = ModuleStatusDto & {
   uiMode: PolicyMode
-  uiAllowedRoles: string[]
+  uiAllowedPermissions: string[]
   updating?: boolean
   error?: string | null
 }
@@ -392,16 +416,65 @@ const aclDialog = ref<{
   error: null
 })
 
+const permissionCache = ref<
+  Record<
+    string,
+    {
+      loading: boolean
+      error: string
+      items: { key: string; description?: string | null }[]
+    }
+  >
+>({})
+
+const permissionState = (moduleKey: string) => {
+  if (!permissionCache.value[moduleKey]) {
+    permissionCache.value[moduleKey] = { loading: false, error: '', items: [] }
+  }
+  return permissionCache.value[moduleKey]
+}
+
+const loadModulePermissions = async (module: UiModule) => {
+  const state = permissionState(module.key)
+  if (state.loading || state.items.length) return
+  state.loading = true
+  state.error = ''
+  try {
+    const res = await $fetch<{ permissions: { key: string; description?: string | null }[] }>(
+      `/api/modules/${module.key}/permissions`
+    )
+    state.items = res.permissions ?? []
+  } catch (err) {
+    const anyErr = err as any
+    state.error = anyErr?.data?.message ?? anyErr?.message ?? 'Kunde inte hämta permissions.'
+  } finally {
+    state.loading = false
+  }
+}
+
+const ensurePermissionsLoaded = (module: UiModule) => {
+  const state = permissionState(module.key)
+  if (module.uiMode === 'allowlist' && !state.loading && state.items.length === 0) {
+    void loadModulePermissions(module)
+  }
+}
+
 watch(
   modules,
-  (list) => {
-    moduleRows.value = list.map((module) => ({
-      ...module,
-      uiMode: module.orgPolicy?.mode ?? 'inherit',
-      uiAllowedRoles: module.orgPolicy?.allowedRoles ?? module.effectivePolicy.allowedRoles ?? [],
-      updating: false,
-      error: null
-    }))
+  (list?: ModuleStatusDto[]) => {
+    moduleRows.value =
+      list?.map((module) => ({
+        ...module,
+        uiMode: module.orgPolicy?.mode ?? 'inherit',
+        uiAllowedPermissions:
+          module.orgPolicy?.allowedPermissions ??
+          module.effectivePolicy.allowedPermissions ??
+          module.requiredPermissions ??
+          [],
+        updating: false,
+        error: null
+      })) ?? []
+    moduleRows.value.forEach(ensurePermissionsLoaded)
   },
   { immediate: true }
 )
@@ -450,7 +523,7 @@ const statusVariant = (status: ModuleStatus | undefined) => {
 
 const updatePolicy = async (
   module: UiModule,
-  patch: { mode?: PolicyMode; allowedRoles?: string[] }
+  patch: { mode?: PolicyMode; allowedPermissions?: string[] }
 ) => {
   if (module.tenantPolicy?.mode === 'blocked') {
     return
@@ -462,9 +535,9 @@ const updatePolicy = async (
   const payload = {
     moduleKey: module.key,
     mode: patch.mode ?? module.uiMode,
-    allowedRoles:
+    allowedPermissions:
       (patch.mode ?? module.uiMode) === 'allowlist'
-        ? patch.allowedRoles ?? module.uiAllowedRoles
+        ? patch.allowedPermissions ?? module.uiAllowedPermissions
         : []
   }
 
@@ -478,8 +551,6 @@ const updatePolicy = async (
     )
 
     module.uiMode = response.orgPolicy?.mode ?? 'inherit'
-    module.uiAllowedRoles =
-      response.orgPolicy?.allowedRoles ?? response.effectivePolicy.allowedRoles ?? []
     Object.assign(module, response)
   } catch (err: any) {
     module.error = err?.data?.message ?? err?.message ?? t('settings.modules.updateFailed')
@@ -543,16 +614,27 @@ const closeAcl = () => {
 const onModeChange = async (module: UiModule, mode: PolicyMode) => {
   module.uiMode = mode
   if (mode !== 'allowlist') {
-    module.uiAllowedRoles = []
+    module.uiAllowedPermissions = []
+  } else {
+    ensurePermissionsLoaded(module)
   }
-  await updatePolicy(module, { mode, allowedRoles: module.uiAllowedRoles })
+  await updatePolicy(module, {
+    mode,
+    allowedPermissions: module.uiAllowedPermissions
+  })
 }
 
-const onAllowedRolesChange = async (module: UiModule, event: Event) => {
-  const target = event.target as HTMLSelectElement
-  const values = Array.from(target.selectedOptions).map((option) => option.value)
-  module.uiAllowedRoles = values
-  await updatePolicy(module, { allowedRoles: values })
+const onAllowedPermissionsChange = async (module: UiModule, key: string, checked: boolean) => {
+  const next = new Set(module.uiAllowedPermissions)
+  if (checked) {
+    next.add(key)
+  } else {
+    next.delete(key)
+  }
+  module.uiAllowedPermissions = Array.from(next)
+  await updatePolicy(module, {
+    allowedPermissions: module.uiAllowedPermissions
+  })
 }
 
 type AclOperation = 'create' | 'read' | 'update' | 'delete'

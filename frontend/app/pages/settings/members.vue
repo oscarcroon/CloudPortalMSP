@@ -323,13 +323,13 @@
         <div class="flex items-start justify-between border-b border-slate-200 px-6 py-4 dark:border-white/5">
           <div>
             <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-              {{ t('settings.members.moduleRoles.title') }}
+              Modulrättigheter (manifest)
             </p>
             <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
               {{ selectedMemberForRoles?.displayName || selectedMemberForRoles?.email }}
             </h2>
             <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ selectedMemberForRoles ? getRoleName(selectedMemberForRoles.role) : '' }}
+              Roller (RBAC): {{ selectedMemberForRoles ? getRoleName(selectedMemberForRoles.role) : '' }}
             </p>
           </div>
           <button
@@ -341,84 +341,132 @@
         </div>
         <div class="flex-1 overflow-y-auto p-6">
           <div v-if="moduleRoleDrawerLoading" class="rounded-lg border border-dashed border-slate-200 bg-white/50 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            {{ t('settings.members.moduleRoles.loading') }}
+            Laddar modulrättigheter...
           </div>
           <div v-else-if="moduleRoleDrawerError" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/5 dark:text-red-200">
             {{ moduleRoleDrawerError }}
           </div>
-          <div v-else-if="!moduleRoleEntries.length" class="rounded-lg border border-slate-200 bg-white/70 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            {{ t('settings.members.moduleRoles.none') }}
-          </div>
           <div v-else class="space-y-4">
-            <div
-              v-for="entry in moduleRoleEntries"
-              :key="entry.moduleId"
-              class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#0f1a2c]"
-            >
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#0f1a2c]">
               <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ entry.name }}</p>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">{{ entry.description }}</p>
+                  <p class="text-sm font-semibold text-slate-900 dark:text-white">Moduler</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">Manifest-rättigheter + overrides</p>
                 </div>
-                <span class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ t('settings.members.moduleRoles.policyLabel') }}: {{ moduleRolePolicySource(entry.allowedRolesSource) }}
-                </span>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <input
+                    v-model="moduleSearch"
+                    type="text"
+                    class="w-52 rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
+                    placeholder="Sök modul..."
+                  />
+                  <span>Visar {{ filteredPermissionEntries.length }} av {{ permissionEntries.length }}</span>
+                </div>
               </div>
-              <p
-                v-if="entry.allowedRoles && entry.allowedRoles.length > 0"
-                class="mt-2 text-xs text-slate-500 dark:text-slate-400"
-              >
-                {{ t('settings.members.moduleRoles.allowedRolesLabel') }}: {{ formatAllowedRoleLabels(entry).join(', ') }}
-              </p>
-              <p
-                v-if="!entry.editable"
-                class="mt-3 rounded-lg bg-yellow-50 px-3 py-2 text-xs font-medium text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200"
-              >
-                {{ t('settings.members.moduleRoles.blocked', { source: moduleRolePolicySource(entry.allowedRolesSource) }) }}
-              </p>
-              <div class="mt-4 space-y-2">
-                <div class="flex flex-wrap gap-2">
-                  <label
-                    v-for="role in entry.roleDefinitions"
-                    :key="role.key"
-                    class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition dark:border-white/10"
-                    :class="roleClass(entry, role.key)"
-                  >
-                    <input
-                      type="checkbox"
-                      class="peer sr-only"
-                      :checked="entry.pendingRoles.includes(role.key)"
-                      :disabled="!isRoleSelectableForEntry(entry, role.key) || moduleRoleDrawerSaving"
-                      @change="toggleModuleRoleForEntry(entry, role.key, ($event.target as HTMLInputElement).checked)"
-                    />
-                    <span>{{ role.label }}</span>
-                    <span
-                      v-if="roleBadge(entry, role.key)"
-                      class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                      :class="badgeClass(entry, role.key)"
-                    >
-                      {{ roleBadge(entry, role.key) }}
-                    </span>
-                  </label>
-                </div>
-                <div class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ t('settings.members.moduleRoles.sourceLabel') }}: {{ memberModuleRoleSourceLabel(entry) }}
-                </div>
-                <button
-                  v-if="canResetEntry(entry)"
-                  class="rounded border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
-                  :disabled="moduleRoleDrawerSaving || !entry.editable"
-                  @click="resetModuleRolesForEntry(entry)"
+
+              <div class="mt-3 space-y-3">
+                <div
+                  v-for="entry in filteredPermissionEntries"
+                  :key="entry.moduleId"
+                  class="rounded-xl border border-slate-200 bg-slate-50/60 text-sm dark:border-white/10 dark:bg-white/5"
                 >
-                  {{ t('settings.members.moduleRoles.resetToDefault') }}
-                </button>
+                  <button
+                    class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
+                    @click="toggleModuleCollapse(entry.moduleId)"
+                  >
+                    <div class="flex flex-col gap-1">
+                      <div class="flex items-center gap-2">
+                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">{{ entry.moduleName }}</p>
+                        <span
+                          v-if="entry.dirty"
+                          class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
+                        >
+                          Osparad
+                        </span>
+                      </div>
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                        Policy: {{ entry.policyMode }} | Tillåtna: {{ entry.allowedPermissions.length }}
+                      </p>
+                    </div>
+                    <Icon
+                      :icon="isModuleCollapsed(entry.moduleId) ? 'mdi:chevron-down' : 'mdi:chevron-up'"
+                      class="h-5 w-5 text-slate-500"
+                    />
+                  </button>
+                  <Transition name="fade">
+                    <div v-if="!isModuleCollapsed(entry.moduleId)" class="space-y-2 border-t border-slate-200 px-3 py-3 text-sm dark:border-white/10">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <button
+                          class="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-700 transition hover:bg-white dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
+                          :disabled="entry.loading"
+                          @click.stop="loadPermissions(entry.moduleId)"
+                        >
+                          {{ entry.permissions.length ? 'Uppdatera' : 'Ladda' }}
+                        </button>
+                        <button
+                          class="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-700 transition hover:bg-white disabled:opacity-40 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
+                          :disabled="entry.loading || entry.saving || !entry.permissions.length"
+                          @click.stop="resetModulePermissions(entry.moduleId)"
+                        >
+                          Återställ till standard
+                        </button>
+                        <button
+                          class="rounded bg-brand px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
+                          :disabled="!entry.dirty || entry.saving"
+                          @click.stop="savePermissions(entry.moduleId)"
+                        >
+                          {{ entry.saving ? 'Sparar…' : 'Spara' }}
+                        </button>
+                      </div>
+                      <p v-if="entry.error" class="text-xs text-red-600 dark:text-red-300">{{ entry.error }}</p>
+                      <div v-else-if="entry.loading" class="text-xs text-slate-500 dark:text-slate-400">
+                        Laddar rättigheter…
+                      </div>
+                      <div v-else-if="!entry.permissions.length" class="text-xs text-slate-500 dark:text-slate-400">
+                        Inga manifestdeklarerade rättigheter.
+                      </div>
+                      <div v-else class="space-y-2">
+                        <div
+                          v-for="perm in entry.permissions"
+                          :key="perm.key"
+                          class="flex items-start justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] shadow-sm dark:border-white/5 dark:bg-slate-900"
+                        >
+                          <div class="flex-1">
+                            <p class="font-semibold text-slate-800 dark:text-slate-100">{{ perm.key }}</p>
+                            <p v-if="perm.description" class="text-[11px] text-slate-500 dark:text-slate-400">
+                              {{ perm.description }}
+                            </p>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                              Källa: {{ perm.source }} | Tillåten av policy: {{ perm.allowed ? 'Ja' : 'Nej' }}
+                            </p>
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <span
+                              class="rounded-full px-2 py-1 text-[11px] font-semibold"
+                              :class="perm.effective ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'"
+                            >
+                              {{ perm.effective ? 'Aktiv' : 'Inaktiv' }}
+                            </span>
+                            <button
+                              class="rounded border border-slate-200 px-3 py-1 text-[11px] font-semibold transition hover:bg-white disabled:opacity-40 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
+                              :disabled="!perm.allowed || entry.saving"
+                              @click.stop="togglePermission(entry.moduleId, perm.key)"
+                            >
+                              {{ perm.state === 'inherit' ? 'Ärv' : perm.state === 'grant' ? 'Tillåt' : 'Neka' }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Transition>
+                </div>
               </div>
             </div>
           </div>
         </div>
         <div class="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4 text-sm dark:border-white/5 dark:bg-white/5">
           <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ moduleRoleDrawerDirty ? t('settings.members.moduleRoles.unsavedChanges') : t('settings.members.moduleRoles.noChanges') }}
+            {{ anyPermissionsDirty ? 'Osparade ändringar finns' : 'Inga ändringar' }}
           </p>
           <div class="flex gap-2">
             <button
@@ -426,14 +474,14 @@
               :disabled="moduleRoleDrawerSaving"
               @click="closeModuleRoleDrawer"
             >
-              {{ t('settings.members.moduleRoles.close') }}
+              Stäng
             </button>
             <button
               class="rounded bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
-              :disabled="!moduleRoleDrawerDirty || moduleRoleDrawerSaving"
-              @click="saveModuleRoleDrawer"
+              :disabled="moduleRoleDrawerSaving || !anyPermissionsDirty"
+              @click="saveAllPermissions"
             >
-              {{ moduleRoleDrawerSaving ? t('settings.members.moduleRoles.saving') : t('settings.members.moduleRoles.save') }}
+              {{ moduleRoleDrawerSaving ? 'Sparar…' : 'Spara alla' }}
             </button>
           </div>
         </div>
@@ -444,7 +492,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, useI18n } from '#imports'
+import { computed, onBeforeUnmount, ref, watch, useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import InviteMemberDialog from '~/components/organization/InviteMemberDialog.vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
@@ -459,15 +507,13 @@ import type {
   OrganizationMemberRole,
   OrganizationMemberStatus,
   InvitationStatus,
-  MemberModuleRoleEntry,
-  ModuleRoleSource
+  MemberModulePermissionsResponse
 } from '~/types/members'
 import { rbacRoles } from '~/constants/rbac'
 import type { RbacRole } from '~/constants/rbac'
-import type { ModuleRoleDefinition, ModuleRoleKey } from '~/constants/modules'
 
-const roleOptions: RbacRole[] = rbacRoles
-const inviteRoleOptions: RbacRole[] = rbacRoles
+const roleOptions: RbacRole[] = [...rbacRoles]
+const inviteRoleOptions: RbacRole[] = [...rbacRoles]
 
 const roleNames: Record<RbacRole, string> = {
   owner: t('rbac.roles.owner'),
@@ -482,14 +528,6 @@ const getRoleName = (role: RbacRole | string): string => roleNames[role as RbacR
 
 const membersApi = useOrganizationMembers()
 const permission = usePermission()
-
-interface ModuleRoleEntryUI extends MemberModuleRoleEntry {
-  pendingRoles: ModuleRoleKey[]
-}
-
-// Use array instead of Set for better Vue reactivity
-const hasModuleRoleOverrides = ref<string[]>([])
-const overridesLoaded = ref(false)
 
 const members = ref<OrganizationMember[]>([])
 const invitations = ref<OrganizationInvitationSummary[]>([])
@@ -511,10 +549,35 @@ const moduleRoleDrawerLoading = ref(false)
 const moduleRoleDrawerSaving = ref(false)
 const moduleRoleDrawerError = ref('')
 const selectedMemberForRoles = ref<OrganizationMember | null>(null)
-const moduleRoleEntries = ref<ModuleRoleEntryUI[]>([])
+
+type PermissionState = 'inherit' | 'grant' | 'deny'
+interface PermissionEntry {
+  key: string
+  description?: string | null
+  allowed: boolean
+  effective: boolean
+  source: string
+  state: PermissionState
+}
+interface ModulePermissionEntry {
+  moduleId: string
+  moduleName: string
+  policyMode: string
+  allowedPermissions: string[]
+  permissions: PermissionEntry[]
+  loading: boolean
+  saving: boolean
+  error: string
+  dirty: boolean
+}
+
+const permissionEntries = ref<ModulePermissionEntry[]>([])
 const searchQuery = ref('')
 const showOnlyOverrides = ref(false)
-
+const hasPermissionOverrides = ref<string[]>([])
+const overridesLoaded = ref(true)
+const moduleSearch = ref('')
+const collapsedModules = ref<Record<string, boolean>>({})
 const currentOrgId = computed(() => membersApi.currentOrganisationId.value)
 const canManageUsers = permission.can('users:manage')
 const canInviteMembers = permission.can('users:invite')
@@ -550,9 +613,213 @@ const visibleMembers = computed(() => {
   return filtered
 })
 
-const moduleRoleDrawerDirty = computed(() =>
-  moduleRoleEntries.value.some((entry) => isEntryDirty(entry))
+const anyPermissionsDirty = computed(() => permissionEntries.value.some((m) => m.dirty))
+const filteredPermissionEntries = computed(() => {
+  const q = moduleSearch.value.trim().toLowerCase()
+  if (!q) return permissionEntries.value
+  return permissionEntries.value.filter((m) => m.moduleName.toLowerCase().includes(q) || m.moduleId.toLowerCase().includes(q))
+})
+
+const isModuleCollapsed = (moduleId: string) => collapsedModules.value[moduleId] ?? true
+const toggleModuleCollapse = (moduleId: string) => {
+  collapsedModules.value[moduleId] = !isModuleCollapsed(moduleId)
+}
+
+const updateOverrideFlagForMember = (userId: string, entries: ModulePermissionEntry[]) => {
+  if (!userId) return
+  const hasCustom = entries.some((entry) => entry.permissions.some((p) => p.state !== 'inherit'))
+  const current = hasPermissionOverrides.value
+  if (hasCustom) {
+    if (!current.includes(userId)) {
+      hasPermissionOverrides.value = [...current, userId]
+    }
+  } else {
+    hasPermissionOverrides.value = current.filter((id) => id !== userId)
+  }
+  overridesLoaded.value = true
+}
+
+const loadAllModulePermissions = async (member: OrganizationMember) => {
+  permissionEntries.value = []
+  moduleRoleDrawerError.value = ''
+
+  try {
+    const orgId = currentOrgId.value ?? member.organizationId
+    if (!orgId) {
+      throw new Error('Ingen aktiv organisation vald.')
+    }
+    if (!member.userId) {
+      throw new Error('Användaren saknar userId och kan inte uppdateras.')
+    }
+
+    // Hämta modulstatus (policy) för org
+    const modulesStatus = await $fetch<{ modules: any[] }>(`/api/organizations/${orgId}/modules`)
+
+    // Hämta permissions per modul för användaren (separata anrop)
+    const entries: ModulePermissionEntry[] = []
+    for (const mod of modulesStatus.modules ?? []) {
+      const moduleId = mod.key
+      entries.push({
+        moduleId,
+        moduleName: mod.name,
+        policyMode: mod.effectivePolicy?.mode ?? 'inherit',
+        allowedPermissions: mod.effectivePolicy?.allowedPermissions ?? [],
+        permissions: [],
+        loading: true,
+        saving: false,
+        error: '',
+        dirty: false
+      })
+    }
+    permissionEntries.value = entries
+    // collapse all by default for compact view
+    const nextCollapsed: Record<string, boolean> = {}
+    for (const entry of entries) {
+      nextCollapsed[entry.moduleId] = true
+    }
+    collapsedModules.value = nextCollapsed
+
+    const userId = member.userId
+    await Promise.all(
+      permissionEntries.value.map(async (entry) => {
+        try {
+          const resp = await membersApi.fetchMemberModulePermissions(userId, entry.moduleId)
+          entry.allowedPermissions = resp.allowedPermissions ?? []
+          entry.policyMode = resp.policyMode ?? entry.policyMode
+          entry.permissions =
+            resp.permissions?.map((p) => ({
+              key: p.key,
+              description: p.description ?? null,
+              allowed: p.allowed ?? entry.allowedPermissions.includes(p.key),
+              effective: !!p.effective,
+              source: p.state === 'grant' ? 'user' : p.state === 'deny' ? 'user' : 'inherit',
+              state: (p.state as PermissionState) ?? 'inherit'
+            })) ?? []
+          updateOverrideFlagForMember(userId, permissionEntries.value)
+        } catch (err) {
+          entry.error = extractErrorMessage(err)
+        } finally {
+          entry.loading = false
+        }
+      })
+    )
+  } catch (error) {
+    moduleRoleDrawerError.value = extractErrorMessage(error)
+  }
+}
+
+const cycleState = (state: PermissionState): PermissionState => {
+  if (state === 'inherit') return 'grant'
+  if (state === 'grant') return 'deny'
+  return 'inherit'
+}
+
+const markDirty = (moduleId: string) => {
+  const entry = permissionEntries.value.find((m) => m.moduleId === moduleId)
+  if (entry) entry.dirty = true
+}
+
+const togglePermission = (moduleId: string, permKey: string) => {
+  const entry = permissionEntries.value.find((m) => m.moduleId === moduleId)
+  if (!entry) return
+  const perm = entry.permissions.find((p) => p.key === permKey)
+  if (!perm || !perm.allowed || entry.saving) return
+  perm.state = cycleState(perm.state)
+  perm.effective = perm.state === 'grant' ? true : perm.state === 'deny' ? false : perm.effective
+  markDirty(moduleId)
+}
+
+const savePermissions = async (moduleId: string) => {
+  const entry = permissionEntries.value.find((m) => m.moduleId === moduleId)
+  if (!entry || !entry.dirty) return
+  entry.saving = true
+  entry.error = ''
+  try {
+    const userId = selectedMemberForRoles.value?.userId ?? selectedMemberForRoles.value?.id
+    if (!userId) throw new Error('User saknas')
+    const grants = entry.permissions.filter((p) => p.state === 'grant').map((p) => p.key)
+    const denies = entry.permissions.filter((p) => p.state === 'deny').map((p) => p.key)
+    const resp = await membersApi.updateMemberModulePermissions(userId, moduleId, {
+      permissionOverrides: { grants, denies }
+    })
+    entry.allowedPermissions = resp.allowedPermissions ?? entry.allowedPermissions
+    entry.permissions =
+      resp.permissions?.map((p) => ({
+        key: p.key,
+        description: p.description ?? null,
+        allowed: p.allowed ?? entry.allowedPermissions.includes(p.key),
+        effective: !!p.effective,
+        source: p.state === 'grant' ? 'user' : p.state === 'deny' ? 'user' : 'inherit',
+        state: (p.state as PermissionState) ?? 'inherit'
+      })) ?? []
+    updateOverrideFlagForMember(userId, permissionEntries.value)
+    entry.dirty = false
+    successMessage.value = 'Modulrättigheter uppdaterades.'
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 2000)
+  } catch (err) {
+    entry.error = extractErrorMessage(err)
+  } finally {
+    entry.saving = false
+  }
+}
+
+const loadPermissions = (moduleId: string) => loadAllModulePermissions(selectedMemberForRoles.value!)
+
+const resetModulePermissions = (moduleId: string) => {
+  const entry = permissionEntries.value.find((m) => m.moduleId === moduleId)
+  if (!entry || entry.loading) return
+  entry.permissions = entry.permissions.map((p) => ({
+    ...p,
+    state: 'inherit',
+    effective: p.allowed ? p.effective : false
+  }))
+  entry.dirty = true
+  const userId = selectedMemberForRoles.value?.userId
+  if (userId) {
+    updateOverrideFlagForMember(userId, permissionEntries.value)
+  }
+}
+
+const saveAllPermissions = async () => {
+  moduleRoleDrawerSaving.value = true
+  for (const entry of permissionEntries.value) {
+    if (entry.dirty) {
+      await savePermissions(entry.moduleId)
+    }
+  }
+  moduleRoleDrawerSaving.value = false
+}
+
+watch(
+  moduleRoleDrawerOpen,
+  (open) => {
+    if (process.client) {
+      if (open) {
+        document.body.classList.add('overflow-hidden')
+        document.documentElement.classList.add('overflow-hidden')
+        document.body.style.overflow = 'hidden'
+        document.documentElement.style.overflow = 'hidden'
+      } else {
+        document.body.classList.remove('overflow-hidden')
+        document.documentElement.classList.remove('overflow-hidden')
+        document.body.style.overflow = ''
+        document.documentElement.style.overflow = ''
+      }
+    }
+  },
+  { immediate: true }
 )
+
+onBeforeUnmount(() => {
+  if (process.client) {
+    document.body.classList.remove('overflow-hidden')
+    document.documentElement.classList.remove('overflow-hidden')
+    document.body.style.overflow = ''
+    document.documentElement.style.overflow = ''
+  }
+})
 
 const formatDate = (value?: string) => {
   if (!value) return '—'
@@ -592,20 +859,23 @@ const loadMembers = async () => {
     invitations.value = []
     organisationName.value = ''
     organisationRequireSso.value = false
-    hasModuleRoleOverrides.value = []
-    overridesLoaded.value = false
+    hasPermissionOverrides.value = []
+    overridesLoaded.value = true
     return
   }
   loading.value = true
   errorMessage.value = ''
-  overridesLoaded.value = false // Reset flag before loading
+  overridesLoaded.value = false
   try {
     const response = await membersApi.fetchMembers()
     members.value = response.members
     organisationName.value = response.organisation.name
     organisationRequireSso.value = Boolean(response.organisation.requireSso)
     invitations.value = response.invitations ?? []
-    await loadMemberModuleRoleOverrides()
+    // Hämta vilka användare som har permission-overrides
+    const overridesResp = await membersApi.fetchMemberPermissionOverrides()
+    hasPermissionOverrides.value = overridesResp?.userIds ?? []
+    overridesLoaded.value = true
   } catch (error) {
     errorMessage.value = extractErrorMessage(error) || 'Kunde inte hämta medlemmar just nu.'
     // Don't set overridesLoaded to true on error - keep it false
@@ -614,58 +884,10 @@ const loadMembers = async () => {
   }
 }
 
-const loadMemberModuleRoleOverrides = async () => {
-  const orgId = currentOrgId.value
-  overridesLoaded.value = false
-  if (!orgId) {
-    hasModuleRoleOverrides.value = []
-    // Don't set overridesLoaded to true here - keep it false if no org
-    return
-  }
-  try {
-    const response = await $fetch<{ organizationId: string; userIds: string[] }>(
-      `/api/organizations/${orgId}/members/module-role-overrides`
-    )
-    // API now returns only users who actually have custom overrides (not just rows in table)
-    const userIds = Array.isArray(response?.userIds) ? response.userIds.filter(Boolean) : []
-    hasModuleRoleOverrides.value = userIds
-    overridesLoaded.value = true
-  } catch (error) {
-    console.error('Failed to load member module role overrides', error)
-    hasModuleRoleOverrides.value = []
-    // Set to true even on error to prevent infinite loading state
-    overridesLoaded.value = true
-  }
-}
-
-const updateOverrideFlagForMember = (userId: string, modules: MemberModuleRoleEntry[]) => {
-  if (!userId) return
-  const hasCustom = modules.some((entry) => entry.roleSource === 'custom')
-  const current = hasModuleRoleOverrides.value
-  if (hasCustom) {
-    // Add userId if not already present
-    if (!current.includes(userId)) {
-      hasModuleRoleOverrides.value = [...current, userId]
-    }
-  } else {
-    // Remove userId if present
-    hasModuleRoleOverrides.value = current.filter((id) => id !== userId)
-  }
-  overridesLoaded.value = true // Ensure flag is set when we have updated data
-}
-
 const memberHasOverrides = (member: OrganizationMember): boolean => {
-  // Don't show star if we're still loading members or if overrides haven't been loaded yet
-  if (loading.value || !overridesLoaded.value) {
-    return false
-  }
-  // Don't show star if member doesn't have a userId
-  if (!member.userId) {
-    return false
-  }
-  // Only show star if the userId is explicitly in the array of users with overrides
-  // This list is populated when users open the module role drawer, not from API
-  return hasModuleRoleOverrides.value.includes(member.userId)
+  if (!overridesLoaded.value) return false
+  if (!member.userId) return false
+  return hasPermissionOverrides.value.includes(member.userId)
 }
 
 const clearFilters = () => {
@@ -733,35 +955,21 @@ const removeMember = async (member: OrganizationMember) => {
   }
 }
 
-const moduleRolePolicySource = (source: ModuleRoleSource): string => {
-  if (source === 'module-default') return t('settings.members.moduleRoles.policySources.moduleDefault')
-  if (source === 'distributor') return t('settings.members.moduleRoles.policySources.distributor')
-  if (source === 'provider') return t('settings.members.moduleRoles.policySources.provider')
-  if (source === 'organization') return t('settings.members.moduleRoles.policySources.organization')
-  return t('settings.members.moduleRoles.policySources.higherLevel')
-}
-
 const openModuleRoleDrawer = async (member: OrganizationMember) => {
   if (!canManageUsers || member.status !== 'active') {
     return
   }
   selectedMemberForRoles.value = member
+  permissionEntries.value = []
   moduleRoleDrawerOpen.value = true
   moduleRoleDrawerLoading.value = true
   moduleRoleDrawerSaving.value = false
   moduleRoleDrawerError.value = ''
   try {
-    const response = await membersApi.fetchMemberModuleRoles(member.id)
-    moduleRoleEntries.value = response.modules.map((entry) => ({
-      ...entry,
-      pendingRoles: [...entry.effectiveRoles]
-    }))
-    if (response.userId) {
-      updateOverrideFlagForMember(response.userId, response.modules)
-    }
+    await loadAllModulePermissions(member)
   } catch (error) {
     moduleRoleDrawerError.value = extractErrorMessage(error)
-    moduleRoleEntries.value = []
+    permissionEntries.value = []
   } finally {
     moduleRoleDrawerLoading.value = false
   }
@@ -772,186 +980,14 @@ const closeModuleRoleDrawer = () => {
     return
   }
   moduleRoleDrawerOpen.value = false
-  moduleRoleEntries.value = []
+  permissionEntries.value = []
   moduleRoleDrawerError.value = ''
   selectedMemberForRoles.value = null
 }
 
-const isRoleSelectableForEntry = (entry: ModuleRoleEntryUI, roleKey: ModuleRoleKey): boolean => {
-  if (!entry.editable) {
-    return false
-  }
-  if (Array.isArray(entry.allowedRoles) && entry.allowedRoles.length > 0) {
-    return entry.allowedRoles.includes(roleKey)
-  }
-  return true
-}
+// Modulroller borttagna; inga roll-hjälpare behövs
 
-const toggleModuleRoleForEntry = (
-  entry: ModuleRoleEntryUI,
-  roleKey: ModuleRoleKey,
-  selected: boolean
-) => {
-  if (!isRoleSelectableForEntry(entry, roleKey) || moduleRoleDrawerSaving.value) {
-    return
-  }
-  const next = new Set(entry.pendingRoles)
-  if (selected) {
-    next.add(roleKey)
-  } else {
-    next.delete(roleKey)
-  }
-  entry.pendingRoles = Array.from(next)
-}
-
-type RoleVisualState = 'granted' | 'revoked' | 'default' | 'off' | 'disabled'
-
-const resolveRoleState = (entry: ModuleRoleEntryUI, roleKey: ModuleRoleKey): RoleVisualState => {
-  if (!isRoleSelectableForEntry(entry, roleKey)) {
-    return 'disabled'
-  }
-  const inPending = entry.pendingRoles.includes(roleKey)
-  const inDefault = entry.defaultRoles?.includes(roleKey) ?? false
-
-  if (inPending && inDefault) return 'granted'
-  if (!inPending && inDefault) return 'revoked'
-  if (!inPending && !inDefault) return 'off'
-  if (inPending && !inDefault) return 'granted'
-  return 'default'
-}
-
-const roleClass = (entry: ModuleRoleEntryUI, roleKey: ModuleRoleKey) => {
-  const state = resolveRoleState(entry, roleKey)
-  const base = 'border-slate-200 text-slate-600 dark:text-slate-200'
-
-  if (state === 'granted') {
-    return `${base} bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-500/40 dark:text-emerald-200`
-  }
-  if (state === 'revoked') {
-    return `${base} bg-rose-50 border-rose-300 text-rose-700 dark:bg-rose-900/30 dark:border-rose-500/40 dark:text-rose-200`
-  }
-  if (state === 'disabled') {
-    return `${base} opacity-50 cursor-not-allowed`
-  }
-  if (state === 'default') {
-    return `${base} bg-slate-200/40 border-slate-300 dark:bg-white/5`
-  }
-  return `${base} bg-white dark:bg-[#101a2a]`
-}
-
-const roleBadge = (entry: ModuleRoleEntryUI, roleKey: ModuleRoleKey): string | null => {
-  const state = resolveRoleState(entry, roleKey)
-  if (state === 'granted') return t('settings.members.moduleRoles.roleBadges.added')
-  if (state === 'revoked') return t('settings.members.moduleRoles.roleBadges.removed')
-  return null
-}
-
-const badgeClass = (entry: ModuleRoleEntryUI, roleKey: ModuleRoleKey) => {
-  const state = resolveRoleState(entry, roleKey)
-  if (state === 'granted') {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-800/60 dark:text-emerald-100'
-  }
-  if (state === 'revoked') {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-800/60 dark:text-rose-100'
-  }
-  return ''
-}
-
-const resetModuleRolesForEntry = (entry: ModuleRoleEntryUI) => {
-  entry.pendingRoles = [...entry.defaultRoles]
-}
-
-const formatAllowedRoleLabels = (entry: ModuleRoleEntryUI): string[] => {
-  if (!entry.allowedRoles || entry.allowedRoles.length === 0) {
-    return entry.roleDefinitions.map((role) => role.label)
-  }
-  return entry.allowedRoles.map(
-    (roleKey) => entry.roleDefinitions.find((role) => role.key === roleKey)?.label ?? roleKey
-  )
-}
-
-const sortRoles = (roles: ModuleRoleKey[]): ModuleRoleKey[] => [...roles].sort()
-
-const equalRoleSets = (a: ModuleRoleKey[], b: ModuleRoleKey[]): boolean => {
-  if (a.length !== b.length) {
-    return false
-  }
-  const aSorted = sortRoles(a)
-  const bSorted = sortRoles(b)
-  return aSorted.every((role, index) => role === bSorted[index])
-}
-
-const desiredCustomRoles = (entry: ModuleRoleEntryUI): ModuleRoleKey[] => entry.pendingRoles
-
-const isEntryDirty = (entry: ModuleRoleEntryUI): boolean =>
-  !equalRoleSets(entry.pendingRoles, entry.effectiveRoles)
-
-const canResetEntry = (entry: ModuleRoleEntryUI): boolean => {
-  if (!entry.editable) {
-    return false
-  }
-  if (entry.roleSource === 'custom') {
-    return true
-  }
-  return !equalRoleSets(entry.pendingRoles, entry.defaultRoles ?? [])
-}
-
-const memberModuleRoleSourceLabel = (entry: ModuleRoleEntryUI): string => {
-  if (entry.roleSource === 'custom') {
-    return t('settings.members.moduleRoles.sourceLabels.custom')
-  }
-  if (entry.roleSource === 'rbac' && selectedMemberForRoles.value) {
-    return t('settings.members.moduleRoles.sourceLabels.rbacInherited', { role: getRoleName(selectedMemberForRoles.value.role) })
-  }
-  return t('settings.members.moduleRoles.sourceLabels.none')
-}
-
-const saveModuleRoleDrawer = async () => {
-  if (!selectedMemberForRoles.value || moduleRoleDrawerSaving.value) {
-    return
-  }
-  const modulesPayload = moduleRoleEntries.value
-    .map((entry) => {
-      const desired = desiredCustomRoles(entry)
-      const original = entry.effectiveRoles
-      return equalRoleSets(desired, original)
-        ? null
-        : {
-            moduleId: entry.moduleId,
-            roleKeys: desired
-          }
-    })
-    .filter((payload): payload is { moduleId: string; roleKeys: ModuleRoleKey[] } => Boolean(payload))
-
-  if (modulesPayload.length === 0) {
-    closeModuleRoleDrawer()
-    return
-  }
-
-  moduleRoleDrawerSaving.value = true
-  moduleRoleDrawerError.value = ''
-  try {
-    const response = await membersApi.updateMemberModuleRoles(selectedMemberForRoles.value.id, {
-      modules: modulesPayload
-    })
-    moduleRoleEntries.value = response.modules.map((entry) => ({
-      ...entry,
-      pendingRoles: [...entry.effectiveRoles]
-    }))
-    if (response.userId) {
-      updateOverrideFlagForMember(response.userId, response.modules)
-    }
-    successMessage.value = 'Modulroller uppdaterades.'
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 3000)
-    closeModuleRoleDrawer()
-  } catch (error) {
-    moduleRoleDrawerError.value = extractErrorMessage(error)
-  } finally {
-    moduleRoleDrawerSaving.value = false
-  }
-}
+// Modulroller borttagna i nya permissionsflödet
 
 const setMemberStatus = async (
   member: OrganizationMember,

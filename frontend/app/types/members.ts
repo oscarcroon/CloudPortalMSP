@@ -115,5 +115,34 @@ export interface UpdateMemberModuleRolesPayload {
   }>
 }
 
+export interface MemberModulePermissionItem {
+  key: string
+  description?: string | null
+  allowed: boolean
+  inherited: boolean
+  effective: boolean
+  state: 'inherit' | 'grant' | 'deny'
+}
+
+export interface MemberModulePermissionsResponse {
+  organizationId: string
+  moduleId: string
+  userId: string
+  role: RbacRole | string
+  allowedPermissions: string[]
+  policyMode: PolicyMode
+  rolePermissions: string[]
+  grants: string[]
+  denies: string[]
+  permissions: MemberModulePermissionItem[]
+}
+
+export interface UpdateMemberModulePermissionsPayload {
+  permissionOverrides: {
+    grants?: string[]
+    denies?: string[]
+  }
+}
+
 
 

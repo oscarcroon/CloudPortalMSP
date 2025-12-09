@@ -1,12 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { manifests } from '../../../layers/plugin-manifests'
-import {
-  modules,
-  modulePermissions,
-  moduleRoles,
-  moduleRolePermissions,
-  moduleRoleDefaults
-} from '~~/server/database/schema'
+import { modules, modulePermissions } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
 
 const uniqueManifests = Array.from(new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values())
@@ -82,53 +76,7 @@ export async function syncPluginRegistry() {
       )
     }
 
-    await db.delete(moduleRoles).where(eq(moduleRoles.moduleId, module.key))
-
-    if (roles.length > 0) {
-      await db.insert(moduleRoles).values(
-        roles.map((role, index) => ({
-          moduleId: module.key,
-          roleKey: role.key,
-          roleName: role.label,
-          description: role.description ?? null,
-          capabilities: null,
-          sortOrder: role.sortOrder ?? (index + 1) * 10,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }))
-      )
-    }
-
-    await db.delete(moduleRolePermissions).where(eq(moduleRolePermissions.moduleKey, module.key))
-
-    const rolePermRows =
-      roles?.flatMap((role) =>
-        role.permissions.map((permissionKey) => ({
-          moduleKey: module.key,
-          roleKey: role.key,
-          permissionKey,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }))
-      ) ?? []
-
-    if (rolePermRows.length > 0) {
-      await db.insert(moduleRolePermissions).values(rolePermRows)
-    }
-
-    await db.delete(moduleRoleDefaults).where(eq(moduleRoleDefaults.moduleKey, module.key))
-
-    if (roleDefaults.length > 0) {
-      await db.insert(moduleRoleDefaults).values(
-        roleDefaults.map((item) => ({
-          moduleKey: module.key,
-          appRoleKey: item.appRoleKey,
-          moduleRoleKey: item.moduleRoleKey,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }))
-      )
-    }
+    // Modulroller tas bort i nya permissions-modellen; vi rensar inte befintliga poster här.
   }
 }
 

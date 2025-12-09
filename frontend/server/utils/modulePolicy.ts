@@ -43,6 +43,25 @@ const parseAllowedRoles = (raw?: string | null): string[] => {
   }
 }
 
+const parsePermissionOverrides = (raw?: string | null): Record<string, boolean> => {
+  if (!raw) return {}
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!parsed || typeof parsed !== 'object') return {}
+    return Object.entries(parsed as Record<string, unknown>).reduce<Record<string, boolean>>(
+      (acc, [key, value]) => {
+        if (typeof value === 'boolean' && typeof key === 'string') {
+          acc[key] = value
+        }
+        return acc
+      },
+      {}
+    )
+  } catch {
+    return {}
+  }
+}
+
 const serializeAllowedRoles = (roles: string[]): string => JSON.stringify(Array.from(new Set(roles)))
 
 const toPolicy = (
@@ -53,49 +72,119 @@ const toPolicy = (
   return {
     moduleKey,
     mode: parseMode((row as any).mode),
-    allowedRoles: parseAllowedRoles((row as any).allowedRoles)
+    allowedRoles: parseAllowedRoles((row as any).allowedRoles),
+    permissionOverrides: parsePermissionOverrides((row as any).permissionOverrides ?? null)
   }
 }
 
-const basePolicyForModule = (moduleKey: string, defaultAllowedRoles?: string[]): ModulePolicy => {
+const basePolicyForModule = (
+  moduleKey: string,
+  permissionKeys: string[],
+  defaultAllowedRoles?: string[]
+): ModulePolicy => {
   const roles = defaultAllowedRoles ?? []
   return {
     moduleKey,
     mode: roles.length > 0 ? 'allowlist' : 'default-closed',
-    allowedRoles: roles
+    allowedRoles: roles,
+    allowedRolesSource: 'base',
+    allowedPermissions: permissionKeys,
+    allowedPermissionsSource: 'base'
   }
 }
 
-const mergePolicies = (upstream: ModulePolicy, current?: ModulePolicy | null): ModulePolicy => {
+const mergePolicies = (
+  upstream: ModulePolicy,
+  current?: ModulePolicy | null,
+  permissionKeys: string[] = []
+): ModulePolicy => {
   if (!current || current.mode === 'inherit') {
     return upstream
   }
 
   if (upstream.mode === 'blocked') {
-    return { ...upstream, mode: 'blocked', allowedRoles: [] }
+    return { ...upstream, mode: 'blocked', allowedRoles: [], allowedPermissions: [] }
   }
 
   if (current.mode === 'blocked') {
-    return { moduleKey: upstream.moduleKey, mode: 'blocked', allowedRoles: [] }
+    return {
+      moduleKey: upstream.moduleKey,
+      mode: 'blocked',
+      allowedRoles: [],
+      allowedRolesSource: current.allowedRolesSource ?? upstream.allowedRolesSource,
+      permissionOverrides: {
+        ...(upstream.permissionOverrides ?? {}),
+        ...(current.permissionOverrides ?? {})
+      },
+      allowedPermissions: [],
+      allowedPermissionsSource: current.allowedPermissionsSource ?? upstream.allowedPermissionsSource
+    }
   }
 
   if (current.mode === 'default-closed') {
-    return { moduleKey: upstream.moduleKey, mode: 'default-closed', allowedRoles: [] }
+    return {
+      moduleKey: upstream.moduleKey,
+      mode: 'default-closed',
+      allowedRoles: [],
+      allowedRolesSource: current.allowedRolesSource ?? upstream.allowedRolesSource,
+      permissionOverrides: {
+        ...(upstream.permissionOverrides ?? {}),
+        ...(current.permissionOverrides ?? {})
+      },
+      allowedPermissions: upstream.allowedPermissions ?? permissionKeys,
+      allowedPermissionsSource: current.allowedPermissionsSource ?? upstream.allowedPermissionsSource
+    }
+  }
+
+  const mergedPermissionOverrides = {
+    ...(upstream.permissionOverrides ?? {}),
+    ...(current.permissionOverrides ?? {})
   }
 
   // allowlist
   const deduped = Array.from(new Set(current.allowedRoles ?? []))
-  if (upstream.mode === 'allowlist') {
-    const allowedSet = new Set(upstream.allowedRoles ?? [])
-    return {
-      moduleKey: upstream.moduleKey,
-      mode: 'allowlist',
-      allowedRoles: deduped.filter((role) => allowedSet.has(role))
+  const mergedAllowedRoles =
+    upstream.mode === 'allowlist'
+      ? deduped.filter((role) => (upstream.allowedRoles ?? []).includes(role))
+      : deduped
+
+  const basePermissionSet = new Set(
+    upstream.allowedPermissions && upstream.allowedPermissions.length > 0
+      ? upstream.allowedPermissions
+      : permissionKeys
+  )
+
+  let allowedPermissions = new Set(basePermissionSet)
+  if (current.mode === 'allowlist') {
+    const allowKeys = Object.entries(current.permissionOverrides ?? {})
+      .filter(([, value]) => value !== false)
+      .map(([key]) => key)
+
+    const hasExplicitAllow = allowKeys.length > 0
+    allowedPermissions = hasExplicitAllow
+      ? new Set(allowKeys.filter((key) => basePermissionSet.has(key)))
+      : current.allowedPermissions && current.allowedPermissions.length > 0
+        ? new Set(current.allowedPermissions.filter((key) => basePermissionSet.has(key)))
+        : new Set(basePermissionSet) // fallback: allow all module permissions to avoid accidental total block
+  }
+
+  for (const [key, value] of Object.entries(mergedPermissionOverrides)) {
+    if (value === false) {
+      allowedPermissions.delete(key)
+    } else if (value === true && basePermissionSet.has(key)) {
+      allowedPermissions.add(key)
     }
   }
 
-  // upstream default-closed -> downstream may open specific roles
-  return { moduleKey: upstream.moduleKey, mode: 'allowlist', allowedRoles: deduped }
+  return {
+    moduleKey: upstream.moduleKey,
+    mode: 'allowlist',
+    allowedRoles: mergedAllowedRoles,
+    allowedRolesSource: current.allowedRolesSource ?? upstream.allowedRolesSource,
+    permissionOverrides: mergedPermissionOverrides,
+    allowedPermissions: Array.from(allowedPermissions),
+    allowedPermissionsSource: current.allowedPermissionsSource ?? upstream.allowedPermissionsSource
+  }
 }
 
 const isFeatureFlagEnabled = (featureFlag: string | undefined, featureFlags: FeatureFlags) => {
@@ -179,7 +268,7 @@ const upsertTenantPolicy = async (tenantId: string, moduleId: ModuleId, policy: 
     allowedRoles: serializeAllowedRoles(policy.allowedRoles ?? []),
     enabled: policy.mode !== 'blocked',
     disabled: policy.mode === 'default-closed' ? false : false,
-    permissionOverrides: null
+    permissionOverrides: policy.permissionOverrides ? JSON.stringify(policy.permissionOverrides) : null
   }
 
   if (existing) {
@@ -217,7 +306,7 @@ const upsertOrgPolicy = async (organizationId: string, moduleId: ModuleId, polic
     allowedRoles: serializeAllowedRoles(policy.allowedRoles ?? []),
     enabled: policy.mode !== 'blocked',
     disabled: policy.mode === 'default-closed' ? false : false,
-    permissionOverrides: null
+    permissionOverrides: policy.permissionOverrides ? JSON.stringify(policy.permissionOverrides) : null
   }
 
   if (existing) {
@@ -324,11 +413,12 @@ const buildTenantDto = async (
   for (const module of moduleList) {
     if (!enabledKeys.has(module.key)) continue
 
-    const base = basePolicyForModule(module.key, module.defaultAllowedRoles)
+    const permissionKeys = getModulePermissions(module.key as ModuleId)
+    const base = basePolicyForModule(module.key, permissionKeys, module.defaultAllowedRoles)
     const distributorPolicy = await resolveDistributorPolicy(tenantId, module.key as ModuleId)
     const tenantPolicy = toPolicy(module.key, policyMap.get(module.key))
-    const upstream = mergePolicies(base, distributorPolicy)
-    const effectivePolicy = mergePolicies(upstream, tenantPolicy)
+    const upstream = mergePolicies(base, distributorPolicy, permissionKeys)
+    const effectivePolicy = mergePolicies(upstream, tenantPolicy, permissionKeys)
 
     const tenantRow = policyMap.get(module.key)
     const tenantVisible = tenantRow?.enabled !== false
@@ -400,7 +490,8 @@ export const getOrganizationModulesStatus = async (
   const results: ModuleStatusDto[] = []
   for (const module of modulesMap.values()) {
     if (!module) continue
-    const base = basePolicyForModule(module.key, module.defaultAllowedRoles)
+    const permissionKeys = getModulePermissions(module.key as ModuleId)
+    const base = basePolicyForModule(module.key, permissionKeys, module.defaultAllowedRoles)
     const distributorPolicy =
       org.tenantId && module.key
         ? await resolveDistributorPolicy(org.tenantId, module.key as ModuleId)
@@ -408,8 +499,12 @@ export const getOrganizationModulesStatus = async (
     const tenantPolicy = toPolicy(module.key, tenantPolicyMap.get(module.key))
     const orgPolicy = toPolicy(module.key, orgPolicyMap.get(module.key))
 
-    const tenantEffective = mergePolicies(mergePolicies(base, distributorPolicy), tenantPolicy)
-    const effectivePolicy = mergePolicies(tenantEffective, orgPolicy)
+    const tenantEffective = mergePolicies(
+      mergePolicies(base, distributorPolicy, permissionKeys),
+      tenantPolicy,
+      permissionKeys
+    )
+    const effectivePolicy = mergePolicies(tenantEffective, orgPolicy, permissionKeys)
 
     const tenantRow = tenantPolicyMap.get(module.key)
     const orgRow = orgPolicyMap.get(module.key)
@@ -438,9 +533,10 @@ export const getEffectiveModulePolicyForOrg = async (
   const modules = await getOrganizationModulesStatus(organizationId)
   const match = modules.find((mod) => mod.key === moduleId)
   const moduleMeta = getModuleById(moduleId)
+  const permissionKeys = getModulePermissions(moduleId as ModuleId)
   const policy =
     match?.effectivePolicy ??
-    basePolicyForModule(moduleId, moduleMeta?.defaultAllowedRoles ?? [])
+    basePolicyForModule(moduleId, permissionKeys, moduleMeta?.defaultAllowedRoles ?? [])
 
   return {
     ...policy,
@@ -475,7 +571,17 @@ export const isModulePermissionAllowed = async (
     return true
   }
 
-  // No per-permission overrides implemented in new model; rely on mode
-  return true
+  const allowedPermissions = new Set(
+    policy.allowedPermissions && policy.allowedPermissions.length > 0
+      ? policy.allowedPermissions
+      : modulePermissions
+  )
+
+  // If allowlist mode but nothing allowed, deny
+  if (policy.mode === 'allowlist' && allowedPermissions.size === 0) {
+    return false
+  }
+
+  return allowedPermissions.has(permission)
 }
 

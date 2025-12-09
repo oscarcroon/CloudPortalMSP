@@ -14,9 +14,10 @@ function generate() {
   const moduleKeys = typedManifests.map((m) => m.module.key)
   const permissionKeys = uniq(typedManifests.flatMap((m) => m.permissions.map((p) => p.key)))
 
+  // Modulroller borttagna; behåll struktur för bakåtkomp men som tomma listor
   const moduleRolesMap: Record<string, string[]> = {}
   for (const m of typedManifests) {
-    moduleRolesMap[m.module.key] = m.roles.map((r) => r.key)
+    moduleRolesMap[m.module.key] = []
   }
 
   const moduleKeyUnion = moduleKeys.map((k) => `'${k}'`).join(' | ') || 'never'

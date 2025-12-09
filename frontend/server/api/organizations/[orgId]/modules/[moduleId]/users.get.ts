@@ -1,18 +1,16 @@
 ﻿import { createError, defineEventHandler, getRouterParam } from 'h3'
-import { requirePermission } from '~~/server/utils/rbac'
+import { and, eq } from 'drizzle-orm'
 import { getDb } from '~~/server/utils/db'
 import { organizationMemberships, users } from '~~/server/database/schema'
-import { eq, and } from 'drizzle-orm'
-import { getUserModulePermissions } from '~~/server/utils/userModulePermissions'
-import { getModulePermissions } from '~/constants/modules'
-import { hasPermission } from '~~/server/utils/rbac'
-import type { ModuleId } from '~/constants/modules'
-import type { RbacPermission, RbacRole } from '~/constants/rbac'
+import { requirePermission } from '~~/server/utils/rbac'
+import { getModulePermissions, type ModuleId } from '~/constants/modules'
+import type { RbacRole } from '~/constants/rbac'
 import { getModuleById } from '~/lib/modules'
-import { getModuleRoleOverridesForModule } from '~~/server/utils/userModuleRoles'
+import { getEffectiveModulePolicyForOrg } from '~~/server/utils/modulePolicy'
 import { getModuleRoleDefaultsMap } from '~~/server/utils/moduleRoleDefaults'
 import { resolveModuleRoleState } from '~~/server/utils/moduleRoleState'
-import { getEffectiveModulePolicyForOrg } from '~~/server/utils/modulePolicy'
+import { getModuleRoleOverridesForModule } from '~~/server/utils/userModuleRoles'
+import { getUserModulePermissions } from '~~/server/utils/userModulePermissions'
 
 export default defineEventHandler(async (event) => {
   const orgId = getRouterParam(event, 'orgId')
@@ -66,25 +64,25 @@ export default defineEventHandler(async (event) => {
   const modulePolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId)
   const moduleRoleDefaults = await getModuleRoleDefaultsMap(moduleId)
 
+  const moduleRolePermissionMap = new Map<string, Set<string>>(
+    (moduleDefinition.roles ?? []).map((role) => [
+      role.key,
+      new Set(role.requiredPermissions ?? [])
+    ])
+  )
+
+  const allowedPermissions = new Set<string>(
+    modulePolicy.mode === 'blocked'
+      ? []
+      : modulePolicy.allowedPermissions && modulePolicy.allowedPermissions.length > 0
+        ? modulePolicy.allowedPermissions
+        : modulePermissions
+  )
+
   // For each user, get their role permissions and user-specific denials
   const usersWithPermissions = await Promise.all(
     memberships.map(async (membership) => {
-      // Get permissions from role
-      const rolePermissions = modulePermissions.filter((perm) =>
-        hasPermission(membership.role, perm)
-      )
-
-      // Get user-specific denied permissions
-      const userDenials = await getUserModulePermissions(orgId, membership.userId, moduleId)
-      const deniedPermissions = userDenials
-        ? Object.keys(userDenials).filter((perm) => userDenials[perm] === true)
-        : []
-
-      // Calculate effective permissions (role permissions minus denied)
-      const effectivePermissions = rolePermissions.filter(
-        (perm) => !deniedPermissions.includes(perm)
-      )
-
+      // Modulroller -> modulrättigheter (manifest)
       const defaultRoles = moduleRoleDefaults.get(membership.role as RbacRole) ?? []
       const overrides = moduleRoleOverrides.get(membership.userId)
       const roleState = resolveModuleRoleState({
@@ -93,14 +91,42 @@ export default defineEventHandler(async (event) => {
         allowedRoles: modulePolicy.allowedRoles
       })
 
+      const inheritedPermissions = new Set<string>()
+      for (const roleKey of roleState.effectiveRoles) {
+        const perms = moduleRolePermissionMap.get(roleKey)
+        if (perms) {
+          perms.forEach((perm) => inheritedPermissions.add(perm))
+        }
+      }
+
+      const overridesResult = await getUserModulePermissions(orgId, membership.userId, moduleId)
+      const grantSet = new Set(overridesResult?.grants ?? [])
+      const denySet = new Set(overridesResult?.denies ?? [])
+
+      const basePermissions = Array.from(inheritedPermissions).filter((perm) =>
+        allowedPermissions.has(perm)
+      )
+
+      // Effektiva rättigheter = arv + grants - denies (deny vinner)
+      const effective = new Set(basePermissions)
+      for (const perm of grantSet) {
+        if (allowedPermissions.has(perm)) {
+          effective.add(perm)
+        }
+      }
+      for (const perm of denySet) {
+        effective.delete(perm)
+      }
+
       return {
         userId: membership.userId,
         email: membership.user.email,
         fullName: membership.user.fullName,
         role: membership.role,
-        rolePermissions,
-        deniedPermissions,
-        effectivePermissions,
+        rolePermissions: basePermissions,
+        deniedPermissions: Array.from(denySet),
+        grantedPermissions: Array.from(grantSet).filter((perm) => allowedPermissions.has(perm)),
+        effectivePermissions: Array.from(effective),
         moduleRoles: roleState.effectiveRoles,
         moduleRoleDefaults: roleState.defaultRoles,
         moduleRoleGrants: roleState.grantOverrides,
@@ -117,6 +143,8 @@ export default defineEventHandler(async (event) => {
     roleDefinitions: moduleDefinition.roles ?? [],
     allowedRoles: modulePolicy.allowedRoles,
     allowedRolesSource: modulePolicy.allowedRolesSource,
+    allowedPermissions: Array.from(allowedPermissions),
+    allowedPermissionsSource: modulePolicy.allowedPermissionsSource,
     users: usersWithPermissions
   }
 })

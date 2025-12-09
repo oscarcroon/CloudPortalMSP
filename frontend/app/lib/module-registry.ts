@@ -6,17 +6,11 @@ export type ModuleStatus = 'active' | 'beta' | 'deprecated' | 'coming-soon'
 export type ModuleVisibilityMode = 'everyone' | 'moduleRoles'
 
 export interface ModuleRoleMeta {
+  // Deprecated: modulroller fasas ut. Behålls för typer bakåtkomp. men används ej.
   key: string
   label: string
   description?: string
-  /**
-   * Extra permissions that represent the role’s capabilities
-   * (used in UI and seeding)
-   */
   requiredPermissions: RbacPermission[]
-  /**
-   * Legacy flag to keep compatibility with older capabilities-based UI
-   */
   capabilities?: {
     read?: boolean
     write?: boolean
@@ -50,23 +44,11 @@ export interface ModuleMeta {
  * Convert plugin manifest (from layers/plugin-manifests) to ModuleMeta used by app
  */
 const manifestToModuleMeta = (manifest: (typeof manifests)[number]): ModuleMeta => {
-  const { module, permissions, roles } = manifest
+  const { module, permissions } = manifest
   const scopes: ModuleScope[] = ['tenant', 'org', 'user']
 
-  const moduleRoles = (roles ?? []).map((role) => ({
-    key: role.key,
-    label: role.label,
-    description: role.description,
-    requiredPermissions: role.permissions as RbacPermission[],
-    capabilities: {
-      read: role.permissions.some((p) => p.includes(':read') || p.includes(':view')),
-      write: role.permissions.some((p) => p.includes(':write') || p.includes(':edit')),
-      manage: role.permissions.some((p) => p.includes(':admin') || p.includes(':manage')) || role.key.includes('admin')
-    }
-  }))
-
   const requiredPermissions: RbacPermission[] =
-    permissions && permissions.length > 0 ? [permissions[0].key as RbacPermission] : []
+    permissions?.map((permission) => permission.key as RbacPermission) ?? []
 
   const rootRoute = `/${module.key.replace(/_/g, '-')}`
 
@@ -80,8 +62,8 @@ const manifestToModuleMeta = (manifest: (typeof manifests)[number]): ModuleMeta 
     scopes,
     status: 'active',
     requiredPermissions,
-    moduleRoles,
-    defaultAllowedRoles: roles?.map((r) => r.key) ?? [],
+    moduleRoles: [],
+    defaultAllowedRoles: [],
     icon: module.icon ?? 'mdi:puzzle',
     badge: module.category ? module.category.charAt(0).toUpperCase() + module.category.slice(1) : undefined
   })
@@ -140,47 +122,8 @@ export const defineModule = (meta: ModuleMeta): ModuleMeta => {
   return normalized
 }
 
-// Legacy modules that are not plugin-based
-const legacyModules: ModuleMeta[] = [
-  defineModule({
-    key: 'windows-dns',
-    name: 'Windows DNS',
-    description: 'Hantera DNS-zoner i Windows-miljöer.',
-    category: 'dns',
-    layerKey: 'windows-dns',
-    rootRoute: '/dns/windows',
-    scopes: ['tenant', 'org', 'user'],
-    status: 'beta',
-    featureFlag: 'feature.windowsDns',
-    requiredPermissions: ['dns:windows:read'],
-    moduleRoles: [
-      {
-        key: 'viewer',
-        label: 'Viewer',
-        description: 'Read-only access to DNS zones and records.',
-        requiredPermissions: ['dns:windows:read'],
-        capabilities: { read: true }
-      },
-      {
-        key: 'editor',
-        label: 'Editor',
-        description: 'Edit DNS records within existing zones.',
-        requiredPermissions: ['dns:windows:write', 'dns:windows:read'],
-        capabilities: { read: true, write: true }
-      },
-      {
-        key: 'admin',
-        label: 'Admin',
-        description: 'Manage zones and records (add/remove zones, edit records).',
-        requiredPermissions: ['dns:windows:admin', 'dns:windows:write', 'dns:windows:read'],
-        capabilities: { read: true, write: true, manage: true }
-      }
-    ],
-    defaultAllowedRoles: ['viewer', 'editor', 'admin'],
-    icon: 'mdi:server-network',
-    badge: 'DNS'
-  })
-]
+// Legacy modules (none remaining)
+const legacyModules: ModuleMeta[] = []
 
 // Plugin-based modules (loaded from layer manifests) but skip keys that already exist in legacy set
 const legacyKeys = new Set(legacyModules.map((m) => m.key))

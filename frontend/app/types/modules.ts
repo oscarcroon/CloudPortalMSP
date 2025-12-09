@@ -11,6 +11,10 @@ export interface ModulePolicy {
   moduleKey: string
   mode: PolicyMode
   allowedRoles: string[]
+  allowedRolesSource?: string
+  allowedPermissions?: string[]
+  allowedPermissionsSource?: string
+  permissionOverrides?: Record<string, boolean>
 }
 
 export interface ModuleStatusDto {

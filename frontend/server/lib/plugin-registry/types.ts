@@ -1,3 +1,13 @@
+import type { RbacRole } from '~/constants/rbac'
+
+export interface PluginModuleManifestPermission {
+  key: string
+  description?: string
+  label?: string
+}
+
+export type PluginModuleRbacDefaults = Partial<Record<RbacRole, string[]>>
+
 export interface PluginModuleManifest {
   module: {
     key: string
@@ -6,21 +16,15 @@ export interface PluginModuleManifest {
     category?: string
     icon?: string
   }
-  permissions: {
-    key: string
-    description?: string
-  }[]
-  roles: {
-    key: string
-    label: string
-    description?: string
-    sortOrder?: number
-    permissions: string[]
-  }[]
-  roleDefaults: {
-    appRoleKey: string
-    moduleRoleKey: string
-  }[]
+  /**
+   * Canonical permission-lista för modulen (manifest-källa).
+   */
+  permissions: PluginModuleManifestPermission[]
+  /**
+   * Mapping från Core RBAC-roller till modulens permissions.
+   * Inga modul-specifika roller längre.
+   */
+  rbacDefaults: PluginModuleRbacDefaults
 }
 
 

@@ -4,6 +4,7 @@
     "saving": "Saving...",
     "update": "Update",
     "updating": "Updating...",
+    "load": "Load",
     "cancel": "Cancel",
     "delete": "Delete",
     "unknown": "Unknown",
@@ -305,57 +306,51 @@
     "administration": "Administration",
     "open": "Open",
     "modules": {
+      "routeLabel": "Route",
       "title": "Modules",
       "description": "Manage which modules are visible and which permissions are available for the organization.",
       "cta": "Manage module access",
       "empty": "No modules available right now.",
-      "pageDescription": "Choose which tenant modules your organization will use.",
-      "searchPlaceholder": "Search modules...",
+      "pageDescription": "Manage module policy (inherit/default-closed/allowlist/blocked) and which permissions are allowed.",
+      "searchPlaceholder": "Search module",
       "results": "{count} modules",
       "filters": {
         "allCategories": "All categories"
       },
       "loading": "Loading modules...",
       "noModules": "No modules are available for your organization. Contact your tenant admin if something is missing.",
-      "routeLabel": "Route:",
-      "policyTitle": "Module policy",
+      "policyTitle": "Policy",
       "tenantBlocked": "Blocked by tenant",
-      "lockedByTenant": "Disabled by tenant",
+      "lockedByTenant": "Locked by tenant policy",
       "modes": {
-        "inherit": "Inherit tenant",
-        "defaultClosed": "Default off (user override only)",
-        "allowlist": "Allow specific roles",
+        "inherit": "Inherit",
+        "default-closed": "Default closed",
+        "allowlist": "Allowlist",
         "blocked": "Blocked"
       },
-      "allowedRolesLabel": "Allowed roles",
-      "allowedRolesLabelViewerEditorAdmin": "Allowed roles: Viewer, Editor, Admin",
-      "updateFailed": "Could not update module policy.",
-      "groups": {
-        "title": "Access groups",
-        "description": "Create org-scoped groups and use them for plugin ACL.",
-        "namePlaceholder": "Group name",
-        "descriptionPlaceholder": "Description (optional)",
-        "membersPlaceholder": "Member IDs (comma separated, optional)",
-        "membersHelp": "Members must already belong to the organization.",
-        "membersInputLabel": "Member IDs (comma separated, use userId)",
-        "membersHelpInline": "Enter userId for members in the organization, separated by commas or new lines.",
-        "saveMembers": "Save members",
-        "manageMembers": "Manage members",
-        "availableMembers": "Available members",
-        "noMembers": "No members in this organization.",
-        "create": "Create group",
-        "loading": "Loading groups...",
-        "empty": "No groups yet. Create one to start assigning ACL.",
-        "delete": "Delete group"
-      },
+      "loadingPermissions": "Loading permissions...",
+      "noPermissions": "No permissions declared",
+      "updateFailed": "Failed to update module policy",
       "manageAcl": "Manage ACL",
       "aclTitle": "Plugin ACL",
       "aclDescription": "Map CRUD operations to access groups for the plugin.",
       "aclOperationHint": "Choose which groups may perform this operation.",
       "saveAcl": "Save ACL",
-      "enabledState": {
-        "enabled": "Enabled (on)",
-        "disabled": "Disabled (off)"
+      "showAll": "Show all permissions",
+      "hideAll": "Hide all permissions",
+      "noSearchResults": "No modules matched your search",
+      "disabled": "Disabled",
+      "deactivated": "Deactivated",
+      "features": {
+        "enable": "Enable or disable modules for the organization",
+        "permissions": "Manage permissions per module (read/write)",
+        "granular": "Set granular permissions per user"
+      },
+      "groups": {
+        "title": "Groups",
+        "description": "Manage groups for ACL.",
+        "loading": "Loading groups...",
+        "empty": "No groups"
       }
     },
     "groups": {
@@ -878,23 +873,6 @@
         "login": "Manage login branding and custom domains (CNAME)"
       }
     },
-    "modules": {
-      "title": "Module permissions",
-      "description": "Manage which modules are visible and which permissions are available for your organization.",
-      "pageDescription": "Manage which modules are visible and which permissions are available for your organization. You can also set granular permissions per user for each module.",
-      "searchPlaceholder": "Search for modules...",
-      "showAll": "Show all permissions",
-      "hideAll": "Hide all permissions",
-      "noModules": "No modules found for your organization.",
-      "noSearchResults": "No modules matched the search",
-      "disabled": "Disabled",
-      "deactivated": "Deactivated",
-      "features": {
-        "enable": "Enable or disable modules for the organization",
-        "permissions": "Manage permissions per module (read/write)",
-        "granular": "Set granular permissions per user"
-      }
-    },
     "audit": {
       "title": "Audit Logs",
       "description": "View security events and administrative activities for the organization.",
@@ -1084,11 +1062,13 @@
       "policyTitle": "Module policy",
       "modes": {
         "inherit": "Inherit upstream",
-        "defaultClosed": "Default off (user override only)",
-        "allowlist": "Allow specific roles",
+        "default-closed": "Default off (user override only)",
+        "allowlist": "Allow specific permissions",
         "blocked": "Blocked"
       },
       "allowedRolesLabel": "Allowed roles",
+      "loadingPermissions": "Loading permissions...",
+      "noPermissions": "No permissions declared",
       "updateFailed": "Could not update module policy."
     },
     "emailOverride": {
