@@ -464,15 +464,15 @@ watch(
   (list?: ModuleStatusDto[]) => {
     moduleRows.value =
       list?.map((module) => ({
-        ...module,
-        uiMode: module.orgPolicy?.mode ?? 'inherit',
+      ...module,
+      uiMode: module.orgPolicy?.mode ?? 'inherit',
         uiAllowedPermissions:
           module.orgPolicy?.allowedPermissions ??
           module.effectivePolicy.allowedPermissions ??
           module.requiredPermissions ??
           [],
-        updating: false,
-        error: null
+      updating: false,
+      error: null
       })) ?? []
     moduleRows.value.forEach(ensurePermissionsLoaded)
   },

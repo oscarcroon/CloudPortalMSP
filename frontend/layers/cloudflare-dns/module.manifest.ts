@@ -24,16 +24,16 @@ const manifest = definePluginManifest({
       'cloudflare-dns:manage_acls'
     ],
     admin: [
-      'cloudflare-dns:view',
-      'cloudflare-dns:edit_records',
-      'cloudflare-dns:admin_zones',
+        'cloudflare-dns:view',
+        'cloudflare-dns:edit_records',
+        'cloudflare-dns:admin_zones',
       'cloudflare-dns:manage_org_config',
-      'cloudflare-dns:manage_acls'
+        'cloudflare-dns:manage_acls'
     ],
     operator: [
-      'cloudflare-dns:view',
-      'cloudflare-dns:edit_records',
-      'cloudflare-dns:admin_zones',
+        'cloudflare-dns:view',
+        'cloudflare-dns:edit_records',
+        'cloudflare-dns:admin_zones',
       'cloudflare-dns:manage_acls'
     ],
     member: ['cloudflare-dns:view'],

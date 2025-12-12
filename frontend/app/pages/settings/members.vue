@@ -361,7 +361,7 @@
                     placeholder="Sök modul..."
                   />
                   <span>Visar {{ filteredPermissionEntries.length }} av {{ permissionEntries.length }}</span>
-                </div>
+              </div>
               </div>
 
               <div class="mt-3 space-y-3">
@@ -377,17 +377,17 @@
                     <div class="flex flex-col gap-1">
                       <div class="flex items-center gap-2">
                         <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">{{ entry.moduleName }}</p>
-                        <span
+                    <span
                           v-if="entry.dirty"
                           class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
-                        >
+                    >
                           Osparad
-                        </span>
-                      </div>
+                    </span>
+                </div>
                       <p class="text-[11px] text-slate-500 dark:text-slate-400">
                         Policy: {{ entry.policyMode }} | Tillåtna: {{ entry.allowedPermissions.length }}
                       </p>
-                    </div>
+                </div>
                     <Icon
                       :icon="isModuleCollapsed(entry.moduleId) ? 'mdi:chevron-down' : 'mdi:chevron-up'"
                       class="h-5 w-5 text-slate-500"
@@ -396,7 +396,7 @@
                   <Transition name="fade">
                     <div v-if="!isModuleCollapsed(entry.moduleId)" class="space-y-2 border-t border-slate-200 px-3 py-3 text-sm dark:border-white/10">
                       <div class="flex flex-wrap items-center gap-2">
-                        <button
+                <button
                           class="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-700 transition hover:bg-white dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
                           :disabled="entry.loading"
                           @click.stop="loadPermissions(entry.moduleId)"
@@ -407,7 +407,7 @@
                           class="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-700 transition hover:bg-white disabled:opacity-40 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
                           :disabled="entry.loading || entry.saving || !entry.permissions.length"
                           @click.stop="resetModulePermissions(entry.moduleId)"
-                        >
+                >
                           Återställ till standard
                         </button>
                         <button
@@ -416,12 +416,12 @@
                           @click.stop="savePermissions(entry.moduleId)"
                         >
                           {{ entry.saving ? 'Sparar…' : 'Spara' }}
-                        </button>
-                      </div>
+                </button>
+              </div>
                       <p v-if="entry.error" class="text-xs text-red-600 dark:text-red-300">{{ entry.error }}</p>
                       <div v-else-if="entry.loading" class="text-xs text-slate-500 dark:text-slate-400">
                         Laddar rättigheter…
-                      </div>
+            </div>
                       <div v-else-if="!entry.permissions.length" class="text-xs text-slate-500 dark:text-slate-400">
                         Inga manifestdeklarerade rättigheter.
                       </div>

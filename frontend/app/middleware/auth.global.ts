@@ -87,12 +87,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
       const { getEffectiveModulePolicyForOrg } = await import('~~/server/utils/modulePolicy')
       
       const modules = getAllModules()
-      const matchingModule = modules.find((m) => m.routePath === to.path)
+      const matchingModule = modules.find((m) => to.path.startsWith(m.rootRoute))
       
       if (matchingModule) {
         const policy = await getEffectiveModulePolicyForOrg(currentOrgId, matchingModule.id)
-        // Block if module is not enabled (inactivated) or if it's disabled (deactivated)
-        if (!policy.enabled || policy.disabled) {
+        // Block only if policy is blocked/disabled upstream
+        if (policy.mode === 'blocked') {
           return navigateTo('/?error=module-disabled', { replace: true })
         }
       }
@@ -100,14 +100,14 @@ export default defineNuxtRouteMiddleware(async (to) => {
       // Client-side check - make API call to check module visibility
       const { getAllModules } = await import('~/lib/modules')
       const modules = getAllModules()
-      const matchingModule = modules.find((m) => m.routePath === to.path)
+      const matchingModule = modules.find((m) => to.path.startsWith(m.rootRoute))
       
       if (matchingModule) {
         try {
           const response = await $fetch(`/api/organizations/${currentOrgId}/modules/visible`)
           const module = (response.modules || []).find((m: any) => m.id === matchingModule.id)
-          // Block if module is not visible (not enabled) or if it's disabled (deactivated)
-          if (!module || module.disabled) {
+          // Block only if org or tenant has blocked it
+          if (!module || module.disabled === true) {
             return navigateTo('/?error=module-disabled', { replace: true })
           }
         } catch (error) {

@@ -162,7 +162,7 @@ const mergePolicies = (
 
     const hasExplicitAllow = allowKeys.length > 0
     allowedPermissions = hasExplicitAllow
-      ? new Set(allowKeys.filter((key) => basePermissionSet.has(key)))
+        ? new Set(allowKeys.filter((key) => basePermissionSet.has(key)))
       : current.allowedPermissions && current.allowedPermissions.length > 0
         ? new Set(current.allowedPermissions.filter((key) => basePermissionSet.has(key)))
         : new Set(basePermissionSet) // fallback: allow all module permissions to avoid accidental total block
