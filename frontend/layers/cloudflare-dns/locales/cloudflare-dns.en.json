@@ -105,13 +105,17 @@
       },
       "actions": {
         "saveVerify": "Save and verify",
-        "test": "Test connection"
+        "test": "Test connection",
+        "delete": "Delete token"
       },
       "messages": {
         "saved": "Token saved and verified.",
         "saveError": "Could not save token.",
         "testOk": "Connection verified.",
-        "testError": "Test failed."
+        "testError": "Test failed.",
+        "deleteConfirm": "Are you sure you want to delete the token? This will also clear all cached zones.",
+        "deleted": "Token and cached zones have been removed.",
+        "deleteError": "Could not delete token."
       }
     },
 

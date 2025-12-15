@@ -82,6 +82,16 @@
             <Icon icon="mdi:check-decagram-outline" class="h-4 w-4" />
             {{ t('cloudflareDns.admin.actions.test') }}
           </button>
+          <button
+            v-if="config?.config?.tokenMasked"
+            type="button"
+            :disabled="deleting"
+            class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 transition hover:border-red-400 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400/60 disabled:opacity-60 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+            @click="deleteToken"
+          >
+            <Icon icon="mdi:delete-outline" class="h-4 w-4" />
+            {{ t('cloudflareDns.admin.actions.delete') }}
+          </button>
         </div>
         <p v-if="message" class="text-sm text-green-600">{{ message }}</p>
         <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
@@ -110,6 +120,7 @@ const form = reactive({
 })
 const saving = ref(false)
 const testing = ref(false)
+const deleting = ref(false)
 const message = ref('')
 const errorMessage = ref('')
 
@@ -155,6 +166,27 @@ const testConnection = async () => {
     errorMessage.value = error?.data?.message ?? t('cloudflareDns.admin.messages.testError')
   } finally {
     testing.value = false
+  }
+}
+
+const deleteToken = async () => {
+  if (!confirm(t('cloudflareDns.admin.messages.deleteConfirm'))) {
+    return
+  }
+
+  message.value = ''
+  errorMessage.value = ''
+  deleting.value = true
+  try {
+    await $fetch('/api/dns/cloudflare/config', { method: 'DELETE' })
+    form.apiToken = ''
+    form.accountId = ''
+    await Promise.all([refreshConfig(), refreshStatus()])
+    message.value = t('cloudflareDns.admin.messages.deleted')
+  } catch (error: any) {
+    errorMessage.value = error?.data?.message ?? t('cloudflareDns.admin.messages.deleteError')
+  } finally {
+    deleting.value = false
   }
 }
 </script>

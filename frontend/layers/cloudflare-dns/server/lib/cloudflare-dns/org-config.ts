@@ -205,4 +205,12 @@ export const getZoneCacheSummary = async (orgId: string) => {
   }
 }
 
+export const deleteOrgConfig = async (orgId: string) => {
+  const db = getDb()
+  // Delete org config
+  await db.delete(cloudflareDnsOrgConfig).where(eq(cloudflareDnsOrgConfig.organizationId, orgId))
+  // Clear zone cache
+  await clearZoneCacheForOrg(orgId)
+}
+
 

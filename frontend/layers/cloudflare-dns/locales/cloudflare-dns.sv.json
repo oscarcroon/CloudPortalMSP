@@ -105,13 +105,17 @@
       },
       "actions": {
         "saveVerify": "Spara och verifiera",
-        "test": "Testa anslutning"
+        "test": "Testa anslutning",
+        "delete": "Ta bort token"
       },
       "messages": {
         "saved": "Token sparad och verifierad.",
         "saveError": "Kunde inte spara token.",
         "testOk": "Anslutningen verifierades.",
-        "testError": "Test misslyckades."
+        "testError": "Test misslyckades.",
+        "deleteConfirm": "Är du säker på att du vill ta bort token? Detta kommer även att rensa alla cachade zoner.",
+        "deleted": "Token och cachade zoner har tagits bort.",
+        "deleteError": "Kunde inte ta bort token."
       }
     },
 
