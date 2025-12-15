@@ -14,8 +14,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing module key' })
   }
 
-  const body = await readBody<{ enabled: boolean }>(event)
+  const body = await readBody<{ enabled?: boolean; disabled?: boolean; comingSoonMessage?: string | null }>(event)
   const enabled = body.enabled ?? true
+  const disabled = body.disabled ?? false
+  const comingSoonMessage = body.comingSoonMessage ?? null
 
   // Verify module exists in manifests
   const pluginModule = getPluginModuleByKey(moduleKey)
@@ -31,7 +33,12 @@ export default defineEventHandler(async (event) => {
   // Update enabled status
   await db
     .update(modules)
-    .set({ enabled, updatedAt: new Date() })
+    .set({
+      enabled,
+      disabled,
+      comingSoonMessage,
+      updatedAt: new Date()
+    })
     .where(eq(modules.key, moduleKey))
 
   const [updated] = await db.select().from(modules).where(eq(modules.key, moduleKey))
@@ -39,7 +46,9 @@ export default defineEventHandler(async (event) => {
   return {
     key: updated.key,
     name: updated.name,
-    enabled: updated.enabled
+    enabled: updated.enabled,
+    disabled: updated.disabled,
+    comingSoonMessage: updated.comingSoonMessage
   }
 })
 

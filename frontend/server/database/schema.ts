@@ -6,7 +6,8 @@ import {
   real,
   sqliteTable,
   text,
-  uniqueIndex
+  uniqueIndex,
+  primaryKey
 } from 'drizzle-orm/sqlite-core'
 import type { RbacRole, TenantRole } from '~/constants/rbac'
 import type { OrganizationMemberStatus } from '~/types/admin'
@@ -36,6 +37,8 @@ export const modules = sqliteTable(
     description: text('description'),
     category: text('category'),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
+    comingSoonMessage: text('coming_soon_message'),
     ...timestampColumns()
   },
   (table) => ({
@@ -904,6 +907,8 @@ export const tenantModulePolicies = sqliteTable(
     // If disabled is true, module is visible but grayed out (deactivated)
     // If enabled is false, module is hidden completely (inactivated)
     disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
+    // Coming soon message for marketing/upselling (shows when disabled=true and message is set)
+    comingSoonMessage: text('coming_soon_message'),
     // JSON object storing permission overrides
     // Example: { "cloudflare:write": false } to disable write access
     permissionOverrides: text('permission_overrides', { length: 2048 }),
@@ -942,6 +947,8 @@ export const organizationModulePolicies = sqliteTable(
     // If disabled is true, module is visible but grayed out (deactivated)
     // If enabled is false, module is hidden completely (inactivated)
     disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
+    // Coming soon message for marketing/upselling (shows when disabled=true and message is set)
+    comingSoonMessage: text('coming_soon_message'),
     // JSON object storing permission overrides
     // Example: { "cloudflare:write": false } to disable write access
     permissionOverrides: text('permission_overrides', { length: 2048 }),
@@ -980,6 +987,35 @@ export const pluginAclEntries = sqliteTable(
       table.operation,
       table.groupId
     )
+  })
+)
+
+export const orgGroupModulePermissions = sqliteTable(
+  'org_group_module_permissions',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    groupId: text('group_id')
+      .notNull()
+      .references(() => orgGroups.id, { onDelete: 'cascade' }),
+    moduleKey: text('module_key').notNull(),
+    permissionKey: text('permission_key').notNull(),
+    effect: text('effect')
+      .notNull()
+      .$type<'grant' | 'deny'>(),
+    ...timestampColumns()
+  },
+  (table) => ({
+    uniqueIdx: uniqueIndex('org_group_module_permissions_unique').on(
+      table.organizationId,
+      table.groupId,
+      table.moduleKey,
+      table.permissionKey
+    ),
+    groupIdx: index('org_group_module_permissions_group_idx').on(table.groupId),
+    moduleIdx: index('org_group_module_permissions_module_idx').on(table.moduleKey, table.permissionKey)
   })
 )
 
@@ -1221,6 +1257,76 @@ export const userModulePermissionRelations = relations(userModulePermissions, ({
     references: [users.id]
   })
 }))
+
+export const mspOrgDelegations = sqliteTable(
+  'msp_org_delegations',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    subjectType: text('subject_type').notNull(), // 'user' (future: msp_group, msp_role)
+    subjectId: text('subject_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
+    note: text('note'),
+    revokedAt: integer('revoked_at', { mode: 'timestamp_ms' }),
+    revokedBy: text('revoked_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    activeUnique: uniqueIndex('msp_org_delegations_active_unique').on(
+      table.orgId,
+      table.subjectType,
+      table.subjectId,
+      table.revokedAt,
+      table.expiresAt
+    ),
+    subjectIdx: index('msp_org_delegations_subject_idx').on(table.subjectType, table.subjectId),
+    orgIdx: index('msp_org_delegations_org_idx').on(table.orgId),
+    expiresIdx: index('msp_org_delegations_expires_idx').on(table.expiresAt),
+    revokedIdx: index('msp_org_delegations_revoked_idx').on(table.revokedAt)
+  })
+)
+
+export const mspOrgDelegationPermissions = sqliteTable(
+  'msp_org_delegation_permissions',
+  {
+    delegationId: text('delegation_id')
+      .notNull()
+      .references(() => mspOrgDelegations.id, { onDelete: 'cascade' }),
+    permissionKey: text('permission_key').notNull()
+    // Note: permissionKey is a logical reference to manifest permission keys, not a DB foreign key
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.delegationId, table.permissionKey] }),
+    permissionIdx: index('msp_org_delegation_permissions_perm_idx').on(table.permissionKey)
+  })
+)
+
+export const mspOrgDelegationRelations = relations(mspOrgDelegations, ({ many, one }) => ({
+  org: one(organizations, {
+    fields: [mspOrgDelegations.orgId],
+    references: [organizations.id]
+  }),
+  subject: one(users, {
+    fields: [mspOrgDelegations.subjectId],
+    references: [users.id]
+  }),
+  permissions: many(mspOrgDelegationPermissions)
+}))
+
+export const mspOrgDelegationPermissionRelations = relations(
+  mspOrgDelegationPermissions,
+  ({ one }) => ({
+    delegation: one(mspOrgDelegations, {
+      fields: [mspOrgDelegationPermissions.delegationId],
+      references: [mspOrgDelegations.id]
+    })
+  })
+)
 
 export const memberModuleRoleOverrideRelations = relations(memberModuleRoleOverrides, ({ one }) => ({
   organization: one(organizations, {

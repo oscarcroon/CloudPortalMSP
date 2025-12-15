@@ -163,6 +163,30 @@ export interface AdminCreateOrganizationResponse {
   }
 }
 
+export interface AdminDelegation {
+  id: string
+  orgId: string
+  subjectType: 'user'
+  subjectId: string
+  subjectEmail?: string | null
+  subjectName?: string | null
+  permissionKeys: string[]
+  expiresAt?: number | null
+  note?: string | null
+  revokedAt?: number | null
+  revokedBy?: string | null
+  createdAt?: number | null
+}
+
+export interface AdminDelegationsResponse {
+  organization: {
+    id: string
+    name: string
+    slug: string
+  }
+  delegations: AdminDelegation[]
+}
+
 export interface AdminMoveOrganizationProviderPayload {
   newTenantId: string | null
 }

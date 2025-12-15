@@ -9,6 +9,7 @@ export interface VisibleModule extends ModuleDefinition {
   disabled?: boolean
   effectiveEnabled?: boolean
   effectiveDisabled?: boolean
+  comingSoonMessage?: string | null
 }
 
 /**
@@ -39,14 +40,22 @@ export const useModules = () => {
         })
         const modules = response.modules || []
         // Mappa API (ModuleStatusDto) till VisibleModule shape
-        return modules.map((m) => ({
-          ...m,
-          id: m.key,
-          routePath: m.rootRoute,
-          badge: m.category,
-          icon: m.icon,
-          disabled: !m.effectiveEnabled || m.effectiveDisabled
-        }))
+        return modules.map((m) => {
+          // Beräkna om modulen är disabled (avaktiverad eller coming-soon)
+          // disabled = true betyder modulen är synlig men utgråad och icke-klickbar
+          const isDisabled = m.orgPolicy?.disabled === true || m.effectiveDisabled === true
+          const isComingSoon = isDisabled && (m.orgPolicy?.comingSoonMessage || m.tenantPolicy?.comingSoonMessage)
+          
+          return {
+            ...m,
+            id: m.key,
+            routePath: m.rootRoute,
+            badge: m.category,
+            icon: m.icon,
+            disabled: isDisabled,
+            comingSoonMessage: isComingSoon ? (m.orgPolicy?.comingSoonMessage || m.tenantPolicy?.comingSoonMessage) : null
+          }
+        })
       } catch (error) {
         console.error('Failed to fetch modules:', error)
         return []
@@ -64,11 +73,11 @@ export const useModules = () => {
   const modules = computed(() => visibleModules.value || [])
 
   /**
-   * Only modules that are effectively enabled (used by dashboard/navbar)
+   * Only modules that are effectively enabled and not disabled (for filtering)
    */
   const availableModules = computed(() =>
     modules.value.filter(
-      (module: VisibleModule) => module.effectiveEnabled && !module.effectiveDisabled
+      (module: VisibleModule) => module.effectiveEnabled && !module.disabled
     )
   )
 

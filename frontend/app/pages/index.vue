@@ -31,6 +31,7 @@
         :badge="module.badge || t('dashboard.module')"
         :icon="module.icon"
         :disabled="module.disabled || false"
+        :coming-soon-message="module.comingSoonMessage || null"
         :is-favorite="isFavorite(module.id)"
         :favorite-disabled="module.disabled || favoritesPending"
         @select="!module.disabled && navigateTo(module.routePath)"
@@ -89,8 +90,20 @@ const { t } = useI18n()
 
 const router = useRouter()
 const auth = useAuth()
-const { availableModules: modules, loading, fetchVisibleModules } = useModules()
+const { modules: allModules, loading, fetchVisibleModules } = useModules()
 const { toggleFavorite, isFavorite, pending: favoritesPending } = useFavorites()
+
+// Filtrera moduler för dashboarden:
+// - Visa alla moduler som är enabled (eller undefined)
+// - Inkludera disabled moduler (de ska visas utgråade)
+// - Filtrera bort moduler som är helt inaktiverade (enabled === false)
+const modules = computed(() => {
+  return (allModules.value || []).filter((module) => {
+    // Visa moduler som är enabled (eller undefined)
+    // Disabled moduler (avaktiverade/coming-soon) ska visas men vara utgråade
+    return module.effectiveEnabled !== false
+  })
+})
 
 const statusItems = [
   { label: 'Cloudflare API', value: t('dashboard.statusLabels.ok'), variant: 'success' },

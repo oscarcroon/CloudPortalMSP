@@ -2,6 +2,7 @@ import { and, eq, or } from 'drizzle-orm'
 import { getDb } from '../../../../../server/utils/db'
 import { cloudflareDnsZoneAcls } from '../../../../../server/database/schema'
 import { resolveEffectiveModulePermissions } from '../../../../../server/utils/modulePermissions'
+import { clampBooleanCapabilities } from '../../../../../server/utils/resourceAcl'
 import type {
   CloudflareModuleRights,
   CloudflareZoneAccess,
@@ -76,15 +77,9 @@ const clampZoneCapabilities = (
   }
 
   const zoneCaps = zoneRoleCapabilities[zoneRole]
-  return {
-    roles: [],
-    zoneRole,
-    canView: moduleRights.canView && zoneCaps.canView,
-    canEditRecords: moduleRights.canEditRecords && zoneCaps.canEditRecords,
-    canManageZones: moduleRights.canManageZones && zoneCaps.canManageZones,
-    canManageAcls: moduleRights.canManageAcls && zoneCaps.canManageAcls,
-    canManageOrgConfig: moduleRights.canManageOrgConfig && zoneCaps.canManageOrgConfig
-  }
+  const { roles, ...moduleBooleanCaps } = moduleRights
+  const clamped = clampBooleanCapabilities(moduleBooleanCaps, zoneCaps)
+  return { ...clamped, roles: [], zoneRole }
 }
 
 const buildRightsFromPermissions = (perms: Set<string>): CloudflareModuleRights => ({

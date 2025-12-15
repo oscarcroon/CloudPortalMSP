@@ -4,10 +4,11 @@ import { rolePermissionMap, tenantRolePermissionMap } from '~/constants/rbac'
 import { ensureAuthState } from './session'
 import { getDb } from './db'
 import { eq, or, and } from 'drizzle-orm'
-import { organizations, tenants, distributorProviders } from '../database/schema'
+import { organizations, tenants, distributorProviders, mspOrgDelegations } from '../database/schema'
 import { getModuleIdFromPermission } from '~/constants/modules'
 import { isModulePermissionAllowed as checkModulePolicy } from './modulePolicy'
 import { logPermissionDenied } from './audit'
+import { resolveEffectiveModulePermissions } from './modulePermissions'
 
 export const hasPermission = (role: RbacRole, permission: RbacPermission) =>
   rolePermissionMap[role]?.includes(permission) ?? false
@@ -65,10 +66,41 @@ export const requirePermission = async (
     effectiveRole = directRole
   }
 
-  let canReachOrganization = Boolean(directRole)
+  // Delegation: org access utan medlemskap
+  const dbDelegation = await db
+    .select({ revokedAt: mspOrgDelegations.revokedAt, expiresAt: mspOrgDelegations.expiresAt })
+    .from(mspOrgDelegations)
+    .where(
+      and(
+        eq(mspOrgDelegations.orgId, orgId),
+        eq(mspOrgDelegations.subjectType, 'user'),
+        eq(mspOrgDelegations.subjectId, auth.user.id)
+      )
+    )
+
+  const now = Date.now()
+  const hasActiveDelegation = dbDelegation.some((row) => {
+    const revokedAt =
+      typeof row.revokedAt === 'number'
+        ? row.revokedAt
+        : row.revokedAt
+          ? new Date(row.revokedAt as any).getTime()
+          : null
+    const expiresAt =
+      typeof row.expiresAt === 'number'
+        ? row.expiresAt
+        : row.expiresAt
+          ? new Date(row.expiresAt as any).getTime()
+          : null
+    return revokedAt == null && (expiresAt == null || expiresAt > now)
+  })
+
+  let canReachOrganization = Boolean(directRole) || hasActiveDelegation
   if (!canReachOrganization) {
     canReachOrganization = await canAccessOrganization(auth, orgId)
   }
+
+  const moduleId = getModuleIdFromPermission(permission)
 
   if (!hasRbacPermission) {
     if (!canReachOrganization) {
@@ -77,6 +109,11 @@ export const requirePermission = async (
         statusCode: 403,
         message: `Missing permission ${permission} for organization ${orgId}`
       })
+    }
+
+    // Delegation kan ge org:read
+    if (hasActiveDelegation && permission === 'org:read') {
+      hasRbacPermission = true
     }
 
     if (orgRecord.tenantId) {
@@ -98,6 +135,23 @@ export const requirePermission = async (
         }
       }
     }
+
+    // Modul-permission via effective module permissions (inkl delegation)
+    if (moduleId && !hasRbacPermission) {
+      const perms = await resolveEffectiveModulePermissions({
+        orgId,
+        moduleKey: moduleId,
+        userId: auth.user.id
+      })
+
+      const hasPerm = perms.effectivePermissions.has(permission)
+      const isDelegatedOnly = !directRole && perms.delegatedGrants?.has(permission)
+
+      if (hasPerm && (directRole || isDelegatedOnly)) {
+        hasRbacPermission = true
+        effectiveRole = directRole ?? 'viewer'
+      }
+    }
   }
 
   if (!hasRbacPermission) {
@@ -109,7 +163,6 @@ export const requirePermission = async (
   }
 
   // 4. Check module policy (if permission belongs to a module)
-  const moduleId = getModuleIdFromPermission(permission)
   const skipModulePolicy =
     permission === 'org:read' ||
     permission === 'org:manage'
@@ -136,7 +189,9 @@ export const requirePermission = async (
     }
   }
 
-  return { auth, role: effectiveRole!, orgId }
+  const resolvedRole = effectiveRole ?? directRole ?? ('viewer' as RbacRole)
+
+  return { auth, role: resolvedRole, orgId }
 }
 
 export const requireSuperAdmin = async (event: H3Event) => {

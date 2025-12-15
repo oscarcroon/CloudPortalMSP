@@ -79,8 +79,21 @@
               @click.stop="selectContext({ tenantId: tenant.id, organizationId: org.id })"
             >
               <div class="min-w-0 flex-1">
-                <p class="truncate font-medium">{{ org.name }}</p>
-                <p class="text-xs text-slate-500">{{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}</p>
+                <div class="flex items-center gap-2">
+                  <p class="truncate font-medium">{{ org.name }}</p>
+                  <span
+                    v-if="org.accessType === 'delegation'"
+                    class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-900 dark:text-emerald-100"
+                  >
+                    {{ t('contextSwitcher.delegation') }}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500">
+                  {{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}
+                  <span v-if="org.accessType === 'delegation' && org.expiresAt" class="ml-1 text-[11px] text-emerald-600 dark:text-emerald-300">
+                    ({{ formatExpiry(org.expiresAt) }})
+                  </span>
+                </p>
               </div>
               <Icon
                 v-if="auth.state.value.data?.currentOrgId === org.id"
@@ -400,6 +413,15 @@ function getRoleLabel(role: string) {
 
 function getStatusLabel(status: string) {
   return t(`settings.members.status.${status}`) || status
+}
+
+function formatExpiry(ts: number) {
+  try {
+    const date = new Date(ts)
+    return date.toLocaleDateString('sv-SE')
+  } catch {
+    return ''
+  }
 }
 
 function getTenantTypeColor(type: string) {

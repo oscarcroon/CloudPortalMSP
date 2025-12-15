@@ -26,6 +26,12 @@
       </div>
     </div>
 
+  <div v-if="delegationBanner" class="mx-auto max-w-6xl px-4">
+    <div class="mb-4 flex items-start justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
+      <p>{{ delegationBanner.message }}</p>
+    </div>
+  </div>
+
     <main class="px-4 py-6 lg:px-10 max-w-6xl mx-auto w-full">
       <slot />
     </main>
@@ -49,6 +55,15 @@ if (import.meta.client) {
 
 const authError = computed(() => auth.state.value.error)
 const currentOrg = auth.currentOrg
+const delegationBanner = computed(() => {
+  const org = currentOrg.value
+  if (!org || org.accessType !== 'delegation') return null
+  const expires = org.expiresAt
+  const expiresText = expires ? `Gäller till ${new Date(expires).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}` : 'Ingen sluttid angiven.'
+  return {
+    message: `Åtkomst via delegation. ${expiresText}`
+  }
+})
 
 const clearAuthError = () => {
   auth.state.value.error = null

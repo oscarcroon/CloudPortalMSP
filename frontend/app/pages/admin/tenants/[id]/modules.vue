@@ -70,7 +70,10 @@
       <div
         v-for="module in filteredModules"
         :key="module.key"
-        class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5"
+        :class="[
+          'rounded-xl border p-4 shadow-sm transition',
+          getModuleStatusClass(module)
+        ]"
       >
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div class="space-y-2">
@@ -78,21 +81,47 @@
               <Icon
                 v-if="module.icon"
                 :icon="module.icon"
-                class="h-6 w-6 flex-shrink-0 text-brand"
+                :class="[
+                  'h-6 w-6 flex-shrink-0',
+                  getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                    ? 'text-slate-400 dark:text-slate-500'
+                    : 'text-brand'
+                ]"
               />
-              <p class="text-lg font-semibold text-slate-900 dark:text-white">
+              <p
+                :class="[
+                  'text-lg font-semibold',
+                  getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                    ? 'text-slate-400 dark:text-slate-500'
+                    : 'text-slate-900 dark:text-white'
+                ]"
+              >
                 {{ module.name }}
               </p>
-              <StatusPill :variant="statusVariant(module.status)">
-                {{ t(`adminModules.status.${module.status ?? 'active'}`) }}
+              <StatusPill :variant="getModuleStatusBadgeVariant(module)">
+                {{ getModuleStatusLabel(module) }}
               </StatusPill>
               <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-white/10 dark:text-slate-200">
                 Layer: {{ module.layerKey }}
               </span>
             </div>
-            <p class="text-sm text-slate-600 dark:text-slate-400">
+            <p
+              :class="[
+                'text-sm',
+                getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                  ? 'text-slate-400 dark:text-slate-500'
+                  : 'text-slate-600 dark:text-slate-400'
+              ]"
+            >
               {{ module.description }}
             </p>
+            <div
+              v-if="getModuleStatus(module) === 'coming-soon' && getModuleComingSoonMessage(module)"
+              class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
+            >
+              <p class="font-semibold">{{ t('modules.statusModal.options.comingSoon.title') }}</p>
+              <p class="mt-1">{{ getModuleComingSoonMessage(module) }}</p>
+            </div>
             <div class="flex flex-wrap gap-2">
               <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
                 {{ module.category }}
@@ -193,6 +222,20 @@
                 {{ module.error }}
               </p>
             </div>
+            <button
+              type="button"
+              :disabled="!canManageModuleStatus(module)"
+              :class="[
+                'inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition',
+                canManageModuleStatus(module)
+                  ? 'border-slate-200 text-slate-800 hover:border-brand hover:text-brand dark:border-white/20 dark:text-white'
+                  : 'border-slate-300 bg-slate-100 text-slate-400 cursor-not-allowed dark:border-white/10 dark:bg-slate-800 dark:text-slate-500'
+              ]"
+              @click="canManageModuleStatus(module) && openStatusModal(module)"
+            >
+              <Icon icon="mdi:cog" class="h-4 w-4" />
+              {{ t('adminTenants.modules.manageStatus') }}
+            </button>
             <NuxtLink
               :to="module.rootRoute"
               class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
@@ -210,12 +253,23 @@
       </div>
     </div>
   </section>
+
+  <ModuleStatusModal
+    :open="statusModal.open"
+    :module="statusModal.module as any"
+    :current-enabled="statusModal.module?.tenantEnabled ?? true"
+    :current-disabled="statusModal.module?.tenantDisabled ?? false"
+    :current-coming-soon-message="statusModal.module?.tenantPolicy?.comingSoonMessage ?? null"
+    @close="closeStatusModal"
+    @save="onStatusSave"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, useFetch, useI18n, useRoute, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
+import ModuleStatusModal from '~/components/modules/ModuleStatusModal.vue'
 import type { ModuleStatus } from '~/lib/module-registry'
 import type { ModuleStatusDto, PolicyMode } from '~/types/modules'
 
@@ -360,12 +414,18 @@ const statusVariant = (status: ModuleStatus | undefined) => {
 
 const updatePolicy = async (
   module: UiModule,
-  patch: { mode?: PolicyMode; allowedPermissions?: string[] }
+  patch: {
+    mode?: PolicyMode
+    allowedPermissions?: string[]
+    enabled?: boolean
+    disabled?: boolean
+    comingSoonMessage?: string | null
+  }
 ) => {
   module.updating = true
   module.error = null
 
-  const payload = {
+  const payload: any = {
     moduleKey: module.key,
     mode: patch.mode ?? module.uiMode,
     allowedPermissions:
@@ -373,6 +433,10 @@ const updatePolicy = async (
         ? patch.allowedPermissions ?? module.uiAllowedPermissions
         : []
   }
+
+  if (patch.enabled !== undefined) payload.enabled = patch.enabled
+  if (patch.disabled !== undefined) payload.disabled = patch.disabled
+  if (patch.comingSoonMessage !== undefined) payload.comingSoonMessage = patch.comingSoonMessage
 
   try {
     const response = await $fetch<ModuleStatusDto>(`/api/admin/tenants/${tenantId.value}/modules`, {
@@ -386,7 +450,12 @@ const updatePolicy = async (
       response.effectivePolicy.allowedPermissions ??
       module.requiredPermissions ??
       []
+    // Update the module with response data, including status fields
     Object.assign(module, response)
+    // Ensure tenantPolicy is updated with the new enabled/disabled values
+    if (response.tenantPolicy) {
+      module.tenantPolicy = response.tenantPolicy
+    }
   } catch (err: any) {
     module.error = err?.data?.message ?? err?.message ?? t('adminTenants.modules.updateFailed')
   } finally {
@@ -419,6 +488,109 @@ const onAllowedPermissionsChange = async (module: UiModule, key: string, checked
   await updatePolicy(module, {
     allowedPermissions: module.uiAllowedPermissions
   })
+}
+
+const statusModal = ref<{
+  open: boolean
+  module: UiModule | null
+}>({
+  open: false,
+  module: null
+})
+
+const openStatusModal = (module: UiModule) => {
+  statusModal.value = {
+    open: true,
+    module
+  }
+}
+
+const closeStatusModal = () => {
+  statusModal.value = {
+    open: false,
+    module: null
+  }
+}
+
+const onStatusSave = async (data: { enabled: boolean; disabled: boolean; comingSoonMessage: string | null }) => {
+  if (!statusModal.value.module) return
+
+  const module = statusModal.value.module
+  await updatePolicy(module, {
+    enabled: data.enabled,
+    disabled: data.disabled,
+    comingSoonMessage: data.comingSoonMessage
+  } as any)
+  closeStatusModal()
+}
+
+const getModuleStatus = (module: UiModule): 'active' | 'disabled' | 'hidden' | 'coming-soon' => {
+  const policy = module.tenantPolicy
+  if (policy?.comingSoonMessage && policy?.disabled) {
+    return 'coming-soon'
+  }
+  if (policy?.disabled) {
+    return 'disabled'
+  }
+  if (policy?.enabled === false || module.tenantEnabled === false) {
+    return 'hidden'
+  }
+  return 'active'
+}
+
+const getModuleStatusClass = (module: UiModule) => {
+  const status = getModuleStatus(module)
+  if (status === 'hidden') {
+    return 'border-slate-300 bg-slate-50 dark:border-white/5 dark:bg-slate-900/50 opacity-60'
+  }
+  if (status === 'disabled' || status === 'coming-soon') {
+    return 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30 opacity-75'
+  }
+  return 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5'
+}
+
+const getModuleStatusBadgeVariant = (module: UiModule) => {
+  const status = getModuleStatus(module)
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'disabled':
+      return 'warning'
+    case 'hidden':
+      return 'danger'
+    case 'coming-soon':
+      return 'info'
+    default:
+      return 'success'
+  }
+}
+
+const getModuleStatusLabel = (module: UiModule) => {
+  const status = getModuleStatus(module)
+  return t(`modules.statusModal.options.${status === 'coming-soon' ? 'comingSoon' : status}.title`)
+}
+
+const getModuleComingSoonMessage = (module: UiModule) => {
+  return module.tenantPolicy?.comingSoonMessage ?? null
+}
+
+// Kontrollera om modulen kan hanteras på tenant-nivå
+// Modulen måste vara aktiverad globalt för att kunna hanteras
+// Notera: Moduler som inte är enabled globalt visas inte alls i listan,
+// så om modulen finns här, är den enabled globalt. Men vi kan inte hantera
+// status om modulen redan är disabled globalt (vilket inte borde hända eftersom
+// disabled moduler inte visas). För säkerhets skull kontrollerar vi effectiveEnabled.
+const canManageModuleStatus = (module: UiModule): boolean => {
+  // Om modulen inte är effectively enabled, kan den inte hanteras
+  // Detta inkluderar om modulen är disabled globalt
+  if (!module.effectiveEnabled) {
+    return false
+  }
+  // Om modulen är effectively disabled, kan den inte hanteras
+  if (module.effectiveDisabled) {
+    return false
+  }
+  return true
 }
 </script>
 

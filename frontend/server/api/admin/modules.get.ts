@@ -11,16 +11,20 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
   const dbModules = await db.select().from(modules)
 
-  // Create a map of enabled modules from DB
+  // Create maps of module status from DB
   const enabledMap = new Map(dbModules.map((m) => [m.key, m.enabled]))
+  const disabledMap = new Map(dbModules.map((m) => [m.key, m.disabled ?? false]))
+  const comingSoonMessageMap = new Map(dbModules.map((m) => [m.key, m.comingSoonMessage ?? null]))
 
   // Get all plugin modules from manifests
   const pluginModules = getAllPluginModules()
 
-  // Merge with DB state (enabled status)
+  // Merge with DB state (enabled/disabled/comingSoonMessage)
   const allModules = pluginModules.map((module) => ({
     ...module,
-    enabled: enabledMap.get(module.key) ?? false
+    enabled: enabledMap.get(module.key) ?? false,
+    disabled: disabledMap.get(module.key) ?? false,
+    comingSoonMessage: comingSoonMessageMap.get(module.key) ?? null
   }))
 
   return {

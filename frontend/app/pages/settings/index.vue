@@ -142,6 +142,12 @@
                     >
                       {{ t('settings.organizations.inactive') }}
                     </span>
+                    <span
+                      v-if="org.accessType === 'delegation'"
+                      class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-800 dark:text-emerald-100"
+                    >
+                      {{ t('settings.organizations.viaDelegation') }}
+                    </span>
                   </div>
                   <p class="text-xs text-slate-500 dark:text-slate-400">
                     {{ t('settings.organizations.role') }}: {{ org.role }}
@@ -151,6 +157,16 @@
                     >
                       <Icon icon="mdi:account-hard-hat" class="h-3 w-3" />
                       {{ t('settings.organizations.viaTenant') }}
+                    </span>
+                    <span
+                      v-else-if="org.accessType === 'delegation'"
+                      class="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100"
+                    >
+                      <Icon icon="mdi:account-key" class="h-3 w-3" />
+                      {{ t('settings.organizations.viaDelegation') }}
+                      <span v-if="org.expiresAt" class="text-[10px] text-emerald-700 dark:text-emerald-200">
+                        ({{ formatExpiry(org.expiresAt) }})
+                      </span>
                     </span>
                   </p>
                 </div>
@@ -450,7 +466,7 @@ import { Icon } from '@iconify/vue'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'
 import { matchesSearch } from '~/utils/search'
-import type { AuthOrganization } from '~~/server/types/auth'
+import type { AuthOrganization } from '~/types/auth'
 
 const { t } = useI18n()
 const auth = useAuth()
@@ -537,6 +553,9 @@ const activeOrgAccessLabel = computed(() => {
   if (activeOrganization.value.accessType === 'msp') {
     return activeOrganization.value.role === 'admin' ? t('settings.organizations.adminViaTenant') : t('settings.organizations.viewerViaTenant')
   }
+  if (activeOrganization.value.accessType === 'delegation') {
+    return t('settings.organizations.viaDelegation')
+  }
   return null
 })
 
@@ -572,6 +591,12 @@ const pagedOrganizations = computed(() => {
   const start = (currentPage.value - 1) * PAGE_SIZE
   return filteredOtherOrganizations.value.slice(start, start + PAGE_SIZE)
 })
+
+const formatExpiry = (ts: number) => {
+  if (!ts) return ''
+  const date = new Date(ts)
+  return date.toLocaleDateString('sv-SE')
+}
 
 async function handleSetPrimary(orgId: string) {
   if (isPrimaryOrganization(orgId)) {

@@ -15,6 +15,9 @@ export interface ModulePolicy {
   allowedPermissions?: string[]
   allowedPermissionsSource?: string
   permissionOverrides?: Record<string, boolean>
+  enabled?: boolean
+  disabled?: boolean
+  comingSoonMessage?: string | null
 }
 
 export interface ModuleStatusDto {

@@ -208,6 +208,7 @@
     "organizations": "Organizations",
     "noContexts": "No contexts available.",
     "selectContext": "Select context",
+    "delegation": "Delegation",
     "errors": {
       "switchTenantFailed": "Could not switch to this tenant.",
       "switchContextFailed": "Could not switch context.",
@@ -351,6 +352,35 @@
         "description": "Manage groups for ACL.",
         "loading": "Loading groups...",
         "empty": "No groups"
+      },
+      "manageStatus": "Manage Status",
+      "cannotManageStatusReason": "The module must be enabled at a higher level to manage status here.",
+      "statusModal": {
+        "title": "Module Status",
+        "description": "Choose how the module should be displayed and function.",
+        "options": {
+          "active": {
+            "title": "Active",
+            "description": "Module is active and visible. Users can open and use the module."
+          },
+          "disabled": {
+            "title": "Deactivated",
+            "description": "Module is visible but grayed out and cannot be opened. Useful for showing that the module exists but is not yet available."
+          },
+          "hidden": {
+            "title": "Inactivated",
+            "description": "Module is completely hidden and inherited down the hierarchy. Users will not see the module."
+          },
+          "comingSoon": {
+            "title": "Coming Soon",
+            "description": "Module is visible but grayed out with a custom message. Perfect for marketing and upselling."
+          }
+        },
+        "comingSoonMessage": {
+          "label": "Message",
+          "placeholder": "E.g. Coming soon! Contact us for more information.",
+          "hint": "This message will be shown when users hover over or click on the module."
+        }
       }
     },
     "groups": {
@@ -404,6 +434,7 @@
       "viaTenant": "Via tenant",
       "adminViaTenant": "Admin via tenant",
       "viewerViaTenant": "Viewer via tenant",
+      "viaDelegation": "Via delegation",
       "previous": "Previous",
       "next": "Next",
       "page": "Page {current} of {total}",
@@ -969,6 +1000,35 @@
       }
     }
   },
+  "modules": {
+    "statusModal": {
+      "title": "Module Status",
+      "description": "Choose how the module should be displayed and function.",
+      "options": {
+        "active": {
+          "title": "Active",
+          "description": "Module is active and visible. Users can open and use the module."
+        },
+        "disabled": {
+          "title": "Deactivated",
+          "description": "Module is visible but grayed out and cannot be opened. Useful for showing that the module exists but is not yet available."
+        },
+        "hidden": {
+          "title": "Inactivated",
+          "description": "Module is completely hidden and inherited down the hierarchy. Users will not see the module."
+        },
+        "comingSoon": {
+          "title": "Coming Soon",
+          "description": "Module is visible but grayed out with a custom message. Perfect for marketing and upselling."
+        }
+      },
+      "comingSoonMessage": {
+        "label": "Message",
+        "placeholder": "E.g. Coming soon! Contact us for more information.",
+        "hint": "This message will be shown when users hover over or click on the module."
+      }
+    }
+  },
   "rbac": {
     "roles": {
       "owner": "Owner",
@@ -1000,6 +1060,33 @@
       "deprecated": "Deprecated",
       "coming-soon": "Coming soon"
     },
+    "statusModal": {
+      "title": "Module Status",
+      "description": "Choose how the module should be displayed and function.",
+      "options": {
+        "active": {
+          "title": "Active",
+          "description": "Module is active and visible. Users can open and use the module."
+        },
+        "disabled": {
+          "title": "Deactivated",
+          "description": "Module is visible but grayed out and cannot be opened. Useful for showing that the module exists but is not yet available."
+        },
+        "hidden": {
+          "title": "Inactivated",
+          "description": "Module is completely hidden and inherited down the hierarchy. Users will not see the module."
+        },
+        "comingSoon": {
+          "title": "Coming Soon",
+          "description": "Module is visible but grayed out with a custom message. Perfect for marketing and upselling."
+        }
+      },
+      "comingSoonMessage": {
+        "label": "Message",
+        "placeholder": "E.g. Coming soon! Contact us for more information.",
+        "hint": "This message will be shown when users hover over or click on the module."
+      }
+    },
     "layerLabel": "Layer:",
     "moduleRoles": "Module roles",
     "openModule": "Open module",
@@ -1014,7 +1101,8 @@
       "enabled": "Enabled",
       "disabled": "Disabled"
     },
-    "disabledNote": "Module must be enabled before it appears for distributors, providers and organizations."
+    "disabledNote": "Module must be enabled before it appears for distributors, providers and organizations.",
+    "manageStatus": "Manage Status"
   },
   "adminTenants": {
     "title": "Tenants",
@@ -1069,7 +1157,9 @@
       "allowedRolesLabel": "Allowed roles",
       "loadingPermissions": "Loading permissions...",
       "noPermissions": "No permissions declared",
-      "updateFailed": "Could not update module policy."
+      "updateFailed": "Could not update module policy.",
+      "manageStatus": "Manage Status",
+      "cannotManageStatusReason": "The module must be enabled globally to manage status here."
     },
     "emailOverride": {
       "active": "Email override active",

@@ -14,6 +14,10 @@
     "preview": "nuxt preview --port 3001 --host 0.0.0.0",
     "lint": "eslint . --ext .ts,.js,.vue",
     "seed": "tsx scripts/seed.ts",
+    "seed:user": "tsx scripts/seed-user-only.ts",
+    "db:add-locale": "tsx scripts/add-locale-column.ts",
+    "db:fix-users": "tsx scripts/fix-users-table.ts",
+    "db:fresh-start": "tsx scripts/fresh-start.ts",
     "db:backfill-owners": "tsx scripts/backfill-owners.ts",
     "migrate:rbac-context-switch": "tsx scripts/migrate-rbac-context-switch.ts",
     "test:unit": "vitest run",
@@ -22,7 +26,10 @@
     "db:push": "drizzle-kit push --config drizzle.config.ts",
     "db:studio": "drizzle-kit studio --config drizzle.config.ts",
     "lint:plugin-css": "tsx scripts/check-plugin-css.ts",
-    "scaffold:plugin": "tsx scripts/scaffold-plugin.ts"
+    "scaffold:plugin": "tsx scripts/scaffold-plugin.ts",
+    "db:create-delegation-tables": "tsx scripts/create-delegation-tables.ts",
+    "db:fix-delegation-tables": "tsx scripts/fix-delegation-tables.ts",
+    "db:verify-delegation-tables": "tsx scripts/verify-delegation-tables.ts"
   },
   "dependencies": {
     "@coreit/email-kit": "file:../packages/email-kit",

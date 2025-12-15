@@ -69,11 +69,18 @@ const toPolicy = (
   row?: TenantPolicyRow | OrgPolicyRow | null
 ): ModulePolicy | null => {
   if (!row) return null
+  // enabled and disabled can be explicitly false, so we need to check for undefined, not falsy
+  const rowAny = row as any
+  const enabledValue = rowAny.enabled !== undefined ? rowAny.enabled : true
+  const disabledValue = rowAny.disabled !== undefined ? rowAny.disabled : false
   return {
     moduleKey,
-    mode: parseMode((row as any).mode),
-    allowedRoles: parseAllowedRoles((row as any).allowedRoles),
-    permissionOverrides: parsePermissionOverrides((row as any).permissionOverrides ?? null)
+    mode: parseMode(rowAny.mode),
+    allowedRoles: parseAllowedRoles(rowAny.allowedRoles),
+    permissionOverrides: parsePermissionOverrides(rowAny.permissionOverrides ?? null),
+    enabled: enabledValue,
+    disabled: disabledValue,
+    comingSoonMessage: rowAny.comingSoonMessage ?? null
   }
 }
 
@@ -203,7 +210,9 @@ const toDto = ({
   featureFlags,
   globalEnabled,
   tenantVisible,
-  orgVisible
+  tenantDisabled: tenantDisabledParam,
+  orgVisible,
+  orgDisabled: orgDisabledParam
 }: {
   moduleMeta: ReturnType<typeof getModuleById>
   tenantPolicy?: ModulePolicy | null
@@ -212,21 +221,31 @@ const toDto = ({
   featureFlags: FeatureFlags
   globalEnabled: boolean
   tenantVisible: boolean
+  tenantDisabled?: boolean
   orgVisible: boolean
+  orgDisabled?: boolean
 }): ModuleStatusDto => {
   const featureEnabled = isFeatureFlagEnabled(moduleMeta?.featureFlag, featureFlags)
   const statusEnabled = moduleMeta?.status !== 'deprecated'
 
+  // Use enabled/disabled from policy if available, otherwise fall back to mode-based logic
+  const tenantEnabledValue = tenantPolicy?.enabled ?? (tenantPolicy?.mode !== 'blocked')
+  const tenantDisabledValue = tenantDisabledParam ?? tenantPolicy?.disabled ?? (tenantPolicy?.mode === 'blocked')
+  const orgEnabledValue = orgPolicy?.enabled ?? (orgPolicy?.mode !== 'blocked')
+  const orgDisabledValue = orgDisabledParam ?? orgPolicy?.disabled ?? (orgPolicy?.mode === 'blocked')
+
   // Visible flags (global/tenant/org) control whether the module is listed
-  const tenantEnabled = globalEnabled && tenantVisible && featureEnabled && statusEnabled && tenantPolicy?.mode !== 'blocked'
-  const orgEnabled = tenantEnabled && orgVisible && orgPolicy?.mode !== 'blocked'
+  const tenantEnabled = globalEnabled && tenantVisible && featureEnabled && statusEnabled && tenantEnabledValue && !tenantDisabledValue
+  const orgEnabled = tenantEnabled && orgVisible && orgEnabledValue && !orgDisabledValue
 
   // Effective flag is based on merged policy, plus visibility chain
-  const effectiveEnabled = globalEnabled && tenantVisible && orgVisible && featureEnabled && statusEnabled && effectivePolicy.mode !== 'blocked'
+  const effectiveEnabledValue = effectivePolicy.enabled ?? (effectivePolicy.mode !== 'blocked')
+  const effectiveDisabledValue = effectivePolicy.disabled ?? (effectivePolicy.mode === 'blocked')
+  const effectiveEnabled = globalEnabled && tenantVisible && orgVisible && featureEnabled && statusEnabled && effectiveEnabledValue && !effectiveDisabledValue
 
-  const tenantDisabled = !tenantVisible || tenantPolicy?.mode === 'blocked'
-  const orgDisabled = !orgVisible || orgPolicy?.mode === 'blocked'
-  const effectiveDisabled = !effectiveEnabled
+  const tenantDisabled = tenantDisabledValue || !tenantVisible
+  const orgDisabled = orgDisabledValue || !orgVisible
+  const effectiveDisabled = effectiveDisabledValue || !effectiveEnabled
 
   return {
     key: moduleMeta?.key ?? '',
@@ -266,8 +285,9 @@ const upsertTenantPolicy = async (tenantId: string, moduleId: ModuleId, policy: 
     moduleId,
     mode: policy.mode,
     allowedRoles: serializeAllowedRoles(policy.allowedRoles ?? []),
-    enabled: policy.mode !== 'blocked',
-    disabled: policy.mode === 'default-closed' ? false : false,
+    enabled: policy.enabled ?? (policy.mode !== 'blocked'),
+    disabled: policy.disabled ?? false,
+    comingSoonMessage: policy.comingSoonMessage ?? null,
     permissionOverrides: policy.permissionOverrides ? JSON.stringify(policy.permissionOverrides) : null
   }
 
@@ -304,8 +324,9 @@ const upsertOrgPolicy = async (organizationId: string, moduleId: ModuleId, polic
     moduleId,
     mode: policy.mode,
     allowedRoles: serializeAllowedRoles(policy.allowedRoles ?? []),
-    enabled: policy.mode !== 'blocked',
-    disabled: policy.mode === 'default-closed' ? false : false,
+    enabled: policy.enabled ?? (policy.mode !== 'blocked'),
+    disabled: policy.disabled ?? false,
+    comingSoonMessage: policy.comingSoonMessage ?? null,
     permissionOverrides: policy.permissionOverrides ? JSON.stringify(policy.permissionOverrides) : null
   }
 
@@ -422,6 +443,7 @@ const buildTenantDto = async (
 
     const tenantRow = policyMap.get(module.key)
     const tenantVisible = tenantRow?.enabled !== false
+    const tenantDisabled = tenantRow?.disabled === true
 
     results.push(
       toDto({
@@ -431,7 +453,9 @@ const buildTenantDto = async (
         featureFlags,
         globalEnabled: true,
         tenantVisible,
-        orgVisible: true
+        tenantDisabled,
+        orgVisible: true,
+        orgDisabled: false
       })
     )
   }
@@ -508,6 +532,10 @@ export const getOrganizationModulesStatus = async (
 
     const tenantRow = tenantPolicyMap.get(module.key)
     const orgRow = orgPolicyMap.get(module.key)
+    const tenantVisible = tenantRow?.enabled !== false
+    const tenantDisabled = tenantRow?.disabled === true
+    const orgVisible = orgRow?.enabled !== false
+    const orgDisabled = orgRow?.disabled === true
 
     results.push(
       toDto({
@@ -517,8 +545,10 @@ export const getOrganizationModulesStatus = async (
         effectivePolicy,
         featureFlags,
         globalEnabled: true,
-        tenantVisible: tenantRow?.enabled !== false,
-        orgVisible: orgRow?.enabled !== false
+        tenantVisible,
+        tenantDisabled,
+        orgVisible,
+        orgDisabled
       })
     )
   }

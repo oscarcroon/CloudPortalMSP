@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { createId } from '@paralleldrive/cuid2'
+import { eq } from 'drizzle-orm'
 import { getDb, resetDbInstance } from '../server/utils/db'
 import { users } from '../server/database/schema'
 import { hashPassword } from '../server/utils/crypto'
@@ -16,9 +17,13 @@ const seed = async () => {
   console.log('🌱 Startar seed av användare...')
 
   try {
-    // 1. Rensa existerande användare (valfritt, ta bort om du vill behålla gamla)
-    // Detta förhindrar krockar om du kör scriptet flera gånger
-    db.delete(users).run()
+    // 1. Kontrollera om användaren redan finns
+    const existing = db.select().from(users).where(eq(users.email, superAdminEmail)).limit(1).all()
+    
+    if (existing.length > 0) {
+      console.log(`⚠️  Användare med email ${superAdminEmail} finns redan. Hoppar över.`)
+      return
+    }
 
     // 2. Skapa superadmin-användaren
     db.insert(users)

@@ -16,7 +16,8 @@ import {
   tenantMemberships,
   tenants,
   users,
-  userModuleFavorites
+  userModuleFavorites,
+  mspOrgDelegations
 } from '../database/schema'
 import type { AuthOrganization, AuthState, AuthTenant } from '../types/auth'
 import type { RbacRole, TenantRole } from '~/constants/rbac'
@@ -150,6 +151,41 @@ export const buildAuthState = async (
     if (resolvedLogos.has(org.id)) {
       org.logoUrl = resolvedLogos.get(org.id) ?? null
     }
+  }
+
+  // Delegation-baserade orgar (MSP → Org)
+  const delegationRows = await db
+    .select({
+      org: organizations,
+      delegation: mspOrgDelegations
+    })
+    .from(mspOrgDelegations)
+    .innerJoin(organizations, eq(organizations.id, mspOrgDelegations.orgId))
+    .where(and(eq(mspOrgDelegations.subjectId, userId), eq(mspOrgDelegations.subjectType, 'user')))
+
+  const now = Date.now()
+  for (const row of delegationRows) {
+    const expiresAt = row.delegation.expiresAt
+    const isExpired = expiresAt !== null && expiresAt !== undefined && expiresAt <= now
+    const isRevoked = row.delegation.revokedAt !== null && row.delegation.revokedAt !== undefined
+    if (isExpired || isRevoked) continue
+    const already = organizationPayload.some((org) => org.id === row.org.id)
+    if (already) continue
+    organizationPayload.push({
+      id: row.org.id,
+      name: row.org.name,
+      slug: row.org.slug,
+      status: row.org.status,
+      isSuspended: Boolean(row.org.isSuspended),
+      logoUrl: normalizeStoredLogoUrl(row.org.logoUrl),
+      requireSso: Boolean(row.org.requireSso),
+      hasLocalLoginOverride: false,
+      role: 'viewer',
+      tenantId: row.org.tenantId ?? null,
+      lastAccessedAt: null,
+      accessType: 'delegation',
+      expiresAt: expiresAt ?? null
+    } as any)
   }
 
   const tenantRows = await fetchTenantMembershipRows(userId)

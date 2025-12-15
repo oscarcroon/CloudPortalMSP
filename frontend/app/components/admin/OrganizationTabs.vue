@@ -18,14 +18,15 @@ import { Icon } from '@iconify/vue'
 
 const props = defineProps<{
   slug: string
-  active: 'overview' | 'members' | 'auth' | 'email'
+  active: 'overview' | 'members' | 'auth' | 'email' | 'delegations'
 }>()
 
 const tabs = [
   { key: 'overview', label: 'Översikt', icon: 'mdi:view-dashboard-outline' },
   { key: 'members', label: 'Medlemmar', icon: 'mdi:account-group-outline' },
   { key: 'auth', label: 'Auth & SSO', icon: 'mdi:shield-lock-outline' },
-  { key: 'email', label: 'E-post', icon: 'mdi:email-outline' }
+  { key: 'email', label: 'E-post', icon: 'mdi:email-outline' },
+  { key: 'delegations', label: 'Delegationer', icon: 'mdi:account-hard-hat' }
 ]
 
 const tabClass = (key: string) => {

@@ -90,9 +90,16 @@ export default defineNuxtRouteMiddleware(async (to) => {
       const matchingModule = modules.find((m) => to.path.startsWith(m.rootRoute))
       
       if (matchingModule) {
-        const policy = await getEffectiveModulePolicyForOrg(currentOrgId, matchingModule.id)
-        // Block only if policy is blocked/disabled upstream
-        if (policy.mode === 'blocked') {
+        // Get full module status to check enabled/disabled
+        const { getOrganizationModulesStatus } = await import('~~/server/utils/modulePolicy')
+        const modules = await getOrganizationModulesStatus(currentOrgId)
+        const module = modules.find((m) => m.key === matchingModule.id)
+        
+        // Block access if module is:
+        // 1. Not effectively enabled (inaktiverad)
+        // 2. Effectively disabled (avaktiverad eller kommer snart)
+        // 3. Disabled at org level (avaktiverad eller kommer snart)
+        if (!module || !module.effectiveEnabled || module.effectiveDisabled || module.orgDisabled) {
           return navigateTo('/?error=module-disabled', { replace: true })
         }
       }
@@ -104,10 +111,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
       
       if (matchingModule) {
         try {
-          const response = await $fetch(`/api/organizations/${currentOrgId}/modules/visible`)
-          const module = (response.modules || []).find((m: any) => m.id === matchingModule.id)
-          // Block only if org or tenant has blocked it
-          if (!module || module.disabled === true) {
+          const response = await $fetch(`/api/organizations/${currentOrgId}/modules`)
+          const module = (response.modules || []).find((m: any) => m.key === matchingModule.id)
+          // Block access if module is:
+          // 1. Not effectively enabled (inaktiverad - enabled: false)
+          // 2. Effectively disabled (avaktiverad eller kommer snart - disabled: true)
+          // 3. Org disabled (avaktiverad eller kommer snart på org-nivå)
+          if (!module || !module.effectiveEnabled || module.effectiveDisabled || module.orgDisabled) {
             return navigateTo('/?error=module-disabled', { replace: true })
           }
         } catch (error) {

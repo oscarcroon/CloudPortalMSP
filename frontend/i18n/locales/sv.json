@@ -208,6 +208,7 @@
     "organizations": "Organisationer",
     "noContexts": "Inga kontexter tillgängliga.",
     "selectContext": "Välj kontext",
+    "delegation": "Delegation",
     "errors": {
       "switchTenantFailed": "Kunde inte byta till denna tenant.",
       "switchContextFailed": "Kunde inte byta kontext.",
@@ -351,6 +352,35 @@
         "description": "Hantera grupper för ACL.",
         "loading": "Laddar grupper...",
         "empty": "Inga grupper"
+      },
+      "manageStatus": "Hantera status",
+      "cannotManageStatusReason": "Modulen måste vara aktiverad på högre nivå för att kunna hantera status här.",
+      "statusModal": {
+        "title": "Modulstatus",
+        "description": "Välj hur modulen ska visas och fungera.",
+        "options": {
+          "active": {
+            "title": "Aktiv",
+            "description": "Modulen är aktiv och synlig. Användare kan öppna och använda modulen."
+          },
+          "disabled": {
+            "title": "Avaktiverad",
+            "description": "Modulen syns men är utgråad och går inte att öppna. Användbart för att visa att modulen finns men inte är tillgänglig ännu."
+          },
+          "hidden": {
+            "title": "Inaktiverad",
+            "description": "Modulen syns inte alls och ärvs neråt i hierarkin. Användare kommer inte se modulen."
+          },
+          "comingSoon": {
+            "title": "Kommer snart",
+            "description": "Modulen syns utgråad med ett anpassat meddelande. Perfekt för marknadsföring och merförsäljning."
+          }
+        },
+        "comingSoonMessage": {
+          "label": "Meddelande",
+          "placeholder": "Ex. Kommer snart! Kontakta oss för mer information.",
+          "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen."
+        }
       }
     },
     "groups": {
@@ -404,6 +434,7 @@
       "viaTenant": "Via tenant",
       "adminViaTenant": "Admin via tenant",
       "viewerViaTenant": "Viewer via tenant",
+      "viaDelegation": "Via delegation",
       "previous": "Föregående",
       "next": "Nästa",
       "page": "Sida {current} av {total}",
@@ -969,6 +1000,35 @@
       }
     }
   },
+  "modules": {
+    "statusModal": {
+      "title": "Modulstatus",
+      "description": "Välj hur modulen ska visas och fungera.",
+      "options": {
+        "active": {
+          "title": "Aktiv",
+          "description": "Modulen är aktiv och synlig. Användare kan öppna och använda modulen."
+        },
+        "disabled": {
+          "title": "Avaktiverad",
+          "description": "Modulen syns men är utgråad och går inte att öppna. Användbart för att visa att modulen finns men inte är tillgänglig ännu."
+        },
+        "hidden": {
+          "title": "Inaktiverad",
+          "description": "Modulen syns inte alls och ärvs neråt i hierarkin. Användare kommer inte se modulen."
+        },
+        "comingSoon": {
+          "title": "Kommer snart",
+          "description": "Modulen syns utgråad med ett anpassat meddelande. Perfekt för marknadsföring och merförsäljning."
+        }
+      },
+      "comingSoonMessage": {
+        "label": "Meddelande",
+        "placeholder": "Ex. Kommer snart! Kontakta oss för mer information.",
+        "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen."
+      }
+    }
+  },
   "rbac": {
     "roles": {
       "owner": "Ägare",
@@ -1000,6 +1060,33 @@
       "deprecated": "Utfasas",
       "coming-soon": "Kommer snart"
     },
+    "statusModal": {
+      "title": "Modulstatus",
+      "description": "Välj hur modulen ska visas och fungera.",
+      "options": {
+        "active": {
+          "title": "Aktiv",
+          "description": "Modulen är aktiv och synlig. Användare kan öppna och använda modulen."
+        },
+        "disabled": {
+          "title": "Avaktiverad",
+          "description": "Modulen syns men är utgråad och går inte att öppna. Användbart för att visa att modulen finns men inte är tillgänglig ännu."
+        },
+        "hidden": {
+          "title": "Inaktiverad",
+          "description": "Modulen syns inte alls och ärvs neråt i hierarkin. Användare kommer inte se modulen."
+        },
+        "comingSoon": {
+          "title": "Kommer snart",
+          "description": "Modulen syns utgråad med ett anpassat meddelande. Perfekt för marknadsföring och merförsäljning."
+        }
+      },
+      "comingSoonMessage": {
+        "label": "Meddelande",
+        "placeholder": "Ex. Kommer snart! Kontakta oss för mer information.",
+        "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen."
+      }
+    },
     "layerLabel": "Lager:",
     "moduleRoles": "Modulroller",
     "openModule": "Öppna modul",
@@ -1014,7 +1101,8 @@
       "enabled": "Aktiverad",
       "disabled": "Ej aktiverad"
     },
-    "disabledNote": "Modulen måste aktiveras innan den syns för distributörer, leverantörer och organisationer."
+    "disabledNote": "Modulen måste aktiveras innan den syns för distributörer, leverantörer och organisationer.",
+    "manageStatus": "Hantera status"
   },
   "adminTenants": {
     "title": "Tenants",
@@ -1069,7 +1157,9 @@
       "allowedRolesLabel": "Tillåtna roller",
       "loadingPermissions": "Laddar permissions...",
       "noPermissions": "Inga permissions deklarerade",
-      "updateFailed": "Kunde inte uppdatera modulpolicy."
+      "updateFailed": "Kunde inte uppdatera modulpolicy.",
+      "manageStatus": "Hantera status",
+      "cannotManageStatusReason": "Modulen måste vara aktiverad globalt för att kunna hantera status här."
     },
     "emailOverride": {
       "active": "E-post override aktiv",

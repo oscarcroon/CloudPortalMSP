@@ -17,7 +17,8 @@ const bodySchema = z.object({
   allowedRoles: z.array(z.string()).optional(),
   allowedPermissions: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
-  disabled: z.boolean().optional()
+  disabled: z.boolean().optional(),
+  comingSoonMessage: z.string().nullable().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -27,7 +28,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleKey, mode, allowedRoles, allowedPermissions, enabled, disabled } = body
+  const { moduleKey, mode, allowedRoles, allowedPermissions, enabled, disabled, comingSoonMessage } = body
+
+  // enabled and disabled can be explicitly false, so we need to check for undefined, not falsy
+  const enabledValue = enabled !== undefined ? enabled : true
+  const disabledValue = disabled !== undefined ? disabled : false
 
   await requirePermission(event, 'org:manage', orgId)
 
@@ -83,8 +88,9 @@ export default defineEventHandler(async (event) => {
     mode,
     allowedRoles: normalizedRoles,
     allowedPermissions: normalizedAllowedPermissions,
-    enabled: enabled ?? true,
-    disabled: disabled ?? false,
+    enabled: enabledValue,
+    disabled: disabledValue,
+    comingSoonMessage: comingSoonMessage ?? null,
     permissionOverrides:
       mode === 'allowlist'
         ? Object.fromEntries(normalizedAllowedPermissions.map((key) => [key, true]))
@@ -126,8 +132,11 @@ export default defineEventHandler(async (event) => {
     orgPolicy: policy,
     effectivePolicy: policy,
     tenantEnabled: true,
-    orgEnabled: policy.mode !== 'blocked',
-    effectiveEnabled: policy.mode !== 'blocked'
+    tenantDisabled: false,
+    orgEnabled: policy.enabled ?? (policy.mode !== 'blocked'),
+    orgDisabled: policy.disabled ?? false,
+    effectiveEnabled: policy.enabled ?? (policy.mode !== 'blocked'),
+    effectiveDisabled: policy.disabled ?? false
   }
 })
 

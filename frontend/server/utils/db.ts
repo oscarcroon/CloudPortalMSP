@@ -18,12 +18,17 @@ export type DrizzleDb = SqliteDb
 let dbInstance: DrizzleDbInstance | null = null
 
 const resolveSqlitePath = () => {
+  // Standard: lokal frontend-DB under .data
   const rawUrl = process.env.DATABASE_URL ?? 'file:./.data/dev.db'
   const cleaned = rawUrl.startsWith('file:') ? rawUrl.replace('file:', '') : rawUrl
   const absolute = path.isAbsolute(cleaned)
     ? cleaned
     : path.resolve(process.cwd(), cleaned)
   fs.mkdirSync(path.dirname(absolute), { recursive: true })
+  if (process.env.NODE_ENV === 'development' || process.env.DEBUG_DB) {
+    console.log('[db] Using database:', absolute)
+    console.log('[db] Database exists:', fs.existsSync(absolute))
+  }
   return absolute
 }
 

@@ -1,12 +1,19 @@
 import { and, eq } from 'drizzle-orm'
+import { createError, H3Event } from 'h3'
 import { manifests } from '~~/layers/plugin-manifests'
 import {
   organizationModulePolicies,
   tenantModulePolicies,
   userModulePermissions,
-  organizationMemberships
+  organizationMemberships,
+  mspOrgDelegations,
+  mspOrgDelegationPermissions,
+  orgGroupModulePermissions,
+  orgGroupMembers,
+  organizations
 } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
+import { ensureAuthState } from './session'
 import type { ModuleId } from '~/constants/modules'
 import type { RbacRole } from '~/constants/rbac'
 import type { ModulePolicy } from '~/types/modules'
@@ -22,6 +29,7 @@ export interface EffectiveModulePermissions {
   groupDenies: Map<string, Set<PermissionKey>>
   userGrants: Set<PermissionKey>
   userDenies: Set<PermissionKey>
+  delegatedGrants?: Set<PermissionKey>
   effectivePermissions: Set<PermissionKey>
   policy: ModulePolicy & { enabled: boolean; disabled: boolean }
   debug?: {
@@ -50,7 +58,7 @@ export const getBaselineModulePermissionsForUser = async (
   const userRole = membership?.role as RbacRole | undefined
   const rbacDefaults = manifest.rbacDefaults ?? {}
   const list = rbacDefaults[userRole ?? ''] ?? []
-  const manifestPermissions = new Set(manifest.permissions.map((p) => p.key))
+  const manifestPermissions = new Set<string>(manifest.permissions.map((p: { key: string }) => p.key))
   const result = new Set<PermissionKey>()
   for (const perm of list) {
     const permKey = String(perm)
@@ -72,12 +80,10 @@ const parseModulePolicy = (raw?: any | null): ModulePolicy | null => {
   if (!raw) return null
   return {
     moduleKey: raw.moduleId ?? raw.moduleKey ?? '',
-    mode: raw.mode ?? 'inherit',
+    mode: (raw.mode ?? 'inherit') as ModulePolicy['mode'],
     allowedRoles: raw.allowedRoles ? JSON.parse(raw.allowedRoles) : [],
     allowedPermissions: raw.permissionOverrides ? Object.keys(JSON.parse(raw.permissionOverrides)) : [],
-    permissionOverrides: raw.permissionOverrides ? JSON.parse(raw.permissionOverrides) : undefined,
-    enabled: raw.enabled ?? true,
-    disabled: raw.disabled ?? false
+    permissionOverrides: raw.permissionOverrides ? JSON.parse(raw.permissionOverrides) : undefined
   }
 }
 
@@ -108,7 +114,7 @@ const mergePolicies = (upstream: ModulePolicy, current: ModulePolicy | null, per
       : Array.from(base)
   return {
     moduleKey: upstream.moduleKey,
-    mode: current.mode,
+    mode: current.mode as ModulePolicy['mode'],
     allowedPermissions,
     allowedRoles: current.allowedRoles ?? [],
     permissionOverrides: mergedOverrides
@@ -126,6 +132,14 @@ export const resolveEffectiveModulePermissions = async ({
 }): Promise<EffectiveModulePermissions> => {
   const manifest = getModuleManifest(moduleKey)
   if (!manifest) {
+    const blockedPolicy: ModulePolicy & { enabled: boolean; disabled: boolean } = {
+      moduleKey,
+      mode: 'blocked',
+      allowedPermissions: [],
+      allowedRoles: [],
+      enabled: false,
+      disabled: true
+    }
     return {
       allowedPermissions: new Set(),
       baselinePermissions: new Set(),
@@ -134,18 +148,11 @@ export const resolveEffectiveModulePermissions = async ({
       userGrants: new Set(),
       userDenies: new Set(),
       effectivePermissions: new Set(),
-      policy: {
-        moduleKey,
-        mode: 'blocked',
-        allowedPermissions: [],
-        allowedRoles: [],
-        enabled: false,
-        disabled: true
-      }
+      policy: blockedPolicy
     }
   }
 
-  const permissionKeys = manifest.permissions.map((p) => p.key)
+  const permissionKeys = manifest.permissions.map((p: { key: string }) => p.key)
   const baseline = await getBaselineModulePermissionsForUser(orgId, userId, moduleKey)
 
   const db = getDb()
@@ -172,15 +179,18 @@ export const resolveEffectiveModulePermissions = async ({
     mode: 'allowlist',
     allowedRoles: [],
     allowedPermissions: permissionKeys,
-    allowedPermissionsSource: 'base',
-    enabled: true,
-    disabled: false
+    allowedPermissionsSource: 'base'
   }
 
   const tenantMerged = mergePolicies(basePolicy, tenantPolicy, permissionKeys)
   const effectivePolicy = mergePolicies(tenantMerged, orgPolicy, permissionKeys)
 
   if (effectivePolicy.mode === 'blocked') {
+    const blockedPolicy: ModulePolicy & { enabled: boolean; disabled: boolean } = {
+      ...(effectivePolicy as ModulePolicy),
+      enabled: false,
+      disabled: true
+    }
     return {
       allowedPermissions: new Set(),
       baselinePermissions: baseline,
@@ -189,7 +199,7 @@ export const resolveEffectiveModulePermissions = async ({
       userGrants: new Set(),
       userDenies: new Set(),
       effectivePermissions: new Set(),
-      policy: { ...effectivePolicy, enabled: false, disabled: true },
+      policy: blockedPolicy,
       debug: { tenantPolicy, orgPolicy }
     }
   }
@@ -204,6 +214,31 @@ export const resolveEffectiveModulePermissions = async ({
   // group grants/denies (tabell saknas i denna miljö): lämna tomt
   const groupGrants = new Map<string, Set<string>>()
   const groupDenies = new Map<string, Set<string>>()
+
+  // Org-group grants/denies (via org_group_module_permissions)
+  const groupRows = await db
+    .select({
+      groupId: orgGroupModulePermissions.groupId,
+      permissionKey: orgGroupModulePermissions.permissionKey,
+      effect: orgGroupModulePermissions.effect
+    })
+    .from(orgGroupModulePermissions)
+    .innerJoin(orgGroupMembers, eq(orgGroupMembers.groupId, orgGroupModulePermissions.groupId))
+    .where(
+      and(
+        eq(orgGroupModulePermissions.organizationId, orgId),
+        eq(orgGroupModulePermissions.moduleKey, moduleKey),
+        eq(orgGroupMembers.userId, userId)
+      )
+    )
+
+  for (const row of groupRows) {
+    const targetMap = row.effect === 'deny' ? groupDenies : groupGrants
+    if (!targetMap.has(row.groupId)) {
+      targetMap.set(row.groupId, new Set<string>())
+    }
+    targetMap.get(row.groupId)?.add(row.permissionKey)
+  }
 
   // user grants/denies
   const [userPerm] = await db
@@ -234,9 +269,59 @@ export const resolveEffectiveModulePermissions = async ({
     }
   }
 
-  // Effektiva permissions: baseline ∩ allowed, sen group grants/denies, sen user grants/denies
+  // Delegation grants (MSP → Org)
+  const now = Date.now()
+  const delegationRows = await db
+    .select({
+      revokedAt: mspOrgDelegations.revokedAt,
+      expiresAt: mspOrgDelegations.expiresAt,
+      permissionKey: mspOrgDelegationPermissions.permissionKey
+    })
+    .from(mspOrgDelegations)
+    .leftJoin(
+      mspOrgDelegationPermissions,
+      eq(mspOrgDelegations.id, mspOrgDelegationPermissions.delegationId)
+    )
+    .where(
+      and(
+        eq(mspOrgDelegations.orgId, orgId),
+        eq(mspOrgDelegations.subjectType, 'user'),
+        eq(mspOrgDelegations.subjectId, userId)
+      )
+    )
+
+  const delegatedGrants = new Set<string>()
+  for (const row of delegationRows) {
+    const revokedAt =
+      typeof row.revokedAt === 'number'
+        ? row.revokedAt
+        : row.revokedAt
+          ? new Date(row.revokedAt as any).getTime()
+          : null
+    const expiresAt =
+      typeof row.expiresAt === 'number'
+        ? row.expiresAt
+        : row.expiresAt
+          ? new Date(row.expiresAt as any).getTime()
+          : null
+    const isRevoked = revokedAt !== null && revokedAt !== undefined
+    const isExpired = expiresAt !== null && expiresAt !== undefined && expiresAt <= now
+    if (isRevoked || isExpired) continue
+    if (row.permissionKey) {
+      delegatedGrants.add(row.permissionKey)
+    }
+  }
+
+  // Effektiva permissions: baseline ∩ allowed, sen group grants/denies, delegation, sen user grants/denies
   const effective = new Set<string>()
   for (const perm of baseline) {
+    if (allowed.has(perm) && !userDenies.has(perm)) {
+      effective.add(perm)
+    }
+  }
+
+  // delegation grants
+  for (const perm of delegatedGrants) {
     if (allowed.has(perm) && !userDenies.has(perm)) {
       effective.add(perm)
     }
@@ -266,6 +351,12 @@ export const resolveEffectiveModulePermissions = async ({
     effective.delete(perm)
   }
 
+  const policyWithFlags: ModulePolicy & { enabled: boolean; disabled: boolean } = {
+    ...(effectivePolicy as ModulePolicy),
+    enabled: effectivePolicy.mode !== 'blocked',
+    disabled: effectivePolicy.mode === 'blocked'
+  }
+
   return {
     allowedPermissions: allowed,
     baselinePermissions: baseline,
@@ -273,10 +364,69 @@ export const resolveEffectiveModulePermissions = async ({
     groupDenies,
     userGrants,
     userDenies,
+    delegatedGrants,
     effectivePermissions: effective,
-    policy: { ...(effectivePolicy as any), enabled: effectivePolicy.mode !== 'blocked', disabled: effectivePolicy.mode === 'blocked' },
+    policy: policyWithFlags,
     debug: { tenantPolicy, orgPolicy }
   }
+}
+
+/**
+ * Hard authorization helper for module permissions.
+ * Uses resolveEffectiveModulePermissions and throws 403 on missing permission.
+ */
+export const requireModulePermission = async (
+  event: H3Event,
+  params: { orgId?: string; moduleKey: ModuleId; permissionKey: string }
+) => {
+  const auth = await ensureAuthState(event)
+  if (!auth) {
+    throw createError({ statusCode: 401, message: 'Not authenticated' })
+  }
+
+  const orgId = params.orgId ?? auth.currentOrgId
+  if (!orgId) {
+    throw createError({ statusCode: 400, message: 'Select an organization' })
+  }
+
+  if (auth.user.isSuperAdmin) {
+    return { auth, orgId }
+  }
+
+  const db = getDb()
+  const [org] = await db
+    .select({ status: organizations.status })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+  if (!org) {
+    throw createError({ statusCode: 404, message: 'Organisationen kunde inte hittas.' })
+  }
+  if (org.status !== 'active') {
+    throw createError({ statusCode: 403, message: 'Organisationen är inaktiverad och kan inte användas.' })
+  }
+
+  // Permission evaluation
+  const perms = await resolveEffectiveModulePermissions({
+    orgId,
+    moduleKey: params.moduleKey,
+    userId: auth.user.id
+  })
+
+  if (perms.policy.mode === 'blocked') {
+    throw createError({
+      statusCode: 403,
+      message: `Module ${params.moduleKey} is blocked for organization ${orgId}`
+    })
+  }
+
+  if (!perms.effectivePermissions.has(params.permissionKey)) {
+    throw createError({
+      statusCode: 403,
+      message: `Missing module permission ${params.permissionKey} for organization ${orgId}`
+    })
+  }
+
+  return { auth, orgId, permissions: perms }
 }
 
 

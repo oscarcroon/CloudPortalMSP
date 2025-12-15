@@ -70,10 +70,8 @@
         v-for="module in filteredModules"
         :key="module.key"
         :class="[
-          'rounded-xl border p-4 shadow-sm',
-          module.enabled
-            ? 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5'
-            : 'border-slate-300 bg-slate-50 dark:border-white/5 dark:bg-slate-900/50'
+          'rounded-xl border p-4 shadow-sm transition',
+          getModuleStatusClass(module)
         ]"
       >
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -84,26 +82,45 @@
                 :icon="module.icon"
                 :class="[
                   'h-6 w-6 flex-shrink-0',
-                  module.enabled ? 'text-brand' : 'text-slate-400 dark:text-slate-500'
+                  getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                    ? 'text-slate-400 dark:text-slate-500'
+                    : 'text-brand'
                 ]"
               />
-              <p class="text-lg font-semibold text-slate-900 dark:text-white">
+              <p
+                :class="[
+                  'text-lg font-semibold',
+                  getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                    ? 'text-slate-400 dark:text-slate-500'
+                    : 'text-slate-900 dark:text-white'
+                ]"
+              >
                 {{ module.name }}
               </p>
-              <StatusPill :variant="module.enabled ? 'success' : 'danger'">
-                {{
-                  module.enabled
-                    ? t('adminModules.enabledState.enabled')
-                    : t('adminModules.enabledState.disabled')
-                }}
+              <StatusPill :variant="getModuleStatusBadgeVariant(module)">
+                {{ getModuleStatusLabel(module) }}
               </StatusPill>
               <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-white/10 dark:text-slate-200">
                 Layer: {{ module.layerKey }}
               </span>
             </div>
-            <p class="text-sm text-slate-600 dark:text-slate-400">
+            <p
+              :class="[
+                'text-sm',
+                getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                  ? 'text-slate-400 dark:text-slate-500'
+                  : 'text-slate-600 dark:text-slate-400'
+              ]"
+            >
               {{ module.description }}
             </p>
+            <div
+              v-if="getModuleStatus(module) === 'coming-soon' && getModuleComingSoonMessage(module)"
+              class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
+            >
+              <p class="font-semibold">{{ t('modules.statusModal.options.comingSoon.title') }}</p>
+              <p class="mt-1">{{ getModuleComingSoonMessage(module) }}</p>
+            </div>
             <div class="flex flex-wrap gap-2">
               <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
                 {{ module.category }}
@@ -148,24 +165,14 @@
           </div>
 
           <div class="flex flex-col items-start gap-3 md:items-end">
-            <div class="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
-                {{ t('adminModules.enabledStatus') }}
-              </p>
-              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                <input
-                  :checked="module.enabled"
-                  :disabled="module.updating"
-                  type="checkbox"
-                  class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20"
-                  @change="onEnabledChange(module, ($event.target as HTMLInputElement).checked)"
-                />
-                <span>{{ module.enabled ? t('adminModules.enabled') : t('adminModules.disabled') }}</span>
-              </label>
-              <p v-if="!module.enabled" class="text-xs text-slate-500 dark:text-slate-400">
-                {{ t('adminModules.disabledNote') }}
-              </p>
-            </div>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-brand hover:text-brand dark:border-white/20 dark:text-white"
+              @click="openStatusModal(module)"
+            >
+              <Icon icon="mdi:cog" class="h-4 w-4" />
+              {{ t('adminModules.manageStatus') }}
+            </button>
             <NuxtLink
               :to="module.rootRoute"
               class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
@@ -190,12 +197,23 @@
       </div>
     </div>
   </section>
+
+  <ModuleStatusModal
+    :open="statusModal.open"
+    :module="statusModal.module as any"
+    :current-enabled="statusModal.module?.enabled ?? true"
+    :current-disabled="statusModal.module?.disabled ?? false"
+    :current-coming-soon-message="statusModal.module?.comingSoonMessage ?? null"
+    @close="closeStatusModal"
+    @save="onStatusSave"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, useI18n, useFetch } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
+import ModuleStatusModal from '~/components/modules/ModuleStatusModal.vue'
 import type { ModuleStatus } from '~/lib/module-registry'
 import type { ModuleMeta } from '~/lib/module-registry'
 
@@ -205,7 +223,20 @@ definePageMeta({
 
 const { t } = useI18n()
 
-type ModuleWithEnabled = ModuleMeta & { enabled: boolean; updating?: boolean }
+type ModuleWithEnabled = ModuleMeta & {
+  enabled: boolean
+  disabled?: boolean
+  comingSoonMessage?: string | null
+  updating?: boolean
+}
+
+const statusModal = ref<{
+  open: boolean
+  module: ModuleWithEnabled | null
+}>({
+  open: false,
+  module: null
+})
 
 const { data, pending, refresh } = await useFetch<{ modules: ModuleWithEnabled[] }>('/api/admin/modules')
 const modules = computed(() => data.value?.modules ?? [])
@@ -257,22 +288,93 @@ const statusVariant = (status: ModuleStatus | undefined) => {
   }
 }
 
-const onEnabledChange = async (module: ModuleWithEnabled, enabled: boolean) => {
+const openStatusModal = (module: ModuleWithEnabled) => {
+  statusModal.value = {
+    open: true,
+    module
+  }
+}
+
+const closeStatusModal = () => {
+  statusModal.value = {
+    open: false,
+    module: null
+  }
+}
+
+const onStatusSave = async (data: { enabled: boolean; disabled: boolean; comingSoonMessage: string | null }) => {
+  if (!statusModal.value.module) return
+
+  const module = statusModal.value.module
   module.updating = true
   try {
     await $fetch(`/api/admin/modules/${module.key}/enable`, {
       method: 'PUT',
-      body: { enabled }
+      body: {
+        enabled: data.enabled,
+        disabled: data.disabled,
+        comingSoonMessage: data.comingSoonMessage
+      }
     })
-    module.enabled = enabled
+    module.enabled = data.enabled
+    module.disabled = data.disabled
+    module.comingSoonMessage = data.comingSoonMessage
     await refresh()
+    closeStatusModal()
   } catch (error: any) {
-    console.error('Failed to update module enabled status:', error)
-    // Revert checkbox on error
-    module.enabled = !enabled
+    console.error('Failed to update module status:', error)
   } finally {
     module.updating = false
   }
+}
+
+const getModuleStatus = (module: ModuleWithEnabled): 'active' | 'disabled' | 'hidden' | 'coming-soon' => {
+  if (module.comingSoonMessage && module.disabled) {
+    return 'coming-soon'
+  }
+  if (module.disabled) {
+    return 'disabled'
+  }
+  if (module.enabled === false) {
+    return 'hidden'
+  }
+  return 'active'
+}
+
+const getModuleStatusClass = (module: ModuleWithEnabled) => {
+  const status = getModuleStatus(module)
+  if (status === 'hidden') {
+    return 'border-slate-300 bg-slate-50 dark:border-white/5 dark:bg-slate-900/50 opacity-60'
+  }
+  if (status === 'disabled' || status === 'coming-soon') {
+    return 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30 opacity-75'
+  }
+  return 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5'
+}
+
+const getModuleStatusBadgeVariant = (module: ModuleWithEnabled) => {
+  const status = getModuleStatus(module)
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'disabled':
+      return 'warning'
+    case 'hidden':
+      return 'danger'
+    case 'coming-soon':
+      return 'info'
+    default:
+      return 'success'
+  }
+}
+
+const getModuleStatusLabel = (module: ModuleWithEnabled) => {
+  const status = getModuleStatus(module)
+  return t(`modules.statusModal.options.${status === 'coming-soon' ? 'comingSoon' : status}.title`)
+}
+
+const getModuleComingSoonMessage = (module: ModuleWithEnabled) => {
+  return module.comingSoonMessage ?? null
 }
 </script>
 

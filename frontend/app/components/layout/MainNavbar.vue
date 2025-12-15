@@ -37,10 +37,17 @@
         </li>
         <li v-for="module in visiblePrimaryModules" :key="module.id">
           <NuxtLink
-            :to="module.routePath"
-            class="flex items-center gap-2 whitespace-nowrap py-2 transition hover:[background-color:var(--nav-hover-color)] hover:text-brand-light"
-            :class="isNavActive(module.routePath) ? 'text-brand-light border-b border-brand-light bg-[color:var(--nav-active-color)]' : 'text-white'"
+            :to="module.disabled ? '#' : module.routePath"
+            class="flex items-center gap-2 whitespace-nowrap py-2 transition"
+            :class="[
+              module.disabled
+                ? 'text-white/50 cursor-not-allowed'
+                : isNavActive(module.routePath)
+                  ? 'text-brand-light border-b border-brand-light bg-[color:var(--nav-active-color)] hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+                  : 'text-white hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+            ]"
             :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
+            @click.prevent="module.disabled ? undefined : undefined"
           >
             <Icon v-if="module.icon" :icon="module.icon" class="h-4 w-4 flex-shrink-0" />
             <span>{{ module.name }}</span>
@@ -61,10 +68,17 @@
             >
               <li v-for="module in overflowNavModules" :key="module.id">
                 <NuxtLink
-                  :to="module.routePath"
-                  class="flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition hover:[background-color:var(--nav-hover-color)] hover:text-brand-light"
-                  :class="isNavActive(module.routePath) ? 'text-brand-light bg-[color:var(--nav-active-color)]' : 'text-white'"
+                  :to="module.disabled ? '#' : module.routePath"
+                  class="flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition"
+                  :class="[
+                    module.disabled
+                      ? 'text-white/50 cursor-not-allowed'
+                      : isNavActive(module.routePath)
+                        ? 'text-brand-light bg-[color:var(--nav-active-color)] hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+                        : 'text-white hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+                  ]"
                   :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
+                  @click.prevent="module.disabled ? undefined : undefined"
                 >
                   <Icon v-if="module.icon" :icon="module.icon" class="h-4 w-4 flex-shrink-0" />
                   <span>{{ module.name }}</span>
@@ -116,9 +130,12 @@
       <NuxtLink
         v-for="module in mobileNavModules"
         :key="module.id"
-        :to="module.routePath"
-        class="flex items-center gap-2 py-2 text-sm text-white"
-        @click="mobileOpen = false"
+        :to="module.disabled ? '#' : module.routePath"
+        :class="[
+          'flex items-center gap-2 py-2 text-sm',
+          module.disabled ? 'text-white/50 cursor-not-allowed' : 'text-white'
+        ]"
+        @click="module.disabled ? undefined : (mobileOpen = false)"
       >
         <Icon v-if="module.icon" :icon="module.icon" class="h-4 w-4 flex-shrink-0" />
         <span>{{ module.name }}</span>
@@ -189,9 +206,16 @@ const navHoverColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF
 const navActiveColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0))
 
 const accessibleModules = computed(() => {
-  const list = modulesStore.availableModules.value ?? modulesStore.modules.value
+  const list = modulesStore.modules.value ?? []
   if (!Array.isArray(list)) return []
-  return list.filter((module: VisibleModule) => module.effectiveEnabled && !module.disabled)
+  // Filtrera bort moduler som är:
+  // 1. Helt inaktiverade (enabled === false)
+  // 2. Avaktiverade (disabled === true) - dessa ska inte visas i navigationen
+  // 3. "Kommer snart" (disabled === true med comingSoonMessage) - dessa ska inte visas i navigationen
+  return list.filter((module: VisibleModule) => {
+    // Visa endast moduler som är enabled OCH inte disabled
+    return module.effectiveEnabled !== false && !module.disabled
+  })
 })
 
 const dedupeModules = (items: VisibleModule[]) => {

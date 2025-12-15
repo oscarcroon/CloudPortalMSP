@@ -35,15 +35,19 @@
       <p :class="['mt-3 text-sm', disabled ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300']">
         {{ description }}
       </p>
-      <p v-if="disabled" class="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
-        Modulen är avaktiverad
+      <div v-if="disabled && comingSoonMessage" class="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-2 text-xs dark:border-orange-800 dark:bg-orange-900/20">
+        <p class="font-semibold text-orange-700 dark:text-orange-300">{{ t('modules.statusModal.options.comingSoon.title') }}</p>
+        <p class="mt-1 text-orange-600 dark:text-orange-400">{{ comingSoonMessage }}</p>
+      </div>
+      <p v-else-if="disabled" class="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
+        {{ t('modules.statusModal.options.disabled.title') }}
       </p>
     </div>
     <div v-if="!disabled" class="mt-6 flex items-center justify-between text-brand">
       <span class="text-sm font-semibold">Öppna modul</span>
       <span aria-hidden="true">⟶</span>
     </div>
-    <div v-else class="mt-6 flex items-center justify-between text-slate-400">
+    <div v-else-if="disabled && !comingSoonMessage" class="mt-6 flex items-center justify-between text-slate-400">
       <span class="text-sm font-semibold">Ej tillgänglig</span>
     </div>
   </div>
@@ -51,6 +55,9 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { useI18n } from '#imports'
+
+const { t } = useI18n()
 
 defineProps({
   title: {
@@ -72,6 +79,10 @@ defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  comingSoonMessage: {
+    type: String,
+    default: null
   },
   isFavorite: {
     type: Boolean,
