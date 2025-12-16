@@ -233,11 +233,11 @@
                 />
               </div>
               <div class="mt-2 space-y-3 max-h-72 overflow-y-auto rounded-lg border border-slate-200 p-3 dark:border-white/10 dark:bg-white/5">
-                <div v-if="filteredModuleList.length === 0" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                <div v-if="!filteredModuleList || filteredModuleList.length === 0" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
                   Inga moduler hittades
                 </div>
                 <details
-                  v-for="module in filteredModuleList"
+                  v-for="module in (filteredModuleList || [])"
                   :key="module.key"
                   :open="moduleSearchQuery.trim() !== ''"
                   class="group rounded-lg bg-white p-3 dark:bg-black/20"
@@ -361,6 +361,27 @@ const visibleDelegations = computed(() => {
   return delegations.value.filter((d) => !d.revokedAt)
 })
 
+// Group delegations by user
+const groupedDelegations = computed(() => {
+  const groups = new Map<string, typeof delegations.value>()
+  for (const delegation of visibleDelegations.value) {
+    const key = delegation.subjectId
+    if (!groups.has(key)) {
+      groups.set(key, [])
+    }
+    groups.get(key)!.push(delegation)
+  }
+  return Array.from(groups.entries()).map(([subjectId, delegs]) => ({
+    subjectId,
+    subjectName: delegs[0].subjectName,
+    subjectEmail: delegs[0].subjectEmail,
+    delegations: delegs,
+    activeCount: delegs.filter((d) => !d.revokedAt && !isExpired(d)).length,
+    revokedCount: delegs.filter((d) => d.revokedAt).length,
+    expiredCount: delegs.filter((d) => !d.revokedAt && isExpired(d)).length
+  }))
+})
+
 const moduleList = computed(() =>
   manifests.map((manifest) => ({
     key: manifest.module.key,
@@ -372,6 +393,10 @@ const moduleList = computed(() =>
 
 // Filter modules based on search query
 const filteredModuleList = computed(() => {
+  if (!moduleList.value || !Array.isArray(moduleList.value)) {
+    return []
+  }
+  
   if (!moduleSearchQuery.value.trim()) {
     return moduleList.value
   }
@@ -380,12 +405,17 @@ const filteredModuleList = computed(() => {
   
   return moduleList.value
     .map((module) => {
+      if (!module || !module.name || !module.key) {
+        return null
+      }
+      
       // Check if module name matches
       const nameMatches = module.name.toLowerCase().includes(query) || module.key.toLowerCase().includes(query)
       
       // Filter permissions that match
-      const modulePermissions = module.permissions || []
+      const modulePermissions = Array.isArray(module.permissions) ? module.permissions : []
       const matchingPermissions = modulePermissions.filter((perm) => {
+        if (!perm || !perm.key) return false
         const keyMatches = perm.key.toLowerCase().includes(query)
         const labelMatches = perm.label?.toLowerCase().includes(query) ?? false
         return keyMatches || labelMatches
