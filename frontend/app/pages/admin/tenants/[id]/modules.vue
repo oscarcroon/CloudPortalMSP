@@ -22,6 +22,10 @@
       {{ modulesError }}
     </div>
 
+    <div v-if="resyncMessage" class="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-300">
+      {{ resyncMessage }}
+    </div>
+
     <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
       <div class="flex flex-1 flex-col gap-3 md:flex-row">
         <div class="relative flex-1">
@@ -50,8 +54,20 @@
           </option>
         </select>
       </div>
-      <div class="text-xs text-slate-500 dark:text-slate-300">
-        {{ t('adminTenants.modules.results', { count: filteredModules.length }) }}
+      <div class="flex items-center gap-3">
+        <div class="text-xs text-slate-500 dark:text-slate-300">
+          {{ t('adminTenants.modules.results', { count: filteredModules.length }) }}
+        </div>
+        <button
+          v-if="isSuperAdmin"
+          type="button"
+          :disabled="resyncing"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+          @click="resyncModules"
+        >
+          <Icon :icon="resyncing ? 'mdi:loading' : 'mdi:refresh'" :class="{ 'animate-spin': resyncing }" class="h-4 w-4" />
+          {{ resyncing ? t('adminTenants.modules.resyncing') : t('adminTenants.modules.resync') }}
+        </button>
       </div>
     </div>
 
@@ -267,6 +283,7 @@
 
 <script setup lang="ts">
 import { computed, ref, useFetch, useI18n, useRoute, watch } from '#imports'
+import { useAuth } from '~/composables/useAuth'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import ModuleStatusModal from '~/components/modules/ModuleStatusModal.vue'
@@ -280,6 +297,8 @@ definePageMeta({
 const { t } = useI18n()
 const route = useRoute()
 const tenantId = computed(() => route.params.id as string)
+const { user } = useAuth()
+const isSuperAdmin = computed(() => user.value?.isSuperAdmin ?? false)
 
 type UiModule = ModuleStatusDto & {
   uiMode: PolicyMode
@@ -349,6 +368,8 @@ const modules = computed(() => data.value?.modules ?? [])
 const moduleRows = ref<UiModule[]>([])
 const modulesError = computed(() => error.value?.message ?? '')
 const tenantName = computed(() => tenantResponse.value?.tenant?.name ?? '...')
+const resyncing = ref(false)
+const resyncMessage = ref('')
 
 watch(
   modules,

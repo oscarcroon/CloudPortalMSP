@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull, or, gt, inArray, sql } from 'drizzle-orm'
 import { createError, H3Event } from 'h3'
 import { manifests } from '~~/layers/plugin-manifests'
 import {
@@ -10,13 +10,21 @@ import {
   mspOrgDelegationPermissions,
   orgGroupModulePermissions,
   orgGroupMembers,
-  organizations
+  organizations,
+  tenantMemberships,
+  tenantMemberRoles,
+  tenantMemberMspRoles,
+  mspRoles,
+  mspRolePermissions,
+  modulePermissions as modulePermissionsTable
 } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
 import { ensureAuthState } from './session'
 import type { ModuleId } from '~/constants/modules'
-import type { RbacRole } from '~/constants/rbac'
+import type { RbacRole, TenantRole } from '~/constants/rbac'
 import type { ModulePolicy } from '~/types/modules'
+import { getModulePermissionsForMspRoles } from './mspRolePermissionBundles'
+import { canAccessTenant } from './rbac'
 
 type PermissionKey = string
 
@@ -40,6 +48,55 @@ export interface EffectiveModulePermissions {
 
 const getModuleManifest = (moduleKey: string) =>
   manifests.find((m) => m.module.key === moduleKey)
+
+/**
+ * Get MSP role permissions from database for a tenant membership
+ * Returns permissions for the specified module, filtered by active status
+ */
+async function getMspRolePermissionsFromDb(
+  membershipId: string,
+  moduleKey: string,
+  tenantId: string
+): Promise<Set<string>> {
+  const db = getDb()
+
+  // Get MSP roles assigned to this membership
+  const assignedRoles = await db
+    .select({ roleId: tenantMemberMspRoles.roleId })
+    .from(tenantMemberMspRoles)
+    .where(eq(tenantMemberMspRoles.tenantMembershipId, membershipId))
+
+  if (assignedRoles.length === 0) {
+    return new Set()
+  }
+
+  const roleIds = assignedRoles.map((r) => r.roleId)
+
+  // Batch fetch permissions for these roles, filtered by module and active status
+  // Join with module_permissions to ensure permissions are active
+  const permissions = await db
+    .select({
+      permissionKey: mspRolePermissions.permissionKey
+    })
+    .from(mspRolePermissions)
+    .innerJoin(
+      modulePermissionsTable,
+      and(
+        eq(mspRolePermissions.moduleKey, modulePermissionsTable.moduleKey),
+        eq(mspRolePermissions.permissionKey, modulePermissionsTable.permissionKey)
+      )
+    )
+    .where(
+      and(
+        inArray(mspRolePermissions.roleId, roleIds),
+        eq(mspRolePermissions.moduleKey, moduleKey),
+        eq(modulePermissionsTable.isActive, true),
+        eq(modulePermissionsTable.status, 'active')
+      )
+    )
+
+  return new Set(permissions.map((p) => p.permissionKey))
+}
 
 export const getBaselineModulePermissionsForUser = async (
   orgId: string,
@@ -87,12 +144,12 @@ const parseModulePolicy = (raw?: any | null): ModulePolicy | null => {
   }
 }
 
-const mergePolicies = (upstream: ModulePolicy, current: ModulePolicy | null, permissionKeys: string[]) => {
+const mergePolicies = (upstream: ModulePolicy, current: ModulePolicy | null, permissionKeys: string[]): ModulePolicy => {
   if (!current || current.mode === 'inherit') {
     return upstream
   }
   if (upstream.mode === 'blocked' || current.mode === 'blocked') {
-    return { ...current, mode: 'blocked', allowedPermissions: [], allowedRoles: [] }
+    return { ...current, mode: 'blocked', allowedPermissions: [], allowedRoles: [] } as ModulePolicy
   }
   const base = new Set(
     upstream.allowedPermissions && upstream.allowedPermissions.length > 0 ? upstream.allowedPermissions : permissionKeys
@@ -114,7 +171,7 @@ const mergePolicies = (upstream: ModulePolicy, current: ModulePolicy | null, per
       : Array.from(base)
   return {
     moduleKey: upstream.moduleKey,
-    mode: current.mode as ModulePolicy['mode'],
+    mode: current.mode,
     allowedPermissions,
     allowedRoles: current.allowedRoles ?? [],
     permissionOverrides: mergedOverrides
@@ -185,7 +242,9 @@ export const resolveEffectiveModulePermissions = async ({
   const tenantMerged = mergePolicies(basePolicy, tenantPolicy, permissionKeys)
   const effectivePolicy = mergePolicies(tenantMerged, orgPolicy, permissionKeys)
 
-  if (effectivePolicy.mode === 'blocked') {
+  // Type guard: check if policy is blocked
+  const isPolicyBlocked: boolean = effectivePolicy.mode === 'blocked'
+  if (isPolicyBlocked) {
     const blockedPolicy: ModulePolicy & { enabled: boolean; disabled: boolean } = {
       ...(effectivePolicy as ModulePolicy),
       enabled: false,
@@ -269,8 +328,8 @@ export const resolveEffectiveModulePermissions = async ({
     }
   }
 
-  // Delegation grants (MSP → Org)
-  const now = Date.now()
+  // Delegation grants (MSP → Org) - ad-hoc delegations
+  const nowMs = Date.now()
   const delegationRows = await db
     .select({
       revokedAt: mspOrgDelegations.revokedAt,
@@ -305,10 +364,140 @@ export const resolveEffectiveModulePermissions = async ({
           ? new Date(row.expiresAt as any).getTime()
           : null
     const isRevoked = revokedAt !== null && revokedAt !== undefined
-    const isExpired = expiresAt !== null && expiresAt !== undefined && expiresAt <= now
+    const isExpired = expiresAt !== null && expiresAt !== undefined && expiresAt <= nowMs
     if (isRevoked || isExpired) continue
     if (row.permissionKey) {
       delegatedGrants.add(row.permissionKey)
+    }
+  }
+
+  // Tenant-scope + MSP roles grants (ALL scope via includeChildren)
+  // Get organization's tenant
+  const [orgRecord] = await db
+    .select({ tenantId: organizations.tenantId })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1)
+
+  if (orgRecord?.tenantId) {
+    // Get all tenant memberships for user (to check hierarchy)
+    const allTenantMemberships = await db
+      .select({
+        id: tenantMemberships.id,
+        tenantId: tenantMemberships.tenantId,
+        includeChildren: tenantMemberships.includeChildren,
+        role: tenantMemberships.role
+      })
+      .from(tenantMemberships)
+      .where(eq(tenantMemberships.userId, userId))
+
+    for (const membership of allTenantMemberships) {
+      // Check if this membership can reach the org's tenant
+      // Direct match
+      if (membership.tenantId === orgRecord.tenantId) {
+        // Check if includeChildren is true
+        if (membership.includeChildren) {
+          // Get DB-based MSP role permissions
+          const dbMspPerms = await getMspRolePermissionsFromDb(membership.id, moduleKey, membership.tenantId)
+          for (const perm of dbMspPerms) {
+            delegatedGrants.add(perm)
+          }
+
+          // Also check legacy string-based MSP roles (for backwards compatibility)
+          const mspRoles: TenantRole[] = []
+          
+          // Check primary role
+          if (membership.role.startsWith('msp-')) {
+            mspRoles.push(membership.role as TenantRole)
+          }
+
+          // Get additional roles
+          const additionalRoles = await db
+            .select({ roleKey: tenantMemberRoles.roleKey })
+            .from(tenantMemberRoles)
+            .where(eq(tenantMemberRoles.membershipId, membership.id))
+
+          for (const r of additionalRoles) {
+            if (r.roleKey.startsWith('msp-')) {
+              mspRoles.push(r.roleKey as TenantRole)
+            }
+          }
+
+          // If user has at least one legacy MSP role, get permission bundles (fallback to hardcoded)
+          if (mspRoles.length > 0) {
+            const mspPerms = await getModulePermissionsForMspRoles(mspRoles, moduleKey, membership.tenantId)
+            for (const perm of mspPerms) {
+              delegatedGrants.add(perm)
+            }
+          }
+        }
+      } else if (membership.includeChildren) {
+        // Check tenant hierarchy (simplified - we'll need to check if org's tenant is under membership tenant)
+        // For now, we'll check if there's a parent relationship
+        // This is a simplified check - full hierarchy check would require recursive query
+        // For PR1, we'll focus on direct tenant match with includeChildren
+      }
+    }
+
+    // LIST-scope grants (source='msp_scope')
+    // Check if user has LIST-scope delegation for this org
+    const [listScopeDelegation] = await db
+      .select()
+      .from(mspOrgDelegations)
+      .where(
+        and(
+          eq(mspOrgDelegations.orgId, orgId),
+          eq(mspOrgDelegations.subjectType, 'user'),
+          eq(mspOrgDelegations.subjectId, userId),
+          eq(mspOrgDelegations.source, 'msp_scope'),
+          eq(mspOrgDelegations.supplierTenantId, orgRecord.tenantId),
+          isNull(mspOrgDelegations.revokedAt),
+          or(
+            isNull(mspOrgDelegations.expiresAt),
+            gt(mspOrgDelegations.expiresAt, new Date())
+          )
+        )
+      )
+      .limit(1)
+
+    if (listScopeDelegation) {
+      // Get MSP roles for the tenant membership
+      const tenantMembership = allTenantMemberships.find((m) => m.tenantId === orgRecord.tenantId)
+      if (tenantMembership) {
+        // Get DB-based MSP role permissions
+        const dbMspPerms = await getMspRolePermissionsFromDb(tenantMembership.id, moduleKey, orgRecord.tenantId)
+        for (const perm of dbMspPerms) {
+          delegatedGrants.add(perm)
+        }
+
+        // Also check legacy string-based MSP roles (for backwards compatibility)
+        const mspRoles: TenantRole[] = []
+        
+        // Check primary role
+        if (tenantMembership.role.startsWith('msp-')) {
+          mspRoles.push(tenantMembership.role as TenantRole)
+        }
+
+        // Get additional roles
+        const additionalRoles = await db
+          .select({ roleKey: tenantMemberRoles.roleKey })
+          .from(tenantMemberRoles)
+          .where(eq(tenantMemberRoles.membershipId, tenantMembership.id))
+
+        for (const r of additionalRoles) {
+          if (r.roleKey.startsWith('msp-')) {
+            mspRoles.push(r.roleKey as TenantRole)
+          }
+        }
+
+        // If user has at least one legacy MSP role, get permission bundles (fallback to hardcoded)
+        if (mspRoles.length > 0) {
+          const mspPerms = await getModulePermissionsForMspRoles(mspRoles, moduleKey, orgRecord.tenantId)
+          for (const perm of mspPerms) {
+            delegatedGrants.add(perm)
+          }
+        }
+      }
     }
   }
 
@@ -352,7 +541,7 @@ export const resolveEffectiveModulePermissions = async ({
   }
 
   const policyWithFlags: ModulePolicy & { enabled: boolean; disabled: boolean } = {
-    ...(effectivePolicy as ModulePolicy),
+    ...effectivePolicy,
     enabled: effectivePolicy.mode !== 'blocked',
     disabled: effectivePolicy.mode === 'blocked'
   }

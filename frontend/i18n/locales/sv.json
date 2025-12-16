@@ -1147,6 +1147,10 @@
       "back": "Tillbaka till tenant",
       "title": "Moduler för {name}",
       "description": "Aktivera eller avaktivera moduler för denna tenant. Organisationer under tenant:en kan bara använda moduler som är aktiverade här.",
+      "resync": "Resync moduler",
+      "resyncing": "Synkar...",
+      "resyncSuccess": "Resync klar: {modules} moduler uppdaterade, {added} permissions tillagda, {removed} permissions borttagna, {reactivated} permissions återaktiverade.",
+      "resyncError": "Kunde inte synka moduler.",
       "searchPlaceholder": "Sök moduler...",
       "filters": {
         "allCategories": "Alla kategorier"
@@ -1253,6 +1257,7 @@
         "role": "Roll",
         "mspRoles": "MSP-roller",
         "allOrgs": "Alla orgar",
+        "orgScope": "Org Scope",
         "status": "Status",
         "added": "Tillagd",
         "actions": "Åtgärder"
@@ -1262,12 +1267,53 @@
         "addMspRole": "Lägg till en MSP-roll i listan ovan för att kunna aktivera åtkomst till alla organisationer."
       },
       "mspRoles": {
-        "none": "Inga MSP-roller tillgängliga"
+        "none": "Inga MSP-roller tillgängliga",
+        "createLink": "Skapa MSP-roller →",
+        "showPermissions": "Visa vad detta ger",
+        "descriptions": {
+          "globalAdmin": "Fullständig admin-åtkomst till alla moduler",
+          "globalReader": "Skrivskyddad åtkomst till alla moduler",
+          "cloudflareAdmin": "Fullständig admin-åtkomst till Cloudflare DNS-modulen",
+          "containersAdmin": "Fullständig admin-åtkomst till Containers-modulen",
+          "vmsAdmin": "Fullständig admin-åtkomst till VMs-modulen",
+          "wordpressAdmin": "Fullständig admin-åtkomst till WordPress-modulen",
+          "ncentralAdmin": "Fullständig admin-åtkomst till nCentral-modulen",
+          "monitoringAdmin": "Fullständig admin-åtkomst till Monitoring-modulen",
+          "managedServerAdmin": "Fullständig admin-åtkomst till Managed Server-modulen",
+          "dnsContainersAdmin": "Fullständig admin-åtkomst till Cloudflare DNS och Containers-moduler",
+          "infrastructureAdmin": "Fullständig admin-åtkomst till infrastrukturmoduler",
+          "fullAdmin": "Fullständig admin-åtkomst till alla moduler",
+          "default": "MSP-roll med specifika behörigheter"
+        }
       },
       "includeChildren": {
         "updating": "Uppdaterar...",
         "enabled": "Aktiverad",
         "notEnabled": "Inte aktiv"
+      },
+      "orgScope": {
+        "select": "Välj organisationer...",
+        "allActive": "Alla aktiva organisationer",
+        "count": "{count} valda"
+      },
+      "orgScopeModal": {
+        "title": "Välj organisationer för {name}",
+        "description": "Välj vilka organisationer denna medlem ska ha MSP-åtkomst till.",
+        "search": "Sök",
+        "searchPlaceholder": "Sök efter namn eller slug...",
+        "searchHint": "Sök för att se alla organisationer",
+        "noOrgs": "Inga organisationer tillgängliga",
+        "selected": "{count} av {total} valda",
+        "expiresAt": "Giltig till (valfritt)",
+        "expiresAtHint": "Lämna tomt för att inte sätta utgångsdatum.",
+        "note": "Anteckning (valfritt)",
+        "notePlaceholder": "Lägg till en anteckning om denna delegation...",
+        "effectiveAccess": "Effektiv åtkomst",
+        "organizationsCount": "Organisationer",
+        "permissions": "MSP-roller",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "cancel": "Avbryt"
       },
       "actions": {
         "disable": "Inaktivera",
@@ -1321,9 +1367,58 @@
         "includeChildrenUpdateFailed": "Kunde inte uppdatera åtkomst till alla organisationer.",
         "mspRolesUpdated": "MSP-roller uppdaterades.",
         "mspRolesUpdateFailed": "Kunde inte uppdatera MSP-roller.",
+        "orgScopeUpdated": "Org scope uppdaterades.",
+        "orgScopeUpdateFailed": "Kunde inte uppdatera org scope.",
         "disableConfirm": "Inaktivera {email}? Personen kan inte logga in förrän kontot aktiveras igen.",
         "removeConfirm": "Ta bort {email} permanent? Personen måste bjudas in på nytt för att få åtkomst.",
         "removeFailed": "Kunde inte ta bort medlemmen."
+      }
+    },
+    "mspRoles": {
+      "back": "Tillbaka till tenant",
+      "title": "MSP-roller för {name}",
+      "description": "Hantera MSP-roller och deras behörigheter. MSP-roller definierar vilka modulpermissions som tilldelas till medlemmar med MSP-åtkomst.",
+      "results": "{count} roller",
+      "loading": "Laddar MSP-roller...",
+      "empty": "Inga MSP-roller skapade ännu. Klicka på \"Skapa\" för att skapa din första roll.",
+      "create": "Skapa MSP-roll",
+      "edit": "Redigera",
+      "clone": "Klona",
+      "delete": "Ta bort",
+      "permissions": "Behörigheter",
+      "noPermissions": "Inga behörigheter tilldelade",
+      "usedBy": "Används av {count} medlemmar",
+      "removedPermissions": "{count} borttagna permissions",
+      "removed": "Borttagen",
+      "deprecated": "Föråldrad",
+      "createTitle": "Skapa MSP-roll",
+      "editTitle": "Redigera MSP-roll",
+      "cancel": "Avbryt",
+      "save": "Spara",
+      "saving": "Sparar...",
+      "deleteConfirm": "Vill du verkligen ta bort rollen \"{name}\"?",
+      "selectAll": "Välj alla",
+      "deselectAll": "Avmarkera alla",
+      "loadingPermissions": "Laddar tillgängliga behörigheter...",
+      "noAvailablePermissions": "Inga tillgängliga behörigheter hittades.",
+        "form": {
+          "name": "Namn",
+          "namePlaceholder": "Cloudflare Admin",
+          "description": "Beskrivning",
+          "descriptionPlaceholder": "Fullständig admin-åtkomst till Cloudflare DNS-modulen",
+          "permissions": "Behörigheter",
+          "permissionsHint": "Välj vilka modulpermissions denna roll ska ge. Behörigheterna kommer från deklarerade moduler/plugins.",
+          "searchPlaceholder": "Sök moduler eller rättigheter...",
+          "noResults": "Inga moduler hittades"
+        },
+      "messages": {
+        "created": "MSP-rollen skapades.",
+        "updated": "MSP-rollen uppdaterades.",
+        "cloned": "MSP-rollen klonades.",
+        "deleted": "MSP-rollen togs bort.",
+        "error": "Kunde inte spara MSP-rollen.",
+        "cloneError": "Kunde inte klona MSP-rollen.",
+        "deleteError": "Kunde inte ta bort MSP-rollen."
       }
     },
     "email": {
@@ -1510,6 +1605,7 @@
         "members": "Medlemmar",
         "emailSettings": "E-postinställningar",
         "modulePermissions": "Modulrättigheter",
+        "mspRoles": "MSP-roller",
         "branding": "Branding",
         "auditLogs": "Audit Loggar",
         "delete": "Ta bort permanent",

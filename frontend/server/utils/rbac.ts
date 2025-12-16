@@ -66,39 +66,9 @@ export const requirePermission = async (
     effectiveRole = directRole
   }
 
-  // Delegation: org access utan medlemskap
-  const dbDelegation = await db
-    .select({ revokedAt: mspOrgDelegations.revokedAt, expiresAt: mspOrgDelegations.expiresAt })
-    .from(mspOrgDelegations)
-    .where(
-      and(
-        eq(mspOrgDelegations.orgId, orgId),
-        eq(mspOrgDelegations.subjectType, 'user'),
-        eq(mspOrgDelegations.subjectId, auth.user.id)
-      )
-    )
-
-  const now = Date.now()
-  const hasActiveDelegation = dbDelegation.some((row) => {
-    const revokedAt =
-      typeof row.revokedAt === 'number'
-        ? row.revokedAt
-        : row.revokedAt
-          ? new Date(row.revokedAt as any).getTime()
-          : null
-    const expiresAt =
-      typeof row.expiresAt === 'number'
-        ? row.expiresAt
-        : row.expiresAt
-          ? new Date(row.expiresAt as any).getTime()
-          : null
-    return revokedAt == null && (expiresAt == null || expiresAt > now)
-  })
-
-  let canReachOrganization = Boolean(directRole) || hasActiveDelegation
-  if (!canReachOrganization) {
-    canReachOrganization = await canAccessOrganization(auth, orgId)
-  }
+  // Use centralized reach function (includes delegation checks)
+  const { canReachOrganization: canReachOrg } = await import('./canReachOrganization')
+  let canReachOrganization = Boolean(directRole) || await canReachOrg(auth, orgId)
 
   const moduleId = getModuleIdFromPermission(permission)
 
@@ -343,57 +313,8 @@ export const canAccessOrganization = async (
   auth: Awaited<ReturnType<typeof ensureAuthState>>,
   organizationId: string
 ): Promise<boolean> => {
-  if (!auth) {
-    return false
-  }
-
-  // Check if user can access organization via tenant hierarchy
-  const db = getDb()
-  const [org] = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.id, organizationId))
-
-  if (!org) {
-    return false
-  }
-
-  // Check if organization is active (super admins can always access)
-  if (org.status !== 'active' && !auth.user.isSuperAdmin) {
-    return false
-  }
-
-  // Super admins can always access active organizations
-  if (auth.user.isSuperAdmin) {
-    return true
-  }
-
-  // Check if user has direct organization membership
-  if (auth.orgRoles[organizationId]) {
-    return true
-  }
-
-  if (!org.tenantId) {
-    return false
-  }
-
-  // Check if user has access to the organization's tenant
-  for (const tenantId of Object.keys(auth.tenantRoles)) {
-    const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
-    if (!includeChildren) {
-      // Without includeChildren, can only access direct tenant
-      if (tenantId === org.tenantId) {
-        return true
-      }
-      continue
-    }
-
-    // With includeChildren, check hierarchy
-    if (await canAccessTenant(auth, tenantId, org.tenantId)) {
-      return true
-    }
-  }
-
-  return false
+  // Use centralized reach function
+  const { canReachOrganization } = await import('./canReachOrganization')
+  return canReachOrganization(auth, organizationId)
 }
 

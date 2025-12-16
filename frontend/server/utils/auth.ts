@@ -2,7 +2,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { createError } from 'h3'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, or, gt } from 'drizzle-orm'
 import { createId } from '@paralleldrive/cuid2'
 import { getDb } from './db'
 import type { DrizzleDb } from './db'
@@ -725,8 +725,70 @@ export const setUserDefaultOrg = async (userId: string, organizationId: string |
 }
 
 export const listOrganizationsForUser = async (userId: string) => {
-  const rows = await fetchMembershipRows(userId)
-  return rows.map((row) => mapOrgRow(row, row.membership.role as RbacRole))
+  const db = getDb()
+  
+  // Get direct organization memberships
+  const directRows = await fetchMembershipRows(userId)
+  const directOrgs = directRows.map((row) => mapOrgRow(row, row.membership.role as RbacRole, false))
+  
+  // Get organizations accessible via MSP delegations
+  const now = new Date()
+  const delegatedOrgs = await db
+    .select({
+      org: organizations,
+      auth: organizationAuthSettings
+    })
+    .from(mspOrgDelegations)
+    .innerJoin(organizations, eq(organizations.id, mspOrgDelegations.orgId))
+    .leftJoin(
+      organizationAuthSettings,
+      eq(organizationAuthSettings.organizationId, organizations.id)
+    )
+    .where(
+      and(
+        eq(mspOrgDelegations.subjectType, 'user'),
+        eq(mspOrgDelegations.subjectId, userId),
+        isNull(mspOrgDelegations.revokedAt),
+        or(
+          isNull(mspOrgDelegations.expiresAt),
+          gt(mspOrgDelegations.expiresAt, now)
+        ),
+        eq(organizations.status, 'active')
+      )
+    )
+  
+  // Map delegated organizations (use default role 'viewer' for MSP access)
+  const delegatedOrgList = delegatedOrgs.map((row) => ({
+    id: row.org.id,
+    name: row.org.name,
+    slug: row.org.slug,
+    status: row.org.status,
+    isSuspended: Boolean(row.org.isSuspended),
+    logoUrl: normalizeStoredLogoUrl(row.org.logoUrl),
+    requireSso: Boolean(row.org.requireSso),
+    hasLocalLoginOverride: false, // MSP users don't get local login override
+    role: 'viewer' as RbacRole, // Default role for MSP access
+    tenantId: row.org.tenantId ?? null,
+    lastAccessedAt: null,
+    accessType: 'delegated' as const
+  }))
+  
+  // Combine and deduplicate by org ID (direct access takes precedence)
+  const orgMap = new Map<string, AuthOrganization>()
+  
+  // Add direct organizations first
+  for (const org of directOrgs) {
+    orgMap.set(org.id, org)
+  }
+  
+  // Add delegated organizations (skip if already in map)
+  for (const org of delegatedOrgList) {
+    if (!orgMap.has(org.id)) {
+      orgMap.set(org.id, org)
+    }
+  }
+  
+  return Array.from(orgMap.values())
 }
 
 export const listOrganizationsForEmail = async (email: string) => {

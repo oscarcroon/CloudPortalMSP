@@ -59,13 +59,18 @@ export const modulePermissions = sqliteTable(
       .references(() => modules.key, { onDelete: 'cascade' }),
     permissionKey: text('permission_key').notNull(),
     description: text('description'),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+    status: text('status').notNull().default('active').$type<'active' | 'deprecated' | 'removed'>(),
+    removedAt: integer('removed_at', { mode: 'timestamp_ms' }),
     ...timestampColumns()
   },
   (table) => ({
     modulePermIdx: index('module_permissions_module_perm_idx').on(
       table.moduleKey,
       table.permissionKey
-    )
+    ),
+    statusIdx: index('module_permissions_status_idx').on(table.status),
+    activeIdx: index('module_permissions_active_idx').on(table.isActive)
   })
 )
 
@@ -1269,6 +1274,8 @@ export const mspOrgDelegations = sqliteTable(
     subjectId: text('subject_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    source: text('source').notNull().default('ad_hoc').$type<'ad_hoc' | 'msp_scope'>(),
+    supplierTenantId: text('supplier_tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
     createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
     expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
     note: text('note'),
@@ -1287,7 +1294,8 @@ export const mspOrgDelegations = sqliteTable(
     subjectIdx: index('msp_org_delegations_subject_idx').on(table.subjectType, table.subjectId),
     orgIdx: index('msp_org_delegations_org_idx').on(table.orgId),
     expiresIdx: index('msp_org_delegations_expires_idx').on(table.expiresAt),
-    revokedIdx: index('msp_org_delegations_revoked_idx').on(table.revokedAt)
+    revokedIdx: index('msp_org_delegations_revoked_idx').on(table.revokedAt),
+    tenantUserIdx: index('msp_org_delegations_tenant_user_idx').on(table.supplierTenantId, table.subjectId)
   })
 )
 
@@ -1303,6 +1311,72 @@ export const mspOrgDelegationPermissions = sqliteTable(
   (table) => ({
     pk: primaryKey({ columns: [table.delegationId, table.permissionKey] }),
     permissionIdx: index('msp_org_delegation_permissions_perm_idx').on(table.permissionKey)
+  })
+)
+
+/**
+ * MSP Roles - Dynamically defined roles for MSP access
+ * Each role is tenant-specific and defines which module permissions it grants
+ */
+export const mspRoles = sqliteTable(
+  'msp_roles',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(), // e.g., 'msp-cloudflare-admin'
+    name: text('name').notNull(), // Display name, e.g., 'Cloudflare Admin'
+    description: text('description'), // Optional description
+    isSystem: integer('is_system', { mode: 'boolean' }).notNull().default(false), // true for built-in/system roles
+    createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    tenantKeyUnique: uniqueIndex('msp_roles_tenant_key_unique').on(table.tenantId, table.key),
+    tenantIdx: index('msp_roles_tenant_idx').on(table.tenantId)
+  })
+)
+
+/**
+ * MSP Role Permissions - Maps MSP roles to module permissions
+ * FK to module_permissions ensures integrity (permissions marked as removed are still valid for FK)
+ */
+export const mspRolePermissions = sqliteTable(
+  'msp_role_permissions',
+  {
+    roleId: text('role_id')
+      .notNull()
+      .references(() => mspRoles.id, { onDelete: 'cascade' }),
+    moduleKey: text('module_key').notNull(), // e.g., 'cloudflare-dns'
+    permissionKey: text('permission_key').notNull() // e.g., 'cloudflare-dns:view'
+    // Note: FK to module_permissions(module_key, permission_key) is logical, not enforced by DB
+    // Special values: moduleKey='*' means all modules, permissionKey='*' means all permissions
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.roleId, table.moduleKey, table.permissionKey] }),
+    roleIdx: index('msp_role_permissions_role_idx').on(table.roleId),
+    moduleIdx: index('msp_role_permissions_module_idx').on(table.moduleKey)
+  })
+)
+
+/**
+ * Tenant Member MSP Roles - Join table for assigning MSP roles to tenant members
+ */
+export const tenantMemberMspRoles = sqliteTable(
+  'tenant_member_msp_roles',
+  {
+    tenantMembershipId: text('tenant_membership_id')
+      .notNull()
+      .references(() => tenantMemberships.id, { onDelete: 'cascade' }),
+    roleId: text('role_id')
+      .notNull()
+      .references(() => mspRoles.id, { onDelete: 'cascade' })
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.tenantMembershipId, table.roleId] }),
+    membershipIdx: index('tenant_member_msp_roles_membership_idx').on(table.tenantMembershipId),
+    roleIdx: index('tenant_member_msp_roles_role_idx').on(table.roleId)
   })
 )
 

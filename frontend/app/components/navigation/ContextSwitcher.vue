@@ -79,14 +79,14 @@
               @click.stop="selectContext({ tenantId: tenant.id, organizationId: org.id })"
             >
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5">
                   <p class="truncate font-medium">{{ org.name }}</p>
-                  <span
+                  <Icon
                     v-if="org.accessType === 'delegation'"
-                    class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-900 dark:text-emerald-100"
-                  >
-                    {{ t('contextSwitcher.delegation') }}
-                  </span>
+                    icon="mdi:account-key"
+                    class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                    :title="t('contextSwitcher.delegation')"
+                  />
                 </div>
                 <p class="text-xs text-slate-500">
                   {{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}
@@ -288,6 +288,7 @@ const isOrgLocked = (org: AuthOrganization) =>
 
 async function navigateAfterContextChange(payload: { tenantId?: string | null; organizationId?: string | null }) {
   const isSuperAdminUser = isSuperAdmin.value
+  const currentPath = router.currentRoute.value.path
 
   // If only tenant is selected (no organization), navigate to tenant page for all users
   // This should work even when on settings page
@@ -297,11 +298,37 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
   }
 
   // If user is on settings page and switching organization, just reload to ensure fresh state/view
-  if (router.currentRoute.value.path.startsWith('/settings')) {
+  if (currentPath.startsWith('/settings')) {
     // Since the state is reactive, we often don't need to do anything, but user requested "refresh feel".
     // We can do a simple router replacement to current route to trigger any watchers if needed,
     // or rely on the fact that auth state changed.
     // Let's just return and let reactivity handle it.
+    return
+  }
+
+  // Check if user is on a "core" route that doesn't need refresh on context switch
+  // Core routes handle context changes reactively or don't depend on organization context
+  // Everything else (module/layer pages) will trigger a full page reload
+  const coreRoutes = [
+    '/admin/',           // Admin pages handle context via their own logic
+    '/settings/',        // Settings pages are reactive
+    '/profile',          // Profile is user-specific, not org-specific
+    '/login',            // Auth pages
+    '/forgot-password',
+    '/reset-password',
+    '/invite/',          // Invite flow
+    '/docs/',            // Documentation is static
+    '/docs',
+    '/support/'          // Support pages
+  ]
+  
+  const isOnCorePage = currentPath === '/' || coreRoutes.some(route => currentPath.startsWith(route))
+  
+  if (!isOnCorePage) {
+    // User is on a module/layer page - force a hard browser reload
+    // This ensures all organization-specific data is refreshed for the new context
+    // New modules automatically get this behavior without code changes
+    window.location.reload()
     return
   }
 
@@ -310,7 +337,7 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
       const org = auth.organizations.value.find(o => o.id === payload.organizationId)
       if (org) {
         // Only redirect if we are on an org-specific admin route so view matches context
-        if (router.currentRoute.value.path.includes('/admin/organizations/')) {
+        if (currentPath.includes('/admin/organizations/')) {
           await router.push(`/admin/organizations/${org.slug}/overview`)
         }
         // Otherwise stay on current route; reactive data will follow context

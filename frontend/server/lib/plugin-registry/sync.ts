@@ -1,25 +1,44 @@
-import { eq } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { manifests } from '../../../layers/plugin-manifests'
 import { modules, modulePermissions } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
 
 const uniqueManifests = Array.from(new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values())
 
-export async function syncPluginRegistry() {
+export interface SyncResult {
+  modulesUpdated: number
+  permissionsAdded: number
+  permissionsRemoved: number
+  permissionsReactivated: number
+}
+
+export async function syncPluginRegistry(): Promise<SyncResult> {
   const db = getDb()
 
   // Check if enabled column exists by trying to query it
   let hasEnabledColumn = false
+  let hasLifecycleColumns = false
   try {
     await db.execute('SELECT enabled FROM modules LIMIT 1')
     hasEnabledColumn = true
   } catch {
-    // Column doesn't exist yet, migration hasn't run
     hasEnabledColumn = false
   }
 
+  try {
+    await db.execute('SELECT is_active, status, removed_at FROM module_permissions LIMIT 1')
+    hasLifecycleColumns = true
+  } catch {
+    hasLifecycleColumns = false
+  }
+
+  let modulesUpdated = 0
+  let permissionsAdded = 0
+  let permissionsRemoved = 0
+  let permissionsReactivated = 0
+
   for (const manifest of uniqueManifests) {
-    const { module, permissions, roles, roleDefaults } = manifest
+    const { module, permissions } = manifest
 
     // Check if module already exists to preserve enabled status
     let existing: { enabled?: boolean } | undefined
@@ -62,21 +81,129 @@ export async function syncPluginRegistry() {
         set: updateValues
       })
 
-    await db.delete(modulePermissions).where(eq(modulePermissions.moduleKey, module.key))
+    modulesUpdated++
 
-    if (permissions.length > 0) {
-      await db.insert(modulePermissions).values(
-        permissions.map((permission) => ({
-          moduleKey: module.key,
-          permissionKey: permission.key,
-          description: permission.description ?? null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }))
-      )
+    // Get existing permissions for this module
+    const existingPermissions = await db
+      .select()
+      .from(modulePermissions)
+      .where(eq(modulePermissions.moduleKey, module.key))
+
+    const existingPermMap = new Map(
+      existingPermissions.map((p) => [`${p.moduleKey}:${p.permissionKey}`, p])
+    )
+
+    // Build set of current manifest permissions
+    const manifestPermKeys = new Set(permissions.map((p) => p.key))
+    const manifestPermMap = new Map(permissions.map((p) => [p.key, p]))
+
+    const now = new Date()
+
+    if (hasLifecycleColumns) {
+      // New approach: mark removed instead of delete
+      // 1. Mark permissions that no longer exist in manifest as removed
+      for (const existingPerm of existingPermissions) {
+        if (!manifestPermKeys.has(existingPerm.permissionKey)) {
+          // Permission removed from manifest
+          if (existingPerm.isActive || existingPerm.status === 'active') {
+            await db
+              .update(modulePermissions)
+              .set({
+                isActive: false,
+                status: 'removed',
+                removedAt: now,
+                updatedAt: now
+              })
+              .where(
+                and(
+                  eq(modulePermissions.moduleKey, module.key),
+                  eq(modulePermissions.permissionKey, existingPerm.permissionKey)
+                )
+              )
+            permissionsRemoved++
+          }
+        } else {
+          // Permission exists in manifest - reactivate if it was removed
+          if (!existingPerm.isActive || existingPerm.status === 'removed') {
+            const manifestPerm = manifestPermMap.get(existingPerm.permissionKey)
+            await db
+              .update(modulePermissions)
+              .set({
+                isActive: true,
+                status: 'active',
+                removedAt: null,
+                description: manifestPerm?.description ?? existingPerm.description,
+                updatedAt: now
+              })
+              .where(
+                and(
+                  eq(modulePermissions.moduleKey, module.key),
+                  eq(modulePermissions.permissionKey, existingPerm.permissionKey)
+                )
+              )
+            permissionsReactivated++
+          } else {
+            // Update description if changed
+            const manifestPerm = manifestPermMap.get(existingPerm.permissionKey)
+            if (manifestPerm?.description !== existingPerm.description) {
+              await db
+                .update(modulePermissions)
+                .set({
+                  description: manifestPerm?.description ?? null,
+                  updatedAt: now
+                })
+                .where(
+                  and(
+                    eq(modulePermissions.moduleKey, module.key),
+                    eq(modulePermissions.permissionKey, existingPerm.permissionKey)
+                  )
+                )
+            }
+          }
+        }
+      }
+
+      // 2. Insert new permissions from manifest
+      for (const permission of permissions) {
+        const key = `${module.key}:${permission.key}`
+        if (!existingPermMap.has(key)) {
+          await db.insert(modulePermissions).values({
+            moduleKey: module.key,
+            permissionKey: permission.key,
+            description: permission.description ?? null,
+            isActive: true,
+            status: 'active',
+            removedAt: null,
+            createdAt: now,
+            updatedAt: now
+          })
+          permissionsAdded++
+        }
+      }
+    } else {
+      // Legacy approach: delete and recreate (for backwards compatibility during migration)
+      await db.delete(modulePermissions).where(eq(modulePermissions.moduleKey, module.key))
+
+      if (permissions.length > 0) {
+        await db.insert(modulePermissions).values(
+          permissions.map((permission) => ({
+            moduleKey: module.key,
+            permissionKey: permission.key,
+            description: permission.description ?? null,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }))
+        )
+        permissionsAdded += permissions.length
+      }
     }
+  }
 
-    // Modulroller tas bort i nya permissions-modellen; vi rensar inte befintliga poster här.
+  return {
+    modulesUpdated,
+    permissionsAdded,
+    permissionsRemoved,
+    permissionsReactivated
   }
 }
 

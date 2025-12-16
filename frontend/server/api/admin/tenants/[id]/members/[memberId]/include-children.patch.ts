@@ -7,6 +7,8 @@ import { requireTenantPermission } from '../../../../../../utils/rbac'
 import {
   tenantMemberships,
   tenantMemberRoles,
+  tenantMemberMspRoles,
+  mspRoles,
   tenants,
   users
 } from '../../../../../../database/schema'
@@ -64,14 +66,24 @@ export default defineEventHandler(async (event) => {
   }
 
   const memberRole = membership.role as TenantRole
+  
+  // Check legacy string-based roles
   const roleRows = await db
     .select({ roleKey: tenantMemberRoles.roleKey })
     .from(tenantMemberRoles)
     .where(eq(tenantMemberRoles.membershipId, membership.id))
 
+  // Check DB-based MSP roles
+  const dbMspRoleRows = await db
+    .select({ roleKey: mspRoles.key })
+    .from(tenantMemberMspRoles)
+    .innerJoin(mspRoles, eq(mspRoles.id, tenantMemberMspRoles.roleId))
+    .where(eq(tenantMemberMspRoles.tenantMembershipId, membership.id))
+
   const hasMspRole =
     memberRole.startsWith('msp-') ||
-    roleRows.some((row) => typeof row.roleKey === 'string' && row.roleKey.startsWith('msp-'))
+    roleRows.some((row) => typeof row.roleKey === 'string' && row.roleKey.startsWith('msp-')) ||
+    dbMspRoleRows.length > 0
 
   if (includeChildren) {
     if (membership.tenantType === 'provider') {

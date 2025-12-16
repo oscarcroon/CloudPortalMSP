@@ -76,6 +76,7 @@
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.role') }}</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.mspRoles') }}</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.allOrgs') }}</th>
+                <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.orgScope') }}</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.status') }}</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.added') }}</th>
                 <th class="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.members.table.actions') }}</th>
@@ -148,24 +149,63 @@
                   </select>
                 </td>
                 <td class="px-6 py-3">
-                  <CheckboxDropdown
-                    v-if="mspRoleOptions.length && showMspRoleOptions"
-                    :options="mspRoleDropdownOptions"
-                    :model-value="memberMspRoles[member.membershipId] || []"
-                    :disabled="
-                      member.status !== 'active' ||
-                      mspRolesLoadingId === member.membershipId ||
-                      statusLoadingId === member.membershipId ||
-                      deleteLoadingId === member.membershipId
-                    "
-                    @save="(value) => handleMspRolesChange(member, value)"
-                  />
-                  <p v-else-if="!showMspRoleOptions" class="text-xs text-slate-400 dark:text-slate-500">
-                    —
-                  </p>
-                  <p v-else class="text-xs text-slate-400 dark:text-slate-500">
-                    {{ t('adminTenants.members.mspRoles.none') }}
-                  </p>
+                  <div class="space-y-2">
+                    <CheckboxDropdown
+                      v-if="mspRoleOptions.length && showMspRoleOptions"
+                      :options="mspRoleDropdownOptions"
+                      :model-value="memberMspRoles[member.membershipId] || []"
+                      :disabled="
+                        member.status !== 'active' ||
+                        mspRolesLoadingId === member.membershipId ||
+                        statusLoadingId === member.membershipId ||
+                        deleteLoadingId === member.membershipId
+                      "
+                      @save="(value) => handleMspRolesChange(member, value)"
+                    />
+                    <p v-else-if="!showMspRoleOptions" class="text-xs text-slate-400 dark:text-slate-500">
+                      —
+                    </p>
+                    <div v-else class="text-xs text-slate-400 dark:text-slate-500">
+                      <p>{{ t('adminTenants.members.mspRoles.none') }}</p>
+                      <NuxtLink
+                        :to="`/admin/tenants/${tenantId}/msp-roles`"
+                        class="mt-1 inline-block text-brand hover:underline"
+                      >
+                        {{ t('adminTenants.members.mspRoles.createLink', { default: 'Skapa MSP-roller →' }) }}
+                      </NuxtLink>
+                    </div>
+                    <!-- MSP Role Permissions Preview (collapsible) -->
+                    <div v-if="memberMspRoles[member.membershipId]?.length" class="mt-2">
+                      <button
+                        type="button"
+                        class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                        @click="toggleMspRolePreview(member.membershipId)"
+                      >
+                        <Icon
+                          :icon="mspRolePreviewOpen[member.membershipId] ? 'mdi:chevron-down' : 'mdi:chevron-right'"
+                          class="h-3 w-3"
+                        />
+                        {{ t('adminTenants.members.mspRoles.showPermissions') }}
+                      </button>
+                      <div
+                        v-if="mspRolePreviewOpen[member.membershipId]"
+                        class="mt-1 rounded border border-slate-200 bg-slate-50 p-2 text-xs dark:border-white/10 dark:bg-white/5"
+                      >
+                        <div
+                          v-for="role in memberMspRoles[member.membershipId]"
+                          :key="role"
+                          class="mb-2 last:mb-0"
+                        >
+                          <p class="font-semibold text-slate-700 dark:text-slate-200">
+                            {{ getMspRoleName(role) }}
+                          </p>
+                          <p class="text-slate-600 dark:text-slate-400">
+                            {{ getMspRoleDescription(role) }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-6 py-3">
                   <div v-if="canEditIncludeChildren(member)" class="inline-flex flex-col gap-1 text-slate-600 dark:text-slate-300">
@@ -202,6 +242,46 @@
                     :class="member.includeChildren ? 'text-brand font-semibold' : 'text-slate-400 dark:text-slate-500'"
                   >
                     {{ member.includeChildren ? t('adminTenants.members.includeChildren.enabled') : '—' }}
+                  </span>
+                </td>
+                <td class="px-6 py-3">
+                  <div v-if="canEditIncludeChildren(member)" class="inline-flex flex-col gap-1">
+                    <button
+                      v-if="!member.includeChildren"
+                      class="rounded border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+                      :disabled="
+                        orgScopeLoadingId === member.membershipId ||
+                        !memberHasMspRole(member) ||
+                        statusLoadingId === member.membershipId ||
+                        deleteLoadingId === member.membershipId
+                      "
+                      :title="
+                        !memberHasMspRole(member)
+                          ? t('adminTenants.members.tooltip.addMspRole')
+                          : undefined
+                      "
+                      @click="openOrgScopeModal(member)"
+                    >
+                      {{ t('adminTenants.members.orgScope.select') }}
+                    </button>
+                    <span
+                      v-else
+                      class="text-xs text-slate-500 dark:text-slate-400"
+                    >
+                      {{ t('adminTenants.members.orgScope.allActive') }}
+                    </span>
+                    <span
+                      v-if="memberOrgScopeCount[member.membershipId] !== undefined && !member.includeChildren"
+                      class="text-xs text-slate-500 dark:text-slate-400"
+                    >
+                      {{ t('adminTenants.members.orgScope.count', { count: memberOrgScopeCount[member.membershipId] }) }}
+                    </span>
+                  </div>
+                  <span
+                    v-else
+                    class="text-xs text-slate-400 dark:text-slate-500"
+                  >
+                    —
                   </span>
                 </td>
                 <td class="px-6 py-3">
@@ -396,6 +476,144 @@
         </div>
       </form>
     </div>
+
+    <!-- Org Scope Modal -->
+    <div
+      v-if="showOrgScopeModal && selectedMemberForOrgScope"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8"
+      @click.self="closeOrgScopeModal"
+    >
+      <div class="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0f172a]">
+        <div class="flex-shrink-0 flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
+            {{ t('adminTenants.members.orgScopeModal.title', { name: selectedMemberForOrgScope.fullName || selectedMemberForOrgScope.email }) }}
+          </h3>
+          <button
+            class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-200"
+            @click="closeOrgScopeModal"
+          >
+            <Icon icon="mdi:close" class="h-5 w-5" />
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <p class="text-sm text-slate-600 dark:text-slate-400">
+            {{ t('adminTenants.members.orgScopeModal.description') }}
+          </p>
+
+          <div>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.members.orgScopeModal.search') }}
+            </label>
+            <input
+              v-model="orgScopeSearchQuery"
+              type="text"
+              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+              :placeholder="t('adminTenants.members.orgScopeModal.searchPlaceholder')"
+            />
+          </div>
+
+          <div class="max-h-[200px] space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3 dark:border-white/10">
+            <div v-if="!displayedOrgs.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.members.orgScopeModal.noOrgs') }}
+            </div>
+            <label
+              v-for="org in displayedOrgs"
+              :key="org.id"
+              class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 transition hover:bg-slate-50 dark:border-white/10 dark:bg-black/20 dark:hover:bg-black/30"
+            >
+              <input
+                type="checkbox"
+                class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20"
+                :checked="selectedOrgIds.includes(org.id)"
+                @change="toggleOrgSelection(org.id, $event)"
+              />
+              <div class="flex-1">
+                <p class="font-semibold text-slate-900 dark:text-white">{{ org.name }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ org.slug }}</p>
+              </div>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-white/10 dark:bg-white/5">
+            <span class="text-slate-700 dark:text-slate-200">
+              {{ t('adminTenants.members.orgScopeModal.selected', { count: selectedOrgIds.length, total: availableOrgs.length }) }}
+            </span>
+            <span v-if="!orgScopeSearchQuery.trim() && availableOrgs.length > 4" class="text-xs text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.members.orgScopeModal.searchHint', { default: 'Sök för att se alla organisationer' }) }}
+            </span>
+          </div>
+
+          <!-- Optional fields: Expiry and Note -->
+          <div class="space-y-4 border-t border-slate-200 pt-4 dark:border-white/10">
+            <div>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {{ t('adminTenants.members.orgScopeModal.expiresAt') }}
+              </label>
+              <input
+                v-model="orgScopeExpiresAt"
+                type="datetime-local"
+                class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+              />
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {{ t('adminTenants.members.orgScopeModal.expiresAtHint') }}
+              </p>
+            </div>
+            <div>
+              <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {{ t('adminTenants.members.orgScopeModal.note') }}
+              </label>
+              <textarea
+                v-model="orgScopeNote"
+                rows="3"
+                class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+                :placeholder="t('adminTenants.members.orgScopeModal.notePlaceholder')"
+              />
+            </div>
+          </div>
+
+          <!-- Effective Access Preview -->
+          <div v-if="selectedMemberForOrgScope && memberHasMspRole(selectedMemberForOrgScope)" class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <h4 class="mb-2 text-sm font-semibold text-slate-900 dark:text-white">
+              {{ t('adminTenants.members.orgScopeModal.effectiveAccess') }}
+            </h4>
+            <div class="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+              <p>
+                <span class="font-semibold">{{ t('adminTenants.members.orgScopeModal.organizationsCount') }}:</span>
+                {{ selectedMemberForOrgScope.includeChildren ? availableOrgs.length : selectedOrgIds.length }}
+              </p>
+              <div v-if="memberMspRoles[selectedMemberForOrgScope.membershipId]?.length">
+                <p class="mb-1 font-semibold">{{ t('adminTenants.members.orgScopeModal.permissions') }}:</p>
+                <ul class="ml-4 list-disc space-y-1">
+                  <li v-for="role in memberMspRoles[selectedMemberForOrgScope.membershipId]" :key="role">
+                    {{ getMspRoleName(role) }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex-shrink-0 flex justify-end gap-2 border-t border-slate-200 px-6 py-4 dark:border-white/10">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+            :disabled="orgScopeLoadingId === selectedMemberForOrgScope.membershipId"
+            @click="closeOrgScopeModal"
+          >
+            {{ t('adminTenants.members.orgScopeModal.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/80 disabled:opacity-60"
+            :disabled="orgScopeLoadingId === selectedMemberForOrgScope.membershipId"
+            @click="saveOrgScope"
+          >
+            {{ orgScopeLoadingId === selectedMemberForOrgScope.membershipId
+              ? t('adminTenants.members.orgScopeModal.saving')
+              : t('adminTenants.members.orgScopeModal.save') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -416,16 +634,59 @@ import { useAuth } from '~/composables/useAuth'
 import { getTenantRoleLabel, MSP_TENANT_ROLES } from '~/utils/tenantRoles'
 import { useI18n } from '#imports'
 
-const { t } = useI18n()
-
 definePageMeta({
   layout: 'default'
 })
 
 const route = useRoute()
+const tenantId = computed(() => route.params.id as string)
+const { t } = useI18n()
 const auth = useAuth()
 const standardRoleOptions = [...standardTenantRoles]
-const mspRoleOptions = [...MSP_TENANT_ROLES]
+// Fetch DB-based MSP roles for this tenant
+const { data: mspRolesData } = await useFetch<{ roles: Array<{ id: string; key: string; name: string }> }>(
+  () => `/api/admin/tenants/${tenantId.value}/msp-roles`,
+  {
+    watch: [tenantId],
+    default: () => ({ roles: [] })
+  }
+)
+
+// Use only DB-based MSP roles
+const mspRoleOptions = computed(() => {
+  return mspRolesData.value?.roles.map((r) => r.key) || []
+})
+
+// Map role keys to IDs for DB-based roles
+const mspRoleKeyToId = computed(() => {
+  const map: Record<string, string> = {}
+  for (const role of mspRolesData.value?.roles || []) {
+    map[role.key] = role.id
+  }
+  return map
+})
+
+// Map role keys to names for DB-based roles
+// This ensures we always use the database name if available
+const mspRoleKeyToName = computed(() => {
+  const map: Record<string, string> = {}
+  if (mspRolesData.value?.roles) {
+    for (const role of mspRolesData.value.roles) {
+      map[role.key] = role.name
+    }
+  }
+  return map
+})
+
+// Map role keys to descriptions for DB-based roles
+const mspRoleKeyToDescription = computed(() => {
+  const map: Record<string, string | null> = {}
+  for (const role of mspRolesData.value?.roles || []) {
+    map[role.key] = role.description
+  }
+  return map
+})
+
 const showMspRoleOptions = computed(() => {
   if (!tenant.value) return false
   if (tenant.value.type === 'provider') return true
@@ -434,7 +695,6 @@ const showMspRoleOptions = computed(() => {
   }
   return false
 })
-const tenantId = computed(() => route.params.id as string)
 
 const showInvite = ref(false)
 const inviteSubmitting = ref(false)
@@ -448,10 +708,24 @@ const inviteCancelLoadingId = ref('')
 const inviteResendLoadingId = ref('')
 const includeChildrenLoadingId = ref('')
 const mspRolesLoadingId = ref('')
+const orgScopeLoadingId = ref('')
 
 const userExists = ref(false)
 const checkingUser = ref(false)
 const searchQuery = ref('')
+
+// Org scope state
+const memberOrgScopeCount = reactive<Record<string, number>>({})
+const showOrgScopeModal = ref(false)
+const selectedMemberForOrgScope = ref<AdminTenantMember | null>(null)
+const availableOrgs = ref<Array<{ id: string; name: string; slug: string }>>([])
+const selectedOrgIds = ref<string[]>([])
+const orgScopeSearchQuery = ref('')
+const orgScopeExpiresAt = ref<string>('')
+const orgScopeNote = ref<string>('')
+
+// MSP role preview state
+const mspRolePreviewOpen = reactive<Record<string, boolean>>({})
 
 // Tooltip state
 const visibleTooltips = reactive<Record<string, boolean>>({})
@@ -499,6 +773,20 @@ const { data, pending, refresh, error } = await useFetch<AdminTenantMembersRespo
   }
 )
 
+// Fetch organizations for tenant
+const { data: orgsData } = await useFetch<{ organizations: Array<{ id: string; name: string; slug: string }> }>(
+  `/api/admin/tenants/${tenantId.value}/organizations`,
+  {
+    watch: [tenantId]
+  }
+)
+
+watch(() => orgsData.value, (data) => {
+  if (data?.organizations) {
+    availableOrgs.value = data.organizations
+  }
+}, { immediate: true })
+
 if (error.value) {
   errorMessage.value = error.value.message
 }
@@ -530,6 +818,29 @@ const invites = computed(() => {
   return result
 })
 
+const memberHasMspRole = (member: AdminTenantMember) => {
+  const assignedRoles = memberMspRoles[member.membershipId] ?? member.mspRoles ?? []
+  return (
+    member.role.startsWith('msp-') ||
+    assignedRoles.some((role) => role.startsWith('msp-'))
+  )
+}
+
+const loadOrgScopeCount = async (member: AdminTenantMember) => {
+  try {
+    const scope = await $fetch<{ orgIds: Array<{ id: string }> }>(
+      `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/msp-org-scope`
+    )
+    memberOrgScopeCount[member.membershipId] = scope.orgIds.length
+  } catch (err) {
+    // Ignore errors silently - user might not have permission or no delegations exist yet
+    // Count will remain undefined, which is fine
+    if (import.meta.dev) {
+      console.debug('Failed to load org scope count:', err)
+    }
+  }
+}
+
 const syncMemberRoleState = (list: AdminTenantMember[]) => {
   const seen = new Set<string>()
   for (const member of list) {
@@ -548,6 +859,12 @@ watch(
   (list) => {
     if (Array.isArray(list)) {
       syncMemberRoleState(list)
+      // Load org scope counts for members
+      for (const member of list) {
+        if (memberHasMspRole(member) && !member.includeChildren) {
+          loadOrgScopeCount(member)
+        }
+      }
     }
   },
   { immediate: true }
@@ -565,9 +882,9 @@ const isStandardRole = (role: string | TenantRole) =>
 const tenantRoleLabel = (role: string | TenantRole) => getTenantRoleLabel(role)
 
 const mspRoleDropdownOptions = computed(() =>
-  mspRoleOptions.map((role) => ({
+  (mspRoleOptions.value || []).map((role) => ({
     value: role,
-    label: getTenantRoleLabel(role),
+    label: getMspRoleName(role),
     description: undefined
   }))
 )
@@ -805,14 +1122,6 @@ const setMemberStatus = async (
   }
 }
 
-const memberHasMspRole = (member: AdminTenantMember) => {
-  const assignedRoles = memberMspRoles[member.membershipId] ?? member.mspRoles ?? []
-  return (
-    member.role.startsWith('msp-') ||
-    assignedRoles.some((role) => role.startsWith('msp-'))
-  )
-}
-
 const canEditIncludeChildren = (member: AdminTenantMember) => {
   const tenantInfo = tenant.value
   if (!tenantInfo) return false
@@ -868,21 +1177,33 @@ const toggleMemberIncludeChildren = async (member: AdminTenantMember, nextValue:
 const handleMspRolesChange = async (member: AdminTenantMember, selectedRoles: string[]) => {
   // Update local state immediately for better UX
   memberMspRoles[member.membershipId] = selectedRoles as TenantRole[]
-  
+
   mspRolesLoadingId.value = member.membershipId
   errorMessage.value = ''
   successMessage.value = ''
-  
+
   const previousRoles = [...(member.mspRoles ?? [])]
-  
+
   try {
+    // Convert role keys to IDs for DB-based roles
+    const roleIds: string[] = []
+    
+    for (const roleKey of selectedRoles) {
+      const roleId = mspRoleKeyToId.value[roleKey]
+      if (roleId) {
+        roleIds.push(roleId)
+      }
+    }
+
+    // Update DB-based roles
     await $fetch(
-      `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/roles`,
+      `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/msp-roles`,
       {
-        method: 'PATCH',
-        body: { mspRoles: selectedRoles }
+        method: 'PUT',
+        body: { roleIds }
       }
     )
+
     await refresh()
     successMessage.value = t('adminTenants.members.messages.mspRolesUpdated')
     setTimeout(() => (successMessage.value = ''), 3000)
@@ -894,6 +1215,167 @@ const handleMspRolesChange = async (member: AdminTenantMember, selectedRoles: st
     await refresh()
   } finally {
     mspRolesLoadingId.value = ''
+  }
+}
+
+const filteredAvailableOrgs = computed(() => {
+  if (!orgScopeSearchQuery.value.trim()) {
+    return availableOrgs.value
+  }
+  const query = orgScopeSearchQuery.value.toLowerCase().trim()
+  return availableOrgs.value.filter((org) => {
+    return org.name.toLowerCase().includes(query) || org.slug.toLowerCase().includes(query)
+  })
+})
+
+// Display only 3-4 orgs when not searching, all when searching
+const displayedOrgs = computed(() => {
+  if (orgScopeSearchQuery.value.trim()) {
+    return filteredAvailableOrgs.value
+  }
+  // Show only first 4 organizations when not searching
+  return filteredAvailableOrgs.value.slice(0, 4)
+})
+
+const toggleOrgSelection = (orgId: string, event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.checked) {
+    if (!selectedOrgIds.value.includes(orgId)) {
+      selectedOrgIds.value.push(orgId)
+    }
+  } else {
+    selectedOrgIds.value = selectedOrgIds.value.filter((id) => id !== orgId)
+  }
+}
+
+const toggleMspRolePreview = (membershipId: string) => {
+  mspRolePreviewOpen[membershipId] = !mspRolePreviewOpen[membershipId]
+}
+
+// Helper function to get MSP role name, prioritizing database names
+const getMspRoleName = (roleKey: string): string => {
+  // First, try to find the role in the database
+  const dbRole = mspRolesData.value?.roles?.find(r => r.key === roleKey)
+  if (dbRole?.name) {
+    return dbRole.name
+  }
+  // Fallback to computed map
+  if (mspRoleKeyToName.value?.[roleKey]) {
+    return mspRoleKeyToName.value[roleKey]
+  }
+  // Last resort: use legacy label
+  return getTenantRoleLabel(roleKey)
+}
+
+const getMspRoleDescription = (role: TenantRole): string => {
+  // First, try to find the role in the database
+  const dbRole = mspRolesData.value?.roles?.find(r => r.key === role)
+  if (dbRole?.description) {
+    return dbRole.description
+  }
+  // Fallback to computed map
+  if (mspRoleKeyToDescription.value?.[role]) {
+    return mspRoleKeyToDescription.value[role] || ''
+  }
+  // Last resort: use legacy descriptions
+  const descriptions: Record<string, string> = {
+    'msp-global-admin': t('adminTenants.members.mspRoles.descriptions.globalAdmin'),
+    'msp-global-reader': t('adminTenants.members.mspRoles.descriptions.globalReader'),
+    'msp-cloudflare-admin': t('adminTenants.members.mspRoles.descriptions.cloudflareAdmin'),
+    'msp-containers-admin': t('adminTenants.members.mspRoles.descriptions.containersAdmin'),
+    'msp-vms-admin': t('adminTenants.members.mspRoles.descriptions.vmsAdmin'),
+    'msp-wordpress-admin': t('adminTenants.members.mspRoles.descriptions.wordpressAdmin'),
+    'msp-ncentral-admin': t('adminTenants.members.mspRoles.descriptions.ncentralAdmin'),
+    'msp-monitoring-admin': t('adminTenants.members.mspRoles.descriptions.monitoringAdmin'),
+    'msp-managed-server-admin': t('adminTenants.members.mspRoles.descriptions.managedServerAdmin'),
+    'msp-dns-containers-admin': t('adminTenants.members.mspRoles.descriptions.dnsContainersAdmin'),
+    'msp-infrastructure-admin': t('adminTenants.members.mspRoles.descriptions.infrastructureAdmin'),
+    'msp-full-admin': t('adminTenants.members.mspRoles.descriptions.fullAdmin')
+  }
+  return descriptions[role] || t('adminTenants.members.mspRoles.descriptions.default')
+}
+
+const openOrgScopeModal = async (member: AdminTenantMember) => {
+  selectedMemberForOrgScope.value = member
+  orgScopeSearchQuery.value = ''
+  selectedOrgIds.value = []
+  orgScopeExpiresAt.value = ''
+  orgScopeNote.value = ''
+  showOrgScopeModal.value = true
+
+  // Load current org scope for this member
+  try {
+    const scope = await $fetch<{ orgIds: Array<{ id: string; expiresAt?: string | null; note?: string | null }> }>(
+      `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/msp-org-scope`
+    )
+    selectedOrgIds.value = scope.orgIds.map((o) => o.id)
+    // Use first delegation's expiry/note if available (they should be the same for all)
+    if (scope.orgIds.length > 0 && scope.orgIds[0].expiresAt) {
+      const date = new Date(scope.orgIds[0].expiresAt)
+      orgScopeExpiresAt.value = date.toISOString().slice(0, 16) // Format for datetime-local input
+    }
+    if (scope.orgIds.length > 0 && scope.orgIds[0].note) {
+      orgScopeNote.value = scope.orgIds[0].note
+    }
+  } catch (err) {
+    console.error('Failed to load org scope:', err)
+  }
+}
+
+const closeOrgScopeModal = () => {
+  showOrgScopeModal.value = false
+  selectedMemberForOrgScope.value = null
+  orgScopeSearchQuery.value = ''
+  selectedOrgIds.value = []
+  orgScopeExpiresAt.value = ''
+  orgScopeNote.value = ''
+}
+
+const saveOrgScope = async () => {
+  if (!selectedMemberForOrgScope.value) return
+
+  orgScopeLoadingId.value = selectedMemberForOrgScope.value.membershipId
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    const payload: {
+      orgIds: string[]
+      expiresAt?: number | null
+      note?: string | null
+    } = {
+      orgIds: selectedOrgIds.value
+    }
+
+    if (orgScopeExpiresAt.value) {
+      payload.expiresAt = new Date(orgScopeExpiresAt.value).getTime()
+    } else {
+      payload.expiresAt = null
+    }
+
+    if (orgScopeNote.value.trim()) {
+      payload.note = orgScopeNote.value.trim()
+    } else {
+      payload.note = null
+    }
+
+    await $fetch(
+      `/api/admin/tenants/${tenantId.value}/members/${selectedMemberForOrgScope.value.membershipId}/msp-org-scope`,
+      {
+        method: 'PUT',
+        body: payload
+      }
+    )
+    await refresh()
+    closeOrgScopeModal()
+    successMessage.value = t('adminTenants.members.messages.orgScopeUpdated')
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.members.messages.orgScopeUpdateFailed')
+  } finally {
+    orgScopeLoadingId.value = ''
   }
 }
 

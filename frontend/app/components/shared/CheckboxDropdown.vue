@@ -169,12 +169,106 @@ const updateDropdownPosition = () => {
     dropdownStyle.value = {}
     return
   }
-  const rect = buttonRef.value.getBoundingClientRect()
-  dropdownStyle.value = {
-    top: `${rect.bottom + 4}px`,
-    left: `${rect.left}px`,
-    position: 'fixed'
-  }
+  
+  nextTick(() => {
+    if (!buttonRef.value || !dropdownRef.value) return
+    
+    const buttonRect = buttonRef.value.getBoundingClientRect()
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+    const dropdownWidth = 320 // w-[320px]
+    const gap = 4 // Gap between button and dropdown
+    
+    // Get actual dropdown dimensions
+    const dropdownRect = dropdownRef.value.getBoundingClientRect()
+    const estimatedDropdownHeight = dropdownRect.height || 400
+    
+    const spaceBelow = viewportHeight - buttonRect.bottom
+    const spaceAbove = buttonRect.top
+    
+    // Determine if we should open upward or downward
+    // Prefer downward, but open upward if there's not enough space below
+    const openUpward = spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow
+    
+    let top: number
+    let maxHeight: string
+    
+    if (openUpward) {
+      // Open upward: position above the button
+      top = buttonRect.top - estimatedDropdownHeight - gap
+      // Ensure it doesn't go above viewport
+      if (top < gap) {
+        top = gap
+        maxHeight = `${Math.max(200, viewportHeight - gap * 2)}px`
+      } else {
+        maxHeight = `${Math.max(200, spaceAbove - gap * 2)}px`
+      }
+    } else {
+      // Open downward: position below the button
+      top = buttonRect.bottom + gap
+      // Ensure it doesn't go below viewport
+      if (top + estimatedDropdownHeight > viewportHeight - gap) {
+        top = viewportHeight - estimatedDropdownHeight - gap
+        if (top < gap) {
+          top = gap
+          maxHeight = `${Math.max(200, viewportHeight - gap * 2)}px`
+        } else {
+          maxHeight = `${Math.max(200, viewportHeight - top - gap)}px`
+        }
+      } else {
+        maxHeight = `${Math.max(200, spaceBelow - gap * 2)}px`
+      }
+    }
+    
+    // Handle horizontal positioning - align left edge with button
+    let left = buttonRect.left
+    
+    // If dropdown would overflow right, align to right edge of button
+    if (left + dropdownWidth > viewportWidth - gap) {
+      left = buttonRect.right - dropdownWidth
+      // If still overflowing, align to viewport right edge
+      if (left < gap) {
+        left = viewportWidth - dropdownWidth - gap
+      }
+    }
+    
+    // Ensure dropdown doesn't go off left edge
+    if (left < gap) {
+      left = gap
+    }
+    
+    dropdownStyle.value = {
+      top: `${top}px`,
+      left: `${left}px`,
+      position: 'fixed',
+      maxHeight,
+      width: `${dropdownWidth}px`
+    }
+    
+    // Final adjustment after render to ensure it's within viewport
+    nextTick(() => {
+      if (!dropdownRef.value) return
+      
+      const finalRect = dropdownRef.value.getBoundingClientRect()
+      
+      // Adjust if still outside viewport vertically
+      if (finalRect.top < 0) {
+        dropdownStyle.value.top = `${gap}px`
+        dropdownStyle.value.maxHeight = `${Math.max(200, viewportHeight - gap * 2)}px`
+      } else if (finalRect.bottom > viewportHeight) {
+        const newTop = viewportHeight - finalRect.height - gap
+        dropdownStyle.value.top = `${Math.max(gap, newTop)}px`
+        dropdownStyle.value.maxHeight = `${Math.max(200, viewportHeight - newTop - gap)}px`
+      }
+      
+      // Adjust if still outside viewport horizontally
+      if (finalRect.left < 0) {
+        dropdownStyle.value.left = `${gap}px`
+      } else if (finalRect.right > viewportWidth) {
+        dropdownStyle.value.left = `${viewportWidth - dropdownWidth - gap}px`
+      }
+    })
+  })
 }
 
 // Update position on scroll/resize
