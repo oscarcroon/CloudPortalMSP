@@ -6,6 +6,7 @@
     "updating": "Uppdaterar...",
     "load": "Ladda",
     "cancel": "Avbryt",
+    "close": "Stäng",
     "delete": "Ta bort",
     "unknown": "Okänd",
     "refresh": "Uppdatera"
@@ -351,7 +352,11 @@
         "title": "Grupper",
         "description": "Hantera grupper för ACL.",
         "loading": "Laddar grupper...",
-        "empty": "Inga grupper"
+        "empty": "Inga grupper",
+        "open": "Öppna grupper"
+      },
+      "delegations": {
+        "open": "Delegationer"
       },
       "manageStatus": "Hantera status",
       "cannotManageStatusReason": "Modulen måste vara aktiverad på högre nivå för att kunna hantera status här.",
@@ -439,6 +444,9 @@
       "next": "Nästa",
       "page": "Sida {current} av {total}",
       "noOrganizations": "Inga organisationer är kopplade till den aktuella leverantören. Lägg till en organisation eller byt leverantör i context switchern."
+    },
+    "delegations": {
+      "open": "Delegationer"
     },
     "members": {
       "title": "Medlemmar",

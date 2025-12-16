@@ -6,6 +6,7 @@
     "updating": "Updating...",
     "load": "Load",
     "cancel": "Cancel",
+    "close": "Close",
     "delete": "Delete",
     "unknown": "Unknown",
     "refresh": "Refresh"
@@ -351,7 +352,11 @@
         "title": "Groups",
         "description": "Manage groups for ACL.",
         "loading": "Loading groups...",
-        "empty": "No groups"
+        "empty": "No groups",
+        "open": "Open Groups"
+      },
+      "delegations": {
+        "open": "Delegations"
       },
       "manageStatus": "Manage Status",
       "cannotManageStatusReason": "The module must be enabled at a higher level to manage status here.",
@@ -439,6 +444,9 @@
       "next": "Next",
       "page": "Page {current} of {total}",
       "noOrganizations": "No organizations are linked to the current provider. Add an organization or switch provider in the context switcher."
+    },
+    "delegations": {
+      "open": "Delegations"
     },
     "members": {
       "title": "Members",

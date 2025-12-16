@@ -2,10 +2,10 @@
   <section class="space-y-8">
     <header class="space-y-2">
       <NuxtLink
-        to="/admin/organizations"
+        to="/settings"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka till listan
+        ← Tillbaka till inställningar
       </NuxtLink>
       <div>
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Delegationer</h1>
@@ -14,8 +14,6 @@
         </p>
       </div>
     </header>
-
-    <OrganizationTabs :slug="slug" active="delegations" />
 
     <div v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/5 dark:text-red-200">
       {{ errorMessage }}
@@ -233,11 +231,11 @@
                 />
               </div>
               <div class="mt-2 space-y-3 max-h-72 overflow-y-auto rounded-lg border border-slate-200 p-3 dark:border-white/10 dark:bg-white/5">
-                <div v-if="filteredModuleList.length === 0" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                <div v-if="!filteredModuleList || filteredModuleList.length === 0" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
                   Inga moduler hittades
                 </div>
                 <details
-                  v-for="module in filteredModuleList"
+                  v-for="module in (filteredModuleList || [])"
                   :key="module.key"
                   :open="moduleSearchQuery.trim() !== ''"
                   class="group rounded-lg bg-white p-3 dark:bg-black/20"
@@ -321,20 +319,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useFetch, useRoute, watch } from '#imports'
+import { computed, ref, useFetch, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
-import OrganizationTabs from '~/components/admin/OrganizationTabs.vue'
+import { useAuth } from '~/composables/useAuth'
 import type { AdminDelegation, AdminDelegationsResponse, AdminUsersResponse } from '~/types/admin'
 import { manifests } from '~~/layers/plugin-manifests'
 
 definePageMeta({
-  layout: 'default',
-  superAdmin: true
+  layout: 'default'
 })
 
-const route = useRoute()
-const slug = computed(() => route.params.slug as string)
+const auth = useAuth()
+const currentOrgId = computed(() => auth.currentOrg.value?.id)
 
 const errorMessage = ref('')
 const pendingAction = ref('')
@@ -342,9 +339,9 @@ const expanded = ref<Set<string>>(new Set())
 const showRevoked = ref(false)
 
 const { data, pending, refresh, error } = await useFetch<AdminDelegationsResponse>(
-  () => `/api/admin/organizations/${slug.value}/delegations`,
+  () => currentOrgId.value ? `/api/organizations/${currentOrgId.value}/delegations` : null,
   {
-    watch: [slug, showRevoked],
+    watch: [currentOrgId, showRevoked],
     query: computed(() => ({ revoked: showRevoked.value ? 'true' : 'false' }))
   }
 )
@@ -361,6 +358,27 @@ const visibleDelegations = computed(() => {
   return delegations.value.filter((d) => !d.revokedAt)
 })
 
+// Group delegations by user
+const groupedDelegations = computed(() => {
+  const groups = new Map<string, typeof delegations.value>()
+  for (const delegation of visibleDelegations.value) {
+    const key = delegation.subjectId
+    if (!groups.has(key)) {
+      groups.set(key, [])
+    }
+    groups.get(key)!.push(delegation)
+  }
+  return Array.from(groups.entries()).map(([subjectId, delegs]) => ({
+    subjectId,
+    subjectName: delegs[0].subjectName,
+    subjectEmail: delegs[0].subjectEmail,
+    delegations: delegs,
+    activeCount: delegs.filter((d) => !d.revokedAt && !isExpired(d)).length,
+    revokedCount: delegs.filter((d) => d.revokedAt).length,
+    expiredCount: delegs.filter((d) => !d.revokedAt && isExpired(d)).length
+  }))
+})
+
 const moduleList = computed(() =>
   manifests.map((manifest) => ({
     key: manifest.module.key,
@@ -372,6 +390,10 @@ const moduleList = computed(() =>
 
 // Filter modules based on search query
 const filteredModuleList = computed(() => {
+  if (!moduleList.value || !Array.isArray(moduleList.value)) {
+    return []
+  }
+  
   if (!moduleSearchQuery.value.trim()) {
     return moduleList.value
   }
@@ -380,12 +402,17 @@ const filteredModuleList = computed(() => {
   
   return moduleList.value
     .map((module) => {
+      if (!module || !module.name || !module.key) {
+        return null
+      }
+      
       // Check if module name matches
       const nameMatches = module.name.toLowerCase().includes(query) || module.key.toLowerCase().includes(query)
       
       // Filter permissions that match
-      const modulePermissions = module.permissions || []
+      const modulePermissions = Array.isArray(module.permissions) ? module.permissions : []
       const matchingPermissions = modulePermissions.filter((perm) => {
+        if (!perm || !perm.key) return false
         const keyMatches = perm.key.toLowerCase().includes(query)
         const labelMatches = perm.label?.toLowerCase().includes(query) ?? false
         return keyMatches || labelMatches
@@ -494,11 +521,11 @@ const toTimestamp = (value: string): number | null => {
 }
 
 const createDelegation = async () => {
-  if (!organization.value || !canCreate.value) return
+  if (!currentOrgId.value || !canCreate.value) return
   creating.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/admin/organizations/${organization.value.id}/delegations`, {
+    await $fetch(`/api/organizations/${currentOrgId.value}/delegations`, {
       method: 'POST',
       body: {
         subjectId: selectedUserId.value,
@@ -517,13 +544,13 @@ const createDelegation = async () => {
 }
 
 const revokeDelegation = async (delegation: AdminDelegation) => {
-  if (!organization.value || delegation.revokedAt) return
+  if (!currentOrgId.value || delegation.revokedAt) return
   if (!confirm('Återkalla denna delegation?')) return
   pendingAction.value = delegation.id
   errorMessage.value = ''
   try {
     await $fetch(
-      `/api/admin/organizations/${organization.value.id}/delegations/${delegation.id}/revoke`,
+      `/api/organizations/${currentOrgId.value}/delegations/${delegation.id}/revoke`,
       { method: 'POST' }
     )
     await refresh()
@@ -562,7 +589,4 @@ details[open] summary .chevron-icon {
   transform: rotate(180deg);
 }
 </style>
-
-
-
 

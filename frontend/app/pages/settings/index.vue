@@ -233,22 +233,36 @@
               :aria-disabled="isSettingsLocked"
               :tabindex="isSettingsLocked ? -1 : 0"
               :class="[
-                'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
                 { 'pointer-events-none opacity-50': isSettingsLocked }
               ]"
             >
-              {{ t('settings.open') }}
+              <Icon icon="mdi:account" class="h-4 w-4" />
+              {{ t('settings.members.title') }}
             </NuxtLink>
             <NuxtLink
               to="/settings/groups"
               :aria-disabled="isSettingsLocked"
               :tabindex="isSettingsLocked ? -1 : 0"
               :class="[
-                'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
                 { 'pointer-events-none opacity-50': isSettingsLocked }
               ]"
             >
-              {{ t('settings.groups.open') }}
+              <Icon icon="mdi:account-multiple" class="h-4 w-4" />
+              {{ t('settings.groups.title') }}
+            </NuxtLink>
+            <NuxtLink
+              to="/settings/delegations"
+              :aria-disabled="isSettingsLocked || !canManageOrg"
+              :tabindex="isSettingsLocked || !canManageOrg ? -1 : 0"
+              :class="[
+                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                { 'pointer-events-none opacity-50': isSettingsLocked || !canManageOrg }
+              ]"
+            >
+              <Icon icon="mdi:account-key" class="h-4 w-4" />
+              {{ t('settings.delegations.open') }}
             </NuxtLink>
           </div>
         </div>

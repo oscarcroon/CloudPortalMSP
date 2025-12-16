@@ -1,6 +1,6 @@
 import { createError, defineEventHandler, readBody } from 'h3'
 import { eq } from 'drizzle-orm'
-import { requireSuperAdmin } from '~~/server/utils/rbac'
+import { requirePermission } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
 import {
   mspOrgDelegations,
@@ -10,14 +10,27 @@ import {
   users
 } from '~~/server/database/schema'
 import { createId } from '@paralleldrive/cuid2'
-import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
+import { getRouterParam } from 'h3'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
+  const orgId = getRouterParam(event, 'orgId')
+  if (!orgId) {
+    throw createError({ statusCode: 400, message: 'Missing organization ID' })
+  }
+
+  // Require org:manage permission for the organization
+  await requirePermission(event, 'org:manage', orgId)
 
   const db = getDb()
-  const orgParam = parseOrgParam(event)
-  const org = await requireOrganizationByIdentifier(db, orgParam)
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1)
+
+  if (!org) {
+    throw createError({ statusCode: 404, message: 'Organization not found' })
+  }
 
   const body = await readBody<{
     subjectType?: 'user'
@@ -38,7 +51,7 @@ export default defineEventHandler(async (event) => {
 
   const subjectType = body.subjectType ?? 'user'
   if (subjectType !== 'user') {
-    throw createError({ statusCode: 400, message: 'Only subjectType \"user\" is supported now' })
+    throw createError({ statusCode: 400, message: 'Only subjectType "user" is supported now' })
   }
 
   const permissionKeys = Array.from(new Set(body.permissionKeys ?? [])).filter(Boolean)
@@ -91,5 +104,4 @@ export default defineEventHandler(async (event) => {
     note: body.note ?? null
   }
 })
-
 
