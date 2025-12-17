@@ -1317,6 +1317,9 @@ export const mspOrgDelegationPermissions = sqliteTable(
 /**
  * MSP Roles - Dynamically defined roles for MSP access
  * Each role is tenant-specific and defines which module permissions it grants
+ * 
+ * role_kind='template': Distributor-level templates (publishable, never assignable)
+ * role_kind='role': Provider-level roles (assignable to members)
  */
 export const mspRoles = sqliteTable(
   'msp_roles',
@@ -1330,11 +1333,22 @@ export const mspRoles = sqliteTable(
     description: text('description'), // Optional description
     isSystem: integer('is_system', { mode: 'boolean' }).notNull().default(false), // true for built-in/system roles
     createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+    // Template support fields
+    roleKind: text('role_kind').notNull().default('role').$type<'template' | 'role'>(),
+    sourceTemplateId: text('source_template_id'), // Self-reference to msp_roles, manually managed
+    publishedAt: integer('published_at', { mode: 'timestamp_ms' }), // Only for templates
+    templateVersion: integer('template_version').notNull().default(1), // Bumped on publish update
+    // Sync metadata (for roles derived from templates)
+    sourceTemplateVersion: integer('source_template_version'), // Version at time of create/sync
+    lastSyncedAt: integer('last_synced_at', { mode: 'timestamp_ms' }),
+    permissionsFingerprint: text('permissions_fingerprint'), // Hash of sorted permission list
     ...timestampColumns()
   },
   (table) => ({
     tenantKeyUnique: uniqueIndex('msp_roles_tenant_key_unique').on(table.tenantId, table.key),
-    tenantIdx: index('msp_roles_tenant_idx').on(table.tenantId)
+    tenantIdx: index('msp_roles_tenant_idx').on(table.tenantId),
+    roleKindTenantIdx: index('msp_roles_kind_tenant_idx').on(table.tenantId, table.roleKind),
+    sourceTemplateIdx: index('msp_roles_source_template_idx').on(table.sourceTemplateId)
   })
 )
 

@@ -329,6 +329,41 @@
       "tag": "0039_add_module_status_fields",
       "version": "6",
       "idx": 46
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0040_add_msp_delegation_source",
+      "version": "6",
+      "idx": 47
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0041_create_msp_roles",
+      "version": "6",
+      "idx": 48
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0042_add_module_permissions_lifecycle",
+      "version": "6",
+      "idx": 49
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0043_update_msp_roles_schema",
+      "version": "6",
+      "idx": 50
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0044_add_template_support",
+      "version": "6",
+      "idx": 51
     }
   ],
   "version": "6"

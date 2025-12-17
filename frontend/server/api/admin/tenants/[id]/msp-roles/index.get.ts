@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Tenant kunde inte hittas.' })
   }
 
-  // Get all MSP roles for this tenant
+  // Get all MSP roles for this tenant (only role_kind='role', exclude templates)
   const roles = await db
     .select({
       id: mspRoles.id,
@@ -29,11 +29,20 @@ export default defineEventHandler(async (event) => {
       name: mspRoles.name,
       description: mspRoles.description,
       isSystem: mspRoles.isSystem,
+      roleKind: mspRoles.roleKind,
+      sourceTemplateId: mspRoles.sourceTemplateId,
+      sourceTemplateVersion: mspRoles.sourceTemplateVersion,
+      lastSyncedAt: mspRoles.lastSyncedAt,
       createdAt: mspRoles.createdAt,
       updatedAt: mspRoles.updatedAt
     })
     .from(mspRoles)
-    .where(eq(mspRoles.tenantId, tenantId))
+    .where(
+      and(
+        eq(mspRoles.tenantId, tenantId),
+        eq(mspRoles.roleKind, 'role') // Only return roles, not templates
+      )
+    )
     .orderBy(mspRoles.name)
 
   // Get permissions for each role
@@ -105,18 +114,55 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Get source template info for roles that have sourceTemplateId
+  const sourceTemplateIds = roles
+    .map((r) => r.sourceTemplateId)
+    .filter((id): id is string => id !== null)
+
+  const templateInfoMap: Record<string, { name: string; templateVersion: number }> = {}
+
+  if (sourceTemplateIds.length > 0) {
+    const templates = await db
+      .select({
+        id: mspRoles.id,
+        name: mspRoles.name,
+        templateVersion: mspRoles.templateVersion
+      })
+      .from(mspRoles)
+      .where(inArray(mspRoles.id, sourceTemplateIds))
+
+    for (const tmpl of templates) {
+      templateInfoMap[tmpl.id] = {
+        name: tmpl.name,
+        templateVersion: tmpl.templateVersion
+      }
+    }
+  }
+
   return {
-    roles: roles.map((role) => ({
-      id: role.id,
-      key: role.key,
-      name: role.name,
-      description: role.description,
-      isSystem: role.isSystem,
-      permissions: permissionsMap[role.id] || [],
-      usageCount: usageCountMap[role.id] || 0,
-      removedCount: removedCountMap[role.id] || 0,
-      createdAt: role.createdAt ? new Date(role.createdAt).toISOString() : null,
-      updatedAt: role.updatedAt ? new Date(role.updatedAt).toISOString() : null
-    }))
+    roles: roles.map((role) => {
+      const sourceTemplate = role.sourceTemplateId
+        ? templateInfoMap[role.sourceTemplateId]
+        : null
+
+      return {
+        id: role.id,
+        key: role.key,
+        name: role.name,
+        description: role.description,
+        isSystem: role.isSystem,
+        permissions: permissionsMap[role.id] || [],
+        usageCount: usageCountMap[role.id] || 0,
+        removedCount: removedCountMap[role.id] || 0,
+        // Template-related fields
+        sourceTemplateId: role.sourceTemplateId,
+        sourceTemplateName: sourceTemplate?.name || null,
+        sourceTemplateVersion: role.sourceTemplateVersion,
+        templateCurrentVersion: sourceTemplate?.templateVersion || null,
+        lastSyncedAt: role.lastSyncedAt ? new Date(role.lastSyncedAt).toISOString() : null,
+        createdAt: role.createdAt ? new Date(role.createdAt).toISOString() : null,
+        updatedAt: role.updatedAt ? new Date(role.updatedAt).toISOString() : null
+      }
+    })
   }
 })

@@ -1,0 +1,146 @@
+<template>
+  <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
+    <header class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div class="flex flex-col gap-2">
+        <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          DNS Management
+        </p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">
+          Windows DNS Zones
+        </h1>
+        <p class="text-sm text-slate-600 dark:text-slate-300">
+          Manage your Windows DNS zones and records.
+        </p>
+        <div class="mt-1 relative w-full max-w-md">
+          <Icon icon="mdi:magnify" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            v-model="searchTerm"
+            type="search"
+            placeholder="Search zones..."
+            class="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
+          />
+        </div>
+        <p v-if="state.data" class="text-xs text-slate-500 dark:text-slate-400">
+          Showing {{ filteredZones.length }} of {{ state.data.zones.length }} zones
+        </p>
+      </div>
+      <div class="flex items-center gap-2 self-start">
+        <button
+          class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="state.pending"
+          title="Refresh zones"
+          @click="fetchZones(true)"
+        >
+          <Icon icon="mdi:refresh" class="h-5 w-5" :class="{ 'animate-spin': state.pending }" />
+        </button>
+        <NuxtLink
+          to="/windows-dns/autodiscover"
+          class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+        >
+          <Icon icon="mdi:auto-fix" class="h-4 w-4" />
+          Autodiscover
+        </NuxtLink>
+      </div>
+    </header>
+
+    <div v-if="state.pending && !state.data" class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+      <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
+      Loading zones...
+    </div>
+
+    <div
+      v-else-if="state.error"
+      class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm dark:border-amber-500/60 dark:bg-amber-500/10 dark:text-amber-100"
+    >
+      <div class="flex items-start gap-3">
+        <Icon icon="mdi:alert-circle-outline" class="mt-0.5 h-4 w-4 flex-shrink-0" />
+        <div class="space-y-2">
+          <p class="font-semibold">Error loading zones</p>
+          <p class="whitespace-pre-line">{{ state.error }}</p>
+          <button
+            class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
+            @click="fetchZones(true)"
+          >
+            <Icon icon="mdi:refresh" class="h-4 w-4" />
+            Retry
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <WindowsDnsZoneList
+      v-else-if="state.data"
+      :zones="filteredZones"
+      :loading="state.pending"
+    />
+
+    <div v-if="state.data && filteredZones.length === 0 && !state.pending" class="text-center py-12">
+      <Icon icon="mdi:dns-outline" class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
+      <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">
+        No zones found{{ searchTerm ? ` matching "${searchTerm}"` : '' }}
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Icon } from '@iconify/vue'
+
+type Zone = {
+  id: string
+  zoneName: string
+  serverId: string
+  serverName: string
+  zoneType: string
+  owned: boolean
+  claimable: boolean
+}
+
+type ZonesResponse = {
+  zones: Zone[]
+  moduleRights: {
+    canManageZones: boolean
+    canEditRecords: boolean
+    canAutodiscover: boolean
+  }
+}
+
+const state = reactive<{
+  data: ZonesResponse | null
+  error: string | null
+  pending: boolean
+}>({
+  data: null,
+  error: null,
+  pending: true
+})
+
+const searchTerm = ref('')
+
+const filteredZones = computed(() => {
+  const zones = state.data?.zones ?? []
+  const term = searchTerm.value.trim().toLowerCase()
+  if (!term) return zones
+  return zones.filter((z) => z.zoneName.toLowerCase().includes(term))
+})
+
+const fetchZones = async (forceRefresh = false) => {
+  state.pending = true
+  state.error = null
+  try {
+    const res = await $fetch<ZonesResponse>('/api/dns/windows/zones', {
+      query: forceRefresh ? { refresh: 'true' } : undefined
+    })
+    state.data = res
+  } catch (err: any) {
+    state.error = err?.data?.message ?? err?.message ?? 'Failed to load zones.'
+  } finally {
+    state.pending = false
+  }
+}
+
+onMounted(() => {
+  fetchZones(false)
+})
+</script>
+

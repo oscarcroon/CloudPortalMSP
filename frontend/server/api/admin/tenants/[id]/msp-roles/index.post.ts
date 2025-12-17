@@ -46,10 +46,18 @@ export default defineEventHandler(async (event) => {
 
   const db = getDb()
 
-  // Verify tenant exists
+  // Verify tenant exists and is a provider
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
   if (!tenant) {
     throw createError({ statusCode: 404, message: 'Tenant kunde inte hittas.' })
+  }
+
+  // Only providers can have MSP roles - distributors should use templates
+  if (tenant.type !== 'provider') {
+    throw createError({ 
+      statusCode: 400, 
+      message: 'MSP-roller kan endast skapas för leverantörer (providers). Distributörer använder rollmallar istället.' 
+    })
   }
 
   const payload = createMspRoleSchema.parse(await readBody(event))
@@ -80,13 +88,15 @@ export default defineEventHandler(async (event) => {
   const roleId = createId()
   const now = new Date()
 
-  // Create role
+  // Create role (explicitly set role_kind to 'role', not 'template')
   await db.insert(mspRoles).values({
     id: roleId,
     tenantId,
     key: roleKey,
     name: payload.name,
     description: payload.description || null,
+    roleKind: 'role',
+    createdBy: auth.user.id,
     createdAt: now,
     updatedAt: now
   })

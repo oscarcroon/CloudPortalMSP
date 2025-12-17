@@ -167,12 +167,20 @@
           {{ t('adminTenants.detail.actions.modulePermissions') }}
         </NuxtLink>
         <NuxtLink
-          v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
+          v-if="tenant.type === 'provider'"
           :to="`/admin/tenants/${tenant.id}/msp-roles`"
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
         >
           <Icon icon="mdi:shield-account" class="h-4 w-4" />
           {{ t('adminTenants.detail.actions.mspRoles') }}
+        </NuxtLink>
+        <NuxtLink
+          v-if="tenant.type === 'distributor'"
+          :to="`/admin/distributors/${tenant.id}/msp-role-templates`"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-purple-300 bg-white px-4 py-2 text-sm font-semibold text-purple-700 transition hover:bg-purple-50 dark:border-purple-500/50 dark:bg-white/5 dark:text-purple-400 dark:hover:bg-purple-500/10"
+        >
+          <Icon icon="mdi:file-document-multiple-outline" class="h-4 w-4" />
+          {{ t('adminTenants.detail.actions.roleTemplates') }}
         </NuxtLink>
         <NuxtLink
           v-if="tenant.type === 'provider' || tenant.type === 'distributor'"
