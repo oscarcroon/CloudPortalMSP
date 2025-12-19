@@ -47,7 +47,6 @@ export const saveOrgConfig = async (
   const existing = await getOrgConfig(orgId)
 
   const merged: WindowsDnsOrgConfig = {
-    baseUrl: config.baseUrl ?? existing?.baseUrl ?? '',
     instanceId: config.instanceId ?? existing?.instanceId ?? null,
     windowsDnsAccountId: config.windowsDnsAccountId ?? existing?.windowsDnsAccountId ?? null,
     coreId: config.coreId ?? existing?.coreId ?? null,
@@ -110,7 +109,6 @@ export const getMaskedOrgConfig = async (orgId: string) => {
   if (!config) return null
 
   return {
-    baseUrl: config.baseUrl,
     instanceId: config.instanceId,
     windowsDnsAccountId: config.windowsDnsAccountId,
     coreId: config.coreId,
@@ -118,7 +116,8 @@ export const getMaskedOrgConfig = async (orgId: string) => {
     lastSyncAt: config.lastSyncAt,
     lastSyncStatus: config.lastSyncStatus,
     // Note: No sensitive data is stored in org-config for Windows DNS
-    // Admin provisioner key is server-only env var
+    // LayerToken (WINDOWS_DNS_LAYER_TOKEN) is server-only env var
+    // API URL (WINDOWS_DNS_API_URL) is server-only env var
   }
 }
 

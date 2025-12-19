@@ -1,5 +1,5 @@
 import { defineEventHandler, getRouterParam, createError } from 'h3'
-import { eq, and, inArray, sql } from 'drizzle-orm'
+import { eq, and, inArray, isNotNull } from 'drizzle-orm'
 import { requireTenantPermission } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
 import {
@@ -84,7 +84,7 @@ export default defineEventHandler(async (event) => {
       and(
         inArray(mspRoles.tenantId, distributorIds),
         eq(mspRoles.roleKind, 'template'),
-        sql`${mspRoles.publishedAt} IS NOT NULL`
+        isNotNull(mspRoles.publishedAt)
       )
     )
     .orderBy(mspRoles.name)

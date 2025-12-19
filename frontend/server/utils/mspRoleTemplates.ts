@@ -182,7 +182,7 @@ export async function filterPermissionsByProviderAccess(
   // Fetch provider's tenant module policies
   const policies = await db
     .select({
-      moduleKey: tenantModulePolicies.moduleKey,
+      moduleKey: tenantModulePolicies.moduleId,
       mode: tenantModulePolicies.mode
     })
     .from(tenantModulePolicies)

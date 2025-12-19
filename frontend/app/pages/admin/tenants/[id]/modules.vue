@@ -546,14 +546,21 @@ const onStatusSave = async (data: { enabled: boolean; disabled: boolean; comingS
 }
 
 const getModuleStatus = (module: UiModule): 'active' | 'disabled' | 'hidden' | 'coming-soon' => {
-  const policy = module.tenantPolicy
-  if (policy?.comingSoonMessage && policy?.disabled) {
+  // Check tenantDisabled which cascades from global -> tenant
+  const isDisabled = module.tenantDisabled === true
+  // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
+  const comingSoonMessage = module.comingSoonMessage ?? 
+    module.effectivePolicy?.comingSoonMessage ?? 
+    module.tenantPolicy?.comingSoonMessage ?? 
+    null
+  
+  if (isDisabled && comingSoonMessage) {
     return 'coming-soon'
   }
-  if (policy?.disabled) {
+  if (isDisabled) {
     return 'disabled'
   }
-  if (policy?.enabled === false || module.tenantEnabled === false) {
+  if (module.tenantEnabled === false) {
     return 'hidden'
   }
   return 'active'
@@ -592,25 +599,36 @@ const getModuleStatusLabel = (module: UiModule) => {
 }
 
 const getModuleComingSoonMessage = (module: UiModule) => {
-  return module.tenantPolicy?.comingSoonMessage ?? null
+  // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
+  return module.comingSoonMessage ?? 
+    module.effectivePolicy?.comingSoonMessage ?? 
+    module.tenantPolicy?.comingSoonMessage ?? 
+    null
 }
 
 // Kontrollera om modulen kan hanteras på tenant-nivå
-// Modulen måste vara aktiverad globalt för att kunna hanteras
-// Notera: Moduler som inte är enabled globalt visas inte alls i listan,
-// så om modulen finns här, är den enabled globalt. Men vi kan inte hantera
-// status om modulen redan är disabled globalt (vilket inte borde hända eftersom
-// disabled moduler inte visas). För säkerhets skull kontrollerar vi effectiveEnabled.
+// Logik:
+// - Om modulen FINNS i listan, är den enabled på GLOBAL nivå (global inaktiverade visas inte)
+// - Om tenantEnabled=false, är det alltid TENANT som har inaktiverat (inte global)
+// - Om tenantDisabled=true men tenant inte har satt disabled, kommer det från GLOBAL eller DISTRIBUTÖR
+// Man SKA alltid kunna hantera sin egen nivås status för att kunna återställa!
 const canManageModuleStatus = (module: UiModule): boolean => {
-  // Om modulen inte är effectively enabled, kan den inte hanteras
-  // Detta inkluderar om modulen är disabled globalt
-  if (!module.effectiveEnabled) {
+  // Modulen finns i listan = den är enabled globalt
+  // Så vi kan alltid hantera tenant's egen enabled/disabled status
+  
+  // Kontrollera om modulen är DISABLED på GLOBAL eller DISTRIBUTÖR nivå
+  // Vi kan inte överskriva global/distributör disabled-status
+  // tenantDisabled inkluderar global+distributör disabled, så vi behöver kontrollera
+  // om disabled kommer från tenant-nivån eller högre nivå
+  // Om tenantPolicy?.disabled är true, är det tenant som har disabled
+  // Om tenantDisabled är true men tenantPolicy?.disabled inte är true,
+  // då kommer disabled från global eller distributör nivå
+  const disabledByHigherLevel = module.tenantDisabled && !module.tenantPolicy?.disabled
+  if (disabledByHigherLevel) {
     return false
   }
-  // Om modulen är effectively disabled, kan den inte hanteras
-  if (module.effectiveDisabled) {
-    return false
-  }
+  
+  // Tenant kan alltid hantera sin egen status (enabled/disabled)
   return true
 }
 </script>

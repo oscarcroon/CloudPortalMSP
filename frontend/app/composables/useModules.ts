@@ -43,8 +43,11 @@ export const useModules = () => {
         return modules.map((m) => {
           // Beräkna om modulen är disabled (avaktiverad eller coming-soon)
           // disabled = true betyder modulen är synlig men utgråad och icke-klickbar
-          const isDisabled = m.orgPolicy?.disabled === true || m.effectiveDisabled === true
-          const isComingSoon = isDisabled && (m.orgPolicy?.comingSoonMessage || m.tenantPolicy?.comingSoonMessage)
+          // effectiveDisabled propageras nu korrekt från global -> tenant -> org nivå
+          const isDisabled = m.effectiveDisabled === true
+          // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
+          const comingSoonMsg = m.comingSoonMessage || m.effectivePolicy?.comingSoonMessage || null
+          const isComingSoon = isDisabled && comingSoonMsg
           
           return {
             ...m,
@@ -53,7 +56,7 @@ export const useModules = () => {
             badge: m.category,
             icon: m.icon,
             disabled: isDisabled,
-            comingSoonMessage: isComingSoon ? (m.orgPolicy?.comingSoonMessage || m.tenantPolicy?.comingSoonMessage) : null
+            comingSoonMessage: isComingSoon ? comingSoonMsg : null
           }
         })
       } catch (error) {

@@ -23,12 +23,11 @@ export interface WindowsDnsZoneAccess extends WindowsDnsModuleRights {
 
 /**
  * Org config stored in CloudPortalMSP database.
- * Note: Admin provisioner key is NOT stored here - it's a server-only env var.
+ * Note: LayerToken (WINDOWS_DNS_LAYER_TOKEN) is NOT stored here - it's a server-only env var.
+ * Note: baseUrl is now global via WINDOWS_DNS_API_URL env var.
  */
 export interface WindowsDnsOrgConfig {
-  /** Base URL of the Windows DNS API (e.g., https://dns-api.example.com) */
-  baseUrl: string
-  /** Optional instance identifier for multi-instance setups */
+  /** Optional instance identifier for multi-instance setups (maps to WINDOWS_DNS_API_URL_<INSTANCE>) */
   instanceId?: string | null
   /** The WindowsDNS accountId for this org (stored after ensure) */
   windowsDnsAccountId?: string | null
@@ -42,6 +41,30 @@ export interface WindowsDnsOrgConfig {
   lastSyncStatus?: string | null
   /** Last sync error message */
   lastSyncError?: string | null
+}
+
+/**
+ * System API response types (used by LayerToken bootstrap operations)
+ */
+export interface WindowsDnsSystemAccountResponse {
+  account: {
+    id: string
+    name: string
+    externalRef?: string | null
+  }
+  created: boolean
+}
+
+export interface WindowsDnsSystemMintTokenResponse {
+  token: string
+  tokenInfo: {
+    id: string
+    accountId: string
+    name: string
+    scopes: WindowsDnsTokenScope[]
+    allowedZoneIds: string[] | '*'
+    expiresAt?: number | null
+  }
 }
 
 export interface WindowsDnsZoneSummary {

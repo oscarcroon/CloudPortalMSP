@@ -24,10 +24,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = await getOrgConfig(orgId)
-  if (!config?.baseUrl || !config?.windowsDnsAccountId) {
+  if (!config?.coreId || !config?.windowsDnsAccountId) {
     throw createError({
       statusCode: 400,
-      message: 'Windows DNS is not configured for this organization.'
+      message: 'Windows DNS is not configured for this organization. Please set COREID first.'
     })
   }
 

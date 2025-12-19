@@ -364,6 +364,13 @@
       "tag": "0044_add_template_support",
       "version": "6",
       "idx": 51
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0045_recreate_member_module_role_overrides",
+      "version": "6",
+      "idx": 52
     }
   ],
   "version": "6"

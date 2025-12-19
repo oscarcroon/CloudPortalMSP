@@ -1,8 +1,7 @@
 import { createError, defineEventHandler, readBody } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
-import { saveOrgConfig, getOrgConfig } from '@windows-dns/server/lib/windows-dns/org-config'
-import { adminRequest } from '@windows-dns/server/lib/windows-dns/client'
+import { saveOrgConfig } from '@windows-dns/server/lib/windows-dns/org-config'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -18,29 +17,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
-  if (!body?.baseUrl) {
+  
+  // coreId is required for Windows DNS integration
+  if (!body?.coreId) {
     throw createError({
       statusCode: 400,
-      message: 'baseUrl is required.'
+      message: 'coreId is required.'
     })
   }
 
-  // Validate connection by calling health endpoint
-  try {
-    const testConfig = { baseUrl: body.baseUrl, instanceId: body.instanceId ?? null }
-    await adminRequest(testConfig, '/../health') // Health is at /health, not /admin/health
-  } catch (error: any) {
-    throw createError({
-      statusCode: 400,
-      message: `Failed to connect to Windows DNS API: ${error?.message ?? 'Unknown error'}`
-    })
-  }
-
-  // Save config
+  // Save config (note: baseUrl is now global via WINDOWS_DNS_API_URL env var)
   const config = await saveOrgConfig(orgId, {
-    baseUrl: body.baseUrl,
     instanceId: body.instanceId ?? null,
-    coreId: body.coreId ?? null,
+    coreId: body.coreId,
     lastValidatedAt: new Date()
   })
 
@@ -49,4 +38,3 @@ export default defineEventHandler(async (event) => {
     configured: true
   }
 })
-

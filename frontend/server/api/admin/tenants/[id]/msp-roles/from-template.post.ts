@@ -187,10 +187,10 @@ export default defineEventHandler(async (event) => {
     // Update existing role
     roleId = existingRoleId
 
-    await db.transaction(async (tx) => {
+    // Use synchronous transaction (better-sqlite3 requirement)
+    db.transaction((tx) => {
       // Update role metadata
-      await tx
-        .update(mspRoles)
+      tx.update(mspRoles)
         .set({
           name: roleName,
           description: template.description,
@@ -201,30 +201,32 @@ export default defineEventHandler(async (event) => {
           updatedAt: now
         })
         .where(eq(mspRoles.id, roleId))
+        .run()
 
       // Delete existing permissions
-      await tx
-        .delete(mspRolePermissions)
+      tx.delete(mspRolePermissions)
         .where(eq(mspRolePermissions.roleId, roleId))
+        .run()
 
       // Insert new permissions
       if (accessiblePerms.length > 0) {
-        await tx.insert(mspRolePermissions).values(
+        tx.insert(mspRolePermissions).values(
           accessiblePerms.map((perm) => ({
             roleId,
             moduleKey: perm.moduleKey,
             permissionKey: perm.permissionKey
           }))
-        )
+        ).run()
       }
     })
   } else {
     // Create new role
     roleId = createId()
 
-    await db.transaction(async (tx) => {
+    // Use synchronous transaction (better-sqlite3 requirement)
+    db.transaction((tx) => {
       // Insert role
-      await tx.insert(mspRoles).values({
+      tx.insert(mspRoles).values({
         id: roleId,
         tenantId,
         key: roleKey,
@@ -238,17 +240,17 @@ export default defineEventHandler(async (event) => {
         createdBy: auth.user.id,
         createdAt: now,
         updatedAt: now
-      })
+      }).run()
 
       // Insert permissions
       if (accessiblePerms.length > 0) {
-        await tx.insert(mspRolePermissions).values(
+        tx.insert(mspRolePermissions).values(
           accessiblePerms.map((perm) => ({
             roleId,
             moduleKey: perm.moduleKey,
             permissionKey: perm.permissionKey
           }))
-        )
+        ).run()
       }
     })
   }

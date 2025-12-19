@@ -20,17 +20,10 @@ export default defineEventHandler(async (event) => {
 
   // Get org config
   let config = await getOrgConfig(orgId)
-  if (!config?.baseUrl) {
+  if (!config?.coreId) {
     throw createError({
       statusCode: 400,
-      message: 'Windows DNS is not configured for this organization.'
-    })
-  }
-
-  if (!config.coreId) {
-    throw createError({
-      statusCode: 400,
-      message: 'COREID not configured for this organization.'
+      message: 'Windows DNS is not configured for this organization. Please set COREID first.'
     })
   }
 

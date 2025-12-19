@@ -209,6 +209,11 @@ const toDto = ({
   effectivePolicy,
   featureFlags,
   globalEnabled,
+  globalDisabled: globalDisabledParam,
+  globalComingSoonMessage,
+  distributorDisabled: distributorDisabledParam,
+  distributorComingSoonMessage,
+  tenantComingSoonMessage,
   tenantVisible,
   tenantDisabled: tenantDisabledParam,
   orgVisible,
@@ -220,6 +225,11 @@ const toDto = ({
   effectivePolicy: ModulePolicy
   featureFlags: FeatureFlags
   globalEnabled: boolean
+  globalDisabled?: boolean
+  globalComingSoonMessage?: string | null
+  distributorDisabled?: boolean
+  distributorComingSoonMessage?: string | null
+  tenantComingSoonMessage?: string | null
   tenantVisible: boolean
   tenantDisabled?: boolean
   orgVisible: boolean
@@ -228,24 +238,48 @@ const toDto = ({
   const featureEnabled = isFeatureFlagEnabled(moduleMeta?.featureFlag, featureFlags)
   const statusEnabled = moduleMeta?.status !== 'deprecated'
 
+  // Global disabled state from modules table
+  // IMPORTANT: disabled != not enabled
+  // - enabled=false means the module is NOT SHOWN at all (inactive)
+  // - disabled=true means the module IS SHOWN but grayed out (deactivated/coming-soon)
+  const globalDisabled = globalDisabledParam ?? false
+  
+  // Distributor disabled state (for providers linked to a distributor)
+  const distributorDisabled = distributorDisabledParam ?? false
+
   // Use enabled/disabled from policy if available, otherwise fall back to mode-based logic
+  // enabled controls VISIBILITY (whether module appears in list)
   const tenantEnabledValue = tenantPolicy?.enabled ?? (tenantPolicy?.mode !== 'blocked')
-  const tenantDisabledValue = tenantDisabledParam ?? tenantPolicy?.disabled ?? (tenantPolicy?.mode === 'blocked')
   const orgEnabledValue = orgPolicy?.enabled ?? (orgPolicy?.mode !== 'blocked')
-  const orgDisabledValue = orgDisabledParam ?? orgPolicy?.disabled ?? (orgPolicy?.mode === 'blocked')
+  
+  // disabled controls GRAYED OUT state (module shows but is blocked)
+  const tenantDisabledValue = tenantDisabledParam ?? tenantPolicy?.disabled ?? false
+  const orgDisabledValue = orgDisabledParam ?? orgPolicy?.disabled ?? false
 
-  // Visible flags (global/tenant/org) control whether the module is listed
-  const tenantEnabled = globalEnabled && tenantVisible && featureEnabled && statusEnabled && tenantEnabledValue && !tenantDisabledValue
-  const orgEnabled = tenantEnabled && orgVisible && orgEnabledValue && !orgDisabledValue
+  // Visible flags (global/tenant/org) control whether the module is LISTED
+  // Note: disabled does NOT affect visibility - disabled modules should still be shown
+  const tenantEnabled = globalEnabled && tenantVisible && featureEnabled && statusEnabled && tenantEnabledValue
+  const orgEnabled = tenantEnabled && orgVisible && orgEnabledValue
 
-  // Effective flag is based on merged policy, plus visibility chain
+  // Effective enabled means the module is VISIBLE in the list
+  // This should NOT consider disabled state - disabled modules are still visible
   const effectiveEnabledValue = effectivePolicy.enabled ?? (effectivePolicy.mode !== 'blocked')
-  const effectiveDisabledValue = effectivePolicy.disabled ?? (effectivePolicy.mode === 'blocked')
-  const effectiveEnabled = globalEnabled && tenantVisible && orgVisible && featureEnabled && statusEnabled && effectiveEnabledValue && !effectiveDisabledValue
+  const effectiveEnabled = globalEnabled && tenantVisible && orgVisible && featureEnabled && statusEnabled && effectiveEnabledValue
 
-  const tenantDisabled = tenantDisabledValue || !tenantVisible
-  const orgDisabled = orgDisabledValue || !orgVisible
-  const effectiveDisabled = effectiveDisabledValue || !effectiveEnabled
+  // Disabled cascades: global -> distributor -> tenant -> org
+  // A module is disabled if ANY level has disabled=true
+  const tenantDisabled = globalDisabled || distributorDisabled || tenantDisabledValue
+  const orgDisabled = tenantDisabled || orgDisabledValue
+  const effectiveDisabled = globalDisabled || distributorDisabled || tenantDisabledValue || orgDisabledValue
+
+  // Coming soon message: inherit from higher levels if not overridden at lower level
+  // Priority: org -> tenant -> distributor -> global
+  const resolvedComingSoonMessage = 
+    orgPolicy?.comingSoonMessage ?? 
+    tenantComingSoonMessage ?? 
+    distributorComingSoonMessage ??
+    globalComingSoonMessage ?? 
+    null
 
   return {
     key: moduleMeta?.key ?? '',
@@ -261,15 +295,17 @@ const toDto = ({
     requiredPermissions: moduleMeta?.requiredPermissions ?? [],
     moduleRoles: moduleMeta?.moduleRoles ?? [],
     roles: moduleMeta?.moduleRoles ?? [],
-    tenantPolicy: tenantPolicy ?? undefined,
+    tenantPolicy: tenantPolicy ? { ...tenantPolicy, comingSoonMessage: tenantComingSoonMessage ?? globalComingSoonMessage } : undefined,
     orgPolicy: orgPolicy ?? undefined,
-    effectivePolicy,
+    effectivePolicy: { ...effectivePolicy, comingSoonMessage: resolvedComingSoonMessage },
     tenantEnabled,
     orgEnabled,
     effectiveEnabled,
     tenantDisabled,
     orgDisabled,
-    effectiveDisabled
+    effectiveDisabled,
+    // Explicit resolved coming soon message for easy frontend access
+    comingSoonMessage: resolvedComingSoonMessage
   }
 }
 
@@ -414,11 +450,25 @@ const buildTenantDto = async (
 ): Promise<ModuleStatusDto[]> => {
   const db = getDb()
 
-  // Global enabled modules
+  // Global enabled modules - also fetch disabled and comingSoonMessage
   const enabledModules = await db
-    .select({ key: modulesTable.key, enabled: modulesTable.enabled })
+    .select({ 
+      key: modulesTable.key, 
+      enabled: modulesTable.enabled,
+      disabled: modulesTable.disabled,
+      comingSoonMessage: modulesTable.comingSoonMessage
+    })
     .from(modulesTable)
     .where(eq(modulesTable.enabled, true))
+  
+  // Build a map with global status info
+  const globalModuleStatus = new Map(
+    enabledModules.map((m) => [m.key, { 
+      enabled: m.enabled, 
+      disabled: m.disabled ?? false,
+      comingSoonMessage: m.comingSoonMessage ?? null
+    }])
+  )
   const enabledKeys = new Set(enabledModules.filter((m) => m.enabled).map((m) => m.key))
 
   // Hämta moduler via registry och filtrera på scope + enabled
@@ -434,6 +484,7 @@ const buildTenantDto = async (
   for (const module of moduleList) {
     if (!enabledKeys.has(module.key)) continue
 
+    const globalStatus = globalModuleStatus.get(module.key)
     const permissionKeys = getModulePermissions(module.key as ModuleId)
     const base = basePolicyForModule(module.key, permissionKeys, module.defaultAllowedRoles)
     const distributorPolicy = await resolveDistributorPolicy(tenantId, module.key as ModuleId)
@@ -444,6 +495,10 @@ const buildTenantDto = async (
     const tenantRow = policyMap.get(module.key)
     const tenantVisible = tenantRow?.enabled !== false
     const tenantDisabled = tenantRow?.disabled === true
+    
+    // Distributor disabled/comingSoonMessage propagates to providers
+    const distributorDisabled = distributorPolicy?.disabled ?? false
+    const distributorComingSoonMessage = distributorPolicy?.comingSoonMessage ?? null
 
     results.push(
       toDto({
@@ -452,6 +507,11 @@ const buildTenantDto = async (
         effectivePolicy,
         featureFlags,
         globalEnabled: true,
+        globalDisabled: globalStatus?.disabled ?? false,
+        globalComingSoonMessage: globalStatus?.comingSoonMessage ?? null,
+        distributorDisabled,
+        distributorComingSoonMessage,
+        tenantComingSoonMessage: tenantPolicy?.comingSoonMessage ?? null,
         tenantVisible,
         tenantDisabled,
         orgVisible: true,
@@ -494,11 +554,25 @@ export const getOrganizationModulesStatus = async (
     : []
   const tenantPolicyMap = new Map(tenantPolicies.map((row) => [row.moduleId, row]))
 
-  // Global enabled modules
+  // Global enabled modules - also fetch disabled and comingSoonMessage
   const enabledModules = await db
-    .select({ key: modulesTable.key, enabled: modulesTable.enabled })
+    .select({ 
+      key: modulesTable.key, 
+      enabled: modulesTable.enabled,
+      disabled: modulesTable.disabled,
+      comingSoonMessage: modulesTable.comingSoonMessage
+    })
     .from(modulesTable)
     .where(eq(modulesTable.enabled, true))
+  
+  // Build a map with global status info
+  const globalModuleStatus = new Map(
+    enabledModules.map((m) => [m.key, { 
+      enabled: m.enabled, 
+      disabled: m.disabled ?? false,
+      comingSoonMessage: m.comingSoonMessage ?? null
+    }])
+  )
   const enabledKeys = new Set(enabledModules.filter((m) => m.enabled).map((m) => m.key))
 
   // Hämta moduler via registry och filtrera på scopes + enabled
@@ -514,6 +588,7 @@ export const getOrganizationModulesStatus = async (
   const results: ModuleStatusDto[] = []
   for (const module of modulesMap.values()) {
     if (!module) continue
+    const globalStatus = globalModuleStatus.get(module.key)
     const permissionKeys = getModulePermissions(module.key as ModuleId)
     const base = basePolicyForModule(module.key, permissionKeys, module.defaultAllowedRoles)
     const distributorPolicy =
@@ -536,6 +611,10 @@ export const getOrganizationModulesStatus = async (
     const tenantDisabled = tenantRow?.disabled === true
     const orgVisible = orgRow?.enabled !== false
     const orgDisabled = orgRow?.disabled === true
+    
+    // Distributor disabled/comingSoonMessage propagates to providers and their orgs
+    const distributorDisabled = distributorPolicy?.disabled ?? false
+    const distributorComingSoonMessage = distributorPolicy?.comingSoonMessage ?? null
 
     results.push(
       toDto({
@@ -545,6 +624,11 @@ export const getOrganizationModulesStatus = async (
         effectivePolicy,
         featureFlags,
         globalEnabled: true,
+        globalDisabled: globalStatus?.disabled ?? false,
+        globalComingSoonMessage: globalStatus?.comingSoonMessage ?? null,
+        distributorDisabled,
+        distributorComingSoonMessage,
+        tenantComingSoonMessage: tenantPolicy?.comingSoonMessage ?? null,
         tenantVisible,
         tenantDisabled,
         orgVisible,

@@ -762,14 +762,22 @@ const onStatusSave = async (data: { enabled: boolean; disabled: boolean; comingS
 }
 
 const getModuleStatus = (module: UiModule): 'active' | 'disabled' | 'hidden' | 'coming-soon' => {
-  const policy = module.orgPolicy
-  if (policy?.comingSoonMessage && policy?.disabled) {
+  // Check effectiveDisabled which cascades from global -> tenant -> org
+  const isDisabled = module.effectiveDisabled === true
+  // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
+  const comingSoonMessage = module.comingSoonMessage ?? 
+    module.effectivePolicy?.comingSoonMessage ?? 
+    module.orgPolicy?.comingSoonMessage ?? 
+    module.tenantPolicy?.comingSoonMessage ?? 
+    null
+  
+  if (isDisabled && comingSoonMessage) {
     return 'coming-soon'
   }
-  if (policy?.disabled) {
+  if (isDisabled) {
     return 'disabled'
   }
-  if (policy?.enabled === false || module.orgEnabled === false) {
+  if (module.orgEnabled === false) {
     return 'hidden'
   }
   return 'active'
@@ -808,25 +816,40 @@ const getModuleStatusLabel = (module: UiModule) => {
 }
 
 const getModuleComingSoonMessage = (module: UiModule) => {
-  return module.orgPolicy?.comingSoonMessage ?? null
+  // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
+  return module.comingSoonMessage ?? 
+    module.effectivePolicy?.comingSoonMessage ?? 
+    module.orgPolicy?.comingSoonMessage ?? 
+    module.tenantPolicy?.comingSoonMessage ?? 
+    null
 }
 
 // Kontrollera om modulen kan hanteras på organisationsnivå
-// Modulen måste vara aktiverad på tenant-nivå för att kunna hanteras
+// Man kan hantera statusen om:
+// 1. Modulen är enabled på tenant-nivå (inte inaktiverad av tenant)
+// 2. Modulen är INTE disabled på TENANT nivå (kan inte överskridas)
+// Men man SKA kunna hantera även om man själv (org) har inaktiverat/disabled modulen,
+// annars kan man aldrig återställa!
 const canManageModuleStatus = (module: UiModule): boolean => {
   // Om modulen är blocked på tenant-nivå, kan den inte hanteras
   if (module.tenantPolicy?.mode === 'blocked') {
     return false
   }
-  // Om modulen inte är enabled på tenant-nivå, kan den inte hanteras
-  if (!module.tenantEnabled) {
+  // Om modulen är INAKTIVERAD (enabled=false) på TENANT nivå, kan den inte hanteras
+  // Men om ORG själv har inaktiverat, ska vi kunna återaktivera
+  const tenantInaktiverad = module.tenantPolicy?.enabled === false
+  if (tenantInaktiverad) {
     return false
   }
-  // Om modulen är disabled på tenant-nivå, kan den inte hanteras
-  if (module.tenantDisabled) {
+  // Kontrollera om modulen är disabled på TENANT nivå (inte org-nivå)
+  // Vi kan inte överskriva tenant disabled-status, men vi SKA kunna
+  // ändra vår egen (org) disabled-status
+  // tenantPolicy?.disabled = true betyder att tenant har disabled modulen
+  if (module.tenantPolicy?.disabled) {
     return false
   }
   // Om modulen har "kommer snart" på tenant-nivå, kan den inte hanteras
+  // (tenant's coming soon blockerar org från att ändra)
   if (module.tenantPolicy?.comingSoonMessage) {
     return false
   }

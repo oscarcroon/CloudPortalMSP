@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     config,
-    configured: !!config?.baseUrl
+    configured: !!config?.coreId
   }
 })
 

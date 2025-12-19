@@ -43,6 +43,8 @@ export interface ModuleStatusDto {
   tenantDisabled?: boolean
   orgDisabled?: boolean
   effectiveDisabled?: boolean
+  /** Resolved coming soon message from any level (global -> tenant -> org) */
+  comingSoonMessage?: string | null
 }
 
 export type { ModuleMeta, ModuleRoleMeta, ModuleScope, ModuleStatus }

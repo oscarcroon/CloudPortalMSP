@@ -13,50 +13,95 @@ import { getOrMintToken, generateCacheKey } from './token-cache'
 const TOKEN_TTL_SECONDS = 300 // 5 minutes
 
 /**
- * Get the admin provisioner key from environment.
- * This is server-only and never stored in database.
+ * Get the global Layer API configuration from environment.
  */
-const getProvisionerKey = (instanceId?: string | null): string => {
-  // Support multiple instances via WINDOWSDNS_PROVISIONER_KEY_<INSTANCE>
-  if (instanceId) {
-    const instanceKey = process.env[`WINDOWSDNS_PROVISIONER_KEY_${instanceId.toUpperCase()}`]
-    if (instanceKey) return instanceKey
-  }
-  // Fall back to default
-  const defaultKey = process.env.WINDOWSDNS_PROVISIONER_KEY
-  if (!defaultKey) {
+const getLayerConfig = () => {
+  const baseUrl = process.env.WINDOWS_DNS_API_URL
+  const layerToken = process.env.WINDOWS_DNS_LAYER_TOKEN
+
+  if (!baseUrl) {
     throw createError({
       statusCode: 500,
-      message: 'Windows DNS provisioner key not configured'
+      message: 'WINDOWS_DNS_API_URL not configured'
     })
   }
-  return defaultKey
+
+  if (!layerToken) {
+    throw createError({
+      statusCode: 500,
+      message: 'WINDOWS_DNS_LAYER_TOKEN not configured'
+    })
+  }
+
+  return { baseUrl, layerToken }
 }
 
 /**
- * Make an admin request using the provisioner key.
- * Used for: ensure account, mint tokens
+ * Get the LayerToken (system token) for bootstrap operations.
+ * This is server-only and never stored in database.
  */
-export const adminRequest = async <T>(
-  config: WindowsDnsOrgConfig,
+const getLayerToken = (instanceId?: string | null): string => {
+  // Support multiple instances via WINDOWS_DNS_LAYER_TOKEN_<INSTANCE>
+  if (instanceId) {
+    const instanceToken = process.env[`WINDOWS_DNS_LAYER_TOKEN_${instanceId.toUpperCase()}`]
+    if (instanceToken) return instanceToken
+  }
+  // Fall back to default
+  const defaultToken = process.env.WINDOWS_DNS_LAYER_TOKEN
+  if (!defaultToken) {
+    throw createError({
+      statusCode: 500,
+      message: 'Windows DNS LayerToken not configured'
+    })
+  }
+  return defaultToken
+}
+
+/**
+ * Get the Layer API base URL.
+ */
+const getLayerBaseUrl = (instanceId?: string | null): string => {
+  // Support multiple instances via WINDOWS_DNS_API_URL_<INSTANCE>
+  if (instanceId) {
+    const instanceUrl = process.env[`WINDOWS_DNS_API_URL_${instanceId.toUpperCase()}`]
+    if (instanceUrl) return instanceUrl
+  }
+  // Fall back to default
+  const defaultUrl = process.env.WINDOWS_DNS_API_URL
+  if (!defaultUrl) {
+    throw createError({
+      statusCode: 500,
+      message: 'WINDOWS_DNS_API_URL not configured'
+    })
+  }
+  return defaultUrl
+}
+
+/**
+ * Make a system request using the LayerToken (system token).
+ * Used for: ensure account, mint tokens (bootstrap operations only)
+ */
+export const systemRequest = async <T>(
+  instanceId: string | null | undefined,
   path: string,
   options?: { method?: string; body?: unknown }
 ): Promise<T> => {
-  const provisionerKey = getProvisionerKey(config.instanceId)
-  const url = `${config.baseUrl}/api/v1/admin${path}`
+  const baseUrl = getLayerBaseUrl(instanceId)
+  const layerToken = getLayerToken(instanceId)
+  const url = `${baseUrl}/system${path}`
 
   try {
     const res = await ofetch<WindowsDnsApiResponse<T>>(url, {
       method: options?.method ?? 'GET',
       body: options?.body,
       headers: {
-        'x-admin-key': provisionerKey,
+        Authorization: `Bearer ${layerToken}`,
         'Content-Type': 'application/json'
       }
     })
 
     if (!res?.success) {
-      const message = res?.errors?.[0]?.message ?? 'Windows DNS admin API error'
+      const message = res?.errors?.[0]?.message ?? 'Windows DNS system API error'
       throw createError({ statusCode: 502, message: `[windows-dns] ${message}` })
     }
 
@@ -67,7 +112,7 @@ export const adminRequest = async <T>(
       error?.data?.errors?.[0]?.message ||
       error?.data?.message ||
       error?.message ||
-      'Windows DNS admin API error'
+      'Windows DNS system API error'
 
     throw createError({ statusCode, message: `[windows-dns] ${message}` })
   }
@@ -75,14 +120,16 @@ export const adminRequest = async <T>(
 
 /**
  * Make a token-authenticated request to the public API.
+ * Uses per-account tokens (wdns_tok_*) for drift operations.
  */
 export const tokenRequest = async <T>(
-  config: WindowsDnsOrgConfig,
+  instanceId: string | null | undefined,
   token: string,
   path: string,
   options?: { method?: string; body?: unknown; query?: Record<string, string> }
 ): Promise<T> => {
-  const url = `${config.baseUrl}/api/v1${path}`
+  const baseUrl = getLayerBaseUrl(instanceId)
+  const url = `${baseUrl}${path}`
 
   try {
     const res = await ofetch<WindowsDnsApiResponse<T>>(url, {
@@ -116,6 +163,7 @@ export const tokenRequest = async <T>(
 /**
  * Ensure a Windows DNS account exists for the org.
  * Creates one if it doesn't exist, using the org's COREID as externalRef.
+ * Uses system-token (LayerToken) for bootstrap.
  */
 export const ensureAccount = async (
   config: WindowsDnsOrgConfig,
@@ -123,8 +171,8 @@ export const ensureAccount = async (
   orgName: string,
   coreId: string
 ): Promise<{ accountId: string; created: boolean }> => {
-  const result = await adminRequest<{ account: { id: string }; created: boolean }>(
-    config,
+  const result = await systemRequest<{ account: { id: string }; created: boolean }>(
+    config.instanceId,
     '/accounts/ensure',
     {
       method: 'POST',
@@ -148,7 +196,8 @@ export const ensureAccount = async (
 }
 
 /**
- * Mint a new token via admin API.
+ * Mint a new per-account token via system API.
+ * Uses system-token (LayerToken) to mint per-account tokens for drift operations.
  */
 const mintToken = async (
   config: WindowsDnsOrgConfig,
@@ -157,22 +206,24 @@ const mintToken = async (
   allowedZoneIds: string[] | '*',
   purpose?: string
 ): Promise<{ token: string; expiresAt: number }> => {
-  const result = await adminRequest<{ token: string; tokenInfo: { expiresAt?: number } }>(
-    config,
+  // Calculate expiry time (now + TTL)
+  const expiresAtDate = new Date(Date.now() + TOKEN_TTL_SECONDS * 1000)
+
+  const result = await systemRequest<{ token: string; tokenInfo: { expiresAt?: number } }>(
+    config.instanceId,
     `/accounts/${accountId}/tokens`,
     {
       method: 'POST',
       body: {
         name: `portal-token-${Date.now()}`,
         scopes,
-        allowedZoneIds: allowedZoneIds === '*' ? '*' : allowedZoneIds,
-        expiresAt: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS,
-        purpose: purpose ?? 'portal:windows-dns'
+        allowedZoneIds: allowedZoneIds === '*' ? undefined : allowedZoneIds,
+        expiresAt: expiresAtDate.toISOString()
       }
     }
   )
 
-  // Calculate expiry from TTL if not provided
+  // Calculate expiry from response or TTL
   const expiresAt = result.tokenInfo?.expiresAt
     ? result.tokenInfo.expiresAt * 1000 // Convert to ms
     : Date.now() + TOKEN_TTL_SECONDS * 1000
@@ -228,6 +279,7 @@ export const getToken = async (
 
 /**
  * High-level client that combines org config lookup, token management, and API calls.
+ * Uses per-account tokens (wdns_tok_*) for drift operations.
  */
 export class WindowsDnsClient {
   constructor(
@@ -240,7 +292,7 @@ export class WindowsDnsClient {
    */
   async listZones(scopes: WindowsDnsTokenScope[]): Promise<WindowsDnsZoneSummary[]> {
     const token = await getToken(this.config, this.orgId, scopes)
-    return tokenRequest<WindowsDnsZoneSummary[]>(this.config, token, '/zones')
+    return tokenRequest<WindowsDnsZoneSummary[]>(this.config.instanceId, token, '/zones')
   }
 
   /**
@@ -248,7 +300,7 @@ export class WindowsDnsClient {
    */
   async autodiscoverZones(): Promise<WindowsDnsZoneSummary[]> {
     const token = await getToken(this.config, this.orgId, ['autodiscover.read'])
-    return tokenRequest<WindowsDnsZoneSummary[]>(this.config, token, '/autodiscover/zones')
+    return tokenRequest<WindowsDnsZoneSummary[]>(this.config.instanceId, token, '/autodiscover/zones')
   }
 
   /**
@@ -256,7 +308,7 @@ export class WindowsDnsClient {
    */
   async listRecords(zoneId: string): Promise<WindowsDnsRecord[]> {
     const token = await getToken(this.config, this.orgId, ['records.read'])
-    return tokenRequest<WindowsDnsRecord[]>(this.config, token, `/zones/${zoneId}/dns_records`)
+    return tokenRequest<WindowsDnsRecord[]>(this.config.instanceId, token, `/zones/${zoneId}/dns_records`)
   }
 
   /**
@@ -264,7 +316,7 @@ export class WindowsDnsClient {
    */
   async createRecord(zoneId: string, record: Partial<WindowsDnsRecord>): Promise<WindowsDnsRecord> {
     const token = await getToken(this.config, this.orgId, ['records.write'])
-    return tokenRequest<WindowsDnsRecord>(this.config, token, `/zones/${zoneId}/dns_records`, {
+    return tokenRequest<WindowsDnsRecord>(this.config.instanceId, token, `/zones/${zoneId}/dns_records`, {
       method: 'POST',
       body: record
     })
@@ -275,7 +327,7 @@ export class WindowsDnsClient {
    */
   async createZone(zoneName: string, zoneType: string, serverId: string): Promise<WindowsDnsZoneSummary> {
     const token = await getToken(this.config, this.orgId, ['zones.create'])
-    return tokenRequest<WindowsDnsZoneSummary>(this.config, token, '/zones', {
+    return tokenRequest<WindowsDnsZoneSummary>(this.config.instanceId, token, '/zones', {
       method: 'POST',
       body: { zoneName, zoneType, serverId }
     })
@@ -284,13 +336,14 @@ export class WindowsDnsClient {
 
 /**
  * Get a configured client for an org.
+ * Note: baseUrl is now global via WINDOWS_DNS_API_URL, org config just stores accountId/instanceId.
  */
 export const getClientForOrg = async (orgId: string): Promise<WindowsDnsClient> => {
   const config = await getOrgConfig(orgId)
-  if (!config?.baseUrl) {
+  if (!config?.windowsDnsAccountId) {
     throw createError({
       statusCode: 400,
-      message: 'Windows DNS is not configured for this organization'
+      message: 'Windows DNS account not configured for this organization. Run setup first.'
     })
   }
   return new WindowsDnsClient(orgId, config)

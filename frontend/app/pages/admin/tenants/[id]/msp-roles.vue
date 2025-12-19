@@ -898,8 +898,8 @@ const saveRole = async () => {
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
-  } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.mspRoles.messages.error')
+  } catch (err: any) {
+    errorMessage.value = err?.data?.message || err?.message || t('adminTenants.mspRoles.messages.error')
   } finally {
     saving.value = false
   }
@@ -918,8 +918,8 @@ const cloneRole = async (role: MspRole) => {
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
-  } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.mspRoles.messages.cloneError')
+  } catch (err: any) {
+    errorMessage.value = err?.data?.message || err?.message || t('adminTenants.mspRoles.messages.cloneError')
   }
 }
 
@@ -940,8 +940,9 @@ const deleteRole = async (role: MspRole) => {
     setTimeout(() => {
       successMessage.value = ''
     }, 3000)
-  } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : t('adminTenants.mspRoles.messages.deleteError')
+  } catch (err: any) {
+    // Extract error message from $fetch error (err.data?.message) or fallback
+    errorMessage.value = err?.data?.message || err?.message || t('adminTenants.mspRoles.messages.deleteError')
   }
 }
 
