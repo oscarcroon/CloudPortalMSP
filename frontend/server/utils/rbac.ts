@@ -3,12 +3,40 @@ import type { RbacPermission, RbacRole, TenantRole } from '~/constants/rbac'
 import { rolePermissionMap, tenantRolePermissionMap } from '~/constants/rbac'
 import { ensureAuthState } from './session'
 import { getDb } from './db'
-import { eq, or, and } from 'drizzle-orm'
+import { eq, or, and, isNull, gt } from 'drizzle-orm'
 import { organizations, tenants, distributorProviders, mspOrgDelegations } from '../database/schema'
 import { getModuleIdFromPermission } from '~/constants/modules'
 import { isModulePermissionAllowed as checkModulePolicy } from './modulePolicy'
 import { logPermissionDenied } from './audit'
 import { resolveEffectiveModulePermissions } from './modulePermissions'
+
+/**
+ * Check if user has an active ad-hoc delegation for the specified organization.
+ * This is used to grant org:read permission via delegation.
+ */
+const checkActiveDelegation = async (userId: string, orgId: string): Promise<boolean> => {
+  const db = getDb()
+  const now = new Date()
+
+  const [delegation] = await db
+    .select({ id: mspOrgDelegations.id })
+    .from(mspOrgDelegations)
+    .where(
+      and(
+        eq(mspOrgDelegations.orgId, orgId),
+        eq(mspOrgDelegations.subjectType, 'user'),
+        eq(mspOrgDelegations.subjectId, userId),
+        isNull(mspOrgDelegations.revokedAt),
+        or(
+          isNull(mspOrgDelegations.expiresAt),
+          gt(mspOrgDelegations.expiresAt, now)
+        )
+      )
+    )
+    .limit(1)
+
+  return Boolean(delegation)
+}
 
 export const hasPermission = (role: RbacRole, permission: RbacPermission) =>
   rolePermissionMap[role]?.includes(permission) ?? false
@@ -68,7 +96,7 @@ export const requirePermission = async (
 
   // Use centralized reach function (includes delegation checks)
   const { canReachOrganization: canReachOrg } = await import('./canReachOrganization')
-  let canReachOrganization = Boolean(directRole) || await canReachOrg(auth, orgId)
+  const canReachOrganization = Boolean(directRole) || await canReachOrg(auth, orgId)
 
   const moduleId = getModuleIdFromPermission(permission)
 
@@ -81,9 +109,13 @@ export const requirePermission = async (
       })
     }
 
-    // Delegation kan ge org:read
-    if (hasActiveDelegation && permission === 'org:read') {
-      hasRbacPermission = true
+    // Delegation can grant org:read permission
+    // Check if user has an active delegation for this organization
+    if (permission === 'org:read') {
+      const hasActiveDelegation = await checkActiveDelegation(auth.user.id, orgId)
+      if (hasActiveDelegation) {
+        hasRbacPermission = true
+      }
     }
 
     if (orgRecord.tenantId) {

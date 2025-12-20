@@ -125,7 +125,19 @@ function getSafeExtension(filename: string) {
 
 function buildLogoUrl(req: Request, absolutePath: string) {
   const relativePath = path.relative(uploadsRoot, absolutePath).replace(/\\/g, '/')
-  const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`
+  const isProd = process.env.NODE_ENV === 'production'
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL
+
+  // SECURITY: In production, PUBLIC_BASE_URL is required to prevent host header poisoning.
+  // Attackers could manipulate the Host header to inject malicious URLs into the database.
+  if (isProd && !publicBaseUrl) {
+    throw new Error(
+      'PUBLIC_BASE_URL is required in production to prevent host header poisoning attacks'
+    )
+  }
+
+  // In development, fall back to request-derived URL (acceptable for local dev)
+  const baseUrl = publicBaseUrl || `${req.protocol}://${req.get('host')}`
   return `${baseUrl}/uploads/${relativePath}`
 }
 

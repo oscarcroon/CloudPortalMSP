@@ -211,6 +211,7 @@ const toDto = ({
   globalEnabled,
   globalDisabled: globalDisabledParam,
   globalComingSoonMessage,
+  distributorEnabled: distributorEnabledParam,
   distributorDisabled: distributorDisabledParam,
   distributorComingSoonMessage,
   tenantComingSoonMessage,
@@ -227,6 +228,7 @@ const toDto = ({
   globalEnabled: boolean
   globalDisabled?: boolean
   globalComingSoonMessage?: string | null
+  distributorEnabled?: boolean
   distributorDisabled?: boolean
   distributorComingSoonMessage?: string | null
   tenantComingSoonMessage?: string | null
@@ -244,7 +246,9 @@ const toDto = ({
   // - disabled=true means the module IS SHOWN but grayed out (deactivated/coming-soon)
   const globalDisabled = globalDisabledParam ?? false
   
-  // Distributor disabled state (for providers linked to a distributor)
+  // Distributor enabled/disabled state (for providers linked to a distributor)
+  // If distributorEnabled is undefined, assume true (no distributor or distributor hasn't set it)
+  const distributorEnabled = distributorEnabledParam ?? true
   const distributorDisabled = distributorDisabledParam ?? false
 
   // Use enabled/disabled from policy if available, otherwise fall back to mode-based logic
@@ -256,15 +260,17 @@ const toDto = ({
   const tenantDisabledValue = tenantDisabledParam ?? tenantPolicy?.disabled ?? false
   const orgDisabledValue = orgDisabledParam ?? orgPolicy?.disabled ?? false
 
-  // Visible flags (global/tenant/org) control whether the module is LISTED
+  // Visible flags (global/distributor/tenant/org) control whether the module is LISTED
   // Note: disabled does NOT affect visibility - disabled modules should still be shown
-  const tenantEnabled = globalEnabled && tenantVisible && featureEnabled && statusEnabled && tenantEnabledValue
+  // enabled cascades: global -> distributor -> tenant -> org
+  const tenantEnabled = globalEnabled && distributorEnabled && tenantVisible && featureEnabled && statusEnabled && tenantEnabledValue
   const orgEnabled = tenantEnabled && orgVisible && orgEnabledValue
 
   // Effective enabled means the module is VISIBLE in the list
   // This should NOT consider disabled state - disabled modules are still visible
+  // enabled cascades: global -> distributor -> tenant -> org
   const effectiveEnabledValue = effectivePolicy.enabled ?? (effectivePolicy.mode !== 'blocked')
-  const effectiveEnabled = globalEnabled && tenantVisible && orgVisible && featureEnabled && statusEnabled && effectiveEnabledValue
+  const effectiveEnabled = globalEnabled && distributorEnabled && tenantVisible && orgVisible && featureEnabled && statusEnabled && effectiveEnabledValue
 
   // Disabled cascades: global -> distributor -> tenant -> org
   // A module is disabled if ANY level has disabled=true
@@ -496,7 +502,10 @@ const buildTenantDto = async (
     const tenantVisible = tenantRow?.enabled !== false
     const tenantDisabled = tenantRow?.disabled === true
     
-    // Distributor disabled/comingSoonMessage propagates to providers
+    // Distributor enabled/disabled/comingSoonMessage propagates to providers
+    // If distributorPolicy is null, there's no distributor or distributor hasn't set a policy
+    // In that case, enabled defaults to true (no restriction)
+    const distributorEnabled = distributorPolicy?.enabled ?? true
     const distributorDisabled = distributorPolicy?.disabled ?? false
     const distributorComingSoonMessage = distributorPolicy?.comingSoonMessage ?? null
 
@@ -509,6 +518,7 @@ const buildTenantDto = async (
         globalEnabled: true,
         globalDisabled: globalStatus?.disabled ?? false,
         globalComingSoonMessage: globalStatus?.comingSoonMessage ?? null,
+        distributorEnabled,
         distributorDisabled,
         distributorComingSoonMessage,
         tenantComingSoonMessage: tenantPolicy?.comingSoonMessage ?? null,
@@ -612,7 +622,10 @@ export const getOrganizationModulesStatus = async (
     const orgVisible = orgRow?.enabled !== false
     const orgDisabled = orgRow?.disabled === true
     
-    // Distributor disabled/comingSoonMessage propagates to providers and their orgs
+    // Distributor enabled/disabled/comingSoonMessage propagates to providers and their orgs
+    // If distributorPolicy is null, there's no distributor or distributor hasn't set a policy
+    // In that case, enabled defaults to true (no restriction)
+    const distributorEnabled = distributorPolicy?.enabled ?? true
     const distributorDisabled = distributorPolicy?.disabled ?? false
     const distributorComingSoonMessage = distributorPolicy?.comingSoonMessage ?? null
 
@@ -626,6 +639,7 @@ export const getOrganizationModulesStatus = async (
         globalEnabled: true,
         globalDisabled: globalStatus?.disabled ?? false,
         globalComingSoonMessage: globalStatus?.comingSoonMessage ?? null,
+        distributorEnabled,
         distributorDisabled,
         distributorComingSoonMessage,
         tenantComingSoonMessage: tenantPolicy?.comingSoonMessage ?? null,

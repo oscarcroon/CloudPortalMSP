@@ -35,8 +35,11 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     auth: {
-      jwtSecret: process.env.AUTH_JWT_SECRET || 'dev-secret-change-me',
+      // SECURITY: In production, AUTH_JWT_SECRET is required (validated by validate-env plugin).
+      // The dev fallback is ONLY for local development and will NOT work in production.
+      jwtSecret: process.env.AUTH_JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-change-me'),
       sessionTtl: process.env.AUTH_SESSION_TTL || '12h',
+      // SECURITY: In production, AUTH_SERVICE_TOKEN is required (validated by validate-env plugin).
       serviceToken: process.env.AUTH_SERVICE_TOKEN || '',
       cloudflareZeroTrustSecret: process.env.CLOUDFLARE_ZT_JWT_SECRET || '',
       allowSelfRegistration: process.env.AUTH_ALLOW_SELF_REGISTRATION === 'true'

@@ -9,11 +9,22 @@ const SESSION_COOKIE = 'auth_token'
 const SESSION_VERSION = 1
 const ZERO_TRUST_HEADER_KEYS = ['cf_authorization', 'cf-access-jwt-assertion']
 
+// Dangerous secrets that must NEVER be used in production
+const DANGEROUS_JWT_SECRETS = new Set([
+  'dev-secret-change-me',
+  'secret',
+  'changeme',
+  'test',
+  'development'
+])
+
 const getRuntimeConfig = () => {
   const runtime = (globalThis as any)?.useRuntimeConfig?.()
   return runtime ?? {
     auth: {
-      jwtSecret: process.env.AUTH_JWT_SECRET || 'dev-secret-change-me',
+      // SECURITY: In production, AUTH_JWT_SECRET is validated at startup by validate-env plugin.
+      // The dev fallback is ONLY for local development.
+      jwtSecret: process.env.AUTH_JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-change-me'),
       sessionTtl: process.env.AUTH_SESSION_TTL || '12h',
       serviceToken: process.env.AUTH_SERVICE_TOKEN || '',
       cloudflareZeroTrustSecret: process.env.CLOUDFLARE_ZT_JWT_SECRET || '',
@@ -25,9 +36,20 @@ const getRuntimeConfig = () => {
 const getJwtSecret = () => {
   const config = getRuntimeConfig()
   const secret = config.auth?.jwtSecret || process.env.AUTH_JWT_SECRET
+
   if (!secret) {
     throw new Error('Missing AUTH_JWT_SECRET runtime config')
   }
+
+  // Additional runtime guard: never allow dangerous defaults in production
+  const isProd = process.env.NODE_ENV === 'production'
+  if (isProd && DANGEROUS_JWT_SECRETS.has(secret.toLowerCase())) {
+    throw new Error(
+      'AUTH_JWT_SECRET is set to a dangerous default value in production. ' +
+        'This is a critical security misconfiguration.'
+    )
+  }
+
   return secret
 }
 
@@ -43,7 +65,10 @@ const signToken = (payload: SessionTokenPayload) => {
 }
 
 const verifyToken = (token: string) => {
-  return jwt.verify(token, getJwtSecret()) as SessionTokenPayload
+  // SECURITY: Explicitly specify algorithm to prevent algorithm confusion attacks
+  return jwt.verify(token, getJwtSecret(), {
+    algorithms: ['HS256']
+  }) as SessionTokenPayload
 }
 
 const readTokenFromEvent = (event: H3Event) => getCookie(event, SESSION_COOKIE)
@@ -167,7 +192,10 @@ const verifyZeroTrustToken = (token: string): ZeroTrustIdentity | null => {
     return null
   }
   try {
-    const payload = jwt.verify(token, secret) as JwtPayload
+    // SECURITY: Explicitly specify algorithm to prevent algorithm confusion attacks
+    const payload = jwt.verify(token, secret, {
+      algorithms: ['HS256']
+    }) as JwtPayload
     if (!payload.email && typeof payload.sub !== 'string') {
       return null
     }
