@@ -12,7 +12,7 @@
           </div>
           <div>
             <NuxtLink
-              :to="`/windows-dns/zones/${zone.id}`"
+              :to="`/windows-dns/${zone.id}`"
               class="font-medium text-slate-900 hover:text-brand dark:text-slate-50"
             >
               {{ zone.zoneName }}
@@ -34,7 +34,7 @@
           </span>
 
           <NuxtLink
-            :to="`/windows-dns/zones/${zone.id}`"
+            :to="`/windows-dns/${zone.id}`"
             class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 opacity-0 transition group-hover:opacity-100 hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-300"
           >
             <Icon icon="mdi:dns-outline" class="h-3.5 w-3.5" />

@@ -24,7 +24,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     const client = await getClientForOrg(orgId)
-    const records = await client.listRecords(zoneId)
+    // Use listRecordsForZone which explicitly grants access to this specific zone
+    const records = await client.listRecordsForZone(zoneId)
 
     return {
       records,
@@ -33,6 +34,7 @@ export default defineEventHandler(async (event) => {
       }
     }
   } catch (error: any) {
+    console.error(`[windows-dns] Failed to fetch records for zone ${zoneId}:`, error?.message || error)
     throw createError({
       statusCode: error?.statusCode ?? 502,
       message: error?.message ?? 'Failed to fetch records.'

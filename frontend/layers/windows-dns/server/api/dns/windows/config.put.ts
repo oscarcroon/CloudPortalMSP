@@ -1,7 +1,7 @@
 import { createError, defineEventHandler, readBody } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
-import { saveOrgConfig } from '@windows-dns/server/lib/windows-dns/org-config'
+import { saveOrgConfig, getOrgCoreId } from '@windows-dns/server/lib/windows-dns/org-config'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -16,20 +16,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'No permission to configure Windows DNS.' })
   }
 
-  const body = await readBody(event)
-  
-  // coreId is required for Windows DNS integration
-  if (!body?.coreId) {
+  // CoreID is derived from organizations.core_id (source of truth)
+  const coreId = await getOrgCoreId(orgId)
+  if (!coreId) {
     throw createError({
       statusCode: 400,
-      message: 'coreId is required.'
+      message: 'Organization must have a COREID set before enabling Windows DNS. Please configure COREID in organization settings.'
     })
   }
 
-  // Save config (note: baseUrl is now global via WINDOWS_DNS_API_URL env var)
+  const body = await readBody(event)
+
+  // Save config (note: coreId is NOT saved here - it's derived from organizations.core_id)
+  // Only instanceId and status fields are saved
   const config = await saveOrgConfig(orgId, {
-    instanceId: body.instanceId ?? null,
-    coreId: body.coreId,
+    instanceId: body?.instanceId ?? null,
     lastValidatedAt: new Date()
   })
 

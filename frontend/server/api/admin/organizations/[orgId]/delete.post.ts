@@ -6,6 +6,7 @@ import { getDb } from '../../../../utils/db'
 import { requireSuperAdmin } from '../../../../utils/rbac'
 import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
 import { logOrganizationAction } from '../../../../utils/audit'
+import { deleteAllWindowsDnsData } from '@windows-dns/server/lib/windows-dns/org-config'
 
 export const deleteSchema = z.object({
   confirmSlug: z.string().min(1, 'Ange sluggen för att bekräfta.'),
@@ -35,6 +36,15 @@ export default defineEventHandler(async (event) => {
     name: organization.name,
     slug: organization.slug,
     tenantId: organization.tenantId || undefined
+  }
+
+  // Clean up Windows DNS data before deleting organization
+  // This prevents foreign key constraint errors in WindowsDNS-layer
+  try {
+    await deleteAllWindowsDnsData(organization.id)
+  } catch (error: any) {
+    console.error(`[admin] Failed to clean up Windows DNS data for org ${organization.id}:`, error?.message || error)
+    // Continue with deletion even if cleanup fails
   }
 
   if (isSqlite) {

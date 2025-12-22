@@ -1,0 +1,34 @@
+---
+alwaysApply: true
+---
+RULE: Nuxt / Nuxt UI (MCP-first)
+
+När uppgiften rör Nuxt eller Nuxt UI ska du alltid använda MCP-servrarna "nuxt" och/eller "nuxt-ui" som primär källa innan du svarar eller skriver kod.
+
+TRIGGERS (använd denna regel när):
+- Frågan nämner Nuxt, Nuxt 3, Nitro, server routes, plugins, modules, composables, useFetch/useAsyncData, runtimeConfig, layers, content, deployment.
+- Frågan nämner Nuxt UI: UButton, UInput, UForm, UModal, UDropdown, navigation, theming, icons, tailwind, components.
+- Fel/buggar där det finns risk för föråldrade API:er (t.ex. nuxt.config, app.vue, middleware, route rules, server/api).
+
+PROCESS:
+1) Slå upp i MCP:
+   - Nuxt-relaterat: använd "nuxt" MCP.
+   - UI/komponenter: använd "nuxt-ui" MCP.
+2) Följ dokumentationen som “source of truth”.
+   - Om flera versioner/varianter finns: välj den som gäller för senaste Nuxt 3 / Nuxt UI.
+3) Om MCP inte hittar svaret:
+   - Säg tydligt vad som saknas och ge bästa möjliga förslag, men markera osäkerhet.
+   - Föreslå vad användaren kan kontrollera i projektet (t.ex. Nuxt-version, module versions, config).
+4) När du skriver kod:
+   - Skriv alltid Nuxt 3-kompatibelt (Vue 3, Composition API).
+   - Föredra TypeScript om projektet verkar använda det.
+   - Visa filvägar och minimala ändringar (”lägg till/ändra i …”).
+   - Respektera projektets befintliga mönster (om kodbasen visar t.ex. pinia, eslint, tailwind, i18n).
+
+OUTPUT-STYLE:
+- Ge ett kort svar + konkret kod/snippet.
+- Nämn relevanta Nuxt/Nuxt UI-koncept (ex: server/api, runtimeConfig, defineNuxtConfig, routeRules) bara när det hjälper.
+- Undvik “påhittade” options/props. Om du är osäker: slå upp i MCP eller säg att du inte är säker.
+
+PRIORITY ORDER:
+Nuxt MCP / Nuxt UI MCP  >  projektets befintliga kod  >  generell kunskap.

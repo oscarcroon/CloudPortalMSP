@@ -43,6 +43,17 @@
       </div>
     </header>
 
+    <!-- Auto-setup success message -->
+    <div
+      v-if="state.autoSetupMessage && !state.error"
+      class="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 shadow-sm dark:border-green-500/60 dark:bg-green-500/10 dark:text-green-100"
+    >
+      <div class="flex items-center gap-2">
+        <Icon icon="mdi:check-circle" class="h-5 w-5 flex-shrink-0" />
+        <p>{{ state.autoSetupMessage }}</p>
+      </div>
+    </div>
+
     <div v-if="state.pending && !state.data" class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
       <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
       Loading zones...
@@ -96,8 +107,16 @@ type Zone = {
   claimable: boolean
 }
 
+type AutoSetupInfo = {
+  performed: boolean
+  zonesActivated: number
+  autoHealed?: boolean
+  message?: string
+}
+
 type ZonesResponse = {
   zones: Zone[]
+  autoSetup?: AutoSetupInfo
   moduleRights: {
     canManageZones: boolean
     canEditRecords: boolean
@@ -109,10 +128,12 @@ const state = reactive<{
   data: ZonesResponse | null
   error: string | null
   pending: boolean
+  autoSetupMessage: string | null
 }>({
   data: null,
   error: null,
-  pending: true
+  pending: true,
+  autoSetupMessage: null
 })
 
 const searchTerm = ref('')
@@ -127,11 +148,21 @@ const filteredZones = computed(() => {
 const fetchZones = async (forceRefresh = false) => {
   state.pending = true
   state.error = null
+  state.autoSetupMessage = null
   try {
     const res = await $fetch<ZonesResponse>('/api/dns/windows/zones', {
       query: forceRefresh ? { refresh: 'true' } : undefined
     })
     state.data = res
+    
+    // Show feedback if auto-setup was performed
+    if (res.autoSetup?.performed) {
+      if (res.autoSetup.zonesActivated > 0) {
+        state.autoSetupMessage = `✓ ${res.autoSetup.zonesActivated} zon${res.autoSetup.zonesActivated === 1 ? '' : 'er'} hittades och aktiverades automatiskt`
+      } else if (res.autoSetup.message) {
+        state.autoSetupMessage = res.autoSetup.message
+      }
+    }
   } catch (err: any) {
     state.error = err?.data?.message ?? err?.message ?? 'Failed to load zones.'
   } finally {

@@ -1,7 +1,7 @@
 import { createError, defineEventHandler, getRouterParam } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
-import { getOrgConfig } from '@windows-dns/server/lib/windows-dns/org-config'
+import { getOrgConfig, getOrgCoreId, addAllowedZones } from '@windows-dns/server/lib/windows-dns/org-config'
 import { getToken, tokenRequest } from '@windows-dns/server/lib/windows-dns/client'
 
 export default defineEventHandler(async (event) => {
@@ -23,11 +23,20 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'No permission to claim zones.' })
   }
 
-  const config = await getOrgConfig(orgId)
-  if (!config?.coreId || !config?.windowsDnsAccountId) {
+  // Get CoreID from organizations.core_id (source of truth)
+  const coreId = await getOrgCoreId(orgId)
+  if (!coreId) {
     throw createError({
       statusCode: 400,
       message: 'Windows DNS is not configured for this organization. Please set COREID first.'
+    })
+  }
+
+  const config = await getOrgConfig(orgId)
+  if (!config?.windowsDnsAccountId) {
+    throw createError({
+      statusCode: 400,
+      message: 'Windows DNS account not configured. Please enable Windows DNS first.'
     })
   }
 
@@ -41,12 +50,8 @@ export default defineEventHandler(async (event) => {
       'portal:claim-zone'
     )
 
-    // Note: This assumes WindowsDNS has an ownership endpoint.
-    // For now, we'll use the admin API to create ownership (since ownership.write might be admin-only initially)
-    // In a full implementation, this would be a public endpoint with proper scope enforcement
-
-    // For MVP: Call admin endpoint to create ownership
-    // This could be moved to a token-based public endpoint in the future
+    // Add the zone to the allowed list
+    await addAllowedZones(orgId, [{ zoneId, source: 'manual' }])
 
     return { success: true, zoneId }
   } catch (error: any) {
@@ -56,4 +61,3 @@ export default defineEventHandler(async (event) => {
     })
   }
 })
-
