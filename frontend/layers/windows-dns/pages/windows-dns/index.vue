@@ -82,7 +82,9 @@
     <WindowsDnsZoneList
       v-else-if="state.data"
       :zones="filteredZones"
+      :module-rights="state.data?.moduleRights"
       :loading="state.pending"
+      @refresh="fetchZones(true)"
     />
 
     <div v-if="state.data && filteredZones.length === 0 && !state.pending" class="text-center py-12">

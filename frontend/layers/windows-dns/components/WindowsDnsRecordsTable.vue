@@ -340,13 +340,16 @@ const updateRecord = async () => {
   try {
     // For Windows DNS, we typically need to delete and recreate
     // The API should handle this internally
+    const originalContent = editForm.originalRecord?.content || editForm.originalRecord?.value || editForm.originalRecord?.data || ''
     await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
       method: 'POST',
       body: {
         ...editForm,
         update: true,
-        originalName: editForm.originalRecord?.name,
-        originalType: editForm.originalRecord?.type
+        originalName: editForm.originalRecord?.name || '@',
+        originalType: editForm.originalRecord?.type,
+        originalContent,
+        originalRecord: editForm.originalRecord
       }
     })
     cancelEdit()

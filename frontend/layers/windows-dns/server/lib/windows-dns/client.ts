@@ -489,6 +489,18 @@ export class WindowsDnsClient {
   }
 
   /**
+   * Delete a record in a zone.
+   * Uses records.write scope (zone-scoped, uses allowlist).
+   */
+  async deleteRecord(zoneId: string, record: { name: string; type: string; content?: string }): Promise<void> {
+    const token = await getTokenForZones(this.config, this.orgId, ['records.write'], [zoneId])
+    await tokenRequest<void>(this.config.instanceId, token, `/zones/${zoneId}/dns_records/delete`, {
+      method: 'POST',
+      body: record
+    })
+  }
+
+  /**
    * Create a new zone.
    * Uses zones.create scope (not zone-scoped for creation).
    */

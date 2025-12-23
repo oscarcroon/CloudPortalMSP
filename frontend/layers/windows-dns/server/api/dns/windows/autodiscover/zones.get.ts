@@ -2,7 +2,7 @@ import { createError, defineEventHandler } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg, ensureAccount } from '@windows-dns/server/lib/windows-dns/client'
-import { getOrgConfig, getOrgCoreId, saveLastDiscovery, clearAccountId } from '@windows-dns/server/lib/windows-dns/org-config'
+import { getOrgConfig, getOrgCoreId, saveLastDiscovery, clearAccountId, getAllowedZoneIds } from '@windows-dns/server/lib/windows-dns/org-config'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -77,8 +77,19 @@ export default defineEventHandler(async (event) => {
     const zoneIds = zones.map(z => z.id)
     await saveLastDiscovery(orgId, zoneIds, rawCoreId)
 
+    // Get allowed zones from portal database (source of truth for activation status)
+    const allowedZoneIds = await getAllowedZoneIds(orgId)
+    const allowedSet = new Set(allowedZoneIds)
+
+    // Override owned/claimable based on portal's allowlist
+    const zonesWithPortalStatus = zones.map(z => ({
+      ...z,
+      owned: allowedSet.has(z.id),
+      claimable: !allowedSet.has(z.id)
+    }))
+
     return {
-      zones,
+      zones: zonesWithPortalStatus,
       coreId: rawCoreId, // Return the RAW coreId, not prefixed
       discoveredAt: new Date().toISOString()
     }
@@ -101,8 +112,18 @@ export default defineEventHandler(async (event) => {
         const zoneIds = zones.map(z => z.id)
         await saveLastDiscovery(orgId, zoneIds, rawCoreId)
         
+        // Get allowed zones from portal database (source of truth for activation status)
+        const retryAllowedZoneIds = await getAllowedZoneIds(orgId)
+        const retryAllowedSet = new Set(retryAllowedZoneIds)
+        
+        const retryZonesWithPortalStatus = zones.map(z => ({
+          ...z,
+          owned: retryAllowedSet.has(z.id),
+          claimable: !retryAllowedSet.has(z.id)
+        }))
+        
         return {
-          zones,
+          zones: retryZonesWithPortalStatus,
           coreId: rawCoreId, // Return the RAW coreId, not prefixed
           discoveredAt: new Date().toISOString()
         }
