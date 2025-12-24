@@ -208,17 +208,17 @@ export const ensureAccount = async (
   const externalRef = formatCoreIdExternalRef(coreId)
 
   try {
-    const result = await systemRequest<{ account: { id: string }; created: boolean }>(
-      config.instanceId,
-      '/accounts/ensure',
-      {
-        method: 'POST',
-        body: {
-          name: orgName,
+  const result = await systemRequest<{ account: { id: string }; created: boolean }>(
+    config.instanceId,
+    '/accounts/ensure',
+    {
+      method: 'POST',
+      body: {
+        name: orgName,
           externalRef
-        }
       }
-    )
+    }
+  )
 
     if (!result?.account?.id) {
       throw createError({
@@ -228,12 +228,12 @@ export const ensureAccount = async (
     }
 
     // Update org config with the account ID (coreId is derived from organizations, not stored here)
-    await saveOrgConfig(orgId, {
+  await saveOrgConfig(orgId, {
       windowsDnsAccountId: result.account.id
-    })
+  })
 
-    return {
-      accountId: result.account.id,
+  return {
+    accountId: result.account.id,
       created: result.created ?? false
     }
   } catch (error: any) {
@@ -261,19 +261,19 @@ const mintToken = async (
   const expiresAtDate = new Date(Date.now() + TOKEN_TTL_SECONDS * 1000)
 
   try {
-    const result = await systemRequest<{ token: string; tokenInfo: { expiresAt?: number } }>(
-      config.instanceId,
-      `/accounts/${accountId}/tokens`,
-      {
-        method: 'POST',
-        body: {
-          name: `portal-token-${Date.now()}`,
-          scopes,
-          allowedZoneIds: allowedZoneIds === '*' ? undefined : allowedZoneIds,
-          expiresAt: expiresAtDate.toISOString()
-        }
+  const result = await systemRequest<{ token: string; tokenInfo: { expiresAt?: number } }>(
+    config.instanceId,
+    `/accounts/${accountId}/tokens`,
+    {
+      method: 'POST',
+      body: {
+        name: `portal-token-${Date.now()}`,
+        scopes,
+        allowedZoneIds: allowedZoneIds === '*' ? undefined : allowedZoneIds,
+        expiresAt: expiresAtDate.toISOString()
       }
-    )
+    }
+  )
 
     if (!result?.token) {
       throw createError({
@@ -282,15 +282,15 @@ const mintToken = async (
       })
     }
 
-    // Calculate expiry from response or TTL
-    const expiresAt = result.tokenInfo?.expiresAt
-      ? result.tokenInfo.expiresAt * 1000 // Convert to ms
-      : Date.now() + TOKEN_TTL_SECONDS * 1000
+  // Calculate expiry from response or TTL
+  const expiresAt = result.tokenInfo?.expiresAt
+    ? result.tokenInfo.expiresAt * 1000 // Convert to ms
+    : Date.now() + TOKEN_TTL_SECONDS * 1000
 
-    return {
-      token: result.token,
-      expiresAt
-    }
+  return {
+    token: result.token,
+    expiresAt
+  }
   } catch (error: any) {
     // Improve error message for account not found
     if (error?.message?.includes('Account not found') || error?.statusCode === 404) {
@@ -497,6 +497,19 @@ export class WindowsDnsClient {
     await tokenRequest<void>(this.config.instanceId, token, `/zones/${zoneId}/dns_records/delete`, {
       method: 'POST',
       body: record
+    })
+  }
+
+  /**
+   * Update a record in a zone.
+   * Uses records.write scope (zone-scoped).
+   * Note: If name/type/content changes, backend will return new recordId.
+   */
+  async updateRecord(zoneId: string, recordId: string, updates: Partial<WindowsDnsRecord>): Promise<WindowsDnsRecord> {
+    const token = await getTokenForZones(this.config, this.orgId, ['records.write'], [zoneId])
+    return tokenRequest<WindowsDnsRecord>(this.config.instanceId, token, `/zones/${zoneId}/dns_records/${recordId}`, {
+      method: 'PATCH',
+      body: updates
     })
   }
 

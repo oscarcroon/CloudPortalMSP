@@ -3,6 +3,8 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 
+const MAX_COMMENT_LENGTH = 2000
+
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
   if (!auth?.currentOrgId) {
@@ -23,6 +25,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody(event)
+
+  // Reject legacy update requests - clients should use PATCH endpoint
+  if (body?.update) {
+    throw createError({
+      statusCode: 409,
+      message: 'Update via POST is deprecated. Use PATCH /zones/:zoneId/records/:recordId instead.'
+    })
+  }
+
   if (!body?.name || !body?.type || !body?.content) {
     throw createError({
       statusCode: 400,
@@ -30,32 +41,29 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Validate and normalize comment
+  let comment: string | null = null
+  if (body.comment !== undefined && body.comment !== null) {
+    const trimmedComment = String(body.comment).trim()
+    if (trimmedComment.length > MAX_COMMENT_LENGTH) {
+      throw createError({
+        statusCode: 400,
+        message: `Kommentaren får max vara ${MAX_COMMENT_LENGTH} tecken.`
+      })
+    }
+    comment = trimmedComment || null
+  }
+
   try {
     const client = await getClientForOrg(orgId)
-
-    // If this is an update, delete the old record first
-    if (body.update && body.originalName && body.originalType) {
-      try {
-        await client.deleteRecord(zoneId, {
-          name: body.originalName,
-          type: body.originalType,
-          content: body.originalContent
-        })
-      } catch (deleteErr: any) {
-        // If old record doesn't exist, that's okay - continue with create
-        const errMsg = deleteErr?.message ?? ''
-        if (!errMsg.includes('not found') && !errMsg.includes('404')) {
-          console.warn(`[windows-dns] Failed to delete old record during update: ${errMsg}`)
-        }
-      }
-    }
 
     const record = await client.createRecord(zoneId, {
       name: body.name,
       type: body.type,
       content: body.content,
       ttl: body.ttl ?? 3600,
-      priority: body.priority
+      priority: body.priority,
+      comment
     })
 
     return { record }

@@ -67,6 +67,17 @@
           <input v-model="newRecord.content" class="input" required placeholder="1.2.3.4" />
         </div>
       </div>
+      <div class="grid gap-3 md:grid-cols-4">
+        <div class="flex flex-col gap-1 md:col-span-4">
+          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Comment (optional)</label>
+          <textarea
+            v-model="newRecord.comment"
+            rows="2"
+            class="input min-h-[64px]"
+            placeholder="Internal note about this record (not visible in DNS)"
+          />
+        </div>
+      </div>
       <div class="flex justify-end gap-2">
         <button
           type="button"
@@ -112,7 +123,18 @@
                   {{ record.type }}
                 </span>
               </td>
-              <td class="px-4 py-3 align-top font-mono text-sm">{{ record.name || '@' }}</td>
+              <td class="px-4 py-3 align-top font-mono text-sm">
+                <div class="flex items-center gap-1">
+                  <span>{{ record.name || '@' }}</span>
+                  <span
+                    v-if="record.comment"
+                    class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                    :title="record.comment"
+                  >
+                    <Icon icon="mdi:comment-text-outline" class="h-3 w-3" />
+                  </span>
+                </div>
+              </td>
               <td class="px-4 py-3 align-top break-all">{{ record.content || record.value || record.data }}</td>
               <td class="px-4 py-3 align-top">{{ displayTtl(record.ttl) }}</td>
               <td v-if="canEdit" class="px-4 py-3 text-right">
@@ -162,6 +184,17 @@
                     <div class="flex flex-col gap-1 md:col-span-4">
                       <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Content</label>
                       <input v-model="editForm.content" class="input" required />
+                    </div>
+                  </div>
+                  <div class="grid gap-3 md:grid-cols-4">
+                    <div class="flex flex-col gap-1 md:col-span-4">
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Comment (optional)</label>
+                      <textarea
+                        v-model="editForm.comment"
+                        rows="2"
+                        class="input min-h-[64px]"
+                        placeholder="Internal note about this record (not visible in DNS)"
+                      />
                     </div>
                   </div>
                   <div class="flex justify-end gap-2">
@@ -234,7 +267,7 @@ const filteredRecords = computed(() => {
   const term = searchTerm.value.trim().toLowerCase()
   if (!term) return props.records
   return props.records.filter((r) => {
-    const hay = `${r.type ?? ''} ${r.name ?? ''} ${r.content ?? ''} ${r.value ?? ''} ${r.data ?? ''}`.toLowerCase()
+    const hay = `${r.type ?? ''} ${r.name ?? ''} ${r.content ?? ''} ${r.value ?? ''} ${r.data ?? ''} ${r.comment ?? ''}`.toLowerCase()
     return hay.includes(term)
   })
 })
@@ -285,7 +318,8 @@ const newRecord = reactive({
   type: 'A',
   name: '@',
   content: '',
-  ttl: 3600
+  ttl: 3600,
+  comment: ''
 })
 
 const createRecord = async () => {
@@ -296,7 +330,7 @@ const createRecord = async () => {
       method: 'POST',
       body: { ...newRecord }
     })
-    Object.assign(newRecord, { type: 'A', name: '@', content: '', ttl: 3600 })
+    Object.assign(newRecord, { type: 'A', name: '@', content: '', ttl: 3600, comment: '' })
     showCreateForm.value = false
     emit('refresh')
   } catch (err: any) {
@@ -315,6 +349,7 @@ const editForm = reactive({
   name: '',
   content: '',
   ttl: 3600,
+  comment: '',
   originalRecord: null as any
 })
 
@@ -325,6 +360,7 @@ const startEdit = (record: any) => {
     name: record.name || '@',
     content: record.content || record.value || record.data || '',
     ttl: record.ttl ?? 3600,
+    comment: record.comment ?? '',
     originalRecord: record
   })
 }
@@ -338,19 +374,29 @@ const updateRecord = async () => {
   updating.value = true
   updateError.value = null
   try {
-    // For Windows DNS, we typically need to delete and recreate
-    // The API should handle this internally
-    const originalContent = editForm.originalRecord?.content || editForm.originalRecord?.value || editForm.originalRecord?.data || ''
-    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
-      method: 'POST',
-      body: {
-        ...editForm,
-        update: true,
-        originalName: editForm.originalRecord?.name || '@',
-        originalType: editForm.originalRecord?.type,
-        originalContent,
-        originalRecord: editForm.originalRecord
-      }
+    const recordId = editForm.originalRecord?.id
+    if (!recordId) {
+      updateError.value = 'Missing record ID - cannot update'
+      return
+    }
+
+    // Build payload with only changed fields
+    const payload: Record<string, unknown> = {}
+    if (editForm.type !== editForm.originalRecord?.type) payload.type = editForm.type
+    if (editForm.name !== (editForm.originalRecord?.name || '@')) payload.name = editForm.name
+    const origContent = editForm.originalRecord?.content || editForm.originalRecord?.value || editForm.originalRecord?.data || ''
+    if (editForm.content !== origContent) payload.content = editForm.content
+    if (editForm.ttl !== (editForm.originalRecord?.ttl ?? 3600)) payload.ttl = editForm.ttl
+
+    // Comment: only send if changed (empty string = delete comment)
+    const origComment = editForm.originalRecord?.comment ?? ''
+    if (editForm.comment !== origComment) {
+      payload.comment = editForm.comment || null
+    }
+
+    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records/${recordId}`, {
+      method: 'PATCH',
+      body: payload
     })
     cancelEdit()
     emit('refresh')

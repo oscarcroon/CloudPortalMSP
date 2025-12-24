@@ -101,6 +101,7 @@ export interface WindowsDnsRecord {
   content: string
   ttl: number
   priority?: number | null
+  comment?: string | null
 }
 
 export interface WindowsDnsApiError {
