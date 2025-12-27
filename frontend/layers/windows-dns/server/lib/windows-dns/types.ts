@@ -67,6 +67,30 @@ export interface WindowsDnsSystemAccountResponse {
   created: boolean
 }
 
+/**
+ * Token purpose: admin (UI-created) or drift (integration/automated)
+ */
+export type WindowsDnsTokenPurpose = 'admin' | 'drift'
+
+/**
+ * Zone selector type: explicit (listed zones) or account_set (dynamic based on account ownership/COREID)
+ */
+export type WindowsDnsZoneSelector = 'explicit' | 'account_set'
+
+/**
+ * Request payload for minting a drift token
+ */
+export interface WindowsDnsMintDriftTokenRequest {
+  name: string
+  scopes: WindowsDnsTokenScope[]
+  allowedZoneIds?: string[] | '*'
+  purpose: 'drift'
+  zoneSelector: WindowsDnsZoneSelector
+  ttlHours?: number        // Requested TTL (backend may clamp)
+  renewWindowMinutes?: number  // Renew if within this window of expiry
+  maxAgeHours?: number     // Absolute max age before forcing fresh mint
+}
+
 export interface WindowsDnsSystemMintTokenResponse {
   token: string
   tokenInfo: {
@@ -76,7 +100,15 @@ export interface WindowsDnsSystemMintTokenResponse {
     scopes: WindowsDnsTokenScope[]
     allowedZoneIds: string[] | '*'
     expiresAt?: number | null
+    // New fields for drift tokens
+    purpose?: WindowsDnsTokenPurpose
+    fingerprint?: string | null
+    zoneSelector?: WindowsDnsZoneSelector
+    issuedAt?: number | null
+    maxExpiresAt?: number | null
   }
+  renewed?: boolean   // True if existing token was renewed instead of new mint
+  created?: boolean   // True if a new token was created
 }
 
 export interface WindowsDnsZoneSummary {

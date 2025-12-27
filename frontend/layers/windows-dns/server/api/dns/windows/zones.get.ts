@@ -230,8 +230,11 @@ export default defineEventHandler(async (event) => {
           }
           
           // No zones found after auto-healing - get allowed zones and list them
+          // NEVER use '*' here - only list zones that are explicitly allowed
           const healedAllowedZones = await getAllowedZoneIds(orgId)
-          const zones = await client.listZones(healedAllowedZones.length > 0 ? healedAllowedZones : '*')
+          const zones = healedAllowedZones.length > 0 
+            ? await client.listZones(healedAllowedZones)
+            : [] // Return empty if no zones allowed
           return {
             zones,
             autoSetup: {

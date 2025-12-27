@@ -5,12 +5,18 @@ import type {
   WindowsDnsOrgConfig,
   WindowsDnsTokenScope,
   WindowsDnsZoneSummary,
-  WindowsDnsRecord
+  WindowsDnsRecord,
+  WindowsDnsZoneSelector,
+  WindowsDnsSystemMintTokenResponse
 } from './types'
 import { getOrgConfig, saveOrgConfig, getAllowedZoneIds } from './org-config'
 import { getOrMintToken, generateCacheKey } from './token-cache'
 
-const TOKEN_TTL_SECONDS = 600 // 10 minutes (must be > 5 min minimum enforced by layer)
+// Drift token configuration
+// These values are sent to the backend which handles mint-or-return-existing logic
+const DRIFT_TOKEN_TTL_HOURS = 1          // 1 hour TTL per request
+const DRIFT_TOKEN_RENEW_WINDOW_MINUTES = 15  // Renew if within 15 min of expiry
+const DRIFT_TOKEN_MAX_AGE_HOURS = 24     // Force fresh mint after 24 hours
 
 /**
  * Get the global Layer API configuration from environment.
@@ -247,33 +253,50 @@ export const ensureAccount = async (
 }
 
 /**
- * Mint a new per-account token via system API.
- * Uses system-token (LayerToken) to mint per-account tokens for drift operations.
+ * Mint or retrieve a drift token via system API.
+ * 
+ * Uses the new mint-or-return-existing pattern:
+ * - Backend computes a fingerprint based on scopes + zoneSelector
+ * - If an active token with same fingerprint exists, it returns that token (with sliding TTL)
+ * - Otherwise, a new deterministic token is minted
+ * 
+ * This eliminates token spam and ensures efficient token reuse.
+ * 
+ * @param config - Org configuration with instanceId
+ * @param accountId - The WindowsDNS account ID
+ * @param scopes - Required token scopes
+ * @param zoneSelector - 'account_set' (recommended) or 'explicit'
+ * @param allowedZoneIds - Only used when zoneSelector is 'explicit'
  */
 const mintToken = async (
   config: WindowsDnsOrgConfig,
   accountId: string,
   scopes: WindowsDnsTokenScope[],
-  allowedZoneIds: string[] | '*',
-  purpose?: string
-): Promise<{ token: string; expiresAt: number }> => {
-  // Calculate expiry time (now + TTL)
-  const expiresAtDate = new Date(Date.now() + TOKEN_TTL_SECONDS * 1000)
-
+  zoneSelector: WindowsDnsZoneSelector = 'account_set',
+  allowedZoneIds: string[] | '*' = '*'
+): Promise<{ token: string; expiresAt: number; renewed: boolean }> => {
   try {
-  const result = await systemRequest<{ token: string; tokenInfo: { expiresAt?: number } }>(
-    config.instanceId,
-    `/accounts/${accountId}/tokens`,
-    {
-      method: 'POST',
-      body: {
-        name: `portal-token-${Date.now()}`,
-        scopes,
-        allowedZoneIds: allowedZoneIds === '*' ? undefined : allowedZoneIds,
-        expiresAt: expiresAtDate.toISOString()
+    const result = await systemRequest<WindowsDnsSystemMintTokenResponse>(
+      config.instanceId,
+      `/accounts/${accountId}/tokens`,
+      {
+        method: 'POST',
+        body: {
+          name: `drift-token-portal`, // Consistent name for drift tokens
+          scopes,
+          // Only send allowedZoneIds for explicit selector
+          allowedZoneIds: zoneSelector === 'explicit' && allowedZoneIds !== '*' 
+            ? allowedZoneIds 
+            : undefined,
+          // Drift token configuration
+          purpose: 'drift',
+          zoneSelector,
+          ttlHours: DRIFT_TOKEN_TTL_HOURS,
+          renewWindowMinutes: DRIFT_TOKEN_RENEW_WINDOW_MINUTES,
+          maxAgeHours: DRIFT_TOKEN_MAX_AGE_HOURS
+        }
       }
-    }
-  )
+    )
 
     if (!result?.token) {
       throw createError({
@@ -282,15 +305,16 @@ const mintToken = async (
       })
     }
 
-  // Calculate expiry from response or TTL
-  const expiresAt = result.tokenInfo?.expiresAt
-    ? result.tokenInfo.expiresAt * 1000 // Convert to ms
-    : Date.now() + TOKEN_TTL_SECONDS * 1000
+    // Calculate expiry from response
+    const expiresAt = result.tokenInfo?.expiresAt
+      ? result.tokenInfo.expiresAt * 1000 // Convert to ms if seconds
+      : Date.now() + DRIFT_TOKEN_TTL_HOURS * 3600 * 1000
 
-  return {
-    token: result.token,
-    expiresAt
-  }
+    return {
+      token: result.token,
+      expiresAt,
+      renewed: result.renewed ?? false
+    }
   } catch (error: any) {
     // Improve error message for account not found
     if (error?.message?.includes('Account not found') || error?.statusCode === 404) {
@@ -325,15 +349,20 @@ export const requiresZoneScope = (scopes: WindowsDnsTokenScope[]): boolean => {
 /**
  * Get a valid token for making requests, using cache with singleflight.
  * 
- * For scopes that require zone-level access (records.*, zones.write, ownership.*),
- * the allowedZoneIds will be automatically fetched from the database if not provided.
+ * Uses the new drift token pattern:
+ * - For most operations, uses zoneSelector: 'account_set' which lets the backend
+ *   dynamically determine allowed zones based on account ownership and COREID matches
+ * - For specific zone access, uses zoneSelector: 'explicit' with the specific zone IDs
+ * 
+ * The backend handles mint-or-return-existing logic, so we always call it but
+ * get efficient token reuse via fingerprinting.
  */
 export const getToken = async (
   config: WindowsDnsOrgConfig,
   orgId: string,
   scopes: WindowsDnsTokenScope[],
   allowedZoneIds: string[] | '*' = '*',
-  purpose?: string
+  useAccountSet: boolean = true  // Use account_set by default for dynamic access
 ): Promise<string> => {
   if (!config.windowsDnsAccountId) {
     throw createError({
@@ -342,43 +371,55 @@ export const getToken = async (
     })
   }
 
-  // For zone-scoped operations, enforce allowlist from database
+  // Determine zone selector strategy
+  // - Use 'account_set' for general operations (dynamic based on ownership/COREID)
+  // - Use 'explicit' only when specific zone IDs are required
+  const zoneSelector: WindowsDnsZoneSelector = (useAccountSet && allowedZoneIds === '*') 
+    ? 'account_set' 
+    : 'explicit'
+
+  // For explicit selector, we need actual zone IDs
   let effectiveAllowedZoneIds = allowedZoneIds
-
-  if (requiresZoneScope(scopes) && allowedZoneIds === '*') {
-    // Fetch allowlist from database
+  if (zoneSelector === 'explicit' && allowedZoneIds === '*') {
+    // Fetch allowlist from database for explicit access
     const dbAllowedZoneIds = await getAllowedZoneIds(orgId)
-
     if (dbAllowedZoneIds.length === 0) {
       throw createError({
         statusCode: 403,
         message: 'No zones are activated for this organization. Please run autodiscover and activate zones first.'
       })
     }
-
     effectiveAllowedZoneIds = dbAllowedZoneIds
   }
 
+  // Generate cache key based on the request
   const cacheKey = generateCacheKey({
     orgId,
     accountId: config.windowsDnsAccountId,
     scopes,
-    allowedZoneIds: effectiveAllowedZoneIds
+    allowedZoneIds: zoneSelector === 'account_set' ? '*' : effectiveAllowedZoneIds
   })
 
+  // Use singleflight cache - backend also does mint-or-return-existing
+  // so even if cache misses, we get efficient token reuse
   const cached = await getOrMintToken(cacheKey, async () => {
-    const { token, expiresAt } = await mintToken(
+    const { token, expiresAt, renewed } = await mintToken(
       config,
       config.windowsDnsAccountId!,
       scopes,
-      effectiveAllowedZoneIds,
-      purpose
+      zoneSelector,
+      effectiveAllowedZoneIds
     )
+    
+    if (renewed) {
+      console.log(`[windows-dns] Token renewed for account ${config.windowsDnsAccountId}, scopes: ${scopes.join(',')}`)
+    }
+    
     return {
       token,
       expiresAt,
       scopes,
-      allowedZoneIds: effectiveAllowedZoneIds
+      allowedZoneIds: zoneSelector === 'account_set' ? '*' : effectiveAllowedZoneIds
     }
   })
 
@@ -386,15 +427,17 @@ export const getToken = async (
 }
 
 /**
- * Get a token with specific zone IDs (override the automatic allowlist).
- * Use this when you need to access specific zones that may not be in the allowlist.
+ * Get a token with specific zone IDs (explicit access).
+ * Use this when you need to access specific zones that may not be covered by account_set.
+ * 
+ * Note: For most use cases, the default getToken with account_set is preferred
+ * as it provides dynamic access based on ownership/COREID matches.
  */
 export const getTokenForZones = async (
   config: WindowsDnsOrgConfig,
   orgId: string,
   scopes: WindowsDnsTokenScope[],
-  zoneIds: string[],
-  purpose?: string
+  zoneIds: string[]
 ): Promise<string> => {
   if (zoneIds.length === 0) {
     throw createError({
@@ -403,18 +446,23 @@ export const getTokenForZones = async (
     })
   }
 
-  return getToken(config, orgId, scopes, zoneIds, purpose)
+  // Force explicit selector with specific zone IDs
+  return getToken(config, orgId, scopes, zoneIds, false)
 }
 
 /**
  * High-level client that combines org config lookup, token management, and API calls.
- * Uses per-account tokens (wdns_tok_*) for drift operations.
+ * Uses drift tokens (wdns_drift_*) with the new mint-or-return-existing pattern.
  * 
  * Token behavior:
- * - For zone-scoped operations (records.*, zones.write, ownership.*): 
- *   Uses allowlist from database automatically.
- * - For autodiscover.read, zones.read, zones.create: 
- *   Can use wildcard access.
+ * - Default: Uses zoneSelector: 'account_set' which dynamically grants access
+ *   to zones based on account ownership and COREID matches
+ * - Explicit: Uses zoneSelector: 'explicit' when specific zone IDs are required
+ * 
+ * Benefits of drift tokens:
+ * - No token spam: Same fingerprint = same token returned
+ * - Sliding TTL: Tokens auto-renew when accessed near expiry
+ * - Max age: Tokens forced to refresh after 24 hours for security
  */
 export class WindowsDnsClient {
   constructor(

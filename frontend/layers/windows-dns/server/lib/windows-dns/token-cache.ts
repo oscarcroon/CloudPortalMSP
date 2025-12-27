@@ -2,17 +2,27 @@ import { createHash } from 'crypto'
 import type { WindowsDnsTokenScope } from './types'
 
 /**
- * Token cache with TTL, safety window, and singleflight lock.
- *
- * Features:
- * - TTL: 5 minutes (300s)
- * - Safety window: 30 seconds (treats token as expired 30s before actual expiry)
- * - Singleflight: only one concurrent mint per cache key
- * - In-memory per node (can be upgraded to Redis later)
+ * Client-side token cache with singleflight protection.
+ * 
+ * This cache works in conjunction with the backend's mint-or-return-existing logic:
+ * 
+ * Client-side (this file):
+ * - Singleflight: Prevents parallel mint requests for the same token
+ * - Local TTL: Avoids unnecessary API calls when token is still valid
+ * - Safety window: Triggers refresh before actual expiry
+ * 
+ * Backend-side:
+ * - Fingerprinting: Same scopes + zone selector = same token returned
+ * - Sliding TTL: Token expiry extended on access (within max age)
+ * - Deterministic: Token string is derived, not random
+ * 
+ * Together, this eliminates token spam while maintaining security.
+ * 
+ * TTL values should align with DRIFT_TOKEN_TTL_HOURS from client.ts
  */
 
-const TOKEN_TTL_MS = 5 * 60 * 1000 // 5 minutes
-const SAFETY_WINDOW_MS = 30 * 1000 // 30 seconds
+const TOKEN_TTL_MS = 60 * 60 * 1000 // 1 hour (matches DRIFT_TOKEN_TTL_HOURS)
+const SAFETY_WINDOW_MS = 15 * 60 * 1000 // 15 min (matches DRIFT_TOKEN_RENEW_WINDOW_MINUTES)
 
 interface CachedToken {
   token: string
@@ -81,11 +91,18 @@ export const setCachedToken = (cacheKey: string, token: CachedToken): void => {
 
 /**
  * Get or mint a token with singleflight protection.
- * If a mint is already in progress for the same cache key, awaits that instead of starting a new one.
+ * 
+ * This provides client-side deduplication of concurrent requests:
+ * - If token exists in cache and is valid, returns it immediately
+ * - If a mint is already in progress, awaits that instead of making a parallel call
+ * - Otherwise, calls the backend which handles mint-or-return-existing
+ * 
+ * The backend also deduplicates via fingerprinting, so even on cache miss
+ * we get efficient token reuse.
  *
  * @param cacheKey - The cache key for this token request
- * @param mintFn - Async function that mints a new token from WindowsDNS admin API
- * @returns The cached or newly minted token
+ * @param mintFn - Async function that mints/retrieves a token from WindowsDNS backend
+ * @returns The cached or newly retrieved token
  */
 export const getOrMintToken = async (
   cacheKey: string,
