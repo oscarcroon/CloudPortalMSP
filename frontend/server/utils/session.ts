@@ -71,7 +71,65 @@ const verifyToken = (token: string) => {
   }) as SessionTokenPayload
 }
 
-const readTokenFromEvent = (event: H3Event) => getCookie(event, SESSION_COOKIE)
+/**
+ * Check if a token looks like a JWT (three dot-separated base64 segments).
+ * This is used to distinguish JWTs from opaque PAT tokens.
+ */
+const looksLikeJwt = (token: string): boolean => {
+  const parts = token.split('.')
+  if (parts.length !== 3) return false
+  // Basic check that parts look like base64url
+  const base64UrlPattern = /^[A-Za-z0-9_-]+$/
+  return parts.every((part) => base64UrlPattern.test(part))
+}
+
+/**
+ * Extract Bearer token from Authorization header, but only if it looks like a JWT.
+ * PAT tokens (which start with msp_pat. or don't look like JWTs) are ignored.
+ */
+const extractBearerJwt = (event: H3Event): string | null => {
+  const headers = getRequestHeaders(event)
+  const authHeader = headers.authorization || headers.Authorization
+
+  if (!authHeader) return null
+
+  // Must be Bearer scheme
+  const match = authHeader.match(/^Bearer\s+(.+)$/i)
+  if (!match) return null
+
+  const token = match[1]
+
+  // Ignore PAT tokens (they start with known prefixes)
+  if (token.startsWith('msp_pat.') || token.startsWith('msp_org.')) {
+    return null
+  }
+
+  // Only accept tokens that look like JWTs
+  if (!looksLikeJwt(token)) {
+    return null
+  }
+
+  return token
+}
+
+/**
+ * Read session token from event - checks cookie first, then Authorization header.
+ */
+const readTokenFromEvent = (event: H3Event): string | undefined => {
+  // First, try cookie
+  const cookieToken = getCookie(event, SESSION_COOKIE)
+  if (cookieToken) {
+    return cookieToken
+  }
+
+  // Then, try Authorization header (Bearer JWT only)
+  const bearerToken = extractBearerJwt(event)
+  if (bearerToken) {
+    return bearerToken
+  }
+
+  return undefined
+}
 
 const writeSessionCookie = (event: H3Event, token: string) => {
   setCookie(event, SESSION_COOKIE, token, {

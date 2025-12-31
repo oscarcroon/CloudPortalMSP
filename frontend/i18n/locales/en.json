@@ -940,9 +940,14 @@
       }
     },
     "apiTokens": {
-      "title": "API tokens",
-      "description": "Manage authentication against external providers.",
-      "configure": "Configure"
+      "title": "API Keys",
+      "description": "Manage API keys for programmatic access to organization data.",
+      "configure": "Configure",
+      "features": {
+        "create": "Create new API keys with custom permissions",
+        "scopes": "Restrict access with scopes (e.g., dns:read, org:write)",
+        "revoke": "Revoke keys when needed"
+      }
     }
   },
   "admin": {

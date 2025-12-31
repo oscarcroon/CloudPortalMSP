@@ -480,6 +480,64 @@ export const auditLogs = sqliteTable('audit_logs', {
   tenantIdIdx: index('audit_logs_tenant_id_idx').on(table.tenantId)
 }))
 
+/**
+ * Organization API Tokens (PAT - Personal Access Tokens)
+ *
+ * Used for programmatic access to the API by external integrations.
+ * Token format: msp_pat.<prefix>.<secret>
+ * - prefix: Used for DB lookup (unique, base32)
+ * - secret: Hashed with scrypt + salt + pepper
+ */
+export const orgApiTokens = sqliteTable(
+  'org_api_tokens',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    // Token lookup prefix (first part of token, globally unique)
+    prefix: text('prefix').notNull(),
+    // Hash algorithm and version
+    hashAlg: text('hash_alg').notNull().default('scrypt-v1'),
+    hashVersion: integer('hash_version').notNull().default(1),
+    // Hash parameters (JSON: N, r, p, keylen)
+    hashParams: text('hash_params', { length: 256 }).notNull(),
+    // Salt for hashing (base64)
+    salt: text('salt').notNull(),
+    // Hash of the secret portion only (base64)
+    tokenHash: text('token_hash').notNull(),
+    // Key ID for pepper (for KeyVault rotation)
+    pepperKid: text('pepper_kid').notNull(),
+    // Scopes granted to this token (JSON array of strings)
+    scopes: text('scopes', { length: 2048 }).notNull(),
+    // Resource constraints (JSON object)
+    resourceConstraints: text('resource_constraints', { length: 2048 }),
+    // Human-readable description
+    description: text('description', { length: 512 }),
+    // Who created the token
+    createdByUserId: text('created_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // Expiration and revocation
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
+    revokedAt: integer('revoked_at', { mode: 'timestamp_ms' }),
+    // Usage tracking
+    lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    // Prefix must be globally unique for fast lookup
+    prefixUnique: uniqueIndex('org_api_tokens_prefix_unique').on(table.prefix),
+    // Org lookup
+    orgIdx: index('org_api_tokens_org_idx').on(table.organizationId),
+    // Active tokens (not revoked)
+    orgActiveIdx: index('org_api_tokens_org_active_idx').on(
+      table.organizationId,
+      table.revokedAt
+    )
+  })
+)
+
 export const organizationIdentityProviders = sqliteTable(
   'organization_identity_providers',
   {

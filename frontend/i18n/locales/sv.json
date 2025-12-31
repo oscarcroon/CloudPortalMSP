@@ -940,9 +940,14 @@
       }
     },
     "apiTokens": {
-      "title": "API tokens",
-      "description": "Hantera autentisering mot externa leverantörer.",
-      "configure": "Konfigurera"
+      "title": "API-nycklar",
+      "description": "Hantera API-nycklar för programmatisk åtkomst till organisationens data.",
+      "configure": "Konfigurera",
+      "features": {
+        "create": "Skapa nya API-nycklar med anpassade behörigheter",
+        "scopes": "Begränsa åtkomst med scopes (t.ex. dns:read, org:write)",
+        "revoke": "Återkalla nycklar vid behov"
+      }
     }
   },
   "admin": {

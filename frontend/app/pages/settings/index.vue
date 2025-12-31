@@ -450,25 +450,39 @@
         </ul>
       </div>
 
-      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
-        <div class="flex items-center gap-3">
-          <Icon icon="mdi:key-outline" class="h-6 w-6 text-brand" />
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.apiTokens.title') }}</h2>
-        </div>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ t('settings.apiTokens.description') }}</p>
-        <div class="mt-4 space-y-3">
-          <div
-            v-for="token in tokens"
-            :key="token.name"
-            class="rounded-xl border border-dashed border-slate-300 px-4 py-3 dark:border-slate-600 dark:bg-slate-900/40"
-          >
-            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ token.name }}</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">{{ token.description }}</p>
-            <button class="mt-2 text-xs font-semibold text-brand hover:text-brand-dark dark:text-brand-light">
-              {{ t('settings.apiTokens.configure') }}
-            </button>
+      <div
+        :class="[
+          'rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70',
+          { 'pointer-events-none opacity-50': isSettingsLocked }
+        ]"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:key-outline" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.apiTokens.title') }}</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {{ t('settings.apiTokens.description') }}
+            </p>
           </div>
+          <NuxtLink
+            to="/settings/api-tokens"
+            :aria-disabled="isSettingsLocked"
+            :tabindex="isSettingsLocked ? -1 : 0"
+            :class="[
+              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+              { 'pointer-events-none opacity-50': isSettingsLocked }
+            ]"
+          >
+            {{ t('settings.open') }}
+          </NuxtLink>
         </div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <li>• {{ t('settings.apiTokens.features.create') }}</li>
+          <li>• {{ t('settings.apiTokens.features.scopes') }}</li>
+          <li>• {{ t('settings.apiTokens.features.revoke') }}</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -497,13 +511,6 @@ onMounted(async () => {
 const showContent = computed(() => {
   return auth.state.value.initialized && !auth.state.value.loading
 })
-
-const tokens = [
-  { name: 'Cloudflare API Token', description: 'DNS edit, zone read' },
-  { name: 'Incus Client Cert', description: 'Projekt access per tenant' },
-  { name: 'ESXi/Morpheus Service Account', description: 'VM control plane' },
-  { name: 'WordPress Management Token', description: 'REST Application password' }
-]
 
 const currentTenantId = computed(() => auth.state.value.data?.currentTenantId ?? null)
 const hasActiveTenant = computed(() => Boolean(currentTenantId.value))
