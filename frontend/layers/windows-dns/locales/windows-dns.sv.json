@@ -46,6 +46,15 @@
       "records": "records",
       "loadingRecords": "Laddar...",
       "viewZone": "Visa zon",
+      "invalidZone": "Ogiltig zon",
+      "delegation": {
+        "pending": "Väntar på delegering",
+        "active": "Delegerad",
+        "pendingTooltip": "Domänen pekar inte på våra namnservrar. Saknas: {missing}",
+        "activeTooltip": "Domänen är korrekt delegerad till våra namnservrar",
+        "actionRequired": "Åtgärd krävs",
+        "updateNameservers": "Uppdatera namnservrar hos din registrar till:"
+      },
       "onboard": {
         "label": "Onboarding",
         "title": "Skapa DNS-zon",
@@ -73,7 +82,8 @@
       "retry": "Försök igen",
       "loadingRecords": "Laddar records...",
       "zoneNotFound": "Zon hittades inte",
-      "failedToLoad": "Kunde inte ladda zon"
+      "failedToLoad": "Kunde inte ladda zon",
+      "invalidZoneId": "Ogiltigt zon-ID. Gå tillbaka och försök igen."
     },
 
     "records": {

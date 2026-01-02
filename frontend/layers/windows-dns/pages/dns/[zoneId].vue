@@ -85,7 +85,17 @@ import { Icon } from '@iconify/vue'
 import WindowsDnsRecordsTable from '@windows-dns/components/WindowsDnsRecordsTable.vue'
 
 const route = useRoute()
+const router = useRouter()
 const zoneId = computed(() => route.params.zoneId as string)
+
+// Validate that zoneId is a valid UUID
+const isValidUuid = (id: string | null | undefined): boolean => {
+  if (!id || id === 'null' || id === 'undefined') return false
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(id)
+}
+
+const isValidZoneId = computed(() => isValidUuid(zoneId.value))
 
 const zonePending = ref(true)
 const zoneError = ref<string | null>(null)
@@ -105,6 +115,14 @@ const recordsData = ref<{
 } | null>(null)
 
 const fetchZone = async () => {
+  // Guard: Don't fetch if zoneId is invalid
+  if (!isValidZoneId.value) {
+    const { $i18n } = useNuxtApp()
+    zoneError.value = $i18n.t('windowsDns.zone.invalidZoneId') ?? 'Invalid zone ID'
+    zonePending.value = false
+    return
+  }
+
   zonePending.value = true
   zoneError.value = null
   try {
@@ -126,6 +144,13 @@ const fetchZone = async () => {
 }
 
 const fetchRecords = async () => {
+  // Guard: Don't fetch if zoneId is invalid
+  if (!isValidZoneId.value) {
+    recordsPending.value = false
+    recordsData.value = { records: [], access: { canEditRecords: false } }
+    return
+  }
+
   recordsPending.value = true
   try {
     const res = await $fetch<{ records: any[]; access: { canEditRecords: boolean } }>(

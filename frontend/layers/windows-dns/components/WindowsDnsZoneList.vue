@@ -42,20 +42,67 @@
               {{ zone.serverName }}
             </p>
           </div>
-          <span
-            v-if="zone.owned"
-            class="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
-          >
-            <Icon icon="mdi:check-circle" class="h-3 w-3" />
-            {{ $t('windowsDns.zoneList.owned') }}
-          </span>
-          <span
-            v-else-if="zone.claimable"
-            class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-          >
-            <Icon icon="mdi:hand-pointing-right" class="h-3 w-3" />
-            {{ $t('windowsDns.zoneList.claimable') }}
-          </span>
+          <div class="flex items-center gap-2">
+            <!-- Delegation status badge -->
+            <span
+              v-if="getDelegationStatus(zone.zoneName) === 'pending'"
+              class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+              :title="$t('windowsDns.zoneList.delegation.pendingTooltip', { missing: getMissingNameservers(zone.zoneName).join(', ') })"
+            >
+              <Icon icon="mdi:clock-outline" class="h-3 w-3 animate-pulse" />
+              {{ $t('windowsDns.zoneList.delegation.pending') }}
+            </span>
+            <span
+              v-else-if="getDelegationStatus(zone.zoneName) === 'active'"
+              class="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
+              :title="$t('windowsDns.zoneList.delegation.activeTooltip')"
+            >
+              <Icon icon="mdi:check-network-outline" class="h-3 w-3" />
+              {{ $t('windowsDns.zoneList.delegation.active') }}
+            </span>
+            <!-- Ownership badge -->
+            <span
+              v-if="zone.owned"
+              class="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
+            >
+              <Icon icon="mdi:check-circle" class="h-3 w-3" />
+              {{ $t('windowsDns.zoneList.owned') }}
+            </span>
+            <span
+              v-else-if="zone.claimable"
+              class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+            >
+              <Icon icon="mdi:hand-pointing-right" class="h-3 w-3" />
+              {{ $t('windowsDns.zoneList.claimable') }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Pending delegation info -->
+        <div
+          v-if="getDelegationStatus(zone.zoneName) === 'pending' && getMissingNameservers(zone.zoneName).length > 0"
+          class="mt-3 rounded-lg border border-amber-200 bg-amber-50/50 p-2.5 dark:border-amber-700/50 dark:bg-amber-900/10"
+        >
+          <div class="flex items-start gap-2">
+            <Icon icon="mdi:information-outline" class="h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-amber-800 dark:text-amber-200">
+                {{ $t('windowsDns.zoneList.delegation.actionRequired') }}
+              </p>
+              <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                {{ $t('windowsDns.zoneList.delegation.updateNameservers') }}
+              </p>
+              <div class="mt-1.5 flex flex-wrap gap-1">
+                <span
+                  v-for="ns in getMissingNameservers(zone.zoneName)"
+                  :key="ns"
+                  class="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-mono text-amber-800 dark:bg-amber-800/30 dark:text-amber-200"
+                >
+                  {{ ns }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="mt-3 flex items-center justify-between">
@@ -69,12 +116,16 @@
             &nbsp;
           </span>
           <NuxtLink
+            v-if="isValidUuid(zone.id)"
             :to="`/dns/${zone.id}`"
             class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
           >
             {{ $t('windowsDns.zoneList.viewZone') }}
             <Icon icon="mdi:arrow-right" class="h-4 w-4" />
           </NuxtLink>
+          <span v-else class="text-xs text-slate-400 dark:text-slate-500">
+            {{ $t('windowsDns.zoneList.invalidZone') }}
+          </span>
         </div>
       </div>
     </div>
@@ -177,7 +228,7 @@
                 {{ $t('windowsDns.zoneList.onboard.createZone') }}
               </button>
               <button
-                v-if="createdZoneId"
+                v-if="createdZoneId && isValidUuid(createdZoneId)"
                 type="button"
                 class="inline-flex items-center gap-2 rounded-lg border border-brand bg-white px-4 py-2 text-sm font-semibold text-brand shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
                 @click="goToCreatedZone"
@@ -206,6 +257,24 @@ type Zone = {
   claimable: boolean
 }
 
+type NameserverCheckStatus = {
+  zoneId: string
+  zoneName: string
+  lastCheckedAt: number | null
+  delegationNameservers: string[]
+  pointsToOurNameservers: boolean
+  ourNameserversDetected: string[]
+  checkStatus: 'success' | 'error' | 'timeout'
+  errorMessage: string | null
+}
+
+type NsStatusResponse = {
+  success: boolean
+  items: NameserverCheckStatus[]
+  statusByZoneName: Record<string, NameserverCheckStatus>
+  serviceUnavailable?: boolean
+}
+
 type Server = {
   id: string
   name: string
@@ -222,18 +291,67 @@ const props = defineProps<{
 const emit = defineEmits<{ refresh: [] }>()
 const router = useRouter()
 
+// Validate that zoneId is a valid UUID
+const isValidUuid = (id: string | null | undefined): boolean => {
+  if (!id || id === 'null' || id === 'undefined') return false
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(id)
+}
+
 // Record counts state
 const recordCounts = ref<Record<string, number>>({})
 const loadingRecordCounts = ref(false)
+
+// NS check status state
+const nsStatus = ref<Record<string, NameserverCheckStatus>>({})
+const loadingNsStatus = ref(false)
+const nsServiceUnavailable = ref(false)
+
+// Get delegation status for a zone
+const getDelegationStatus = (zoneName: string): 'active' | 'pending' | 'error' | 'unknown' => {
+  const status = nsStatus.value[zoneName.toLowerCase()]
+  if (!status) return 'unknown'
+  if (status.checkStatus === 'error' || status.checkStatus === 'timeout') return 'error'
+  return status.pointsToOurNameservers ? 'active' : 'pending'
+}
+
+// Get missing nameservers for a zone
+const getMissingNameservers = (zoneName: string): string[] => {
+  const status = nsStatus.value[zoneName.toLowerCase()]
+  if (!status) return []
+  const detected = new Set(status.ourNameserversDetected.map(ns => ns.toLowerCase()))
+  // Return nameservers that should be there but aren't detected
+  const expected = ['ns1.coreit.se', 'ns2.coreit.se', 'ns3.coreit.se']
+  return expected.filter(ns => !detected.has(ns.toLowerCase()))
+}
+
+// Fetch NS check status for all zones
+const fetchNsStatus = async () => {
+  loadingNsStatus.value = true
+  try {
+    const res = await $fetch<NsStatusResponse>('/api/dns/windows/zones/ns-status')
+    nsStatus.value = res.statusByZoneName ?? {}
+    nsServiceUnavailable.value = res.serviceUnavailable ?? false
+  } catch (err) {
+    console.error('[windows-dns] Failed to fetch NS status:', err)
+    nsServiceUnavailable.value = true
+  } finally {
+    loadingNsStatus.value = false
+  }
+}
 
 // Fetch record counts for all zones
 const fetchRecordCounts = async () => {
   if (props.zones.length === 0) return
   
+  // Filter out zones with invalid IDs before fetching
+  const validZones = props.zones.filter(zone => isValidUuid(zone.id))
+  if (validZones.length === 0) return
+
   loadingRecordCounts.value = true
   try {
     const counts = await Promise.all(
-      props.zones.map(async (zone) => {
+      validZones.map(async (zone) => {
         try {
           const res = await $fetch<{ records: any[] }>(`/api/dns/windows/zones/${zone.id}/records`)
           return { zoneId: zone.id, count: res.records?.length ?? 0 }
@@ -255,12 +373,14 @@ const fetchRecordCounts = async () => {
   }
 }
 
-// Watch for zone changes and fetch counts
+// Watch for zone changes and fetch counts + NS status
 watch(() => props.zones, (newZones) => {
   if (newZones.length > 0) {
     fetchRecordCounts()
+    fetchNsStatus()
   } else {
     recordCounts.value = {}
+    nsStatus.value = {}
   }
 }, { immediate: true })
 
@@ -340,7 +460,34 @@ const createZone = async () => {
       }
     })
     
-    createdZoneId.value = res?.zone?.id ?? null
+    // Debug: Log the response structure
+    console.log('[windows-dns] Frontend received response:', res)
+    console.log('[windows-dns] Response type:', typeof res)
+    console.log('[windows-dns] Response keys:', res ? Object.keys(res) : 'null')
+    console.log('[windows-dns] res.zone:', (res as any)?.zone)
+    console.log('[windows-dns] res.id (direct):', (res as any)?.id)
+    
+    // Try to extract zone ID - handle both { zone: { id } } and { id } formats
+    let zoneId: string | null = null
+    if ((res as any)?.zone?.id) {
+      // Expected format: { zone: { id: "..." } }
+      zoneId = (res as any).zone.id
+      console.log('[windows-dns] Got zone.id from nested format:', zoneId)
+    } else if ((res as any)?.id) {
+      // Alternative format: { id: "..." } directly
+      zoneId = (res as any).id
+      console.log('[windows-dns] Got id from direct format:', zoneId)
+    }
+    
+    if (!zoneId || !isValidUuid(zoneId)) {
+      console.error('[windows-dns] Zone created but no valid ID returned:', res)
+      createError.value = 'Zone was created but no valid ID was returned. Please refresh the zone list.'
+      createdZoneId.value = null
+    } else {
+      createdZoneId.value = zoneId
+      console.log('[windows-dns] Successfully set createdZoneId:', zoneId)
+    }
+    
     newZone.zoneName = ''
     emit('refresh')
   } catch (err: any) {
@@ -391,9 +538,15 @@ const copyToClipboard = async (text: string) => {
 }
 
 const goToCreatedZone = () => {
-  if (createdZoneId.value) {
+  // Save the zone ID BEFORE closing the modal (which clears createdZoneId)
+  const zoneId = createdZoneId.value
+  
+  // Guard: Only navigate if we have a valid UUID
+  if (zoneId && isValidUuid(zoneId)) {
     closeCreateModal()
-    void router.push(`/dns/${createdZoneId.value}`)
+    void router.push(`/dns/${zoneId}`)
+  } else {
+    console.warn('[windows-dns] Cannot navigate: createdZoneId is invalid:', zoneId)
   }
 }
 </script>

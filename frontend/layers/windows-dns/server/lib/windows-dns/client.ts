@@ -148,6 +148,11 @@ export const tokenRequest = async <T>(
       }
     })
 
+    // Debug logging for POST requests
+    if (options?.method === 'POST') {
+      console.log(`[windows-dns] tokenRequest POST ${path} response:`, JSON.stringify(res, null, 2))
+    }
+
     if (!res?.success) {
       const message = res?.errors?.[0]?.message ?? 'Windows DNS API error'
       throw createError({ statusCode: 502, message: `[windows-dns] ${message}` })
@@ -568,10 +573,12 @@ export class WindowsDnsClient {
   async createZone(zoneName: string, zoneType: string, serverId: string): Promise<WindowsDnsZoneSummary> {
     // zones.create is not zone-scoped (we're creating a new zone)
     const token = await getToken(this.config, this.orgId, ['zones.create'], '*')
-    return tokenRequest<WindowsDnsZoneSummary>(this.config.instanceId, token, '/zones', {
+    const result = await tokenRequest<WindowsDnsZoneSummary>(this.config.instanceId, token, '/zones', {
       method: 'POST',
       body: { zoneName, zoneType, serverId }
     })
+    console.log('[windows-dns] createZone API result:', JSON.stringify(result, null, 2))
+    return result
   }
 
   /**

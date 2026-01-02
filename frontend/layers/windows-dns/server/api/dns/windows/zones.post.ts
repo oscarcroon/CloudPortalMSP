@@ -36,10 +36,16 @@ export default defineEventHandler(async (event) => {
         zoneName: body.zoneName,
         source: 'manual'
       }])
-      console.log(`[windows-dns] Added zone ${zone.id} (${body.zoneName}) to allowed zones for org ${orgId}`)
+      console.log(`[windows-dns] Zone created: id=${zone.id}, zoneName=${body.zoneName}`)
+    } else {
+      console.warn('[windows-dns] Zone created but no ID returned:', zone)
     }
 
-    return { zone }
+    // Debug: Log the final response structure
+    const response = { zone }
+    console.log('[windows-dns] zones.post.ts returning:', JSON.stringify(response, null, 2))
+
+    return response
   } catch (error: any) {
     throw createError({
       statusCode: error?.statusCode ?? 502,

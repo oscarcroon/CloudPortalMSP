@@ -46,6 +46,15 @@
       "records": "records",
       "loadingRecords": "Loading...",
       "viewZone": "View zone",
+      "invalidZone": "Invalid zone",
+      "delegation": {
+        "pending": "Pending delegation",
+        "active": "Delegated",
+        "pendingTooltip": "Domain is not pointing to our nameservers. Missing: {missing}",
+        "activeTooltip": "Domain is correctly delegated to our nameservers",
+        "actionRequired": "Action required",
+        "updateNameservers": "Update nameservers at your registrar to:"
+      },
       "onboard": {
         "label": "Onboarding",
         "title": "Create DNS Zone",
@@ -73,7 +82,8 @@
       "retry": "Retry",
       "loadingRecords": "Loading records...",
       "zoneNotFound": "Zone not found",
-      "failedToLoad": "Failed to load zone"
+      "failedToLoad": "Failed to load zone",
+      "invalidZoneId": "Invalid zone ID. Go back and try again."
     },
 
     "records": {
