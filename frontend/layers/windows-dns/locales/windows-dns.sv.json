@@ -138,6 +138,7 @@
       "deleteConfirm": "Ta bort {type} record för {name}?",
       "createError": "Kunde inte skapa record",
       "updateError": "Kunde inte uppdatera record",
+      "contentRequired": "Fyll i ett värde för det nya recordet innan du sparar.",
       "deleteError": "Kunde inte ta bort record",
       "missingRecordId": "Saknar record ID - kan inte uppdatera",
       "pagination": "Sida {page} av {pages}"

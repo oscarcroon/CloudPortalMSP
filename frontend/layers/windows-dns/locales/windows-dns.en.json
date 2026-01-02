@@ -138,6 +138,7 @@
       "deleteConfirm": "Delete {type} record for {name}?",
       "createError": "Failed to create record",
       "updateError": "Failed to update record",
+      "contentRequired": "Please enter a value for the new record before saving.",
       "deleteError": "Failed to delete record",
       "missingRecordId": "Missing record ID - cannot update",
       "pagination": "Page {page} of {pages}"

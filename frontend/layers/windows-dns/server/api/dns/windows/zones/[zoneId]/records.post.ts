@@ -34,7 +34,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  console.log(`[windows-dns] POST record - zoneId: ${zoneId}, body:`, JSON.stringify(body))
+
   if (!body?.name || !body?.type || !body?.content) {
+    console.log(`[windows-dns] Validation failed - name: "${body?.name}", type: "${body?.type}", content: "${body?.content}"`)
     throw createError({
       statusCode: 400,
       message: 'Namn, typ och innehåll krävs.'
@@ -70,12 +73,14 @@ export default defineEventHandler(async (event) => {
       recordPayload.comment = comment
     }
 
+    console.log(`[windows-dns] Creating record with payload:`, JSON.stringify(recordPayload))
     const record = await client.createRecord(zoneId, recordPayload)
 
     return { record }
   } catch (error: any) {
     // Parse error message for better UX
     const errorMessage = error?.message ?? 'Failed to create record.'
+    console.error(`[windows-dns] Create record failed:`, errorMessage, error)
     
     // Provide user-friendly error messages
     if (errorMessage.includes('already exists') || errorMessage.includes('409')) {

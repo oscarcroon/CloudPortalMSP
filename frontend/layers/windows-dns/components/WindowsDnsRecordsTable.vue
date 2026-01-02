@@ -771,6 +771,23 @@ const onTypeChange = (mode: 'create' | 'edit') => {
     newRecord.tlsaSelector = 1
     newRecord.tlsaMatchingType = 1
     newRecord.tlsaCertData = ''
+  } else if (mode === 'edit') {
+    // Reset content fields when type changes during edit
+    // Old content from previous type is likely not valid for the new type
+    editForm.content = ''
+    editForm.mxPriority = 10
+    editForm.mxExchange = ''
+    editForm.srvPriority = 0
+    editForm.srvWeight = 0
+    editForm.srvPort = 443
+    editForm.srvTarget = ''
+    editForm.caaFlags = 0
+    editForm.caaTag = 'issue'
+    editForm.caaValue = ''
+    editForm.tlsaUsage = 3
+    editForm.tlsaSelector = 1
+    editForm.tlsaMatchingType = 1
+    editForm.tlsaCertData = ''
   }
 }
 
@@ -929,28 +946,96 @@ const cancelEdit = () => {
 const updateRecord = async () => {
   updating.value = true
   updateError.value = null
+
   try {
-    const recordId = editForm.originalRecord?.id
+    const original = editForm.originalRecord
+    const recordId = original?.id
     if (!recordId) {
       const { $i18n } = useNuxtApp()
       updateError.value = $i18n.t('windowsDns.records.missingRecordId')
       return
     }
 
-    // Build content from type-specific fields
     const newContent = isSimpleType(editForm.type) ? editForm.content : buildContent(editForm)
+    const origContent = original?.content || original?.value || original?.data || ''
 
-    // Build payload with only changed fields
+    const typeChanged = editForm.type !== original?.type
+
+    // If type changes, treat as "replace": create new record, then delete old record
+    // Many DNS backends don't support changing the type of an existing record
+    if (typeChanged) {
+      const createPayload: any = {
+        type: editForm.type,
+        name: editForm.name,
+        content: newContent,
+        ttl: editForm.ttl
+      }
+
+      // Keep comment if provided
+      if (editForm.comment?.trim()) {
+        createPayload.comment = editForm.comment.trim()
+      }
+
+      // MX: backend may also use priority separately
+      if (editForm.type === 'MX') {
+        createPayload.priority = editForm.mxPriority
+      }
+
+      console.log('[windows-dns] Type changed, replacing record with payload:', createPayload)
+      console.log('[windows-dns] Original record:', { type: original.type, name: original.name, content: origContent })
+
+      // Validate that we have content before attempting to create
+      if (!newContent || !newContent.trim()) {
+        const { $i18n } = useNuxtApp()
+        updateError.value = $i18n.t('windowsDns.records.contentRequired') || 'Content krävs för denna record-typ.'
+        updating.value = false
+        return
+      }
+
+      // IMPORTANT: Delete old record FIRST, then create new
+      // This is required because CNAME records cannot coexist with other record types at the same name
+      // If we try to create first, it will fail with "record already exists" or similar
+
+      // 1) Delete old record first
+      try {
+        await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+          method: 'DELETE',
+          body: {
+            name: original.name,
+            type: original.type,
+            content: origContent
+          }
+        })
+        console.log('[windows-dns] Old record deleted successfully')
+      } catch (e: any) {
+        // Ignore 404 / "not found" errors - the old record may already be gone
+        const msg = e?.data?.message ?? e?.message ?? ''
+        if (!(e?.statusCode === 404 || String(msg).includes('hittades inte'))) {
+          console.error('[windows-dns] Failed to delete old record:', msg)
+          throw e
+        }
+        console.log('[windows-dns] Old record not found (already deleted)')
+      }
+
+      // 2) Create new record
+      await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+        method: 'POST',
+        body: createPayload
+      })
+      console.log('[windows-dns] New record created successfully')
+
+      cancelEdit()
+      emit('refresh')
+      return
+    }
+
+    // Default: normal PATCH for same-type edits
     const payload: Record<string, unknown> = {}
-    if (editForm.type !== editForm.originalRecord?.type) payload.type = editForm.type
-    if (editForm.name !== (editForm.originalRecord?.name || '@')) payload.name = editForm.name
-
-    const origContent = editForm.originalRecord?.content || editForm.originalRecord?.value || editForm.originalRecord?.data || ''
+    if (editForm.name !== (original?.name || '@')) payload.name = editForm.name
     if (newContent !== origContent) payload.content = newContent
-    if (editForm.ttl !== (editForm.originalRecord?.ttl ?? 3600)) payload.ttl = editForm.ttl
+    if (editForm.ttl !== (original?.ttl ?? 3600)) payload.ttl = editForm.ttl
 
-    // Comment: only send if changed (empty string = delete comment)
-    const origComment = editForm.originalRecord?.comment ?? ''
+    const origComment = original?.comment ?? ''
     if (editForm.comment !== origComment) {
       // Send null if empty (to delete), otherwise send the trimmed value
       payload.comment = editForm.comment?.trim() || null
@@ -960,6 +1045,7 @@ const updateRecord = async () => {
       method: 'PATCH',
       body: payload
     })
+
     cancelEdit()
     emit('refresh')
   } catch (err: any) {
