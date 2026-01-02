@@ -77,6 +77,89 @@
       <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
       {{ $t('windowsDns.zone.loadingRecords') }}
     </div>
+
+    <!-- Danger Zone -->
+    <section
+      v-if="zoneId && isValidZoneId && zoneData?.zone && recordsData?.access?.canEditZones"
+      class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm dark:border-red-700 dark:bg-red-900/30 dark:text-red-100"
+    >
+      <header class="mb-2 flex items-center justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-wide">{{ $t('windowsDns.zone.danger.label') }}</p>
+          <p class="text-sm font-semibold">{{ $t('windowsDns.zone.danger.title') }}</p>
+          <p class="text-xs text-red-700/90 dark:text-red-100/80">
+            {{ $t('windowsDns.zone.danger.description') }}
+          </p>
+        </div>
+        <button
+          class="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500/60 disabled:cursor-not-allowed disabled:opacity-70"
+          type="button"
+          :disabled="deleting"
+          @click="openDeleteModal"
+        >
+          <Icon icon="mdi:trash-can-outline" class="h-4 w-4" />
+          {{ $t('windowsDns.zone.danger.deleteAction') }}
+        </button>
+      </header>
+      <p v-if="deleteError" class="text-xs text-red-700 dark:text-red-200">{{ deleteError }}</p>
+    </section>
+
+    <!-- Delete Confirmation Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showDeleteModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-6"
+      >
+        <div class="w-full max-w-lg rounded-2xl border border-red-200 bg-white p-6 shadow-xl dark:border-red-700 dark:bg-slate-900">
+          <header class="mb-4 space-y-1">
+            <p class="text-xs uppercase tracking-wide text-red-600 dark:text-red-200">
+              {{ $t('windowsDns.zone.delete.confirmLabel') }}
+            </p>
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-50">
+              {{ $t('windowsDns.zone.delete.confirmTitle') }}
+            </h3>
+            <p class="text-sm text-slate-700 dark:text-slate-200">
+              {{ $t('windowsDns.zone.delete.confirmDescription') }}
+            </p>
+          </header>
+          <div class="space-y-3">
+            <div class="text-sm text-slate-700 dark:text-slate-200">
+              <p>{{ $t('windowsDns.zone.delete.enterName') }}</p>
+              <input
+                v-model="confirmName"
+                class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
+                type="text"
+                :placeholder="zoneData?.zone?.zoneName ?? ''"
+              />
+            </div>
+            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input v-model="confirmAck" type="checkbox" />
+              <span>{{ $t('windowsDns.zone.delete.ack') }}</span>
+            </label>
+            <p v-if="deleteError" class="text-xs text-red-700 dark:text-red-200">{{ deleteError }}</p>
+          </div>
+          <div class="mt-4 flex justify-end gap-2">
+            <button
+              class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-100"
+              type="button"
+              @click="closeDeleteModal"
+            >
+              {{ $t('windowsDns.zone.delete.cancel') }}
+            </button>
+            <button
+              class="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500/60 disabled:cursor-not-allowed disabled:opacity-70"
+              type="button"
+              :disabled="deleting || !canDeleteConfirmed"
+              @click="confirmDeleteZone"
+            >
+              <Icon v-if="deleting" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+              <Icon v-else icon="mdi:trash-can-outline" class="h-4 w-4" />
+              {{ $t('windowsDns.zone.danger.deleteAction') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -111,7 +194,7 @@ const zoneData = ref<{
 const recordsPending = ref(true)
 const recordsData = ref<{
   records: any[]
-  access: { canEditRecords: boolean }
+  access: { canEditRecords: boolean; canEditZones: boolean }
 } | null>(null)
 
 const fetchZone = async () => {
@@ -147,7 +230,7 @@ const fetchRecords = async () => {
   // Guard: Don't fetch if zoneId is invalid
   if (!isValidZoneId.value) {
     recordsPending.value = false
-    recordsData.value = { records: [], access: { canEditRecords: false } }
+    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false } }
     return
   }
 
@@ -159,7 +242,7 @@ const fetchRecords = async () => {
     recordsData.value = res
   } catch (err: any) {
     console.error('Failed to fetch records:', err)
-    recordsData.value = { records: [], access: { canEditRecords: false } }
+    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false } }
   } finally {
     recordsPending.value = false
   }
@@ -171,6 +254,48 @@ const refreshRecords = async () => {
 
 const refreshAll = async () => {
   await Promise.all([fetchZone(), fetchRecords()])
+}
+
+// Delete zone state
+const deleting = ref(false)
+const deleteError = ref<string | null>(null)
+const showDeleteModal = ref(false)
+const confirmName = ref('')
+const confirmAck = ref(false)
+
+const canDeleteConfirmed = computed(() => {
+  const expected = zoneData.value?.zone?.zoneName?.trim().toLowerCase() ?? ''
+  return confirmAck.value && confirmName.value.trim().toLowerCase() === expected && expected.length > 0
+})
+
+const openDeleteModal = () => {
+  showDeleteModal.value = true
+  confirmName.value = ''
+  confirmAck.value = false
+  deleteError.value = null
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+  confirmName.value = ''
+  confirmAck.value = false
+  deleteError.value = null
+}
+
+const confirmDeleteZone = async () => {
+  if (!zoneId.value || !canDeleteConfirmed.value) return
+  deleting.value = true
+  deleteError.value = null
+  try {
+    await $fetch(`/api/dns/windows/zones/${zoneId.value}`, { method: 'DELETE' })
+    closeDeleteModal()
+    await router.push('/dns')
+  } catch (err: any) {
+    const { $i18n } = useNuxtApp()
+    deleteError.value = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.zone.delete.error')
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(() => {

@@ -30,7 +30,8 @@ export default defineEventHandler(async (event) => {
     return {
       records,
       access: {
-        canEditRecords: moduleRights.canEditRecords
+        canEditRecords: moduleRights.canEditRecords,
+        canEditZones: moduleRights.canEditZones
       }
     }
   } catch (error: any) {

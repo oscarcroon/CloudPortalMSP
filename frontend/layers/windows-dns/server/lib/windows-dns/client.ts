@@ -593,6 +593,17 @@ export class WindowsDnsClient {
       body: updates
     })
   }
+
+  /**
+   * Delete a zone.
+   * Uses zones.write scope (zone-scoped).
+   */
+  async deleteZone(zoneId: string): Promise<void> {
+    const token = await getTokenForZones(this.config, this.orgId, ['zones.write'], [zoneId])
+    await tokenRequest<void>(this.config.instanceId, token, `/zones/${zoneId}`, {
+      method: 'DELETE'
+    })
+  }
 }
 
 /**

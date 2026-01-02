@@ -83,7 +83,22 @@
       "loadingRecords": "Laddar records...",
       "zoneNotFound": "Zon hittades inte",
       "failedToLoad": "Kunde inte ladda zon",
-      "invalidZoneId": "Ogiltigt zon-ID. Gå tillbaka och försök igen."
+      "invalidZoneId": "Ogiltigt zon-ID. Gå tillbaka och försök igen.",
+      "danger": {
+        "label": "Danger zone",
+        "title": "Ta bort DNS-zon",
+        "description": "Detta tar bort zonen och alla DNS-records permanent. Kan inte ångras.",
+        "deleteAction": "Ta bort zon"
+      },
+      "delete": {
+        "confirmLabel": "Bekräfta borttagning",
+        "confirmTitle": "Ta bort DNS-zon",
+        "confirmDescription": "Detta tar bort zonen och alla records permanent. Kan inte ångras.",
+        "enterName": "Skriv zonens namn för att bekräfta:",
+        "ack": "Jag förstår att borttagningen inte går att ångra.",
+        "cancel": "Avbryt",
+        "error": "Kunde inte ta bort zonen."
+      }
     },
 
     "records": {
@@ -199,13 +214,23 @@
       "actions": {
         "hide": "Dölj",
         "show": "Visa",
-        "activate": "Aktivera"
+        "activate": "Aktivera",
+        "delete": "Ta bort"
       },
       "confirmHide": "Dölj {count} {zoneWord}? De kommer inte längre visas eller vara tillgängliga.",
       "confirmShow": "Visa {count} {zoneWord}? De blir tillgängliga igen.",
       "success": {
         "hidden": "{count} {zoneWord} har dolts",
-        "shown": "{count} {zoneWord} är nu aktiva"
+        "shown": "{count} {zoneWord} är nu aktiva",
+        "deleted": "{count} {zoneWord} har tagits bort"
+      },
+      "delete": {
+        "confirmLabel": "Bekräfta borttagning",
+        "confirmTitle": "Ta bort DNS-zoner",
+        "confirmDescription": "Detta tar bort {count} zon(er) permanent inklusive alla DNS-records. Kan inte ångras.",
+        "ack": "Jag förstår att borttagningen inte går att ångra.",
+        "cancel": "Avbryt",
+        "error": "Kunde inte ta bort zonerna."
       },
       "zoneWord": {
         "one": "zon",

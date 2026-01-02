@@ -83,7 +83,22 @@
       "loadingRecords": "Loading records...",
       "zoneNotFound": "Zone not found",
       "failedToLoad": "Failed to load zone",
-      "invalidZoneId": "Invalid zone ID. Go back and try again."
+      "invalidZoneId": "Invalid zone ID. Go back and try again.",
+      "danger": {
+        "label": "Danger zone",
+        "title": "Delete DNS zone",
+        "description": "This will permanently delete the zone and all DNS records. Cannot be undone.",
+        "deleteAction": "Delete zone"
+      },
+      "delete": {
+        "confirmLabel": "Confirm deletion",
+        "confirmTitle": "Delete DNS zone",
+        "confirmDescription": "This will permanently delete the zone and all records. Cannot be undone.",
+        "enterName": "Enter the zone name to confirm:",
+        "ack": "I understand that this action cannot be undone.",
+        "cancel": "Cancel",
+        "error": "Failed to delete zone."
+      }
     },
 
     "records": {
@@ -199,13 +214,23 @@
       "actions": {
         "hide": "Hide",
         "show": "Show",
-        "activate": "Activate"
+        "activate": "Activate",
+        "delete": "Delete"
       },
       "confirmHide": "Hide {count} {zoneWord}? They will no longer be visible or accessible.",
       "confirmShow": "Show {count} {zoneWord}? They will become accessible again.",
       "success": {
         "hidden": "{count} {zoneWord} have been hidden",
-        "shown": "{count} {zoneWord} are now active"
+        "shown": "{count} {zoneWord} are now active",
+        "deleted": "{count} {zoneWord} have been deleted"
+      },
+      "delete": {
+        "confirmLabel": "Confirm deletion",
+        "confirmTitle": "Delete DNS zones",
+        "confirmDescription": "This will permanently delete {count} zone(s) including all DNS records. Cannot be undone.",
+        "ack": "I understand that this action cannot be undone.",
+        "cancel": "Cancel",
+        "error": "Failed to delete zones."
       },
       "zoneWord": {
         "one": "zone",

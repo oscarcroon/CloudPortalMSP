@@ -156,6 +156,16 @@
             {{ selectedZoneIds.length }} {{ selectedZoneIds.length === 1 ? $t('windowsDns.manageZones.zoneWord.one') : $t('windowsDns.manageZones.zoneWord.other') }}
           </p>
           <div class="flex gap-2">
+            <!-- Delete button for allowed zones -->
+            <button
+              v-if="canDeleteSelected"
+              class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:-translate-y-[1px] hover:bg-red-100 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300"
+              :disabled="state.processing"
+              @click="openDeleteConfirmation"
+            >
+              <Icon icon="mdi:trash-can-outline" class="h-4 w-4" />
+              {{ $t('windowsDns.manageZones.actions.delete') }}
+            </button>
             <!-- Show Hide button for allowed zones -->
             <button
               v-if="canHideSelected"
@@ -178,6 +188,61 @@
             </button>
           </div>
         </footer>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+      v-if="deleteState.showConfirm"
+      class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 px-4 py-6"
+    >
+      <div class="w-full max-w-lg rounded-2xl border border-red-200 bg-white p-6 shadow-xl dark:border-red-700 dark:bg-slate-900">
+        <header class="mb-4 space-y-1">
+          <p class="text-xs uppercase tracking-wide text-red-600 dark:text-red-200">
+            {{ $t('windowsDns.manageZones.delete.confirmLabel') }}
+          </p>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            {{ $t('windowsDns.manageZones.delete.confirmTitle') }}
+          </h3>
+          <p class="text-sm text-slate-700 dark:text-slate-200">
+            {{ $t('windowsDns.manageZones.delete.confirmDescription', { count: zonesToDelete.length }) }}
+          </p>
+        </header>
+        <div class="space-y-3">
+          <!-- List zones to delete -->
+          <div class="max-h-40 overflow-y-auto rounded-lg border border-red-200 bg-red-50/50 p-3 dark:border-red-700 dark:bg-red-900/20">
+            <ul class="space-y-1 text-sm text-slate-700 dark:text-slate-200">
+              <li v-for="zone in zonesToDelete" :key="zone.id" class="flex items-center gap-2">
+                <Icon icon="mdi:dns" class="h-4 w-4 text-red-500" />
+                {{ zone.zoneName }}
+              </li>
+            </ul>
+          </div>
+          <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+            <input v-model="deleteState.confirmed" type="checkbox" />
+            <span>{{ $t('windowsDns.manageZones.delete.ack') }}</span>
+          </label>
+          <p v-if="deleteState.error" class="text-xs text-red-700 dark:text-red-200">{{ deleteState.error }}</p>
+        </div>
+        <div class="mt-4 flex justify-end gap-2">
+          <button
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-100"
+            type="button"
+            @click="closeDeleteConfirmation"
+          >
+            {{ $t('windowsDns.manageZones.delete.cancel') }}
+          </button>
+          <button
+            class="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500/60 disabled:cursor-not-allowed disabled:opacity-70"
+            type="button"
+            :disabled="deleteState.deleting || !deleteState.confirmed"
+            @click="confirmDeleteZones"
+          >
+            <Icon v-if="deleteState.deleting" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+            <Icon v-else icon="mdi:trash-can-outline" class="h-4 w-4" />
+            {{ $t('windowsDns.manageZones.actions.delete') }}
+          </button>
+        </div>
       </div>
     </div>
   </Teleport>
@@ -236,6 +301,19 @@ const state = reactive<{
 const selectedZoneIds = ref<string[]>([])
 const activeTab = ref<'all' | 'allowed' | 'available' | 'blocked'>('all')
 
+// Delete confirmation state
+const deleteState = reactive<{
+  showConfirm: boolean
+  confirmed: boolean
+  deleting: boolean
+  error: string | null
+}>({
+  showConfirm: false,
+  confirmed: false,
+  deleting: false,
+  error: null
+})
+
 const statusClasses: Record<ZoneStatus, string> = {
   allowed: 'border border-green-200 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300',
   available: 'border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300',
@@ -267,6 +345,11 @@ const canHideSelected = computed(() => selectedZones.value.some(z => z.status ==
 const canShowSelected = computed(() => selectedZones.value.some(z => z.status === 'available' || z.status === 'blocked'))
 
 const hasBlockedSelected = computed(() => selectedZones.value.some(z => z.status === 'blocked'))
+
+// Can delete only allowed zones (zones we have access to)
+const canDeleteSelected = computed(() => selectedZones.value.some(z => z.status === 'allowed'))
+
+const zonesToDelete = computed(() => selectedZones.value.filter(z => z.status === 'allowed'))
 
 const { $i18n } = useNuxtApp()
 const $t = $i18n.t.bind($i18n)
@@ -368,6 +451,51 @@ const showSelected = async () => {
   }
 }
 
+// Delete zone functions
+const openDeleteConfirmation = () => {
+  if (zonesToDelete.value.length === 0) return
+  deleteState.showConfirm = true
+  deleteState.confirmed = false
+  deleteState.error = null
+}
+
+const closeDeleteConfirmation = () => {
+  deleteState.showConfirm = false
+  deleteState.confirmed = false
+  deleteState.error = null
+}
+
+const confirmDeleteZones = async () => {
+  if (!deleteState.confirmed || zonesToDelete.value.length === 0) return
+
+  deleteState.deleting = true
+  deleteState.error = null
+
+  try {
+    // Delete zones one by one
+    const deletePromises = zonesToDelete.value.map(zone =>
+      $fetch(`/api/dns/windows/zones/${zone.id}`, { method: 'DELETE' })
+    )
+    
+    await Promise.all(deletePromises)
+
+    const count = zonesToDelete.value.length
+    const zoneWord = count === 1 
+      ? $t('windowsDns.manageZones.zoneWord.one') 
+      : $t('windowsDns.manageZones.zoneWord.other')
+    state.successMessage = $t('windowsDns.manageZones.success.deleted', { count, zoneWord })
+
+    closeDeleteConfirmation()
+    selectedZoneIds.value = []
+    await loadZones()
+    emit('updated')
+  } catch (err: any) {
+    deleteState.error = err?.data?.message ?? err?.message ?? $t('windowsDns.manageZones.delete.error')
+  } finally {
+    deleteState.deleting = false
+  }
+}
+
 // Watch for modal open
 watch(() => props.show, (newVal) => {
   if (newVal) {
@@ -376,6 +504,7 @@ watch(() => props.show, (newVal) => {
     // Reset state when closing
     state.successMessage = null
     selectedZoneIds.value = []
+    closeDeleteConfirmation()
   }
 }, { immediate: true })
 </script>
