@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   if (!coreId) {
     throw createError({
       statusCode: 400,
-      message: 'Windows DNS is not configured for this organization. Please set COREID first.'
+      message: 'DNS is not configured for this organization. Please set COREID first.'
     })
   }
 
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   if (!config?.windowsDnsAccountId) {
     throw createError({
       statusCode: 400,
-      message: 'Windows DNS account not configured. Please enable Windows DNS first.'
+      message: 'DNS account not configured. Please enable DNS first.'
     })
   }
 

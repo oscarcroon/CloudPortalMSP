@@ -1510,4 +1510,5 @@ export const windowsDnsZoneMemberships = windowsDnsSchemaInstance.windowsDnsZone
 export const windowsDnsOrgConfig = windowsDnsSchemaInstance.windowsDnsOrgConfig
 export const windowsDnsAllowedZones = windowsDnsSchemaInstance.windowsDnsAllowedZones
 export const windowsDnsLastDiscovery = windowsDnsSchemaInstance.windowsDnsLastDiscovery
+export const windowsDnsBlockedZones = windowsDnsSchemaInstance.windowsDnsBlockedZones
 

@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   if (!coreId) {
     throw createError({
       statusCode: 400,
-      message: 'Organization must have a COREID set before enabling Windows DNS. Please configure COREID in organization settings.'
+      message: 'Organization must have a COREID set before enabling DNS. Please configure COREID in organization settings.'
     })
   }
 

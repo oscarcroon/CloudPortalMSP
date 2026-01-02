@@ -72,8 +72,16 @@ export const useModules = () => {
 
   /**
    * All modules (synliga enl. API, kan inkludera utgråade)
+   * Sorterade alfabetiskt efter namn som standard
    */
-  const modules = computed(() => visibleModules.value || [])
+  const modules = computed(() => {
+    const allModules = visibleModules.value || []
+    return [...allModules].sort((a, b) => {
+      const nameA = a.name?.toLowerCase() || ''
+      const nameB = b.name?.toLowerCase() || ''
+      return nameA.localeCompare(nameB, 'sv')
+    })
+  })
 
   /**
    * Only modules that are effectively enabled and not disabled (for filtering)

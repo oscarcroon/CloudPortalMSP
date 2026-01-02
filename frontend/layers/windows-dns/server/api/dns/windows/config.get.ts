@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const moduleRights = await getWindowsDnsModuleAccessForUser(orgId, auth.user.id)
 
   if (!moduleRights.canManageOrgConfig) {
-    throw createError({ statusCode: 403, message: 'No permission to view Windows DNS configuration.' })
+    throw createError({ statusCode: 403, message: 'No permission to view DNS configuration.' })
   }
 
   const config = await getMaskedOrgConfig(orgId)

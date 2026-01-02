@@ -20,6 +20,39 @@
           />
         </div>
       </div>
+
+      <!-- Type filter pills -->
+      <div v-if="availableTypes.length > 1" class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ $t('windowsDns.records.filterByType') }}</span>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition"
+          :class="selectedType === null
+            ? 'bg-brand text-white shadow-sm'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'"
+          @click="selectedType = null"
+        >
+          {{ $t('windowsDns.records.allTypes') }}
+          <span class="ml-0.5 rounded-full bg-white/20 px-1.5 text-[10px]">{{ props.records.length }}</span>
+        </button>
+        <button
+          v-for="typeInfo in availableTypes"
+          :key="typeInfo.type"
+          type="button"
+          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition"
+          :class="selectedType === typeInfo.type
+            ? 'bg-brand text-white shadow-sm'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'"
+          @click="selectedType = selectedType === typeInfo.type ? null : typeInfo.type"
+        >
+          {{ typeInfo.type }}
+          <span 
+            class="ml-0.5 rounded-full px-1.5 text-[10px]"
+            :class="selectedType === typeInfo.type ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-700'"
+          >{{ typeInfo.count }}</span>
+        </button>
+      </div>
+
       <div class="flex items-center justify-between">
         <p class="text-xs text-slate-500 dark:text-slate-400">
           {{ $t('windowsDns.records.showing', { shown: pagedRecords.length, total: filteredRecords.length }) }}
@@ -27,7 +60,7 @@
         <div v-if="canEdit" class="flex justify-end">
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
             @click="showCreateForm = !showCreateForm"
           >
             <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
@@ -43,6 +76,20 @@
       class="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700"
       @submit.prevent="createRecord"
     >
+      <!-- Preview -->
+      <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800/60">
+        <p class="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.preview') }}</p>
+        <div class="flex items-center gap-3 font-mono text-xs">
+          <span class="inline-flex items-center rounded bg-slate-200 px-2 py-0.5 font-medium dark:bg-slate-700">
+            {{ recordPreview.type }}
+          </span>
+          <span class="text-slate-900 dark:text-slate-50">{{ recordPreview.name }}</span>
+          <span v-if="recordPreview.content" class="text-slate-500">→</span>
+          <span v-if="recordPreview.content" class="break-all text-slate-700 dark:text-slate-300" v-html="recordPreview.content"></span>
+          <span class="ml-auto text-slate-500 dark:text-slate-400">TTL: {{ recordPreview.ttl }}</span>
+        </div>
+      </div>
+
       <div class="grid gap-3 md:grid-cols-4">
         <div class="flex flex-col gap-1">
           <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.type') }}</label>
@@ -261,6 +308,20 @@
             <tr v-if="editingId === (record.id || record.name + record.type)" class="bg-slate-50/70 dark:bg-slate-800/50">
               <td :colspan="canEdit ? 5 : 4" class="px-4 py-3">
                 <form class="grid gap-3" @submit.prevent="updateRecord">
+                  <!-- Preview -->
+                  <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800/60">
+                    <p class="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.preview') }}</p>
+                    <div class="flex items-center gap-3 font-mono text-xs">
+                      <span class="inline-flex items-center rounded bg-slate-200 px-2 py-0.5 font-medium dark:bg-slate-700">
+                        {{ editRecordPreview.type }}
+                      </span>
+                      <span class="text-slate-900 dark:text-slate-50">{{ editRecordPreview.name }}</span>
+                      <span v-if="editRecordPreview.content" class="text-slate-500">→</span>
+                      <span v-if="editRecordPreview.content" class="break-all text-slate-700 dark:text-slate-300" v-html="editRecordPreview.content"></span>
+                      <span class="ml-auto text-slate-500 dark:text-slate-400">TTL: {{ editRecordPreview.ttl }}</span>
+                    </div>
+                  </div>
+
                   <div class="grid gap-3 md:grid-cols-4">
                     <div class="flex flex-col gap-1">
                       <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.type') }}</label>
@@ -456,13 +517,34 @@ const props = defineProps<{
 const emit = defineEmits<{ refresh: [] }>()
 
 const searchTerm = ref('')
+const selectedType = ref<string | null>(null)
 const recordPageSize = 50
 const currentRecordPage = ref(1)
 
+// Get unique record types with counts, sorted by count (descending)
+const availableTypes = computed(() => {
+  const typeCounts = new Map<string, number>()
+  for (const r of props.records) {
+    const t = r.type?.toUpperCase() ?? 'UNKNOWN'
+    typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1)
+  }
+  return Array.from(typeCounts.entries())
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count)
+})
+
 const filteredRecords = computed(() => {
+  let records = props.records
+
+  // Filter by type first
+  if (selectedType.value) {
+    records = records.filter((r) => r.type?.toUpperCase() === selectedType.value)
+  }
+
+  // Then filter by search term
   const term = searchTerm.value.trim().toLowerCase()
-  if (!term) return props.records
-  return props.records.filter((r) => {
+  if (!term) return records
+  return records.filter((r) => {
     const hay = `${r.type ?? ''} ${r.name ?? ''} ${r.content ?? ''} ${r.value ?? ''} ${r.data ?? ''} ${r.comment ?? ''}`.toLowerCase()
     return hay.includes(term)
   })
@@ -478,7 +560,7 @@ const pagedRecords = computed(() => {
 })
 
 watch(
-  () => searchTerm.value,
+  [() => searchTerm.value, () => selectedType.value],
   () => {
     currentRecordPage.value = 1
   }
@@ -612,6 +694,37 @@ const parseContent = (type: string, content: string) => {
   }
 }
 
+// Preview for create form
+const recordPreview = computed(() => {
+  const name = newRecord.name || '@'
+  const fullName = props.zoneName && name !== '@' && !name.endsWith(props.zoneName)
+    ? `${name}.${props.zoneName}`
+    : name === '@' ? props.zoneName || '@' : name
+  
+  let content = ''
+  if (isSimpleType(newRecord.type)) {
+    content = newRecord.content || ''
+  } else {
+    content = buildContent(newRecord) || ''
+  }
+  
+  // Format content for display (similar to formatRecordContent but for preview)
+  // Check if content is empty or just whitespace
+  const hasContent = content.trim().length > 0
+  const formattedContent = hasContent 
+    ? formatRecordContent({ type: newRecord.type, content }) 
+    : ''
+  
+  const ttl = displayTtl(newRecord.ttl)
+  
+  return {
+    type: newRecord.type || 'A',
+    name: fullName,
+    content: formattedContent,
+    ttl
+  }
+})
+
 // Create form
 const showCreateForm = ref(false)
 const creating = ref(false)
@@ -715,6 +828,37 @@ const createRecord = async () => {
     creating.value = false
   }
 }
+
+// Preview for edit form
+const editRecordPreview = computed(() => {
+  const name = editForm.name || '@'
+  const fullName = props.zoneName && name !== '@' && !name.endsWith(props.zoneName)
+    ? `${name}.${props.zoneName}`
+    : name === '@' ? props.zoneName || '@' : name
+  
+  let content = ''
+  if (isSimpleType(editForm.type)) {
+    content = editForm.content || ''
+  } else {
+    content = buildContent(editForm) || ''
+  }
+  
+  // Format content for display (similar to formatRecordContent but for preview)
+  // Check if content is empty or just whitespace
+  const hasContent = content.trim().length > 0
+  const formattedContent = hasContent 
+    ? formatRecordContent({ type: editForm.type, content }) 
+    : ''
+  
+  const ttl = displayTtl(editForm.ttl)
+  
+  return {
+    type: editForm.type || 'A',
+    name: fullName,
+    content: formattedContent,
+    ttl
+  }
+})
 
 // Edit form
 const editingId = ref<string | null>(null)

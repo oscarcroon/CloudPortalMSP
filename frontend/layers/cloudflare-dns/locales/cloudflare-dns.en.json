@@ -151,6 +151,9 @@
       "label": "DNS records",
       "title": "Records",
       "searchPlaceholder": "Search records (type, name, content)…",
+      "filter": {
+        "all": "All"
+      },
       "hideForm": "Hide form",
       "addRecord": "Add record",
       "preview": "Preview",

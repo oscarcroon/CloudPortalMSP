@@ -153,12 +153,41 @@ export function createWindowsDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
     })
   )
 
+  /**
+   * Windows DNS blocked zones (blocklist per org)
+   * Zones that have been explicitly hidden by admin and should not be auto-activated.
+   */
+  const windowsDnsBlockedZones = sqliteTable(
+    'windows_dns_blocked_zones',
+    {
+      id: text('id').primaryKey().$defaultFn(createId),
+      organizationId: text('organization_id')
+        .notNull()
+        .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
+      zoneId: text('zone_id').notNull(),
+      zoneName: text('zone_name'),
+      source: text('source')
+        .notNull()
+        .default('manual')
+        .$type<'manual'>(),
+      ...timestampColumns()
+    },
+    (table) => ({
+      orgZoneUnique: uniqueIndex('windows_dns_blocked_zones_org_zone_unique').on(
+        table.organizationId,
+        table.zoneId
+      ),
+      orgIdx: index('windows_dns_blocked_zones_org_idx').on(table.organizationId)
+    })
+  )
+
   return {
     windowsDnsZones,
     windowsDnsZoneMemberships,
     windowsDnsOrgConfig,
     windowsDnsAllowedZones,
-    windowsDnsLastDiscovery
+    windowsDnsLastDiscovery,
+    windowsDnsBlockedZones
   }
 }
 

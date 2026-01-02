@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   const moduleRights = await getWindowsDnsModuleAccessForUser(orgId, auth.user.id)
 
   if (!moduleRights.canView) {
-    throw createError({ statusCode: 403, message: 'No permission to view Windows DNS status.' })
+    throw createError({ statusCode: 403, message: 'No permission to view DNS status.' })
   }
 
   // Get CoreID from organizations.core_id (source of truth)

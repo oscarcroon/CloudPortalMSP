@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (!coreId) {
     throw createError({
       statusCode: 400,
-      message: 'Windows DNS is not configured for this organization. Please set COREID in organization settings first.'
+      message: 'DNS is not configured for this organization. Please set COREID in organization settings first.'
     })
   }
   
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
       if (!config?.windowsDnsAccountId) {
         throw createError({
           statusCode: 500,
-          message: 'Failed to save Windows DNS account ID after creation. Please try again.'
+          message: 'Failed to save DNS account ID after creation. Please try again.'
         })
       }
 
@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
       console.error(`[windows-dns] Failed to ensure account for org ${orgId}:`, error)
       throw createError({
         statusCode: error?.statusCode ?? 502,
-        message: error?.message ?? 'Failed to create Windows DNS account. Please check that WindowsDNS layer is accessible and configured correctly.'
+        message: error?.message ?? 'Failed to create DNS account. Please check that DNS layer is accessible and configured correctly.'
       })
     }
   }

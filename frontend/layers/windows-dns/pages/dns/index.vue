@@ -33,13 +33,15 @@
         >
           <Icon icon="mdi:refresh" class="h-5 w-5" :class="{ 'animate-spin': state.pending }" />
         </button>
-        <NuxtLink
-          to="/dns/autodiscover"
+        <!-- Manage zones button - only for admins -->
+        <button
+          v-if="state.data?.moduleRights?.canManageOwnership"
           class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+          @click="showManageModal = true"
         >
-          <Icon icon="mdi:auto-fix" class="h-4 w-4" />
-          {{ $t('windowsDns.index.autodiscover') }}
-        </NuxtLink>
+          <Icon icon="mdi:cog" class="h-4 w-4" />
+          {{ $t('windowsDns.index.manageZones') }}
+        </button>
       </div>
     </header>
 
@@ -51,6 +53,17 @@
       <div class="flex items-center gap-2">
         <Icon icon="mdi:check-circle" class="h-5 w-5 flex-shrink-0" />
         <p>{{ state.autoSetupMessage }}</p>
+      </div>
+    </div>
+
+    <!-- Needs admin setup message -->
+    <div
+      v-if="state.needsAdminSetup && state.data?.zones.length === 0 && !state.error"
+      class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm dark:border-amber-500/60 dark:bg-amber-500/10 dark:text-amber-100"
+    >
+      <div class="flex items-center gap-2">
+        <Icon icon="mdi:information-outline" class="h-5 w-5 flex-shrink-0" />
+        <p>{{ $t('windowsDns.index.needsAdminSetup') }}</p>
       </div>
     </div>
 
@@ -87,17 +100,25 @@
       @refresh="fetchZones(true)"
     />
 
-    <div v-if="state.data && filteredZones.length === 0 && !state.pending" class="text-center py-12">
+    <div v-if="state.data && filteredZones.length === 0 && !state.pending && !state.needsAdminSetup" class="text-center py-12">
       <Icon icon="mdi:dns-outline" class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
       <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">
         {{ searchTerm ? $t('windowsDns.index.noZonesFoundWithSearch', { searchTerm }) : $t('windowsDns.index.noZonesFound') }}
       </p>
     </div>
+
+    <!-- Manage zones modal -->
+    <WindowsDnsManageZonesModal
+      :show="showManageModal"
+      @close="showManageModal = false"
+      @updated="fetchZones(true)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import WindowsDnsManageZonesModal from '@windows-dns/components/WindowsDnsManageZonesModal.vue'
 
 type Zone = {
   id: string
@@ -119,10 +140,12 @@ type AutoSetupInfo = {
 type ZonesResponse = {
   zones: Zone[]
   autoSetup?: AutoSetupInfo
+  needsAdminSetup?: boolean
   moduleRights: {
     canManageZones: boolean
     canEditRecords: boolean
     canAutodiscover: boolean
+    canManageOwnership?: boolean
   }
 }
 
@@ -131,14 +154,17 @@ const state = reactive<{
   error: string | null
   pending: boolean
   autoSetupMessage: string | null
+  needsAdminSetup: boolean
 }>({
   data: null,
   error: null,
   pending: true,
-  autoSetupMessage: null
+  autoSetupMessage: null,
+  needsAdminSetup: false
 })
 
 const searchTerm = ref('')
+const showManageModal = ref(false)
 
 const filteredZones = computed(() => {
   const zones = state.data?.zones ?? []
@@ -151,11 +177,13 @@ const fetchZones = async (forceRefresh = false) => {
   state.pending = true
   state.error = null
   state.autoSetupMessage = null
+  state.needsAdminSetup = false
   try {
     const res = await $fetch<ZonesResponse>('/api/dns/windows/zones', {
       query: forceRefresh ? { refresh: 'true' } : undefined
     })
     state.data = res
+    state.needsAdminSetup = res.needsAdminSetup ?? false
     
     // Show feedback if auto-setup was performed
     if (res.autoSetup?.performed) {
@@ -182,4 +210,3 @@ onMounted(() => {
   fetchZones(false)
 })
 </script>
-

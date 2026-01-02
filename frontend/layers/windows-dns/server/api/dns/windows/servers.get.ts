@@ -18,12 +18,12 @@ export default defineEventHandler(async (event) => {
   const moduleRights = await getWindowsDnsModuleAccessForUser(orgId, auth.user.id)
 
   if (!moduleRights.canView) {
-    throw createError({ statusCode: 403, message: 'No permission to view Windows DNS.' })
+    throw createError({ statusCode: 403, message: 'No permission to view DNS.' })
   }
 
   const config = await getOrgConfig(orgId)
   if (!config?.windowsDnsAccountId) {
-    throw createError({ statusCode: 400, message: 'Windows DNS not configured for this organization.' })
+    throw createError({ statusCode: 400, message: 'DNS not configured for this organization.' })
   }
 
   // Call the Windows DNS layer to get servers via system endpoint
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const layerToken = process.env.WINDOWS_DNS_LAYER_TOKEN
 
   if (!baseUrl || !layerToken) {
-    throw createError({ statusCode: 500, message: 'Windows DNS layer not configured (missing WINDOWS_DNS_API_URL or WINDOWS_DNS_LAYER_TOKEN).' })
+    throw createError({ statusCode: 500, message: 'DNS layer not configured (missing WINDOWS_DNS_API_URL or WINDOWS_DNS_LAYER_TOKEN).' })
   }
 
   try {

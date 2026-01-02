@@ -20,6 +20,28 @@
           />
         </div>
       </div>
+
+      <!-- Type filter pills -->
+      <div v-if="availableRecordTypes.length > 1" class="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          type="button"
+          class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition"
+          :class="selectedType === 'ALL' ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'"
+          @click="selectedType = 'ALL'"
+        >
+          {{ t('cloudflareDns.records.filter.all') }}
+        </button>
+        <button
+          v-for="type in availableRecordTypes"
+          :key="type"
+          type="button"
+          class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition"
+          :class="selectedType === type ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'"
+          @click="selectedType = type"
+        >
+          {{ type }}
+        </button>
+      </div>
       <div v-if="canEdit" class="flex justify-end">
         <button
           type="button"
@@ -467,16 +489,36 @@ const emit = defineEmits<{ refresh: [] }>()
 const { t } = useI18n()
 
 const searchTerm = ref('')
+const selectedType = ref<'ALL' | string>('ALL')
 const recordPageSize = 50
 const currentRecordPage = ref(1)
 
+const availableRecordTypes = computed(() => {
+  const types = new Set<string>()
+  for (const r of props.records) {
+    if (r.type) types.add(r.type)
+  }
+  return Array.from(types).sort()
+})
+
 const filteredRecords = computed(() => {
+  let result = props.records
+
+  // Filter by type first
+  if (selectedType.value !== 'ALL') {
+    result = result.filter((r) => r.type === selectedType.value)
+  }
+
+  // Then filter by search term
   const term = searchTerm.value.trim().toLowerCase()
-  if (!term) return props.records
-  return props.records.filter((r) => {
-    const hay = `${r.type ?? ''} ${r.name ?? ''} ${r.content ?? ''} ${r.comment ?? ''}`.toLowerCase()
-    return hay.includes(term)
-  })
+  if (term) {
+    result = result.filter((r) => {
+      const hay = `${r.type ?? ''} ${r.name ?? ''} ${r.content ?? ''} ${r.comment ?? ''}`.toLowerCase()
+      return hay.includes(term)
+    })
+  }
+
+  return result
 })
 
 const recordPageCount = computed(() =>
@@ -495,7 +537,7 @@ const shownRecords = computed(() => {
 })
 
 watch(
-  () => searchTerm.value,
+  [() => searchTerm.value, () => selectedType.value],
   () => {
     currentRecordPage.value = 1
   }

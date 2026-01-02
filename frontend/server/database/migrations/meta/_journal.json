@@ -378,6 +378,20 @@
       "tag": "0046_windows_dns_coreid_first",
       "version": "6",
       "idx": 53
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.510,
+      "tag": "0047_org_api_tokens",
+      "version": "6",
+      "idx": 54
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.510,
+      "tag": "0048_windows_dns_blocked_zones",
+      "version": "6",
+      "idx": 55
     }
   ],
   "version": "6"

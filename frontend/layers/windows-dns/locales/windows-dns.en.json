@@ -7,7 +7,7 @@
 
     "statusCard": {
       "label": "Status",
-      "title": "Windows DNS",
+      "title": "DNS",
       "connected": "Connected",
       "notConfigured": "Not configured",
       "online": "Online",
@@ -19,23 +19,24 @@
 
     "index": {
       "label": "DNS Management",
-      "title": "Windows DNS Zones",
-      "subtitle": "Manage your Windows DNS zones and records.",
+      "title": "DNS Zones",
+      "subtitle": "Manage your DNS zones and records.",
       "searchPlaceholder": "Search zones...",
       "showing": "Showing {filtered} of {total} zones",
       "refreshTitle": "Refresh zones",
-      "autodiscover": "Autodiscover",
+      "manageZones": "Manage zones",
       "loading": "Loading zones...",
       "errorTitle": "Error loading zones",
       "retry": "Retry",
       "noZonesFound": "No zones found",
       "noZonesFoundWithSearch": "No zones found matching \"{searchTerm}\"",
-      "autoSetupMessage": "✓ {count} {zoneWord} found and activated automatically"
+      "autoSetupMessage": "✓ {count} {zoneWord} found and activated automatically",
+      "needsAdminSetup": "Contact an administrator to activate zones."
     },
 
     "zoneList": {
       "label": "DNS Zones",
-      "title": "Windows DNS Zones",
+      "title": "DNS Zones",
       "create": "Create Zone",
       "loading": "Loading zones...",
       "noZones": "No zones found.",
@@ -67,7 +68,7 @@
       "loadingZone": "Loading zone...",
       "back": "Back to zones",
       "loadingStatus": "Loading status...",
-      "badge": "Windows DNS",
+      "badge": "DNS",
       "errorTitle": "Error loading zone",
       "retry": "Retry",
       "loadingRecords": "Loading records...",
@@ -79,10 +80,14 @@
       "label": "DNS Records",
       "title": "Records for {zoneName}",
       "searchPlaceholder": "Search records...",
+      "filterByType": "Filter:",
+      "allTypes": "All",
       "showing": "Showing {shown} of {total} records",
       "addRecord": "Add Record",
       "cancel": "Cancel",
       "save": "Save",
+      "preview": "Preview",
+      "previewLabel": "This record will be created:",
       "fields": {
         "type": "Type",
         "name": "Name",
@@ -161,6 +166,46 @@
       "backToZones": "Back to zones",
       "error": "Autodiscover failed.",
       "activationError": "Activation failed."
+    },
+
+    "manageZones": {
+      "title": "Manage zones",
+      "subtitle": "View, activate or hide zones for your organization.",
+      "close": "Close",
+      "loading": "Loading zones...",
+      "error": "Failed to load zones",
+      "retry": "Retry",
+      "rescan": "Rescan",
+      "rescanning": "Scanning...",
+      "coreIdInfo": "Searching for zones with COREID:",
+      "noZonesFound": "No zones found",
+      "noZonesHint": "Make sure zones have a TXT record with COREID={coreId}",
+      "status": {
+        "allowed": "Active",
+        "available": "Available",
+        "blocked": "Hidden"
+      },
+      "actions": {
+        "hide": "Hide",
+        "show": "Show",
+        "activate": "Activate"
+      },
+      "confirmHide": "Hide {count} {zoneWord}? They will no longer be visible or accessible.",
+      "confirmShow": "Show {count} {zoneWord}? They will become accessible again.",
+      "success": {
+        "hidden": "{count} {zoneWord} have been hidden",
+        "shown": "{count} {zoneWord} are now active"
+      },
+      "zoneWord": {
+        "one": "zone",
+        "other": "zones"
+      },
+      "tabs": {
+        "all": "All",
+        "allowed": "Active",
+        "available": "Available",
+        "blocked": "Hidden"
+      }
     }
   }
 }

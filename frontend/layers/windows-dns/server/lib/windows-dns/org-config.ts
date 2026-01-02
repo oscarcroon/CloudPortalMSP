@@ -5,11 +5,13 @@ import {
   organizations,
   windowsDnsOrgConfig,
   windowsDnsAllowedZones,
-  windowsDnsLastDiscovery
+  windowsDnsLastDiscovery,
+  windowsDnsBlockedZones
 } from '~~/server/database/schema'
 import type {
   WindowsDnsOrgConfig,
   WindowsDnsAllowedZone,
+  WindowsDnsBlockedZone,
   WindowsDnsLastDiscovery
 } from './types'
 
@@ -181,10 +183,13 @@ export const deleteAllWindowsDnsData = async (orgId: string): Promise<void> => {
   // 1. Delete allowed zones (no dependencies)
   await db.delete(windowsDnsAllowedZones).where(eq(windowsDnsAllowedZones.organizationId, orgId))
   
-  // 2. Delete last discovery (no dependencies)
+  // 2. Delete blocked zones (no dependencies)
+  await db.delete(windowsDnsBlockedZones).where(eq(windowsDnsBlockedZones.organizationId, orgId))
+  
+  // 3. Delete last discovery (no dependencies)
   await db.delete(windowsDnsLastDiscovery).where(eq(windowsDnsLastDiscovery.organizationId, orgId))
   
-  // 3. Delete org config (no dependencies)
+  // 4. Delete org config (no dependencies)
   await db.delete(windowsDnsOrgConfig).where(eq(windowsDnsOrgConfig.organizationId, orgId))
   
   // Note: We don't delete the account in WindowsDNS-layer here because:
@@ -421,4 +426,92 @@ export const validateZonesAgainstLastDiscovery = async (
     valid: invalidZoneIds.length === 0,
     invalidZoneIds
   }
+}
+
+// ============================================================================
+// Blocked Zones Management
+// ============================================================================
+
+/**
+ * Get all blocked zone IDs for an organization.
+ */
+export const getBlockedZoneIds = async (orgId: string): Promise<string[]> => {
+  const db = getDb()
+  const result = await db
+    .select({ zoneId: windowsDnsBlockedZones.zoneId })
+    .from(windowsDnsBlockedZones)
+    .where(eq(windowsDnsBlockedZones.organizationId, orgId))
+
+  return result.map(r => r.zoneId)
+}
+
+/**
+ * Get all blocked zones for an organization with full details.
+ */
+export const getBlockedZones = async (orgId: string): Promise<WindowsDnsBlockedZone[]> => {
+  const db = getDb()
+  const result = await db
+    .select()
+    .from(windowsDnsBlockedZones)
+    .where(eq(windowsDnsBlockedZones.organizationId, orgId))
+
+  return result.map(r => ({
+    id: r.id,
+    organizationId: r.organizationId,
+    zoneId: r.zoneId,
+    zoneName: r.zoneName,
+    source: r.source as 'manual',
+    createdAt: r.createdAt
+  }))
+}
+
+/**
+ * Add zones to the blocked list for an organization.
+ * Idempotent: existing zones are ignored.
+ */
+export const addBlockedZones = async (
+  orgId: string,
+  zones: Array<{ zoneId: string; zoneName?: string }>
+): Promise<void> => {
+  const db = getDb()
+  const now = new Date()
+
+  // Get existing blocked zone IDs
+  const existing = await getBlockedZoneIds(orgId)
+  const existingSet = new Set(existing)
+
+  // Filter out zones that already exist
+  const newZones = zones.filter(z => !existingSet.has(z.zoneId))
+
+  if (newZones.length === 0) return
+
+  // Insert new blocked zones
+  await db.insert(windowsDnsBlockedZones).values(
+    newZones.map(z => ({
+      id: createId(),
+      organizationId: orgId,
+      zoneId: z.zoneId,
+      zoneName: z.zoneName ?? null,
+      source: 'manual' as const,
+      createdAt: now,
+      updatedAt: now
+    }))
+  )
+}
+
+/**
+ * Remove zones from the blocked list for an organization.
+ */
+export const removeBlockedZones = async (orgId: string, zoneIds: string[]): Promise<void> => {
+  if (zoneIds.length === 0) return
+
+  const db = getDb()
+  await db
+    .delete(windowsDnsBlockedZones)
+    .where(
+      and(
+        eq(windowsDnsBlockedZones.organizationId, orgId),
+        inArray(windowsDnsBlockedZones.zoneId, zoneIds)
+      )
+    )
 }

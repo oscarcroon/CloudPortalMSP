@@ -7,7 +7,7 @@
 
     "statusCard": {
       "label": "Status",
-      "title": "Windows DNS",
+      "title": "DNS",
       "connected": "Ansluten",
       "notConfigured": "Ej konfigurerad",
       "online": "Online",
@@ -19,23 +19,24 @@
 
     "index": {
       "label": "DNS Management",
-      "title": "Windows DNS Zones",
-      "subtitle": "Hantera dina Windows DNS-zoner och records.",
+      "title": "DNS Zones",
+      "subtitle": "Hantera dina DNS-zoner och records.",
       "searchPlaceholder": "Sök zoner...",
       "showing": "Visar {filtered} av {total} zoner",
       "refreshTitle": "Uppdatera zoner",
-      "autodiscover": "Autodiscover",
+      "manageZones": "Hantera zoner",
       "loading": "Laddar zoner...",
       "errorTitle": "Fel vid laddning av zoner",
       "retry": "Försök igen",
       "noZonesFound": "Inga zoner hittades",
       "noZonesFoundWithSearch": "Inga zoner hittades som matchar \"{searchTerm}\"",
-      "autoSetupMessage": "✓ {count} {zoneWord} hittades och aktiverades automatiskt"
+      "autoSetupMessage": "✓ {count} {zoneWord} hittades och aktiverades automatiskt",
+      "needsAdminSetup": "Kontakta en administratör för att aktivera zoner."
     },
 
     "zoneList": {
       "label": "DNS Zones",
-      "title": "Windows DNS Zones",
+      "title": "DNS Zones",
       "create": "Skapa zon",
       "loading": "Laddar zoner...",
       "noZones": "Inga zoner hittades.",
@@ -67,7 +68,7 @@
       "loadingZone": "Laddar zon...",
       "back": "Tillbaka till zoner",
       "loadingStatus": "Laddar status...",
-      "badge": "Windows DNS",
+      "badge": "DNS",
       "errorTitle": "Fel vid laddning av zon",
       "retry": "Försök igen",
       "loadingRecords": "Laddar records...",
@@ -79,10 +80,14 @@
       "label": "DNS Records",
       "title": "Records för {zoneName}",
       "searchPlaceholder": "Sök records...",
+      "filterByType": "Filtrera:",
+      "allTypes": "Alla",
       "showing": "Visar {shown} av {total} records",
       "addRecord": "Lägg till record",
       "cancel": "Avbryt",
       "save": "Spara",
+      "preview": "Förhandsvisning",
+      "previewLabel": "Detta record kommer skapas:",
       "fields": {
         "type": "Typ",
         "name": "Namn",
@@ -161,6 +166,46 @@
       "backToZones": "Tillbaka till zoner",
       "error": "Autodiscover misslyckades.",
       "activationError": "Aktivering misslyckades."
+    },
+
+    "manageZones": {
+      "title": "Hantera zoner",
+      "subtitle": "Visa, aktivera eller dölj zoner för din organisation.",
+      "close": "Stäng",
+      "loading": "Laddar zoner...",
+      "error": "Kunde inte ladda zoner",
+      "retry": "Försök igen",
+      "rescan": "Sök igen",
+      "rescanning": "Söker...",
+      "coreIdInfo": "Söker efter zoner med COREID:",
+      "noZonesFound": "Inga zoner hittades",
+      "noZonesHint": "Se till att zonerna har en TXT-post med COREID={coreId}",
+      "status": {
+        "allowed": "Aktiv",
+        "available": "Tillgänglig",
+        "blocked": "Dold"
+      },
+      "actions": {
+        "hide": "Dölj",
+        "show": "Visa",
+        "activate": "Aktivera"
+      },
+      "confirmHide": "Dölj {count} {zoneWord}? De kommer inte längre visas eller vara tillgängliga.",
+      "confirmShow": "Visa {count} {zoneWord}? De blir tillgängliga igen.",
+      "success": {
+        "hidden": "{count} {zoneWord} har dolts",
+        "shown": "{count} {zoneWord} är nu aktiva"
+      },
+      "zoneWord": {
+        "one": "zon",
+        "other": "zoner"
+      },
+      "tabs": {
+        "all": "Alla",
+        "allowed": "Aktiva",
+        "available": "Tillgängliga",
+        "blocked": "Dolda"
+      }
     }
   }
 }

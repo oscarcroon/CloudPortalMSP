@@ -125,11 +125,15 @@ Configure via the admin UI at `/windows-dns/admin` or programmatically.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/dns/windows/zones` | List zones |
+| GET | `/api/dns/windows/zones` | List zones (auto-sync for admins) |
 | POST | `/api/dns/windows/zones` | Create zone |
 | GET | `/api/dns/windows/zones/:zoneId/records` | List records |
 | POST | `/api/dns/windows/zones/:zoneId/records` | Create record |
+| GET | `/api/dns/windows/zones/manage` | Get zones for admin management |
+| POST | `/api/dns/windows/zones/block` | Hide zones (remove access) |
+| POST | `/api/dns/windows/zones/unblock` | Unhide/activate zones |
 | GET | `/api/dns/windows/autodiscover/zones` | Run autodiscover |
+| POST | `/api/dns/windows/autodiscover/activate` | Activate discovered zones |
 | POST | `/api/dns/windows/zones/:zoneId/claim` | Claim zone ownership |
 | GET | `/api/dns/windows/config` | Get org config |
 | PUT | `/api/dns/windows/config` | Update org config |

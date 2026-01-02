@@ -9,14 +9,14 @@ const manifest = definePluginManifest({
     icon: 'mdi:globe'
   },
   permissions: [
-    { key: 'windows-dns:view', description: 'View Windows DNS zones and records.' },
+    { key: 'windows-dns:view', description: 'View DNS zones and records.' },
     { key: 'windows-dns:zones:create', description: 'Create new DNS zones.' },
     { key: 'windows-dns:zones:write', description: 'Modify existing DNS zones.' },
     { key: 'windows-dns:records:write', description: 'Create or update DNS records.' },
     { key: 'windows-dns:ownership:read', description: 'View zone ownership mappings.' },
     { key: 'windows-dns:ownership:write', description: 'Manage zone ownership mappings.' },
     { key: 'windows-dns:autodiscover:read', description: 'Run autodiscover to find matching zones.' },
-    { key: 'windows-dns:manage_org_config', description: 'Manage Windows DNS connection settings for the organization.' }
+    { key: 'windows-dns:manage_org_config', description: 'Manage DNS connection settings for the organization.' }
   ],
   rbacDefaults: {
     owner: [

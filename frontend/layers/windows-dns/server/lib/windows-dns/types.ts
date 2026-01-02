@@ -180,6 +180,19 @@ export interface WindowsDnsAllowedZone {
 }
 
 /**
+ * Blocked zone entry (from windows_dns_blocked_zones table)
+ * Zones that have been explicitly hidden by admin and should not be auto-activated.
+ */
+export interface WindowsDnsBlockedZone {
+  id: string
+  organizationId: string
+  zoneId: string
+  zoneName?: string | null
+  source: 'manual'
+  createdAt: Date
+}
+
+/**
  * Last discovery result (from windows_dns_last_discovery table)
  */
 export interface WindowsDnsLastDiscovery {

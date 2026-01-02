@@ -151,6 +151,9 @@
       "label": "DNS records",
       "title": "Records",
       "searchPlaceholder": "Sök records (typ, namn, content)…",
+      "filter": {
+        "all": "Alla"
+      },
       "hideForm": "Dölj formulär",
       "addRecord": "Lägg till record",
       "preview": "Preview",
