@@ -1,0 +1,167 @@
+{
+  "windowsDns": {
+    "title": "Windows DNS",
+    "description": "Hantera Windows DNS-zoner, poster och åtkomst.",
+    "cta": "Skapa zon",
+    "empty": "Inga zoner ännu.",
+
+    "statusCard": {
+      "label": "Status",
+      "title": "Windows DNS",
+      "connected": "Ansluten",
+      "notConfigured": "Ej konfigurerad",
+      "online": "Online",
+      "offline": "Offline",
+      "zones": "Zoner",
+      "owned": "Ägda",
+      "records": "Records"
+    },
+
+    "index": {
+      "label": "DNS Management",
+      "title": "Windows DNS Zones",
+      "subtitle": "Hantera dina Windows DNS-zoner och records.",
+      "searchPlaceholder": "Sök zoner...",
+      "showing": "Visar {filtered} av {total} zoner",
+      "refreshTitle": "Uppdatera zoner",
+      "autodiscover": "Autodiscover",
+      "loading": "Laddar zoner...",
+      "errorTitle": "Fel vid laddning av zoner",
+      "retry": "Försök igen",
+      "noZonesFound": "Inga zoner hittades",
+      "noZonesFoundWithSearch": "Inga zoner hittades som matchar \"{searchTerm}\"",
+      "autoSetupMessage": "✓ {count} {zoneWord} hittades och aktiverades automatiskt"
+    },
+
+    "zoneList": {
+      "label": "DNS Zones",
+      "title": "Windows DNS Zones",
+      "create": "Skapa zon",
+      "loading": "Laddar zoner...",
+      "noZones": "Inga zoner hittades.",
+      "owned": "Ägd",
+      "claimable": "Tillgänglig",
+      "record": "record",
+      "records": "records",
+      "loadingRecords": "Laddar...",
+      "viewZone": "Visa zon",
+      "onboard": {
+        "label": "Onboarding",
+        "title": "Skapa DNS-zon",
+        "subtitle": "Vi guidar dig genom att lägga till domänen. Peka namnservrar hos din registrar; propagation kan ta upp till 24 timmar.",
+        "domainLabel": "Domän",
+        "domainPlaceholder": "example.com",
+        "nameServersTitle": "Ändra namnservrar hos din registrar till:",
+        "propagation": "Propagation kan ta upp till 24 timmar efter namnbyte.",
+        "copy": "Kopiera",
+        "copied": "Kopierad!",
+        "cancel": "Avbryt",
+        "createZone": "Skapa zon",
+        "openZone": "Öppna zon",
+        "noServersError": "Inga DNS-servrar tillgängliga. Vänligen konfigurera en server först."
+      }
+    },
+
+    "zone": {
+      "label": "Windows DNS Zone",
+      "loadingZone": "Laddar zon...",
+      "back": "Tillbaka till zoner",
+      "loadingStatus": "Laddar status...",
+      "badge": "Windows DNS",
+      "errorTitle": "Fel vid laddning av zon",
+      "retry": "Försök igen",
+      "loadingRecords": "Laddar records...",
+      "zoneNotFound": "Zon hittades inte",
+      "failedToLoad": "Kunde inte ladda zon"
+    },
+
+    "records": {
+      "label": "DNS Records",
+      "title": "Records för {zoneName}",
+      "searchPlaceholder": "Sök records...",
+      "showing": "Visar {shown} av {total} records",
+      "addRecord": "Lägg till record",
+      "cancel": "Avbryt",
+      "save": "Spara",
+      "fields": {
+        "type": "Typ",
+        "name": "Namn",
+        "ttl": "TTL",
+        "content": "Content",
+        "priority": "Priority",
+        "mailServer": "Mail Server",
+        "weight": "Weight",
+        "port": "Port",
+        "target": "Target",
+        "flags": "Flags",
+        "tag": "Tag",
+        "value": "Value",
+        "usage": "Usage",
+        "selector": "Selector",
+        "matchingType": "Matching Type",
+        "certificateData": "Certificate Data (hex)",
+        "comment": "Kommentar (valfri)",
+        "commentPlaceholder": "Intern anteckning om denna record (syns inte i DNS)"
+      },
+      "contentLabels": {
+        "a": "IPv4 Address",
+        "aaaa": "IPv6 Address",
+        "cname": "Target",
+        "txt": "Text Value",
+        "ns": "Name Server",
+        "ptr": "Domain Name"
+      },
+      "contentPlaceholders": {
+        "a": "192.168.1.1",
+        "aaaa": "2001:db8::1",
+        "cname": "target.example.com",
+        "txt": "v=spf1 include:_spf.example.com ~all",
+        "ns": "ns1.example.com",
+        "ptr": "host.example.com"
+      },
+      "table": {
+        "type": "Typ",
+        "name": "Namn",
+        "content": "Content",
+        "ttl": "TTL",
+        "actions": "Åtgärder"
+      },
+      "noRecordsFound": "Inga records hittades",
+      "noRecordsFoundWithSearch": "Inga records hittades som matchar \"{searchTerm}\"",
+      "edit": "Redigera",
+      "delete": "Ta bort",
+      "deleteConfirm": "Ta bort {type} record för {name}?",
+      "createError": "Kunde inte skapa record",
+      "updateError": "Kunde inte uppdatera record",
+      "deleteError": "Kunde inte ta bort record",
+      "missingRecordId": "Saknar record ID - kan inte uppdatera",
+      "pagination": "Sida {page} av {pages}"
+    },
+
+    "autodiscover": {
+      "label": "Autodiscover Zoner",
+      "title": "Autodiscover Zoner",
+      "subtitle": "Hitta zoner som matchar din organisations COREID och aktivera dem.",
+      "info": {
+        "title": "Autodiscover söker efter zoner med en TXT-post som innehåller",
+        "coreIdLabel": "Din organisations COREID:",
+        "coreIdPlaceholder": "<din-id>"
+      },
+      "searching": "Söker...",
+      "runAutodiscover": "Kör Autodiscover",
+      "activating": "Aktiverar...",
+      "activateAll": "Aktivera alla ({count})",
+      "activateSelected": "Aktivera valda ({count})",
+      "foundZones": "Hittade {count} matchande {zoneWord}",
+      "alreadyActivated": "{count} redan aktiverade",
+      "activated": "Aktiverad",
+      "available": "Tillgänglig",
+      "noZonesFound": "Inga zoner hittades som matchar ditt COREID",
+      "noZonesHint": "Se till att zonerna har en TXT-post med ditt COREID-värde",
+      "backToZones": "Tillbaka till zoner",
+      "error": "Autodiscover misslyckades.",
+      "activationError": "Aktivering misslyckades."
+    }
+  }
+}
+

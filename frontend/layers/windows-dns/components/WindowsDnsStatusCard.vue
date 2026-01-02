@@ -13,9 +13,9 @@
           />
         </div>
         <div>
-          <p class="font-medium text-slate-900 dark:text-slate-50">Windows DNS</p>
+          <p class="font-medium text-slate-900 dark:text-slate-50">{{ $t('windowsDns.statusCard.title') }}</p>
           <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ connected ? 'Connected' : 'Not configured' }}
+            {{ connected ? $t('windowsDns.statusCard.connected') : $t('windowsDns.statusCard.notConfigured') }}
           </p>
         </div>
       </div>
@@ -25,7 +25,7 @@
           :class="connected ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'"
         />
         <span class="text-xs text-slate-500 dark:text-slate-400">
-          {{ connected ? 'Online' : 'Offline' }}
+          {{ connected ? $t('windowsDns.statusCard.online') : $t('windowsDns.statusCard.offline') }}
         </span>
       </div>
     </div>
@@ -33,15 +33,15 @@
     <div v-if="stats" class="mt-4 grid grid-cols-3 gap-4 border-t border-slate-100 pt-4 dark:border-slate-800">
       <div>
         <p class="text-2xl font-semibold text-slate-900 dark:text-slate-50">{{ stats.zones }}</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Zones</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">{{ $t('windowsDns.statusCard.zones') }}</p>
       </div>
       <div>
         <p class="text-2xl font-semibold text-slate-900 dark:text-slate-50">{{ stats.owned }}</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Owned</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">{{ $t('windowsDns.statusCard.owned') }}</p>
       </div>
       <div>
         <p class="text-2xl font-semibold text-slate-900 dark:text-slate-50">{{ stats.records }}</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Records</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">{{ $t('windowsDns.statusCard.records') }}</p>
       </div>
     </div>
   </div>

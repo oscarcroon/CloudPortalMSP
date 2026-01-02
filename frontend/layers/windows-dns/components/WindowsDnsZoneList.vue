@@ -3,10 +3,10 @@
     <header class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
         <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          DNS Zones
+          {{ $t('windowsDns.zoneList.label') }}
         </p>
         <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">
-          Windows DNS Zones
+          {{ $t('windowsDns.zoneList.title') }}
         </h2>
       </div>
       <div v-if="moduleRights?.canManageZones" class="flex flex-col gap-2 md:flex-row md:items-center">
@@ -16,17 +16,17 @@
           @click="openCreateModal"
         >
           <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
-          Create Zone
+          {{ $t('windowsDns.zoneList.create') }}
         </button>
       </div>
     </header>
 
     <div v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">
-      Loading zones...
+      {{ $t('windowsDns.zoneList.loading') }}
     </div>
 
     <div v-else-if="zones.length === 0" class="text-sm text-slate-500 dark:text-slate-400">
-      No zones found.
+      {{ $t('windowsDns.zoneList.noZones') }}
     </div>
 
     <div v-else class="grid gap-4 md:grid-cols-2">
@@ -36,10 +36,10 @@
         class="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
       >
         <div class="flex items-center justify-between gap-3">
-          <div>
+          <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-slate-900 dark:text-slate-50">{{ zone.zoneName }}</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ zone.serverName }} &middot; {{ zone.zoneType }}
+            <p v-if="zone.serverName" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {{ zone.serverName }}
             </p>
           </div>
           <span
@@ -47,24 +47,32 @@
             class="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
           >
             <Icon icon="mdi:check-circle" class="h-3 w-3" />
-            Owned
+            {{ $t('windowsDns.zoneList.owned') }}
           </span>
           <span
             v-else-if="zone.claimable"
             class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
           >
             <Icon icon="mdi:hand-pointing-right" class="h-3 w-3" />
-            Claimable
+            {{ $t('windowsDns.zoneList.claimable') }}
           </span>
         </div>
 
-        <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <span>Windows DNS Zone</span>
+        <div class="mt-3 flex items-center justify-between">
+          <span v-if="recordCounts[zone.id] !== undefined" class="text-xs text-slate-500 dark:text-slate-400">
+            {{ recordCounts[zone.id] }} {{ recordCounts[zone.id] === 1 ? $t('windowsDns.zoneList.record') : $t('windowsDns.zoneList.records') }}
+          </span>
+          <span v-else-if="loadingRecordCounts" class="text-xs text-slate-400 dark:text-slate-500">
+            {{ $t('windowsDns.zoneList.loadingRecords') }}
+          </span>
+          <span v-else class="text-xs text-slate-400 dark:text-slate-500">
+            &nbsp;
+          </span>
           <NuxtLink
             :to="`/windows-dns/${zone.id}`"
-            class="inline-flex items-center gap-1 text-brand hover:underline"
+            class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
           >
-            View
+            {{ $t('windowsDns.zoneList.viewZone') }}
             <Icon icon="mdi:arrow-right" class="h-4 w-4" />
           </NuxtLink>
         </div>
@@ -81,13 +89,13 @@
           <header class="mb-4 flex items-start justify-between gap-3">
             <div>
               <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Onboarding
+                {{ $t('windowsDns.zoneList.onboard.label') }}
               </p>
               <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-50">
-                Create DNS Zone
+                {{ $t('windowsDns.zoneList.onboard.title') }}
               </h2>
               <p class="text-sm text-slate-600 dark:text-slate-300">
-                We guide you through adding the domain. Point name servers at your registrar; propagation can take up to 24 hours.
+                {{ $t('windowsDns.zoneList.onboard.subtitle') }}
               </p>
             </div>
             <button
@@ -95,27 +103,27 @@
               type="button"
               @click="closeCreateModal"
             >
-              Cancel
+              {{ $t('windowsDns.zoneList.onboard.cancel') }}
             </button>
           </header>
 
           <div class="space-y-3">
             <div class="grid gap-2">
               <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
-                Domain
+                {{ $t('windowsDns.zoneList.onboard.domainLabel') }}
               </label>
               <input
                 v-model="newZone.zoneName"
                 class="w-full rounded-lg border-2 border-brand/30 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:ring-2 focus:ring-brand/30 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
                 type="text"
-                placeholder="example.com"
+                :placeholder="$t('windowsDns.zoneList.onboard.domainPlaceholder')"
                 required
               />
             </div>
 
             <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-800/60">
               <p class="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                Change name servers at your registrar to:
+                {{ $t('windowsDns.zoneList.onboard.nameServersTitle') }}
               </p>
               <div class="space-y-2">
                 <div
@@ -134,12 +142,12 @@
                       :icon="copiedNs === ns ? 'mdi:check' : 'mdi:content-copy'"
                       class="h-3.5 w-3.5"
                     />
-                    {{ copiedNs === ns ? 'Copied!' : 'Copy' }}
+                    {{ copiedNs === ns ? $t('windowsDns.zoneList.onboard.copied') : $t('windowsDns.zoneList.onboard.copy') }}
                   </button>
                 </div>
               </div>
               <p class="mt-3 text-xs text-slate-600 dark:text-slate-400">
-                Propagation can take up to 24 hours after changing name servers.
+                {{ $t('windowsDns.zoneList.onboard.propagation') }}
               </p>
             </div>
 
@@ -156,7 +164,7 @@
                 class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-100"
                 @click="closeCreateModal"
               >
-                Cancel
+                {{ $t('windowsDns.zoneList.onboard.cancel') }}
               </button>
               <button
                 type="button"
@@ -166,7 +174,7 @@
               >
                 <Icon v-if="creating" icon="mdi:loading" class="h-4 w-4 animate-spin" />
                 <Icon v-else icon="mdi:plus-circle-outline" class="h-4 w-4" />
-                Create Zone
+                {{ $t('windowsDns.zoneList.onboard.createZone') }}
               </button>
               <button
                 v-if="createdZoneId"
@@ -175,7 +183,7 @@
                 @click="goToCreatedZone"
               >
                 <Icon icon="mdi:arrow-right" class="h-4 w-4" />
-                Open Zone
+                {{ $t('windowsDns.zoneList.onboard.openZone') }}
               </button>
             </div>
           </div>
@@ -214,6 +222,48 @@ const props = defineProps<{
 const emit = defineEmits<{ refresh: [] }>()
 const router = useRouter()
 
+// Record counts state
+const recordCounts = ref<Record<string, number>>({})
+const loadingRecordCounts = ref(false)
+
+// Fetch record counts for all zones
+const fetchRecordCounts = async () => {
+  if (props.zones.length === 0) return
+  
+  loadingRecordCounts.value = true
+  try {
+    const counts = await Promise.all(
+      props.zones.map(async (zone) => {
+        try {
+          const res = await $fetch<{ records: any[] }>(`/api/dns/windows/zones/${zone.id}/records`)
+          return { zoneId: zone.id, count: res.records?.length ?? 0 }
+        } catch (err) {
+          console.error(`[windows-dns] Failed to fetch record count for zone ${zone.id}:`, err)
+          return { zoneId: zone.id, count: 0 }
+        }
+      })
+    )
+    
+    recordCounts.value = counts.reduce((acc, { zoneId, count }) => {
+      acc[zoneId] = count
+      return acc
+    }, {} as Record<string, number>)
+  } catch (err) {
+    console.error('[windows-dns] Failed to fetch record counts:', err)
+  } finally {
+    loadingRecordCounts.value = false
+  }
+}
+
+// Watch for zone changes and fetch counts
+watch(() => props.zones, (newZones) => {
+  if (newZones.length > 0) {
+    fetchRecordCounts()
+  } else {
+    recordCounts.value = {}
+  }
+}, { immediate: true })
+
 // Create zone modal state
 const showCreateModal = ref(false)
 const creating = ref(false)
@@ -250,11 +300,13 @@ const openCreateModal = async () => {
     if (servers.value.length > 0) {
       newZone.serverId = servers.value[0].id
     } else {
-      createError.value = 'No DNS servers available. Please configure a server first.'
+      const { $i18n } = useNuxtApp()
+      createError.value = $i18n.t('windowsDns.zoneList.onboard.noServersError')
     }
   } catch (err: any) {
     console.error('[windows-dns] Failed to load servers:', err)
-    createError.value = err?.data?.message || err?.message || 'Failed to load servers'
+    const { $i18n } = useNuxtApp()
+    createError.value = err?.data?.message || err?.message || $i18n.t('windowsDns.zoneList.onboard.noServersError')
   } finally {
     loadingServers.value = false
   }

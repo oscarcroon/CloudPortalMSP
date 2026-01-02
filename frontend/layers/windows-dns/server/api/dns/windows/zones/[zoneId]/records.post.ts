@@ -42,8 +42,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validate and normalize comment
-  let comment: string | null = null
-  if (body.comment !== undefined && body.comment !== null) {
+  let comment: string | undefined = undefined
+  if (body.comment !== undefined && body.comment !== null && String(body.comment).trim()) {
     const trimmedComment = String(body.comment).trim()
     if (trimmedComment.length > MAX_COMMENT_LENGTH) {
       throw createError({
@@ -51,20 +51,26 @@ export default defineEventHandler(async (event) => {
         message: `Kommentaren får max vara ${MAX_COMMENT_LENGTH} tecken.`
       })
     }
-    comment = trimmedComment || null
+    comment = trimmedComment
   }
 
   try {
     const client = await getClientForOrg(orgId)
 
-    const record = await client.createRecord(zoneId, {
+    const recordPayload: any = {
       name: body.name,
       type: body.type,
       content: body.content,
-      ttl: body.ttl ?? 3600,
-      priority: body.priority,
-      comment
-    })
+      ttl: body.ttl ?? 3600
+    }
+    if (body.priority !== undefined) {
+      recordPayload.priority = body.priority
+    }
+    if (comment !== undefined) {
+      recordPayload.comment = comment
+    }
+
+    const record = await client.createRecord(zoneId, recordPayload)
 
     return { record }
   } catch (error: any) {

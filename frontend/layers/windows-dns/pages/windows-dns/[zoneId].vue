@@ -2,14 +2,14 @@
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
     <header class="flex flex-col gap-2">
       <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        Windows DNS Zone
+        {{ $t('windowsDns.zone.label') }}
       </p>
       <div class="flex flex-col gap-1">
         <div class="flex items-center gap-3">
           <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">
             <span v-if="zonePending" class="inline-flex items-center gap-2 text-base text-slate-500 dark:text-slate-400">
               <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
-              Loading zone...
+              {{ $t('windowsDns.zone.loadingZone') }}
             </span>
             <span v-else>{{ zoneData?.zone?.zoneName ?? '—' }}</span>
           </h1>
@@ -18,14 +18,14 @@
             class="inline-flex items-center gap-1 text-sm text-brand hover:underline"
           >
             <Icon icon="mdi:arrow-left" class="h-4 w-4" />
-            Back to zones
+            {{ $t('windowsDns.zone.back') }}
           </NuxtLink>
         </div>
         <p class="text-sm text-slate-600 dark:text-slate-300">
           <template v-if="zonePending">
             <span class="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
               <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
-              Loading status...
+              {{ $t('windowsDns.zone.loadingStatus') }}
             </span>
           </template>
           <template v-else>
@@ -35,7 +35,7 @@
         <div class="flex items-center gap-2">
           <span class="mod-windows-dns-badge">
             <Icon icon="mdi:dns" class="h-4 w-4" />
-            Windows DNS
+            {{ $t('windowsDns.zone.badge') }}
           </span>
         </div>
       </div>
@@ -49,14 +49,14 @@
       <div class="flex items-start gap-3">
         <Icon icon="mdi:alert-circle-outline" class="mt-0.5 h-4 w-4 flex-shrink-0" />
         <div class="space-y-2">
-          <p class="font-semibold">Error loading zone</p>
+          <p class="font-semibold">{{ $t('windowsDns.zone.errorTitle') }}</p>
           <p class="whitespace-pre-line">{{ zoneError }}</p>
           <button
             class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
             @click="refreshAll"
           >
             <Icon icon="mdi:refresh" class="h-4 w-4" />
-            Retry
+            {{ $t('windowsDns.zone.retry') }}
           </button>
         </div>
       </div>
@@ -75,7 +75,7 @@
     <!-- Loading state for records -->
     <div v-else-if="recordsPending" class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
       <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
-      Loading records...
+      {{ $t('windowsDns.zone.loadingRecords') }}
     </div>
   </div>
 </template>
@@ -114,10 +114,12 @@ const fetchZone = async () => {
     if (zone) {
       zoneData.value = { zone }
     } else {
-      zoneError.value = 'Zone not found'
+      const { $i18n } = useNuxtApp()
+      zoneError.value = $i18n.t('windowsDns.zone.zoneNotFound')
     }
   } catch (err: any) {
-    zoneError.value = err?.data?.message ?? err?.message ?? 'Failed to load zone'
+    const { $i18n } = useNuxtApp()
+    zoneError.value = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.zone.failedToLoad')
   } finally {
     zonePending.value = false
   }

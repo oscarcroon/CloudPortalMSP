@@ -3,32 +3,32 @@
     <header class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div class="flex flex-col gap-2">
         <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          DNS Management
+          {{ $t('windowsDns.index.label') }}
         </p>
         <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">
-          Windows DNS Zones
+          {{ $t('windowsDns.index.title') }}
         </h1>
         <p class="text-sm text-slate-600 dark:text-slate-300">
-          Manage your Windows DNS zones and records.
+          {{ $t('windowsDns.index.subtitle') }}
         </p>
         <div class="mt-1 relative w-full max-w-md">
           <Icon icon="mdi:magnify" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             v-model="searchTerm"
             type="search"
-            placeholder="Search zones..."
+            :placeholder="$t('windowsDns.index.searchPlaceholder')"
             class="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
           />
         </div>
         <p v-if="state.data" class="text-xs text-slate-500 dark:text-slate-400">
-          Showing {{ filteredZones.length }} of {{ state.data.zones.length }} zones
+          {{ $t('windowsDns.index.showing', { filtered: filteredZones.length, total: state.data.zones.length }) }}
         </p>
       </div>
       <div class="flex items-center gap-2 self-start">
         <button
           class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="state.pending"
-          title="Refresh zones"
+          :title="$t('windowsDns.index.refreshTitle')"
           @click="fetchZones(true)"
         >
           <Icon icon="mdi:refresh" class="h-5 w-5" :class="{ 'animate-spin': state.pending }" />
@@ -38,7 +38,7 @@
           class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
         >
           <Icon icon="mdi:auto-fix" class="h-4 w-4" />
-          Autodiscover
+          {{ $t('windowsDns.index.autodiscover') }}
         </NuxtLink>
       </div>
     </header>
@@ -56,7 +56,7 @@
 
     <div v-if="state.pending && !state.data" class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
       <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
-      Loading zones...
+      {{ $t('windowsDns.index.loading') }}
     </div>
 
     <div
@@ -66,14 +66,14 @@
       <div class="flex items-start gap-3">
         <Icon icon="mdi:alert-circle-outline" class="mt-0.5 h-4 w-4 flex-shrink-0" />
         <div class="space-y-2">
-          <p class="font-semibold">Error loading zones</p>
+          <p class="font-semibold">{{ $t('windowsDns.index.errorTitle') }}</p>
           <p class="whitespace-pre-line">{{ state.error }}</p>
           <button
             class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
             @click="fetchZones(true)"
           >
             <Icon icon="mdi:refresh" class="h-4 w-4" />
-            Retry
+            {{ $t('windowsDns.index.retry') }}
           </button>
         </div>
       </div>
@@ -90,7 +90,7 @@
     <div v-if="state.data && filteredZones.length === 0 && !state.pending" class="text-center py-12">
       <Icon icon="mdi:dns-outline" class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
       <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">
-        No zones found{{ searchTerm ? ` matching "${searchTerm}"` : '' }}
+        {{ searchTerm ? $t('windowsDns.index.noZonesFoundWithSearch', { searchTerm }) : $t('windowsDns.index.noZonesFound') }}
       </p>
     </div>
   </div>
@@ -160,13 +160,19 @@ const fetchZones = async (forceRefresh = false) => {
     // Show feedback if auto-setup was performed
     if (res.autoSetup?.performed) {
       if (res.autoSetup.zonesActivated > 0) {
-        state.autoSetupMessage = `✓ ${res.autoSetup.zonesActivated} zon${res.autoSetup.zonesActivated === 1 ? '' : 'er'} hittades och aktiverades automatiskt`
+        const { $i18n } = useNuxtApp()
+        const count = res.autoSetup.zonesActivated
+        const zoneWord = count === 1 
+          ? ($i18n.locale === 'sv' ? 'zon' : 'zone')
+          : ($i18n.locale === 'sv' ? 'zoner' : 'zones')
+        state.autoSetupMessage = $i18n.t('windowsDns.index.autoSetupMessage', { count, zoneWord })
       } else if (res.autoSetup.message) {
         state.autoSetupMessage = res.autoSetup.message
       }
     }
   } catch (err: any) {
-    state.error = err?.data?.message ?? err?.message ?? 'Failed to load zones.'
+    const { $i18n } = useNuxtApp()
+    state.error = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.index.errorTitle')
   } finally {
     state.pending = false
   }

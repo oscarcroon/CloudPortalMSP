@@ -6,13 +6,13 @@
         class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand dark:text-slate-400"
       >
         <Icon icon="mdi:arrow-left" class="h-4 w-4" />
-        Tillbaka till zoner
+        {{ $t('windowsDns.autodiscover.backToZones') }}
       </NuxtLink>
       <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">
-        Autodiscover Zoner
+        {{ $t('windowsDns.autodiscover.title') }}
       </h1>
       <p class="text-sm text-slate-600 dark:text-slate-300">
-        Hitta zoner som matchar din organisations COREID och aktivera dem.
+        {{ $t('windowsDns.autodiscover.subtitle') }}
       </p>
     </header>
 
@@ -23,11 +23,11 @@
         <Icon icon="mdi:information-outline" class="h-5 w-5 text-brand" />
         <div class="text-sm text-slate-700 dark:text-slate-200">
           <p>
-            Autodiscover söker efter zoner med en TXT-post som innehåller
-            <code class="rounded bg-slate-200 px-1.5 py-0.5 font-mono text-xs dark:bg-slate-700">COREID={{ state.coreId || '<din-id>' }}</code>
+            {{ $t('windowsDns.autodiscover.info.title') }}
+            <code class="rounded bg-slate-200 px-1.5 py-0.5 font-mono text-xs dark:bg-slate-700">COREID={{ state.coreId || $t('windowsDns.autodiscover.info.coreIdPlaceholder') }}</code>
           </p>
           <p v-if="state.coreId" class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Din organisations COREID: <strong>{{ state.coreId }}</strong>
+            {{ $t('windowsDns.autodiscover.info.coreIdLabel') }} <strong>{{ state.coreId }}</strong>
           </p>
         </div>
       </div>
@@ -62,7 +62,7 @@
         @click="runAutodiscover"
       >
         <Icon icon="mdi:auto-fix" class="h-4 w-4" :class="{ 'animate-spin': state.pending }" />
-        {{ state.pending ? 'Söker...' : 'Kör Autodiscover' }}
+        {{ state.pending ? $t('windowsDns.autodiscover.searching') : $t('windowsDns.autodiscover.runAutodiscover') }}
       </button>
 
       <!-- Activate All button -->
@@ -73,7 +73,7 @@
         @click="activateAll"
       >
         <Icon icon="mdi:check-all" class="h-4 w-4" :class="{ 'animate-pulse': state.activating }" />
-        {{ state.activating ? 'Aktiverar...' : `Aktivera alla (${unactivatedZones.length})` }}
+        {{ state.activating ? $t('windowsDns.autodiscover.activating') : $t('windowsDns.autodiscover.activateAll', { count: unactivatedZones.length }) }}
       </button>
     </div>
 
@@ -81,10 +81,15 @@
     <div v-if="state.data && state.data.zones.length > 0" class="space-y-3">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">
-          Hittade {{ state.data.zones.length }} matchande {{ state.data.zones.length === 1 ? 'zon' : 'zoner' }}
+          {{ $t('windowsDns.autodiscover.foundZones', { 
+            count: state.data.zones.length, 
+            zoneWord: state.data.zones.length === 1 
+              ? ($i18n.locale === 'sv' ? 'zon' : 'zone')
+              : ($i18n.locale === 'sv' ? 'zoner' : 'zones')
+          }) }}
         </h2>
         <p v-if="activatedZones.length > 0" class="text-sm text-green-600 dark:text-green-400">
-          {{ activatedZones.length }} redan aktiverade
+          {{ $t('windowsDns.autodiscover.alreadyActivated', { count: activatedZones.length }) }}
         </p>
       </div>
 
@@ -112,11 +117,11 @@
           <div class="flex items-center gap-2">
             <span v-if="zone.owned" class="mod-windows-dns-badge-owned">
               <Icon icon="mdi:check-circle" class="h-3 w-3" />
-              Aktiverad
+              {{ $t('windowsDns.autodiscover.activated') }}
             </span>
             <span v-else-if="zone.claimable" class="mod-windows-dns-badge-claimable">
               <Icon icon="mdi:hand-pointing-right" class="h-3 w-3" />
-              Tillgänglig
+              {{ $t('windowsDns.autodiscover.available') }}
             </span>
           </div>
         </div>
@@ -130,7 +135,7 @@
           @click="activateSelected"
         >
           <Icon icon="mdi:check" class="h-4 w-4" :class="{ 'animate-pulse': state.activating }" />
-          {{ state.activating ? 'Aktiverar...' : `Aktivera valda (${selectedZoneIds.length})` }}
+          {{ state.activating ? $t('windowsDns.autodiscover.activating') : $t('windowsDns.autodiscover.activateSelected', { count: selectedZoneIds.length }) }}
         </button>
       </div>
     </div>
@@ -142,10 +147,10 @@
     >
       <Icon icon="mdi:magnify-close" class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
       <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">
-        Inga zoner hittades som matchar ditt COREID
+        {{ $t('windowsDns.autodiscover.noZonesFound') }}
       </p>
       <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">
-        Se till att zonerna har en TXT-post med ditt COREID-värde
+        {{ $t('windowsDns.autodiscover.noZonesHint') }}
       </p>
     </div>
   </div>
@@ -219,7 +224,8 @@ const runAutodiscover = async () => {
     // Pre-select all unactivated zones
     selectedZoneIds.value = res.zones.filter(z => !z.owned).map(z => z.id)
   } catch (err: any) {
-    state.error = err?.data?.message ?? err?.message ?? 'Autodiscover misslyckades.'
+    const { $i18n } = useNuxtApp()
+    state.error = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.autodiscover.error')
   } finally {
     state.pending = false
   }
@@ -252,7 +258,8 @@ const activateZones = async (zoneIds: string[]) => {
     // Refresh the list to show updated status
     await runAutodiscover()
   } catch (err: any) {
-    state.error = err?.data?.message ?? err?.message ?? 'Aktivering misslyckades.'
+    const { $i18n } = useNuxtApp()
+    state.error = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.autodiscover.activationError')
   } finally {
     state.activating = false
   }
