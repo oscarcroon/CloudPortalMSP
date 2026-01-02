@@ -69,7 +69,7 @@
             &nbsp;
           </span>
           <NuxtLink
-            :to="`/windows-dns/${zone.id}`"
+            :to="`/dns/${zone.id}`"
             class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
           >
             {{ $t('windowsDns.zoneList.viewZone') }}
@@ -393,7 +393,7 @@ const copyToClipboard = async (text: string) => {
 const goToCreatedZone = () => {
   if (createdZoneId.value) {
     closeCreateModal()
-    void router.push(`/windows-dns/${createdZoneId.value}`)
+    void router.push(`/dns/${createdZoneId.value}`)
   }
 }
 </script>

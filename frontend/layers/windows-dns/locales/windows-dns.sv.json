@@ -1,7 +1,7 @@
 {
   "windowsDns": {
-    "title": "Windows DNS",
-    "description": "Hantera Windows DNS-zoner, poster och åtkomst.",
+    "title": "DNS",
+    "description": "Hantera DNS-zoner, poster och åtkomst.",
     "cta": "Skapa zon",
     "empty": "Inga zoner ännu.",
 
@@ -63,7 +63,7 @@
     },
 
     "zone": {
-      "label": "Windows DNS Zone",
+      "label": "DNS Zone",
       "loadingZone": "Laddar zon...",
       "back": "Tillbaka till zoner",
       "loadingStatus": "Laddar status...",

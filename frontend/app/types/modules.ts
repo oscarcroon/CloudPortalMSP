@@ -24,6 +24,11 @@ export interface ModuleStatusDto {
   key: string
   name: string
   description: string
+  /**
+   * i18n key for the module description (e.g. 'windowsDns.description').
+   * Frontend should use $t(descriptionKey) with fallback to description.
+   */
+  descriptionKey: string
   category: string
   layerKey: string
   rootRoute: string

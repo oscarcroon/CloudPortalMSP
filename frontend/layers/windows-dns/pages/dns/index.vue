@@ -34,7 +34,7 @@
           <Icon icon="mdi:refresh" class="h-5 w-5" :class="{ 'animate-spin': state.pending }" />
         </button>
         <NuxtLink
-          to="/windows-dns/autodiscover"
+          to="/dns/autodiscover"
           class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
         >
           <Icon icon="mdi:auto-fix" class="h-4 w-4" />

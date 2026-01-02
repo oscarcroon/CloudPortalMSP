@@ -14,7 +14,7 @@
             <span v-else>{{ zoneData?.zone?.zoneName ?? '—' }}</span>
           </h1>
           <NuxtLink
-            to="/windows-dns"
+            to="/dns"
             class="inline-flex items-center gap-1 text-sm text-brand hover:underline"
           >
             <Icon icon="mdi:arrow-left" class="h-4 w-4" />

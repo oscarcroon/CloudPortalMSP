@@ -22,6 +22,12 @@ export interface ModuleMeta {
   key: string
   name: string
   description: string
+  /**
+   * i18n key for the module description (e.g. 'windowsDns.description').
+   * Generated automatically from module.key: 'windows-dns' → 'windowsDns.description'
+   * Frontend should use $t(descriptionKey) with fallback to description.
+   */
+  descriptionKey: string
   category: string
   layerKey: string
   rootRoute: string
@@ -41,6 +47,16 @@ export interface ModuleMeta {
 }
 
 /**
+ * Convert module key to i18n description key.
+ * Examples: 'windows-dns' → 'windowsDns.description', 'cloudflare-dns' → 'cloudflareDns.description'
+ */
+const moduleKeyToDescriptionKey = (key: string): string => {
+  // Convert kebab-case to camelCase: 'windows-dns' → 'windowsDns'
+  const camelKey = key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
+  return `${camelKey}.description`
+}
+
+/**
  * Convert plugin manifest (from layers/plugin-manifests) to ModuleMeta used by app
  */
 const manifestToModuleMeta = (manifest: (typeof manifests)[number]): ModuleMeta => {
@@ -50,12 +66,14 @@ const manifestToModuleMeta = (manifest: (typeof manifests)[number]): ModuleMeta 
   const requiredPermissions: RbacPermission[] =
     permissions?.map((permission) => permission.key as RbacPermission) ?? []
 
-  const rootRoute = `/${module.key.replace(/_/g, '-')}`
+  // Special case: windows-dns uses /dns as route instead of /windows-dns
+  const rootRoute = module.key === 'windows-dns' ? '/dns' : `/${module.key.replace(/_/g, '-')}`
 
   return defineModule({
     key: module.key,
     name: module.name,
     description: module.description ?? '',
+    descriptionKey: moduleKeyToDescriptionKey(module.key),
     category: module.category ?? 'infrastructure',
     layerKey: module.key,
     rootRoute,
@@ -82,6 +100,7 @@ export const defineModule = (meta: ModuleMeta): ModuleMeta => {
   const moduleRoles = meta.moduleRoles ?? meta.roles ?? []
   const normalized: ModuleMeta = {
     ...meta,
+    descriptionKey: meta.descriptionKey ?? moduleKeyToDescriptionKey(meta.key),
     requiredPermissions: meta.requiredPermissions ?? [],
     moduleRoles,
     roles: moduleRoles,

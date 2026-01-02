@@ -27,7 +27,7 @@
         v-for="module in modules"
         :key="module.id"
         :title="module.name"
-        :description="module.description"
+        :description="getModuleDescription(module)"
         :badge="module.badge || t('dashboard.module')"
         :icon="module.icon"
         :disabled="module.disabled || false"
@@ -104,6 +104,21 @@ const modules = computed(() => {
     return module.effectiveEnabled !== false
   })
 })
+
+/**
+ * Get localized module description using i18n key with fallback to raw description.
+ * Layers define translations in their locale files (e.g. windowsDns.description).
+ */
+function getModuleDescription(module: { descriptionKey?: string; description?: string }): string {
+  if (module.descriptionKey) {
+    const translated = t(module.descriptionKey)
+    // If translation key returns the key itself, fallback to raw description
+    if (translated !== module.descriptionKey) {
+      return translated
+    }
+  }
+  return module.description ?? ''
+}
 
 const statusItems = [
   { label: 'Cloudflare API', value: t('dashboard.statusLabels.ok'), variant: 'success' },

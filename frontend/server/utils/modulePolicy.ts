@@ -291,6 +291,7 @@ const toDto = ({
     key: moduleMeta?.key ?? '',
     name: moduleMeta?.name ?? '',
     description: moduleMeta?.description ?? '',
+    descriptionKey: moduleMeta?.descriptionKey ?? '',
     category: moduleMeta?.category ?? '',
     layerKey: moduleMeta?.layerKey ?? '',
     rootRoute: moduleMeta?.rootRoute ?? '',

@@ -1,7 +1,7 @@
 {
   "windowsDns": {
-    "title": "Windows DNS",
-    "description": "Manage Windows DNS zones, records and access.",
+    "title": "DNS",
+    "description": "Manage DNS zones, records and access.",
     "cta": "Create zone",
     "empty": "No zones yet.",
 
@@ -63,7 +63,7 @@
     },
 
     "zone": {
-      "label": "Windows DNS Zone",
+      "label": "DNS Zone",
       "loadingZone": "Loading zone...",
       "back": "Back to zones",
       "loadingStatus": "Loading status...",

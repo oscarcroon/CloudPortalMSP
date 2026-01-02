@@ -3,10 +3,10 @@ import { definePluginManifest } from '../_shared/module-manifest'
 const manifest = definePluginManifest({
   module: {
     key: 'windows-dns',
-    name: 'Windows DNS',
-    description: 'Manage Windows DNS zones, records, and ownership.',
+    name: 'DNS',
+    description: 'Manage DNS zones, records, and ownership.',
     category: 'dns',
-    icon: 'mdi:dns-outline'
+    icon: 'mdi:globe'
   },
   permissions: [
     { key: 'windows-dns:view', description: 'View Windows DNS zones and records.' },

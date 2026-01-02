@@ -2,7 +2,7 @@
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
     <header class="flex flex-col gap-2">
       <NuxtLink
-        to="/windows-dns"
+        to="/dns"
         class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand dark:text-slate-400"
       >
         <Icon icon="mdi:arrow-left" class="h-4 w-4" />
