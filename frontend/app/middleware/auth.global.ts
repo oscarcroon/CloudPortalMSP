@@ -60,8 +60,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/?error=missing-permission', { replace: true })
   }
 
-  // Check tenant access for tenant routes
-  if (to.path.startsWith('/admin/tenants')) {
+  // Check tenant access for tenant-admin routes
+  if (to.path.startsWith('/tenant-admin')) {
     const hasTenantAccess =
       isSuperAdmin ||
       (import.meta.server

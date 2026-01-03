@@ -290,10 +290,10 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
   const isSuperAdminUser = isSuperAdmin.value
   const currentPath = router.currentRoute.value.path
 
-  // If only tenant is selected (no organization), navigate to tenant page for all users
+  // If only tenant is selected (no organization), navigate to tenant-admin dashboard
   // This should work even when on settings page
   if (payload.tenantId && !payload.organizationId) {
-    await router.push(`/admin/tenants/${payload.tenantId}`)
+    await router.push('/tenant-admin')
     return
   }
 

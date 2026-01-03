@@ -3,7 +3,7 @@
     <NuxtLink
       v-for="tab in tabs"
       :key="tab.key"
-      :to="`/admin/organizations/${slug}/${tab.key}`"
+      :to="`/platform-admin/organizations/${slug}/${tab.key}`"
       class="inline-flex items-center gap-2 rounded-full border px-4 py-1 text-sm font-semibold transition"
       :class="tabClass(tab.key)"
     >

@@ -180,13 +180,28 @@
                 <div
                   v-for="ns in ['ns1.coreit.se', 'ns2.coreit.se', 'ns3.coreit.se']"
                   :key="ns"
-                  class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900"
+                  class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors"
+                  :class="creating 
+                    ? 'border-orange-300 bg-orange-50 dark:border-orange-600 dark:bg-orange-900/20' 
+                    : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'"
                 >
-                  <span class="font-mono text-sm font-medium text-slate-900 dark:text-slate-50">{{ ns }}</span>
+                  <span 
+                    class="font-mono text-sm font-medium transition-colors"
+                    :class="creating 
+                      ? 'text-orange-600 dark:text-orange-400' 
+                      : 'text-slate-900 dark:text-slate-50'"
+                    :style="creating ? { color: '#ea580c' } : undefined"
+                  >{{ ns }}</span>
                   <button
                     type="button"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-brand hover:bg-slate-50 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-brand dark:hover:bg-slate-700"
-                    :class="copiedNs === ns ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-900/20 dark:text-green-300' : ''"
+                    class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
+                    :class="[
+                      copiedNs === ns 
+                        ? 'border-green-300 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-900/20 dark:text-green-300'
+                        : creating
+                        ? 'border-orange-300 bg-orange-50 text-orange-700 hover:border-orange-400 hover:bg-orange-100 dark:border-orange-600 dark:bg-orange-900/20 dark:text-orange-300 dark:hover:border-orange-500 dark:hover:bg-orange-900/30'
+                        : 'border-slate-300 bg-white text-slate-700 hover:border-brand hover:bg-slate-50 hover:text-brand dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-brand dark:hover:bg-slate-700'
+                    ]"
                     @click="copyToClipboard(ns)"
                   >
                     <Icon

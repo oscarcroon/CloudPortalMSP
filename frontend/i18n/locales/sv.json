@@ -9,7 +9,8 @@
     "close": "Stäng",
     "delete": "Ta bort",
     "unknown": "Okänd",
-    "refresh": "Uppdatera"
+    "refresh": "Uppdatera",
+    "redirecting": "Omdirigerar..."
   },
   "auth": {
     "logout": "Logga ut",
@@ -180,7 +181,11 @@
     "showMore": "Visa fler moduler",
     "adminSection": "Inställningar",
     "tenants": "Tenants",
-    "superadmin": "Superadmin"
+    "tenantAdmin": "Tenant-admin",
+    "superadmin": "Superadmin",
+    "admin": "Administration",
+    "platformAdmin": "Plattformsadmin",
+    "home": "Hem"
   },
   "topBar": {
     "searchLabel": "Sök",
@@ -384,7 +389,8 @@
         "comingSoonMessage": {
           "label": "Meddelande",
           "placeholder": "Ex. Kommer snart! Kontakta oss för mer information.",
-          "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen."
+          "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen.",
+          "defaultMessage": "Kommer snart! Kontakta oss för mer information."
         }
       }
     },
@@ -956,6 +962,90 @@
     "open": "Öppna",
     "quickTip": "Snabbtips",
     "quickTipText": "Bokmärk den här sidan – nya superadminverktyg läggs alltid till här först.",
+    "tenantAdmin": {
+      "label": "Tenant-administration",
+      "title": "Administration",
+      "subtitle": "Hantera tenant-inställningar, drift och övervakning",
+      "noTenantSelected": "Ingen tenant vald",
+      "openSettings": "Öppna inställningar",
+      "platformAdmin": "Plattformsadmin",
+      "comingSoon": "Kommer snart",
+      "overview": {
+        "title": "Tenant-översikt",
+        "organizations": "Organisationer",
+        "members": "Medlemmar",
+        "modules": "Aktiva moduler",
+        "viewDetails": "Visa detaljer",
+        "viewTenantTree": "Visa tenant-träd"
+      },
+      "emptyState": {
+        "title": "Ingen tenant vald",
+        "description": "Välj en tenant för att administrera inställningar, drift och övervakning.",
+        "goToSettings": "Gå till inställningar"
+      },
+      "quickLinks": {
+        "title": "Snabblänkar",
+        "members": "Medlemmar",
+        "membersDesc": "Hantera användare och inbjudningar",
+        "groups": "Grupper & roller",
+        "groupsDesc": "Skapa och hantera grupper",
+        "branding": "Branding",
+        "brandingDesc": "Anpassa logotyp och färger",
+        "email": "E-post",
+        "emailDesc": "Konfigurera e-postmallar",
+        "audit": "Revision",
+        "auditDesc": "Granska aktivitetsloggar",
+        "delegations": "Delegeringar",
+        "delegationsDesc": "Hantera åtkomstdelegeringar"
+      },
+      "operations": {
+        "title": "Drift & nyheter",
+        "incidents": "Driftmeddelanden",
+        "news": "Nyheter",
+        "noIncidents": "Inga aktiva driftmeddelanden",
+        "noNews": "Inga nyheter publicerade",
+        "createIncident": "Skapa driftmeddelande",
+        "createNews": "Skapa nyhet",
+        "viewHistory": "Visa historik"
+      },
+      "health": {
+        "title": "Systemhälsa",
+        "lastSync": "Senast synkad"
+      },
+      "activity": {
+        "title": "Senaste aktivitet",
+        "noActivity": "Ingen aktivitet registrerad",
+        "viewAuditLog": "Visa revisionslogg"
+      },
+      "support": {
+        "title": "Support & hjälp",
+        "documentation": "Dokumentation",
+        "contact": "Kontakta support",
+        "statusPage": "Statussida"
+      },
+      "tenantActions": {
+        "title": "Tenant-hantering",
+        "description": "Snabblänkar för att hantera {tenant}",
+        "createProvider": "Skapa leverantör",
+        "createProviderDesc": "Skapa ny leverantör under denna distributör",
+        "createOrg": "Skapa organisation",
+        "createOrgDesc": "Skapa ny organisation under denna tenant",
+        "members": "Medlemmar",
+        "membersDesc": "Hantera tenant-medlemmar och inbjudningar",
+        "email": "E-postinställningar",
+        "emailDesc": "Konfigurera e-post för tenanten",
+        "modules": "Moduler",
+        "modulesDesc": "Hantera vilka moduler som är aktiverade",
+        "mspRoles": "MSP-roller",
+        "mspRolesDesc": "Hantera roller för MSP-användare",
+        "roleTemplates": "MSP-rollmallar",
+        "roleTemplatesDesc": "Hantera MSP-rollmallar för leverantörer",
+        "branding": "Branding",
+        "brandingDesc": "Anpassa tenant-branding",
+        "auditLogs": "Audit loggar",
+        "auditLogsDesc": "Granska tenant-aktivitet"
+      }
+    },
     "sections": {
       "tenants": {
         "title": "Tenants",
@@ -1038,7 +1128,8 @@
       "comingSoonMessage": {
         "label": "Meddelande",
         "placeholder": "Ex. Kommer snart! Kontakta oss för mer information.",
-        "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen."
+        "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen.",
+        "defaultMessage": "Kommer snart! Kontakta oss för mer information."
       }
     }
   },

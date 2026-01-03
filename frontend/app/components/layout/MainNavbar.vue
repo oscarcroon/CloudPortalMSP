@@ -272,6 +272,17 @@ const mobileNavModules = computed(() => {
 
 const canManageOrg = can('org:manage')
 
+const getTenantTypeIcon = (type: string | undefined): string => {
+  switch (type) {
+    case 'distributor':
+      return 'mdi:city'
+    case 'provider':
+      return 'mdi:store'
+    default:
+      return 'mdi:office-building-outline'
+  }
+}
+
 const adminNavItems = computed(() => {
   const items = []
 
@@ -282,10 +293,11 @@ const adminNavItems = computed(() => {
     auth.isSuperAdmin.value ||
     Object.keys(auth.state.value.data?.tenantRoles ?? {}).length > 0
   if (hasTenantAccess) {
-    items.push({ label: t('nav.tenants'), to: '/admin/tenants', icon: 'mdi:account-group' })
+    const tenantIcon = getTenantTypeIcon(auth.currentTenant.value?.type)
+    items.push({ label: t('nav.tenantAdmin'), to: '/tenant-admin', icon: tenantIcon })
   }
   if (auth.isSuperAdmin.value) {
-    items.push({ label: t('nav.superadmin'), to: '/admin/settings', icon: 'mdi:shield-crown' })
+    items.push({ label: t('nav.superadmin'), to: '/platform-admin', icon: 'mdi:shield-crown' })
   }
   return items
 })

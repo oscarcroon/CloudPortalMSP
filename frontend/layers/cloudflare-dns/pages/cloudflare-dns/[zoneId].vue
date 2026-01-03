@@ -169,11 +169,13 @@ import CloudflareZoneRecordsTable from '@cloudflare-dns/components/CloudflareZon
 import CloudflareAclEditor from '@cloudflare-dns/components/CloudflareAclEditor.vue'
 import { useRouter } from '#app'
 import { useI18n } from '#imports'
+import { useEntityNames } from '~/composables/useEntityNames'
 
 const route = useRoute()
 const zoneId = computed(() => route.params.zoneId as string)
 const router = useRouter()
 const { t } = useI18n()
+const entityNames = useEntityNames()
 
 const { data: zoneData, refresh: refreshZone, pending: zonePending } = useAsyncData(
   () => $fetch(`/api/dns/cloudflare/zones/${zoneId.value}`),
@@ -195,6 +197,13 @@ const { data: aclData, refresh: refreshAcl } = useAsyncData(
     key: computed(() => `cloudflare-acl-${zoneId.value}`)
   }
 )
+
+// Cache zone name for breadcrumbs
+watch(zoneData, (value) => {
+  if (value?.zone?.id && value?.zone?.name) {
+    entityNames.setName('zone', value.zone.id, value.zone.name)
+  }
+}, { immediate: true })
 
 watch(zoneData, async (value) => {
   if (value?.access?.canManageAcls) {

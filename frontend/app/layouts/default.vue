@@ -33,6 +33,7 @@
   </div>
 
     <main class="px-4 py-6 lg:px-10 max-w-6xl mx-auto w-full">
+      <Breadcrumb v-if="breadcrumbItems.length > 1" :items="breadcrumbItems" class="mb-4" />
       <slot />
     </main>
 
@@ -47,6 +48,7 @@ import { computed } from '#imports'
 import TopBar from '~/components/layout/TopBar.vue'
 import MainNavbar from '~/components/layout/MainNavbar.vue'
 import { useAuth } from '~/composables/useAuth'
+import { useBreadcrumbs } from '~/composables/useBreadcrumbs'
 
 const auth = useAuth()
 if (import.meta.client) {
@@ -87,5 +89,7 @@ const ssoBanner = computed(() => {
     slug: org.slug
   }
 })
+
+const { items: breadcrumbItems } = useBreadcrumbs()
 </script>
 

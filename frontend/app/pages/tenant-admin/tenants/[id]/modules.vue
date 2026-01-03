@@ -1,20 +1,31 @@
 <template>
   <section class="space-y-6">
-    <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-        {{ t('settings.administration') }}
-      </p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
-        {{ t('settings.modules.title') }}
-      </h1>
-      <p class="text-sm text-slate-600 dark:text-slate-400">
-        {{ t('settings.modules.pageDescription') }}
-      </p>
+    <header class="space-y-2">
+      <NuxtLink
+        :to="`/tenant-admin/tenants/${tenantId}`"
+        class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
+      >
+        ← {{ t('adminTenants.modules.back') }}
+      </NuxtLink>
+      <div>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
+        <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
+          {{ t('adminTenants.modules.title', { name: tenantName }) }}
+        </h1>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          {{ t('adminTenants.modules.description') }}
+        </p>
+      </div>
     </header>
 
     <div v-if="modulesError" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
       {{ modulesError }}
     </div>
+
+    <div v-if="resyncMessage" class="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-300">
+      {{ resyncMessage }}
+    </div>
+
     <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
       <div class="flex flex-1 flex-col gap-3 md:flex-row">
         <div class="relative flex-1">
@@ -22,7 +33,7 @@
             v-model="searchInput"
             type="text"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            :placeholder="t('settings.modules.searchPlaceholder')"
+            :placeholder="t('adminTenants.modules.searchPlaceholder')"
           />
           <button
             v-if="searchInput"
@@ -37,64 +48,38 @@
           v-model="categoryFilter"
           class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white md:w-48"
         >
-          <option value="all">{{ t('settings.modules.filters.allCategories') }}</option>
+          <option value="all">{{ t('adminTenants.modules.filters.allCategories') }}</option>
           <option v-for="category in categories" :key="category" :value="category">
             {{ category }}
           </option>
         </select>
       </div>
-      <div class="text-xs text-slate-500 dark:text-slate-300">
-        {{ t('settings.modules.results', { count: filteredModules.length }) }}
-      </div>
-    </div>
-
-    <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div class="space-y-1">
-          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
-            {{ t('settings.modules.groups.title') }}
-          </p>
-          <p class="text-sm text-slate-600 dark:text-slate-400">
-            {{ t('settings.modules.groups.description') }}
-          </p>
-          <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ t('settings.groups.open') }}
-          </p>
+      <div class="flex items-center gap-3">
+        <div class="text-xs text-slate-500 dark:text-slate-300">
+          {{ t('adminTenants.modules.results', { count: filteredModules.length }) }}
         </div>
-        <div class="flex items-center gap-2">
-          <NuxtLink
-            to="/settings/groups"
-            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-white dark:hover:border-brand"
-          >
-            {{ t('settings.groups.open') }}
-          </NuxtLink>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-            :disabled="groupsPending"
-            @click="refreshGroups"
-          >
-            <Icon icon="mdi:refresh" class="h-4 w-4" />
-            {{ t('common.refresh') }}
-          </button>
-        </div>
+        <button
+          v-if="isSuperAdmin"
+          type="button"
+          :disabled="resyncing"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+          @click="resyncModules"
+        >
+          <Icon :icon="resyncing ? 'mdi:loading' : 'mdi:refresh'" :class="{ 'animate-spin': resyncing }" class="h-4 w-4" />
+          {{ resyncing ? t('adminTenants.modules.resyncing') : t('adminTenants.modules.resync') }}
+        </button>
       </div>
-      <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-        <span v-if="groupsPending">{{ t('settings.modules.groups.loading') }}</span>
-        <span v-else-if="!groups.length">{{ t('settings.modules.groups.empty') }}</span>
-        <span v-else>{{ t('settings.modules.results', { count: groups.length }) }}</span>
-      </p>
     </div>
 
     <div v-if="pending" class="rounded-xl border border-dashed border-slate-200 p-6 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300">
-      {{ t('settings.modules.loading') }}
+      {{ t('adminTenants.modules.loading') }}
     </div>
 
     <div
       v-else-if="!filteredModules.length"
       class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
     >
-      {{ t('settings.modules.noModules') }}
+      {{ t('adminTenants.modules.empty') }}
     </div>
 
     <div v-else class="space-y-3">
@@ -120,21 +105,16 @@
               ]"
             />
             <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2">
-                <p
-                  :class="[
-                    'text-lg font-semibold truncate',
-                    getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
-                      ? 'text-slate-400 dark:text-slate-500'
-                      : 'text-slate-900 dark:text-white'
-                  ]"
-                >
-                  {{ module.name }}
-                </p>
-                <StatusPill v-if="module.tenantPolicy?.mode === 'blocked'" variant="danger">
-                  {{ t('settings.modules.tenantBlocked') }}
-                </StatusPill>
-              </div>
+              <p
+                :class="[
+                  'text-lg font-semibold truncate',
+                  getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                    ? 'text-slate-400 dark:text-slate-500'
+                    : 'text-slate-900 dark:text-white'
+                ]"
+              >
+                {{ module.name }}
+              </p>
               <span class="text-xs text-slate-500 dark:text-slate-400">{{ module.category }} · {{ module.layerKey }}</span>
             </div>
           </div>
@@ -239,7 +219,7 @@
           <div class="flex flex-col items-start gap-3 md:items-end">
             <div class="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
               <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
-                {{ t('settings.modules.policyTitle') }}
+                {{ t('adminTenants.modules.policyTitle') }}
               </p>
               <div class="flex flex-col gap-2">
                 <label
@@ -249,14 +229,14 @@
                 >
                   <input
                     :checked="module.uiMode === option.value"
-                    :disabled="module.updating || module.tenantPolicy?.mode === 'blocked'"
+                    :disabled="module.updating"
                     type="radio"
                     class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
                     :value="option.value"
                     :name="`policy-${module.key}`"
                     @change="onModeChange(module, option.value as PolicyMode)"
                   />
-                  <span>{{ t(`settings.modules.modes.${option.value}`) }}</span>
+                  <span>{{ t(`adminTenants.modules.modes.${option.value}`) }}</span>
                 </label>
               </div>
               <div v-if="module.uiMode === 'allowlist'" class="space-y-1">
@@ -275,10 +255,10 @@
                     {{ permissionState(module.key).error }}
                   </p>
                   <p v-else-if="permissionState(module.key).loading" class="text-slate-500 dark:text-slate-400">
-                    {{ t('settings.modules.loadingPermissions') }}
+                    {{ t('adminTenants.modules.loadingPermissions') }}
                   </p>
                   <div v-else-if="!permissionState(module.key).items.length" class="text-slate-500 dark:text-slate-400">
-                    {{ t('settings.modules.noPermissions') }}
+                    {{ t('adminTenants.modules.noPermissions') }}
                   </div>
                   <div v-else class="grid grid-cols-1 gap-2 md:grid-cols-2">
                     <label
@@ -306,20 +286,9 @@
               <p v-if="module.error" class="text-xs text-red-600 dark:text-red-400">
                 {{ module.error }}
               </p>
-              <p v-else-if="module.tenantPolicy?.mode === 'blocked'" class="text-xs text-slate-500 dark:text-slate-300">
-                {{ t('settings.modules.lockedByTenant') }}
-              </p>
             </div>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-brand hover:text-brand dark:border-white/20 dark:text-white"
-              @click="openAclDialog(module)"
-            >
-              <Icon icon="mdi:shield-lock" class="h-4 w-4" />
-              {{ t('settings.modules.manageAcl') }}
-            </button>
             <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ t('settings.modules.routeLabel') }} {{ module.rootRoute }}
+              {{ t('adminTenants.modules.routeLabel') }} {{ module.rootRoute }}
             </p>
           </div>
         </div>
@@ -327,100 +296,23 @@
     </div>
   </section>
 
-  <teleport to="body">
-    <div
-      v-if="aclDialog.open && aclDialog.module"
-      class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
-    >
-      <div class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
-        <div class="flex items-start justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-              {{ t('settings.modules.aclTitle') }}
-            </p>
-            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
-              {{ aclDialog.module.name }}
-            </h2>
-          </div>
-          <button class="text-slate-500 hover:text-slate-700 dark:text-slate-300" @click="closeAcl">
-            <Icon icon="mdi:close" class="h-5 w-5" />
-          </button>
-        </div>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          {{ t('settings.modules.aclDescription') }}
-        </p>
-
-        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div
-            v-for="operation in ['read', 'create', 'update', 'delete']"
-            :key="operation"
-            class="rounded-lg border border-slate-200 p-3 dark:border-white/10"
-          >
-            <p class="text-sm font-semibold capitalize text-slate-800 dark:text-slate-100">
-              {{ operation }}
-            </p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ t('settings.modules.aclOperationHint') }}
-            </p>
-            <div v-if="!groups.length" class="mt-2 rounded-md border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
-              {{ t('settings.modules.groups.empty') }}
-            </div>
-            <div v-else class="mt-2 flex flex-col gap-2">
-              <label
-                v-for="group in groups"
-                :key="group.id"
-                :class="[
-                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition dark:border-white/10',
-                  isAclGroupSelected(operation as 'create' | 'read' | 'update' | 'delete', group.id)
-                    ? 'border-brand/60 bg-brand/5 text-brand-700 dark:text-brand-200'
-                    : 'border-slate-200 text-slate-700 dark:text-slate-200'
-                ]"
-              >
-                <input
-                  type="checkbox"
-                  class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
-                  :checked="isAclGroupSelected(operation as 'create' | 'read' | 'update' | 'delete', group.id)"
-                  @change="toggleAclGroup(operation as 'create' | 'read' | 'update' | 'delete', group.id)"
-                />
-                <span class="flex-1">{{ group.name }}</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="aclDialog.error" class="mt-3 rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-          {{ aclDialog.error }}
-        </div>
-
-        <div class="mt-4 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-white"
-            @click="closeAcl"
-          >
-            {{ t('common.cancel') }}
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600 disabled:opacity-60"
-            :disabled="aclDialog.saving"
-            @click="saveAcl"
-          >
-            <Icon icon="mdi:content-save" class="h-4 w-4" />
-            {{ t('settings.modules.saveAcl') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </teleport>
-
+  <ModuleStatusModal
+    :open="statusModal.open"
+    :module="statusModal.module as any"
+    :current-enabled="statusModal.module?.tenantEnabled ?? true"
+    :current-disabled="statusModal.module?.tenantDisabled ?? false"
+    :current-coming-soon-message="statusModal.module?.tenantPolicy?.comingSoonMessage ?? null"
+    @close="closeStatusModal"
+    @save="onStatusSave"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useFetch, useI18n, watch } from '#imports'
+import { computed, ref, useFetch, useI18n, useRoute, watch } from '#imports'
+import { useAuth } from '~/composables/useAuth'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
-import { useAuth } from '~/composables/useAuth'
+import ModuleStatusModal from '~/components/modules/ModuleStatusModal.vue'
 import type { ModuleStatus } from '~/lib/module-registry'
 import type { ModuleStatusDto, PolicyMode } from '~/types/modules'
 
@@ -429,8 +321,10 @@ definePageMeta({
 })
 
 const { t } = useI18n()
-const auth = useAuth()
-const currentOrgId = computed(() => auth.currentOrg.value?.id)
+const route = useRoute()
+const tenantId = computed(() => route.params.id as string)
+const { user } = useAuth()
+const isSuperAdmin = computed(() => user.value?.isSuperAdmin ?? false)
 
 type UiModule = ModuleStatusDto & {
   uiMode: PolicyMode
@@ -446,47 +340,13 @@ const modeOptions: { value: PolicyMode }[] = [
   { value: 'blocked' }
 ]
 
-const { data, pending, error, refresh } = await useFetch<{ modules: ModuleStatusDto[] }>(() =>
-  currentOrgId.value ? `/api/organizations/${currentOrgId.value}/modules` : null
-)
-const {
-  data: groupsData,
-  pending: groupsPending,
-  error: groupsError,
-  refresh: refreshGroups
-} = await useFetch<{ organizationId: string; groups: Array<{ id: string; name: string; description: string | null }> }>(
-  () => (currentOrgId.value ? `/api/organizations/${currentOrgId.value}/groups` : null)
+const { data: tenantResponse } = await useFetch<{ tenant: { name: string } }>(() =>
+  `/api/admin/tenants/${tenantId.value}`
 )
 
-const modules = computed(() => data.value?.modules ?? [])
-const moduleRows = ref<UiModule[]>([])
-const modulesError = computed(() => error.value?.message ?? '')
-const groups = computed(() => groupsData.value?.groups ?? [])
-const expandedGroups = ref<Record<string, boolean>>({})
-const groupMembersInput = ref<Record<string, string>>({})
-const savingGroupMembers = ref<Record<string, boolean>>({})
-const groupsErrorMessage = computed(() => groupsError.value?.message ?? '')
-const newGroupName = ref('')
-const newGroupDescription = ref('')
-const newGroupMembers = ref('')
-const aclDialog = ref<{
-  open: boolean
-  module: UiModule | null
-  operations: Record<'create' | 'read' | 'update' | 'delete', string[]>
-  saving: boolean
-  error: string | null
-}>({
-  open: false,
-  module: null,
-  operations: {
-    create: [],
-    read: [],
-    update: [],
-    delete: []
-  },
-  saving: false,
-  error: null
-})
+const { data, pending, error, refresh } = await useFetch<{ modules: ModuleStatusDto[] }>(() =>
+  tenantId.value ? `/api/admin/tenants/${tenantId.value}/modules` : null
+)
 
 const permissionCache = ref<
   Record<
@@ -516,9 +376,8 @@ const loadModulePermissions = async (module: UiModule) => {
       `/api/modules/${module.key}/permissions`
     )
     state.items = res.permissions ?? []
-  } catch (err) {
-    const anyErr = err as any
-    state.error = anyErr?.data?.message ?? anyErr?.message ?? 'Kunde inte hämta permissions.'
+  } catch (err: any) {
+    state.error = err?.data?.message ?? err?.message ?? 'Kunde inte hämta permissions.'
   } finally {
     state.loading = false
   }
@@ -531,21 +390,28 @@ const ensurePermissionsLoaded = (module: UiModule) => {
   }
 }
 
+const modules = computed(() => data.value?.modules ?? [])
+const moduleRows = ref<UiModule[]>([])
+const modulesError = computed(() => error.value?.message ?? '')
+const tenantName = computed(() => tenantResponse.value?.tenant?.name ?? '...')
+const resyncing = ref(false)
+const resyncMessage = ref('')
+
 watch(
   modules,
-  (list?: ModuleStatusDto[]) => {
-    moduleRows.value =
-      list?.map((module) => ({
+  (list: ModuleStatusDto[] | undefined) => {
+    const safeList = list ?? []
+    moduleRows.value = safeList.map((module: ModuleStatusDto) => ({
       ...module,
-      uiMode: module.orgPolicy?.mode ?? 'inherit',
-        uiAllowedPermissions:
-          module.orgPolicy?.allowedPermissions ??
-          module.effectivePolicy.allowedPermissions ??
-          module.requiredPermissions ??
-          [],
+      uiMode: module.tenantPolicy?.mode ?? 'inherit',
+      uiAllowedPermissions:
+        module.tenantPolicy?.allowedPermissions ??
+        module.effectivePolicy.allowedPermissions ??
+        module.requiredPermissions ??
+        [],
       updating: false,
       error: null
-      })) ?? []
+    }))
     moduleRows.value.forEach(ensurePermissionsLoaded)
   },
   { immediate: true }
@@ -603,10 +469,6 @@ const updatePolicy = async (
     comingSoonMessage?: string | null
   }
 ) => {
-  if (module.tenantPolicy?.mode === 'blocked') {
-    return
-  }
-
   module.updating = true
   module.error = null
 
@@ -624,78 +486,29 @@ const updatePolicy = async (
   if (patch.comingSoonMessage !== undefined) payload.comingSoonMessage = patch.comingSoonMessage
 
   try {
-    const response = await $fetch<ModuleStatusDto>(
-      `/api/organizations/${currentOrgId.value}/modules`,
-      {
-        method: 'PUT',
-        body: payload
-      }
-    )
+    const response = await $fetch<ModuleStatusDto>(`/api/admin/tenants/${tenantId.value}/modules`, {
+      method: 'PUT',
+      body: payload
+    })
 
-    module.uiMode = response.orgPolicy?.mode ?? 'inherit'
+    module.uiMode = response.tenantPolicy?.mode ?? 'inherit'
+    module.uiAllowedPermissions =
+      response.tenantPolicy?.allowedPermissions ??
+      response.effectivePolicy.allowedPermissions ??
+      module.requiredPermissions ??
+      []
     // Update the module with response data, including status fields
     Object.assign(module, response)
-    // Ensure orgPolicy is updated with the new enabled/disabled values
-    if (response.orgPolicy) {
-      module.orgPolicy = response.orgPolicy
+    // Ensure tenantPolicy is updated with the new enabled/disabled values
+    if (response.tenantPolicy) {
+      module.tenantPolicy = response.tenantPolicy
     }
   } catch (err: any) {
-    module.error = err?.data?.message ?? err?.message ?? t('settings.modules.updateFailed')
+    module.error = err?.data?.message ?? err?.message ?? t('adminTenants.modules.updateFailed')
   } finally {
     module.updating = false
     await refresh()
   }
-}
-
-const openAclDialog = async (module: UiModule) => {
-  if (!currentOrgId.value) return
-  aclDialog.value = {
-    open: true,
-    module,
-    operations: {
-      create: [],
-      read: [],
-      update: [],
-      delete: []
-    },
-    saving: false,
-    error: null
-  }
-
-  try {
-    const res = await $fetch<{
-      acl: Record<'create' | 'read' | 'update' | 'delete', { groupId: string }[]>
-    }>(`/api/organizations/${currentOrgId.value}/plugins/${module.key}/acl`)
-    aclDialog.value.operations = {
-      create: res.acl.create.map((item) => item.groupId),
-      read: res.acl.read.map((item) => item.groupId),
-      update: res.acl.update.map((item) => item.groupId),
-      delete: res.acl.delete.map((item) => item.groupId)
-    }
-  } catch (err: any) {
-    aclDialog.value.error = err?.data?.message ?? err?.message ?? 'Kunde inte läsa ACL'
-  }
-}
-
-const saveAcl = async () => {
-  if (!currentOrgId.value || !aclDialog.value.module) return
-  aclDialog.value.saving = true
-  aclDialog.value.error = null
-  try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/plugins/${aclDialog.value.module.key}/acl`, {
-      method: 'PUT',
-      body: { operations: aclDialog.value.operations }
-    })
-    aclDialog.value.open = false
-  } catch (err: any) {
-    aclDialog.value.error = err?.data?.message ?? err?.message ?? 'Kunde inte spara ACL'
-  } finally {
-    aclDialog.value.saving = false
-  }
-}
-
-const closeAcl = () => {
-  aclDialog.value.open = false
 }
 
 const onModeChange = async (module: UiModule, mode: PolicyMode) => {
@@ -724,19 +537,38 @@ const onAllowedPermissionsChange = async (module: UiModule, key: string, checked
   })
 }
 
-type AclOperation = 'create' | 'read' | 'update' | 'delete'
+const statusModal = ref<{
+  open: boolean
+  module: UiModule | null
+}>({
+  open: false,
+  module: null
+})
 
-const isAclGroupSelected = (operation: AclOperation, groupId: string) =>
-  (aclDialog.value.operations[operation] ?? []).includes(groupId)
-
-const toggleAclGroup = (operation: AclOperation, groupId: string) => {
-  const current = new Set(aclDialog.value.operations[operation] ?? [])
-  if (current.has(groupId)) {
-    current.delete(groupId)
-  } else {
-    current.add(groupId)
+const openStatusModal = (module: UiModule) => {
+  statusModal.value = {
+    open: true,
+    module
   }
-  aclDialog.value.operations[operation] = Array.from(current)
+}
+
+const closeStatusModal = () => {
+  statusModal.value = {
+    open: false,
+    module: null
+  }
+}
+
+const onStatusSave = async (data: { enabled: boolean; disabled: boolean; comingSoonMessage: string | null }) => {
+  if (!statusModal.value.module) return
+
+  const module = statusModal.value.module
+  await updatePolicy(module, {
+    enabled: data.enabled,
+    disabled: data.disabled,
+    comingSoonMessage: data.comingSoonMessage
+  } as any)
+  closeStatusModal()
 }
 
 type ModuleStatusValue = 'active' | 'disabled' | 'hidden' | 'coming-soon'
@@ -812,7 +644,7 @@ const onStatusChange = async (module: UiModule, newStatus: ModuleStatusValue) =>
       disabled = true
       // Keep existing message if switching to coming-soon, otherwise use default
       // Filter out broken translation key if it was saved by mistake
-      const existingMessage = module.orgPolicy?.comingSoonMessage
+      const existingMessage = module.tenantPolicy?.comingSoonMessage
       const isValidMessage = existingMessage && !existingMessage.startsWith('modules.')
       comingSoonMessage = isValidMessage ? existingMessage : 'Kommer snart! Kontakta oss för mer information.'
       break
@@ -828,7 +660,7 @@ const onStatusChange = async (module: UiModule, newStatus: ModuleStatusValue) =>
 const onComingSoonMessageChange = async (module: UiModule, message: string) => {
   const trimmed = message.trim()
   // Only update if message actually changed
-  const currentMessage = module.orgPolicy?.comingSoonMessage ?? ''
+  const currentMessage = module.tenantPolicy?.comingSoonMessage ?? ''
   if (trimmed === currentMessage) return
 
   await updatePolicy(module, {
@@ -839,12 +671,11 @@ const onComingSoonMessageChange = async (module: UiModule, message: string) => {
 }
 
 const getModuleStatus = (module: UiModule): ModuleStatusValue => {
-  // Check effectiveDisabled which cascades from global -> tenant -> org
-  const isDisabled = module.effectiveDisabled === true
+  // Check tenantDisabled which cascades from global -> tenant
+  const isDisabled = module.tenantDisabled === true
   // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
   const comingSoonMessage = module.comingSoonMessage ?? 
     module.effectivePolicy?.comingSoonMessage ?? 
-    module.orgPolicy?.comingSoonMessage ?? 
     module.tenantPolicy?.comingSoonMessage ?? 
     null
   
@@ -854,7 +685,7 @@ const getModuleStatus = (module: UiModule): ModuleStatusValue => {
   if (isDisabled) {
     return 'disabled'
   }
-  if (module.orgEnabled === false) {
+  if (module.tenantEnabled === false) {
     return 'hidden'
   }
   return 'active'
@@ -896,7 +727,6 @@ const getModuleComingSoonMessage = (module: UiModule) => {
   // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
   const message = module.comingSoonMessage ?? 
     module.effectivePolicy?.comingSoonMessage ?? 
-    module.orgPolicy?.comingSoonMessage ?? 
     module.tenantPolicy?.comingSoonMessage ?? 
     null
   // Filter out broken translation keys that were saved by mistake
@@ -906,37 +736,30 @@ const getModuleComingSoonMessage = (module: UiModule) => {
   return message
 }
 
-// Kontrollera om modulen kan hanteras på organisationsnivå
-// Man kan hantera statusen om:
-// 1. Modulen är enabled på tenant-nivå (inte inaktiverad av tenant)
-// 2. Modulen är INTE disabled på TENANT nivå (kan inte överskridas)
-// Men man SKA kunna hantera även om man själv (org) har inaktiverat/disabled modulen,
-// annars kan man aldrig återställa!
+// Kontrollera om modulen kan hanteras på tenant-nivå
+// Logik:
+// - Om modulen FINNS i listan, är den enabled på GLOBAL nivå (global inaktiverade visas inte)
+// - Om tenantEnabled=false, är det alltid TENANT som har inaktiverat (inte global)
+// - Om tenantDisabled=true men tenant inte har satt disabled, kommer det från GLOBAL eller DISTRIBUTÖR
+// Man SKA alltid kunna hantera sin egen nivås status för att kunna återställa!
 const canManageModuleStatus = (module: UiModule): boolean => {
-  // Om modulen är blocked på tenant-nivå, kan den inte hanteras
-  if (module.tenantPolicy?.mode === 'blocked') {
+  // Modulen finns i listan = den är enabled globalt
+  // Så vi kan alltid hantera tenant's egen enabled/disabled status
+  
+  // Kontrollera om modulen är DISABLED på GLOBAL eller DISTRIBUTÖR nivå
+  // Vi kan inte överskriva global/distributör disabled-status
+  // tenantDisabled inkluderar global+distributör disabled, så vi behöver kontrollera
+  // om disabled kommer från tenant-nivån eller högre nivå
+  // Om tenantPolicy?.disabled är true, är det tenant som har disabled
+  // Om tenantDisabled är true men tenantPolicy?.disabled inte är true,
+  // då kommer disabled från global eller distributör nivå
+  const disabledByHigherLevel = module.tenantDisabled && !module.tenantPolicy?.disabled
+  if (disabledByHigherLevel) {
     return false
   }
-  // Om modulen är INAKTIVERAD (enabled=false) på TENANT nivå, kan den inte hanteras
-  // Men om ORG själv har inaktiverat, ska vi kunna återaktivera
-  const tenantInaktiverad = module.tenantPolicy?.enabled === false
-  if (tenantInaktiverad) {
-    return false
-  }
-  // Kontrollera om modulen är disabled på TENANT nivå (inte org-nivå)
-  // Vi kan inte överskriva tenant disabled-status, men vi SKA kunna
-  // ändra vår egen (org) disabled-status
-  // tenantPolicy?.disabled = true betyder att tenant har disabled modulen
-  if (module.tenantPolicy?.disabled) {
-    return false
-  }
-  // Om modulen har "kommer snart" på tenant-nivå, kan den inte hanteras
-  // (tenant's coming soon blockerar org från att ändra)
-  if (module.tenantPolicy?.comingSoonMessage) {
-    return false
-  }
+  
+  // Tenant kan alltid hantera sin egen status (enabled/disabled)
   return true
 }
 </script>
-
 

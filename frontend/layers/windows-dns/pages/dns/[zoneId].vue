@@ -166,9 +166,11 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import WindowsDnsRecordsTable from '@windows-dns/components/WindowsDnsRecordsTable.vue'
+import { useEntityNames } from '~/composables/useEntityNames'
 
 const route = useRoute()
 const router = useRouter()
+const entityNames = useEntityNames()
 const zoneId = computed(() => route.params.zoneId as string)
 
 // Validate that zoneId is a valid UUID
@@ -214,6 +216,10 @@ const fetchZone = async () => {
     const zone = res.zones.find(z => z.id === zoneId.value)
     if (zone) {
       zoneData.value = { zone }
+      // Cache zone name for breadcrumbs
+      if (zone.zoneName) {
+        entityNames.setName('zone', zone.id, zone.zoneName)
+      }
     } else {
       const { $i18n } = useNuxtApp()
       zoneError.value = $i18n.t('windowsDns.zone.zoneNotFound')

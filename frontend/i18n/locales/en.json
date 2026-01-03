@@ -9,7 +9,8 @@
     "close": "Close",
     "delete": "Delete",
     "unknown": "Unknown",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "redirecting": "Redirecting..."
   },
   "auth": {
     "logout": "Log out",
@@ -180,7 +181,11 @@
     "showMore": "Show more modules",
     "adminSection": "Settings",
     "tenants": "Tenants",
-    "superadmin": "Superadmin"
+    "tenantAdmin": "Tenant admin",
+    "superadmin": "Superadmin",
+    "admin": "Administration",
+    "platformAdmin": "Platform Admin",
+    "home": "Home"
   },
   "topBar": {
     "searchLabel": "Search",
@@ -384,7 +389,8 @@
         "comingSoonMessage": {
           "label": "Message",
           "placeholder": "E.g. Coming soon! Contact us for more information.",
-          "hint": "This message will be shown when users hover over or click on the module."
+          "hint": "This message will be shown when users hover over or click on the module.",
+          "defaultMessage": "Coming soon! Contact us for more information."
         }
       }
     },
@@ -956,6 +962,90 @@
     "open": "Open",
     "quickTip": "Quick tip",
     "quickTipText": "Bookmark this page – new superadmin tools are always added here first.",
+    "tenantAdmin": {
+      "label": "Tenant administration",
+      "title": "Administration",
+      "subtitle": "Manage tenant settings, operations and monitoring",
+      "noTenantSelected": "No tenant selected",
+      "openSettings": "Open settings",
+      "platformAdmin": "Platform admin",
+      "comingSoon": "Coming soon",
+      "overview": {
+        "title": "Tenant overview",
+        "organizations": "Organizations",
+        "members": "Members",
+        "modules": "Active modules",
+        "viewDetails": "View details",
+        "viewTenantTree": "View tenant tree"
+      },
+      "emptyState": {
+        "title": "No tenant selected",
+        "description": "Select a tenant to manage settings, operations and monitoring.",
+        "goToSettings": "Go to settings"
+      },
+      "quickLinks": {
+        "title": "Quick links",
+        "members": "Members",
+        "membersDesc": "Manage users and invitations",
+        "groups": "Groups & roles",
+        "groupsDesc": "Create and manage groups",
+        "branding": "Branding",
+        "brandingDesc": "Customize logo and colors",
+        "email": "Email",
+        "emailDesc": "Configure email templates",
+        "audit": "Audit",
+        "auditDesc": "Review activity logs",
+        "delegations": "Delegations",
+        "delegationsDesc": "Manage access delegations"
+      },
+      "operations": {
+        "title": "Operations & news",
+        "incidents": "Incidents",
+        "news": "News",
+        "noIncidents": "No active incidents",
+        "noNews": "No news published",
+        "createIncident": "Create incident",
+        "createNews": "Create news",
+        "viewHistory": "View history"
+      },
+      "health": {
+        "title": "System health",
+        "lastSync": "Last synced"
+      },
+      "activity": {
+        "title": "Recent activity",
+        "noActivity": "No activity recorded",
+        "viewAuditLog": "View audit log"
+      },
+      "support": {
+        "title": "Support & help",
+        "documentation": "Documentation",
+        "contact": "Contact support",
+        "statusPage": "Status page"
+      },
+      "tenantActions": {
+        "title": "Tenant management",
+        "description": "Quick links to manage {tenant}",
+        "createProvider": "Create provider",
+        "createProviderDesc": "Create new provider under this distributor",
+        "createOrg": "Create organization",
+        "createOrgDesc": "Create new organization under this tenant",
+        "members": "Members",
+        "membersDesc": "Manage tenant members and invitations",
+        "email": "Email settings",
+        "emailDesc": "Configure email for the tenant",
+        "modules": "Module permissions",
+        "modulesDesc": "Manage which modules are enabled",
+        "mspRoles": "MSP roles",
+        "mspRolesDesc": "Manage roles for MSP users",
+        "roleTemplates": "MSP role templates",
+        "roleTemplatesDesc": "Manage MSP role templates for providers",
+        "branding": "Branding",
+        "brandingDesc": "Customize tenant branding",
+        "auditLogs": "Audit logs",
+        "auditLogsDesc": "Review tenant activity"
+      }
+    },
     "sections": {
       "tenants": {
         "title": "Tenants",
