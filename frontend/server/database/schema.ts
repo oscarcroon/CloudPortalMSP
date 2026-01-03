@@ -1460,7 +1460,7 @@ export const tenantMemberMspRoles = sqliteTable(
 // OPERATIONS: Tenant Incidents (Driftmeddelanden) & News Posts
 // ────────────────────────────────────────────────────────────────────────────
 
-export type IncidentSeverity = 'critical' | 'outage' | 'notice' | 'maintenance'
+export type IncidentSeverity = 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
 export type IncidentStatus = 'active' | 'resolved'
 export type NewsPostStatus = 'draft' | 'published' | 'archived'
 export type IncidentMuteTargetType = 'tenant' | 'organization'

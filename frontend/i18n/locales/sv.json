@@ -7,6 +7,7 @@
     "incidentDetails": "Driftmeddelande",
     "startsAt": "Startar",
     "endsAt": "Slutar",
+    "planned": "Planerad",
     "multipleIncidents": "{count} aktiva driftmeddelanden",
     "collapse": "Dölj",
     "expand": "Visa alla",
@@ -14,7 +15,8 @@
       "critical": "Kritisk",
       "outage": "Driftstörning",
       "maintenance": "Underhåll",
-      "notice": "Information"
+      "notice": "Information",
+      "planned": "Planerad"
     }
   },
   "common": {
@@ -1054,6 +1056,21 @@
         "description": "Beskrivning",
         "descriptionPlaceholder": "Beskriv driftmeddelandet i detalj...",
         "markdownSupported": "Markdown stöds för formatering.",
+        "markdownHelp": "Markdown-hjälp",
+        "markdownCheatsheet": "Markdown-snabbguide",
+        "keyboardShortcuts": "Tangentbordsgenvägar: Ctrl+B fetstil, Ctrl+I kursiv, Ctrl+K länk",
+        "toolbar": {
+          "bold": "Fetstil (Ctrl+B)",
+          "italic": "Kursiv (Ctrl+I)",
+          "heading1": "Rubrik 1",
+          "heading2": "Rubrik 2",
+          "heading3": "Rubrik 3",
+          "link": "Länk (Ctrl+K)",
+          "bulletList": "Punktlista",
+          "numberedList": "Numrerad lista",
+          "quote": "Citat",
+          "code": "Kod"
+        },
         "publish": "Publicera",
         "editIncident": "Redigera driftmeddelande",
         "incidentNotFound": "Driftmeddelandet kunde inte hittas.",

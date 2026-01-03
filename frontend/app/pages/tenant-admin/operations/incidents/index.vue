@@ -185,7 +185,7 @@ interface IncidentItem {
   id: string
   title: string
   bodyMarkdown: string | null
-  severity: 'critical' | 'outage' | 'notice' | 'maintenance'
+  severity: 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
   status: 'active' | 'resolved'
   startsAt: string | null
   endsAt: string | null

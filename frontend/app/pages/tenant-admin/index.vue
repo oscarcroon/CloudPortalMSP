@@ -514,7 +514,7 @@ const currentTenant = computed(() => auth.currentTenant.value)
 interface IncidentItem {
   id: string
   title: string
-  severity: 'critical' | 'outage' | 'notice' | 'maintenance'
+  severity: 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
   status: 'active' | 'resolved'
   startsAt: string | null
   endsAt: string | null

@@ -2,13 +2,13 @@
  * Composable for fetching and managing the operations feed (incidents & news).
  */
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 
 export interface FeedIncident {
   id: string
   title: string
   bodyMarkdown: string | null
-  severity: 'critical' | 'outage' | 'notice' | 'maintenance'
+  severity: 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
   status: 'active' | 'resolved'
   startsAt: string | null
   endsAt: string | null
@@ -17,6 +17,7 @@ export interface FeedIncident {
   sourceTenantName: string
   sourceTenantType: 'provider' | 'distributor' | 'organization'
   isMuted: boolean
+  isPlanned: boolean
 }
 
 export interface FeedNewsPost {
@@ -104,10 +105,8 @@ export function useOperationsFeed() {
     }
   }
 
-  // Initial fetch on mount (client-side only)
-  onMounted(() => {
-    fetchFeed()
-  })
+  // Note: fetchFeed should be called explicitly by the consumer
+  // to avoid duplicate calls and timing issues
 
   return {
     feed,

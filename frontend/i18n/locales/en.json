@@ -7,6 +7,7 @@
     "incidentDetails": "Incident details",
     "startsAt": "Starts at",
     "endsAt": "Ends at",
+    "planned": "Planned",
     "multipleIncidents": "{count} active incidents",
     "collapse": "Collapse",
     "expand": "Show all",
@@ -14,7 +15,8 @@
       "critical": "Critical",
       "outage": "Outage",
       "maintenance": "Maintenance",
-      "notice": "Notice"
+      "notice": "Notice",
+      "planned": "Planned"
     }
   },
   "common": {
@@ -1054,6 +1056,21 @@
         "description": "Description",
         "descriptionPlaceholder": "Describe the incident in detail...",
         "markdownSupported": "Markdown is supported for formatting.",
+        "markdownHelp": "Markdown help",
+        "markdownCheatsheet": "Markdown cheatsheet",
+        "keyboardShortcuts": "Keyboard shortcuts: Ctrl+B bold, Ctrl+I italic, Ctrl+K link",
+        "toolbar": {
+          "bold": "Bold (Ctrl+B)",
+          "italic": "Italic (Ctrl+I)",
+          "heading1": "Heading 1",
+          "heading2": "Heading 2",
+          "heading3": "Heading 3",
+          "link": "Link (Ctrl+K)",
+          "bulletList": "Bullet list",
+          "numberedList": "Numbered list",
+          "quote": "Quote",
+          "code": "Code"
+        },
         "publish": "Publish",
         "editIncident": "Edit incident",
         "incidentNotFound": "Incident not found.",

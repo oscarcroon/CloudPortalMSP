@@ -10,9 +10,21 @@
         <Icon :icon="severityIconName(visibleIncidents[0].severity)" class="h-5 w-5 flex-shrink-0 mt-0.5" :class="severityIconClass(visibleIncidents[0].severity)" />
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-semibold">{{ visibleIncidents[0].title }}</span>
+            <span v-if="visibleIncidents[0].isPlanned" class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
+              <Icon icon="mdi:clock-outline" class="h-3 w-3" />
+              {{ t('operations.planned') }}
+            </span>
+            <button
+              class="font-semibold hover:underline underline-offset-2 text-left cursor-pointer"
+              @click="openIncidentDetails(visibleIncidents[0])"
+            >
+              {{ visibleIncidents[0].title }}
+            </button>
             <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="sourcePillClasses">
               {{ t('operations.from') }} {{ visibleIncidents[0].sourceTenantName }}
+            </span>
+            <span v-if="visibleIncidents[0].isPlanned && visibleIncidents[0].startsAt" class="text-xs opacity-75">
+              {{ formatDate(visibleIncidents[0].startsAt) }}
             </span>
           </div>
           <p v-if="visibleIncidents[0].bodyMarkdown" class="mt-1 text-sm opacity-90 line-clamp-2">
@@ -70,9 +82,21 @@
             <Icon :icon="severityIconName(incident.severity)" class="h-4 w-4 flex-shrink-0 mt-0.5" :class="severityIconClass(incident.severity)" />
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium">{{ incident.title }}</span>
+                <span v-if="incident.isPlanned" class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
+                  <Icon icon="mdi:clock-outline" class="h-3 w-3" />
+                  {{ t('operations.planned') }}
+                </span>
+                <button
+                  class="font-medium hover:underline underline-offset-2 text-left cursor-pointer"
+                  @click="openIncidentDetails(incident)"
+                >
+                  {{ incident.title }}
+                </button>
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs" :class="sourcePillClasses">
                   {{ incident.sourceTenantName }}
+                </span>
+                <span v-if="incident.isPlanned && incident.startsAt" class="text-xs opacity-75">
+                  {{ formatDate(incident.startsAt) }}
                 </span>
               </div>
             </div>
@@ -90,7 +114,7 @@
   </div>
 
   <!-- Details modal -->
-  <Modal v-if="detailsModalOpen" :open="detailsModalOpen" @close="detailsModalOpen = false">
+  <Modal v-if="detailsModalOpen" :show="detailsModalOpen" @close="detailsModalOpen = false">
     <template #title>{{ t('operations.incidentDetails') }}</template>
     <div v-if="selectedIncident" class="space-y-4">
       <div class="flex items-center gap-2">
@@ -140,7 +164,7 @@ interface Incident {
   id: string
   title: string
   bodyMarkdown: string | null
-  severity: 'critical' | 'outage' | 'notice' | 'maintenance'
+  severity: 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
   status: string
   startsAt: Date | string | null
   endsAt: Date | string | null
@@ -149,6 +173,7 @@ interface Incident {
   sourceTenantName: string
   sourceTenantType: string
   isMuted: boolean
+  isPlanned?: boolean
 }
 
 const props = defineProps<{
@@ -172,12 +197,12 @@ const visibleIncidents = computed(() =>
 )
 
 const highestSeverity = computed(() => {
-  const severityOrder: Record<string, number> = { critical: 0, outage: 1, maintenance: 2, notice: 3 }
+  const severityOrder: Record<string, number> = { critical: 0, outage: 1, maintenance: 2, notice: 3, planned: 4 }
   return visibleIncidents.value.reduce((highest, incident) => {
     const currentRank = severityOrder[incident.severity] ?? 999
     const highestRank = severityOrder[highest] ?? 999
     return currentRank < highestRank ? incident.severity : highest
-  }, 'notice' as 'critical' | 'outage' | 'notice' | 'maintenance')
+  }, 'notice' as 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned')
 })
 
 // Check if user can mute (owner/admin of current org)
@@ -199,6 +224,8 @@ function bannerClasses(severity: string) {
     case 'outage':
       return `${base} border-orange-300 bg-orange-50 text-orange-800 dark:border-orange-500/50 dark:bg-orange-500/10 dark:text-orange-100`
     case 'maintenance':
+      return `${base} border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-100`
+    case 'planned':
       return `${base} border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-500/50 dark:bg-blue-500/10 dark:text-blue-100`
     case 'notice':
     default:
@@ -213,6 +240,8 @@ function severityBadgeClasses(severity: string) {
     case 'outage':
       return 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200'
     case 'maintenance':
+      return 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200'
+    case 'planned':
       return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
     case 'notice':
     default:
@@ -228,6 +257,8 @@ function severityIconName(severity: string): string {
       return 'mdi:alert'
     case 'maintenance':
       return 'mdi:wrench'
+    case 'planned':
+      return 'mdi:calendar-clock'
     case 'notice':
     default:
       return 'mdi:information'
@@ -241,6 +272,8 @@ function severityIconClass(severity: string): string {
     case 'outage':
       return 'text-orange-600 dark:text-orange-400'
     case 'maintenance':
+      return 'text-sky-600 dark:text-sky-400'
+    case 'planned':
       return 'text-blue-600 dark:text-blue-400'
     case 'notice':
     default:
@@ -267,6 +300,11 @@ function openDetailsModal() {
     selectedIncident.value = visibleIncidents.value[0]
     detailsModalOpen.value = true
   }
+}
+
+function openIncidentDetails(incident: Incident) {
+  selectedIncident.value = incident
+  detailsModalOpen.value = true
 }
 
 function handleMuteIncident(incident: Incident) {

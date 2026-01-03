@@ -85,9 +85,10 @@
             </span>
             <NuxtLink
               :to="`/tenant-admin/operations/news/${post.id}`"
-              class="text-xs font-medium text-brand hover:underline"
+              class="inline-flex items-center justify-center rounded-lg p-1.5 text-brand transition hover:bg-brand/10 dark:hover:bg-brand/20"
+              :title="t('admin.tenantAdmin.operations.edit')"
             >
-              {{ t('admin.tenantAdmin.operations.edit') }}
+              <Icon icon="mdi:pencil" class="h-4 w-4" />
             </NuxtLink>
           </div>
         </div>

@@ -68,28 +68,53 @@ if (import.meta.client) {
 const activeIncidents = ref<any[]>([])
 const hasActiveIncidents = computed(() => activeIncidents.value.length > 0)
 
-onMounted(async () => {
-  // Dynamically import and use the operations feed on client only
+let feedInstance: ReturnType<typeof useOperationsFeed> | null = null
+
+async function loadOperationsFeed() {
+  // Only run on client
+  if (import.meta.server) return
+  
   try {
     const { useOperationsFeed } = await import('~/composables/useOperationsFeed')
-    const feed = useOperationsFeed()
+    feedInstance = useOperationsFeed()
+    
+    // Initial fetch
+    await feedInstance.fetchFeed()
+    
     // Watch for incidents
-    watch(() => feed.activeIncidents.value, (incidents) => {
+    watch(() => feedInstance!.activeIncidents.value, (incidents) => {
       activeIncidents.value = incidents
     }, { immediate: true })
+    
+    // Watch for org/tenant changes and refetch
+    watch([() => auth.currentOrg.value?.id, () => auth.currentTenant.value?.id], async () => {
+      if (feedInstance) {
+        await feedInstance.fetchFeed()
+      }
+    })
   } catch (err) {
     console.error('Failed to load operations feed:', err)
   }
+}
+
+onMounted(() => {
+  loadOperationsFeed()
 })
 
 async function handleMuteIncident(incident: { id: string }) {
   try {
-    await $fetch(`/api/admin/incidents/${incident.id}/mute`, {
-      method: 'POST',
-      body: { targetType: 'organization' }
-    })
-    // Remove from local list
-    activeIncidents.value = activeIncidents.value.filter((i) => i.id !== incident.id)
+    if (feedInstance) {
+      await feedInstance.muteIncident(incident.id, 'organization')
+    } else {
+      // Fallback if feed not loaded yet
+      await $fetch(`/api/admin/incidents/${incident.id}/mute`, {
+        method: 'POST',
+        body: { targetType: 'organization' },
+        credentials: 'include'
+      })
+      // Remove from local list
+      activeIncidents.value = activeIncidents.value.filter((i) => i.id !== incident.id)
+    }
   } catch (err) {
     console.error('Failed to mute incident:', err)
   }

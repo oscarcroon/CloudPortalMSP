@@ -23,7 +23,8 @@ const SEVERITY_RANK: Record<IncidentSeverity, number> = {
   critical: 0,
   outage: 1,
   maintenance: 2,
-  notice: 3
+  planned: 3,
+  notice: 4
 }
 
 export interface FeedIncident {
@@ -39,7 +40,12 @@ export interface FeedIncident {
   sourceTenantName: string
   sourceTenantType: 'provider' | 'distributor' | 'organization'
   isMuted: boolean
+  /** True if incident has startsAt in the future (planned maintenance) */
+  isPlanned: boolean
 }
+
+// Default: Show planned incidents up to 7 days in advance
+const DEFAULT_PLANNED_DAYS_AHEAD = 7
 
 export interface FeedNewsPost {
   id: string
@@ -65,6 +71,8 @@ export interface GetFeedOptions {
   currentTenantId?: string | null
   includeMutedIncidents?: boolean
   newsLimit?: number
+  /** Days ahead to show planned incidents (default: 7) */
+  plannedDaysAhead?: number
 }
 
 /**
@@ -81,10 +89,11 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
   }
 
   const now = new Date()
+  const plannedDaysAhead = opts.plannedDaysAhead ?? DEFAULT_PLANNED_DAYS_AHEAD
 
   // Fetch incidents and news in parallel
   const [incidents, news, tenantInfo] = await Promise.all([
-    fetchActiveIncidents(sources.sourceIds, now),
+    fetchActiveIncidents(sources.sourceIds, now, plannedDaysAhead),
     fetchLatestNews(sources.sourceIds, now, opts.newsLimit ?? 3),
     getSourceTenantInfo(sources.sourceIds)
   ])
@@ -103,6 +112,8 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
     .map((incident) => {
       const sourceInfo = tenantInfo.get(incident.sourceTenantId)
       const isMuted = mutedIncidentIds.has(incident.id)
+      // Incident is planned if startsAt is in the future
+      const isPlanned = incident.startsAt ? incident.startsAt.getTime() > now.getTime() : false
 
       return {
         id: incident.id,
@@ -116,17 +127,22 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
         sourceTenantId: incident.sourceTenantId,
         sourceTenantName: sourceInfo?.name ?? 'Unknown',
         sourceTenantType: sourceInfo?.type ?? 'provider',
-        isMuted
+        isMuted,
+        isPlanned
       }
     })
     .filter((i) => opts.includeMutedIncidents || !i.isMuted)
-    // Sort: severity rank, then startsAt desc, then createdAt desc
+    // Sort: active first, then planned; within each group by severity, then time
     .sort((a, b) => {
+      // Active incidents before planned
+      if (a.isPlanned !== b.isPlanned) return a.isPlanned ? 1 : -1
+      // Then by severity
       const rankDiff = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]
       if (rankDiff !== 0) return rankDiff
+      // Then by start time (soonest first for planned, most recent for active)
       const aTime = a.startsAt?.getTime() ?? a.createdAt.getTime()
       const bTime = b.startsAt?.getTime() ?? b.createdAt.getTime()
-      return bTime - aTime
+      return a.isPlanned ? aTime - bTime : bTime - aTime
     })
 
   // Build feed news with source info
@@ -150,10 +166,16 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
 }
 
 /**
- * Fetch active incidents from source tenants.
+ * Fetch active and planned incidents from source tenants.
+ * Includes:
+ * - Active incidents with no startsAt or startsAt <= now
+ * - Planned incidents with startsAt within the next N days
  */
-async function fetchActiveIncidents(sourceIds: string[], now: Date) {
+async function fetchActiveIncidents(sourceIds: string[], now: Date, plannedDaysAhead: number) {
   const db = getDb()
+
+  // Calculate the lookahead window for planned incidents
+  const plannedWindow = new Date(now.getTime() + plannedDaysAhead * 24 * 60 * 60 * 1000)
 
   return db
     .select({
@@ -173,8 +195,13 @@ async function fetchActiveIncidents(sourceIds: string[], now: Date) {
         inArray(tenantIncidents.sourceTenantId, sourceIds),
         eq(tenantIncidents.status, 'active'),
         isNull(tenantIncidents.deletedAt),
-        // Time window: startsAt <= now (or null) and endsAt > now (or null)
-        or(isNull(tenantIncidents.startsAt), lte(tenantIncidents.startsAt, now)),
+        // Time window: 
+        // - startsAt is null (immediate) OR startsAt <= now (active) OR startsAt <= plannedWindow (planned)
+        or(
+          isNull(tenantIncidents.startsAt),
+          lte(tenantIncidents.startsAt, plannedWindow)
+        ),
+        // - endsAt is null (no end) OR endsAt > now (not yet ended)
         or(isNull(tenantIncidents.endsAt), gt(tenantIncidents.endsAt, now))
       )
     )
