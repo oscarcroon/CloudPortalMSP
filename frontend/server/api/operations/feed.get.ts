@@ -15,10 +15,6 @@ import { getEffectiveFeed } from '../../utils/operations/feedResolver'
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
 
-  // Get the current context from auth state
-  const currentOrgId = auth?.currentOrgId ?? null
-  const currentTenantId = auth?.currentTenantId ?? null
-
   // If not authenticated, return empty feed
   if (!auth) {
     return {
@@ -28,9 +24,15 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Get the current context from auth state
+  const currentOrgId = auth.currentOrgId ?? null
+  const currentTenantId = auth.currentTenantId ?? null
+  const currentUserId = auth.user.id
+
   const feed = await getEffectiveFeed({
     currentOrgId,
     currentTenantId,
+    currentUserId,
     includeMutedIncidents: false,
     newsLimit: 3
   })

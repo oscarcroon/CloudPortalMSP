@@ -1522,7 +1522,8 @@ export const tenantIncidentMutes = sqliteTable(
     mutedAt: integer('muted_at', { mode: 'timestamp_ms' })
       .notNull()
       .default(sql`(strftime('%s','now') * 1000)`),
-    muteUntil: integer('mute_until', { mode: 'timestamp_ms' })
+    muteUntil: integer('mute_until', { mode: 'timestamp_ms' }),
+    mutedReason: text('muted_reason')
   },
   (table) => ({
     incidentIdx: index('tenant_incident_mutes_incident_idx').on(table.incidentId),
@@ -1535,6 +1536,35 @@ export const tenantIncidentMutes = sqliteTable(
       table.incidentId,
       table.targetType,
       table.organizationId
+    )
+  })
+)
+
+/**
+ * Tenant Incident User Mutes
+ * Allows individual users to hide incidents for themselves only (personal mute).
+ */
+export const tenantIncidentUserMutes = sqliteTable(
+  'tenant_incident_user_mutes',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    incidentId: text('incident_id')
+      .notNull()
+      .references(() => tenantIncidents.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    mutedAt: integer('muted_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+    muteUntil: integer('mute_until', { mode: 'timestamp_ms' })
+  },
+  (table) => ({
+    incidentIdx: index('tenant_incident_user_mutes_incident_idx').on(table.incidentId),
+    userIdx: index('tenant_incident_user_mutes_user_idx').on(table.userId, table.mutedAt),
+    userMuteUnique: uniqueIndex('tenant_incident_user_mutes_unique').on(
+      table.incidentId,
+      table.userId
     )
   })
 )
@@ -1584,7 +1614,8 @@ export const tenantIncidentsRelations = relations(tenantIncidents, ({ one, many 
     references: [users.id],
     relationName: 'incidentCreatedBy'
   }),
-  mutes: many(tenantIncidentMutes)
+  mutes: many(tenantIncidentMutes),
+  userMutes: many(tenantIncidentUserMutes)
 }))
 
 export const tenantIncidentMutesRelations = relations(tenantIncidentMutes, ({ one }) => ({
@@ -1602,6 +1633,17 @@ export const tenantIncidentMutesRelations = relations(tenantIncidentMutes, ({ on
   }),
   mutedBy: one(users, {
     fields: [tenantIncidentMutes.mutedByUserId],
+    references: [users.id]
+  })
+}))
+
+export const tenantIncidentUserMutesRelations = relations(tenantIncidentUserMutes, ({ one }) => ({
+  incident: one(tenantIncidents, {
+    fields: [tenantIncidentUserMutes.incidentId],
+    references: [tenantIncidents.id]
+  }),
+  user: one(users, {
+    fields: [tenantIncidentUserMutes.userId],
     references: [users.id]
   })
 }))

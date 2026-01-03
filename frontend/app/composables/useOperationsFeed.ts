@@ -16,6 +16,11 @@ export interface FeedIncident {
   sourceTenantId: string
   sourceTenantName: string
   sourceTenantType: 'provider' | 'distributor' | 'organization'
+  /** True if muted by user personally */
+  isUserMuted: boolean
+  /** True if muted at org/tenant scope */
+  isScopeMuted: boolean
+  /** True if muted by either user or scope */
   isMuted: boolean
   isPlanned: boolean
 }
@@ -75,7 +80,44 @@ export function useOperationsFeed() {
     }
   }
 
-  async function muteIncident(incidentId: string, targetType: 'organization' | 'tenant' = 'organization') {
+  /**
+   * Mute an incident for the current user only (personal mute).
+   */
+  async function muteIncidentForUser(incidentId: string) {
+    try {
+      await $fetch(`/api/operations/incidents/${incidentId}/mute`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      // Refresh feed after muting
+      await fetchFeed()
+    } catch (err: any) {
+      console.error('[useOperationsFeed] Error muting incident for user:', err)
+      throw err
+    }
+  }
+
+  /**
+   * Unmute an incident for the current user only (personal unmute).
+   */
+  async function unmuteIncidentForUser(incidentId: string) {
+    try {
+      await $fetch(`/api/operations/incidents/${incidentId}/unmute`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      // Refresh feed after unmuting
+      await fetchFeed()
+    } catch (err: any) {
+      console.error('[useOperationsFeed] Error unmuting incident for user:', err)
+      throw err
+    }
+  }
+
+  /**
+   * Mute an incident at scope level (org or tenant) - requires admin permission.
+   */
+  async function muteIncidentForScope(incidentId: string, targetType: 'organization' | 'tenant' = 'organization') {
     try {
       await $fetch(`/api/admin/incidents/${incidentId}/mute`, {
         method: 'POST',
@@ -85,12 +127,15 @@ export function useOperationsFeed() {
       // Refresh feed after muting
       await fetchFeed()
     } catch (err: any) {
-      console.error('[useOperationsFeed] Error muting incident:', err)
+      console.error('[useOperationsFeed] Error muting incident for scope:', err)
       throw err
     }
   }
 
-  async function unmuteIncident(incidentId: string, targetType: 'organization' | 'tenant' = 'organization') {
+  /**
+   * Unmute an incident at scope level (org or tenant) - requires admin permission.
+   */
+  async function unmuteIncidentForScope(incidentId: string, targetType: 'organization' | 'tenant' = 'organization') {
     try {
       await $fetch(`/api/admin/incidents/${incidentId}/unmute`, {
         method: 'POST',
@@ -100,10 +145,14 @@ export function useOperationsFeed() {
       // Refresh feed after unmuting
       await fetchFeed()
     } catch (err: any) {
-      console.error('[useOperationsFeed] Error unmuting incident:', err)
+      console.error('[useOperationsFeed] Error unmuting incident for scope:', err)
       throw err
     }
   }
+
+  // Legacy aliases for backwards compatibility
+  const muteIncident = muteIncidentForScope
+  const unmuteIncident = unmuteIncidentForScope
 
   // Note: fetchFeed should be called explicitly by the consumer
   // to avoid duplicate calls and timing issues
@@ -116,6 +165,13 @@ export function useOperationsFeed() {
     latestNews,
     hasActiveIncidents,
     fetchFeed,
+    // User-level mutes (personal)
+    muteIncidentForUser,
+    unmuteIncidentForUser,
+    // Scope-level mutes (org/tenant - requires admin)
+    muteIncidentForScope,
+    unmuteIncidentForScope,
+    // Legacy aliases
     muteIncident,
     unmuteIncident
   }

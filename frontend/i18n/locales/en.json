@@ -3,14 +3,26 @@
     "from": "From",
     "showDetails": "Show details",
     "hide": "Hide",
+    "hideForMe": "Hide for me",
     "hideForOrg": "Hide for organization",
+    "hideForTenant": "Hide for tenant",
+    "showForMe": "Show again",
+    "showForOrg": "Show for organization",
+    "showForTenant": "Show for tenant",
+    "viewAll": "View all",
     "incidentDetails": "Incident details",
     "startsAt": "Starts at",
     "endsAt": "Ends at",
+    "createdAt": "Created",
     "planned": "Planned",
     "multipleIncidents": "{count} active incidents",
     "collapse": "Collapse",
     "expand": "Show all",
+    "hiddenForMe": "Hidden for me",
+    "hiddenForOrg": "Hidden for organization",
+    "hiddenForTenant": "Hidden for tenant",
+    "noHiddenIncidents": "No hidden incidents",
+    "allIncidentsVisible": "All incidents are visible",
     "severity": {
       "critical": "Critical",
       "outage": "Outage",
@@ -250,7 +262,15 @@
     "sections": {
       "account": "Account",
       "organizations": "Organizations",
-      "password": "Change password"
+      "password": "Change password",
+      "operations": "Incidents"
+    },
+    "operations": {
+      "title": "Hidden incidents",
+      "subtitle": "Incidents you have hidden for yourself",
+      "noHiddenIncidents": "You have no hidden incidents",
+      "showAgain": "Show again",
+      "loading": "Loading..."
     },
     "fields": {
       "email": "Email",
@@ -477,6 +497,29 @@
     },
     "delegations": {
       "open": "Delegations"
+    },
+    "operations": {
+      "title": "Incidents",
+      "description": "View all incidents and manage which ones are displayed.",
+      "subtitle": "View and manage incidents for your organization",
+      "loading": "Loading incidents...",
+      "activeIncidents": "Active incidents",
+      "hiddenIncidents": "Hidden incidents",
+      "hiddenForMe": "Hidden for me",
+      "hiddenForOrg": "Hidden for organization",
+      "noActiveIncidents": "No active incidents",
+      "noHiddenIncidents": "No hidden incidents",
+      "hideForMe": "Hide for me",
+      "showForMe": "Show again",
+      "hideForOrg": "Hide for organization",
+      "showForOrg": "Show for organization",
+      "hiddenBadge": "Hidden",
+      "actions": "Actions",
+      "features": {
+        "viewAll": "View all active and planned incidents",
+        "manage": "Hide or show incidents you have hidden",
+        "unmute": "Restore previously hidden incidents"
+      }
     },
     "members": {
       "title": "Members",
@@ -1031,6 +1074,15 @@
         "createIncident": "Create incident",
         "createNews": "Create news",
         "viewHistory": "View history",
+        "visibility": "Visibility",
+        "visibilityTitle": "Incidents – Visibility",
+        "visibilitySubtitle": "View and manage which incidents are visible to downstream organizations",
+        "hideForTenant": "Hide for tenant",
+        "showForTenant": "Show for tenant",
+        "hiddenForTenant": "Hidden for tenant",
+        "hiddenForOrg": "Hidden for org",
+        "hiddenForUser": "Hidden for you",
+        "noHiddenForTenant": "No hidden incidents at tenant level",
         "manageAll": "Manage all",
         "edit": "Edit",
         "resolved": "Resolved",

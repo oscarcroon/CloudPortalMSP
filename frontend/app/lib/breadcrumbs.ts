@@ -29,6 +29,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   { path: '/settings/email', labelKey: 'settings.email.title', label: 'E-post', icon: 'mdi:email-outline' },
   { path: '/settings/branding', labelKey: 'settings.branding.title', label: 'Branding', icon: 'mdi:palette-outline' },
   { path: '/settings/audit', labelKey: 'settings.audit.title', label: 'Revision', icon: 'mdi:history' },
+  { path: '/settings/operations', labelKey: 'settings.operations.title', label: 'Driftmeddelanden', icon: 'mdi:bell-ring-outline' },
 
   // Tenant Admin Dashboard & Tenant Management
   { path: '/tenant-admin', labelKey: 'admin.tenantAdmin.title', label: 'Tenant-administration', icon: 'mdi:office-building-cog' },
@@ -36,6 +37,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   { path: '/tenant-admin/distributors', label: 'Distributörer', icon: 'mdi:city' },
   { path: '/tenant-admin/organizations', label: 'Organisationer', icon: 'mdi:domain' },
   { path: '/tenant-admin/organizations/new', label: 'Skapa organisation', icon: 'mdi:home-plus' },
+  { path: '/tenant-admin/operations/visibility', label: 'Driftmeddelanden', icon: 'mdi:bell-ring-outline' },
 
   // Platform Admin (Superadmin)
   { path: '/platform-admin', labelKey: 'nav.platformAdmin', label: 'Plattformsadmin', icon: 'mdi:shield-crown' },
@@ -50,6 +52,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
 
   { path: '/docs', labelKey: 'nav.docs', label: 'Dokumentation', icon: 'mdi:book-open-variant' },
   { path: '/profile', labelKey: 'nav.profile', label: 'Profil', icon: 'mdi:account-outline' },
+  { path: '/profile/operations', labelKey: 'profile.operations.title', label: 'Driftmeddelanden', icon: 'mdi:bell-ring-outline' },
   { path: '/support', labelKey: 'nav.support', label: 'Support', icon: 'mdi:lifecycle' },
   { path: '/vms', labelKey: 'nav.vms', label: 'VMs', icon: 'mdi:server' },
   { path: '/containers', labelKey: 'nav.containers', label: 'Containers', icon: 'mdi:docker' },
@@ -77,6 +80,8 @@ const HUMANIZE_SEGMENTS: Record<string, string> = {
   groups: 'Grupper',
   audit: 'Revision',
   'audit-logs': 'Loggar',
+  operations: 'Driftmeddelanden',
+  visibility: 'Synlighet',
   auth: 'Auth',
   email: 'E-post',
   branding: 'Branding',

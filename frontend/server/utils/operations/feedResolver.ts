@@ -10,6 +10,7 @@ import { getDb } from '../db'
 import {
   tenantIncidents,
   tenantIncidentMutes,
+  tenantIncidentUserMutes,
   tenantNewsPosts,
   tenants,
   type IncidentSeverity,
@@ -39,6 +40,11 @@ export interface FeedIncident {
   sourceTenantId: string
   sourceTenantName: string
   sourceTenantType: 'provider' | 'distributor' | 'organization'
+  /** True if muted by user personally */
+  isUserMuted: boolean
+  /** True if muted at org/tenant scope */
+  isScopeMuted: boolean
+  /** True if muted by either user or scope */
   isMuted: boolean
   /** True if incident has startsAt in the future (planned maintenance) */
   isPlanned: boolean
@@ -69,6 +75,8 @@ export interface OperationsFeedResult {
 export interface GetFeedOptions {
   currentOrgId?: string | null
   currentTenantId?: string | null
+  /** Current user ID for personal mute filtering */
+  currentUserId?: string | null
   includeMutedIncidents?: boolean
   newsLimit?: number
   /** Days ahead to show planned incidents (default: 7) */
@@ -98,20 +106,31 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
     getSourceTenantInfo(sources.sourceIds)
   ])
 
-  // Fetch mutes for the current scope
-  const mutedIncidentIds = await getMutedIncidentIds({
-    incidentIds: incidents.map((i) => i.id),
-    contextType: sources.contextType,
-    orgId: opts.currentOrgId ?? undefined,
-    tenantId: opts.currentTenantId ?? undefined,
-    now
-  })
+  const incidentIds = incidents.map((i) => i.id)
+
+  // Fetch mutes for the current scope (org/tenant) and user in parallel
+  const [scopeMutedIncidentIds, userMutedIncidentIds] = await Promise.all([
+    getScopeMutedIncidentIds({
+      incidentIds,
+      contextType: sources.contextType,
+      orgId: opts.currentOrgId ?? undefined,
+      tenantId: opts.currentTenantId ?? undefined,
+      now
+    }),
+    getUserMutedIncidentIds({
+      incidentIds,
+      userId: opts.currentUserId ?? undefined,
+      now
+    })
+  ])
 
   // Build feed incidents with source info and mute status
   const activeIncidents: FeedIncident[] = incidents
     .map((incident) => {
       const sourceInfo = tenantInfo.get(incident.sourceTenantId)
-      const isMuted = mutedIncidentIds.has(incident.id)
+      const isUserMuted = userMutedIncidentIds.has(incident.id)
+      const isScopeMuted = scopeMutedIncidentIds.has(incident.id)
+      const isMuted = isUserMuted || isScopeMuted
       // Incident is planned if startsAt is in the future
       const isPlanned = incident.startsAt ? incident.startsAt.getTime() > now.getTime() : false
 
@@ -127,6 +146,8 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
         sourceTenantId: incident.sourceTenantId,
         sourceTenantName: sourceInfo?.name ?? 'Unknown',
         sourceTenantType: sourceInfo?.type ?? 'provider',
+        isUserMuted,
+        isScopeMuted,
         isMuted,
         isPlanned
       }
@@ -238,9 +259,9 @@ async function fetchLatestNews(sourceIds: string[], now: Date, limit: number) {
 }
 
 /**
- * Get IDs of incidents that are muted for the current scope.
+ * Get IDs of incidents that are muted for the current scope (org/tenant).
  */
-async function getMutedIncidentIds(opts: {
+async function getScopeMutedIncidentIds(opts: {
   incidentIds: string[]
   contextType: 'organization' | 'tenant'
   orgId?: string
@@ -277,6 +298,34 @@ async function getMutedIncidentIds(opts: {
         muteCondition,
         // muteUntil is null (permanent) or muteUntil > now
         or(isNull(tenantIncidentMutes.muteUntil), gt(tenantIncidentMutes.muteUntil, now))
+      )
+    )
+
+  return new Set(mutes.map((m) => m.incidentId))
+}
+
+/**
+ * Get IDs of incidents that are muted by a specific user (personal mute).
+ */
+async function getUserMutedIncidentIds(opts: {
+  incidentIds: string[]
+  userId?: string
+  now: Date
+}): Promise<Set<string>> {
+  if (opts.incidentIds.length === 0 || !opts.userId) return new Set()
+
+  const db = getDb()
+  const { incidentIds, userId, now } = opts
+
+  const mutes = await db
+    .select({ incidentId: tenantIncidentUserMutes.incidentId })
+    .from(tenantIncidentUserMutes)
+    .where(
+      and(
+        inArray(tenantIncidentUserMutes.incidentId, incidentIds),
+        eq(tenantIncidentUserMutes.userId, userId),
+        // muteUntil is null (permanent) or muteUntil > now
+        or(isNull(tenantIncidentUserMutes.muteUntil), gt(tenantIncidentUserMutes.muteUntil, now))
       )
     )
 

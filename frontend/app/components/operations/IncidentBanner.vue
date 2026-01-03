@@ -32,20 +32,27 @@
           </p>
         </div>
       </div>
-      <div class="flex items-center gap-2 ml-3 flex-shrink-0">
+      <div class="flex items-center gap-3 ml-3 flex-shrink-0">
         <button
           v-if="showDetails"
           class="text-xs font-medium underline underline-offset-2 hover:opacity-80"
-          @click="openDetailsModal"
+          @click="openIncidentDetails(visibleIncidents[0])"
         >
           {{ t('operations.showDetails') }}
         </button>
+        <NuxtLink
+          :to="viewAllLink"
+          class="text-xs font-medium opacity-70 hover:opacity-100"
+        >
+          {{ t('operations.viewAll') }}
+        </NuxtLink>
         <button
           v-if="canMute"
-          class="text-xs font-medium opacity-70 hover:opacity-100"
+          class="p-1 rounded-md opacity-60 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition-opacity"
+          :title="t('operations.hideForMe')"
           @click="handleMuteIncident(visibleIncidents[0])"
         >
-          {{ t('operations.hide') }}
+          <Icon icon="mdi:eye-off-outline" class="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -103,10 +110,11 @@
           </div>
           <button
             v-if="canMute"
-            class="text-xs opacity-70 hover:opacity-100 flex-shrink-0"
+            class="p-1 rounded-md opacity-60 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition-opacity flex-shrink-0"
+            :title="t('operations.hideForMe')"
             @click="handleMuteIncident(incident)"
           >
-            {{ t('operations.hide') }}
+            <Icon icon="mdi:eye-off-outline" class="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -116,39 +124,60 @@
   <!-- Details modal -->
   <Modal v-if="detailsModalOpen" :show="detailsModalOpen" @close="detailsModalOpen = false">
     <template #title>{{ t('operations.incidentDetails') }}</template>
-    <div v-if="selectedIncident" class="space-y-4">
-      <div class="flex items-center gap-2">
-        <span :class="severityBadgeClasses(selectedIncident.severity)" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
-          {{ t(`operations.severity.${selectedIncident.severity}`) }}
-        </span>
-        <span class="text-xs text-slate-500 dark:text-slate-400">
-          {{ t('operations.from') }} {{ selectedIncident.sourceTenantName }}
-        </span>
+    <template #content>
+      <div v-if="selectedIncident" class="space-y-4">
+        <!-- Header: severity, source, created date -->
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span :class="severityBadgeClasses(selectedIncident.severity)" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
+              {{ t(`operations.severity.${selectedIncident.severity}`) }}
+            </span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">
+              {{ t('operations.from') }} {{ selectedIncident.sourceTenantName }}
+            </span>
+          </div>
+          <span class="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+            <Icon icon="mdi:clock-outline" class="h-3.5 w-3.5" />
+            {{ formatDate(selectedIncident.createdAt) }}
+          </span>
+        </div>
+
+        <!-- Title -->
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ selectedIncident.title }}</h3>
+
+        <!-- Body -->
+        <div
+          v-if="selectedIncident.bodyMarkdown"
+          class="prose prose-sm dark:prose-invert max-w-none"
+          v-html="renderMarkdown(selectedIncident.bodyMarkdown).html"
+        />
+
+        <!-- Time range: starts/ends -->
+        <div v-if="selectedIncident.startsAt || selectedIncident.endsAt" class="flex items-center gap-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-300">
+          <span v-if="selectedIncident.startsAt" class="inline-flex items-center gap-1.5">
+            <Icon icon="mdi:calendar-start" class="h-4 w-4 text-slate-400 dark:text-slate-500" />
+            <span class="font-medium">{{ t('operations.startsAt') }}:</span>
+            {{ formatDate(selectedIncident.startsAt) }}
+          </span>
+          <span v-if="selectedIncident.endsAt" class="inline-flex items-center gap-1.5">
+            <Icon icon="mdi:calendar-end" class="h-4 w-4 text-slate-400 dark:text-slate-500" />
+            <span class="font-medium">{{ t('operations.endsAt') }}:</span>
+            {{ formatDate(selectedIncident.endsAt) }}
+          </span>
+        </div>
+
+        <!-- Actions -->
+        <div v-if="canMute" class="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <button
+            class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
+            @click="handleMuteIncident(selectedIncident); detailsModalOpen = false"
+          >
+            <Icon icon="mdi:bell-off-outline" class="h-4 w-4" />
+            {{ t('operations.hideForMe') }}
+          </button>
+        </div>
       </div>
-      <h3 class="text-lg font-semibold">{{ selectedIncident.title }}</h3>
-      <div
-        v-if="selectedIncident.bodyMarkdown"
-        class="prose prose-sm dark:prose-invert max-w-none"
-        v-html="renderMarkdown(selectedIncident.bodyMarkdown).html"
-      />
-      <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-        <span v-if="selectedIncident.startsAt">
-          {{ t('operations.startsAt') }}: {{ formatDate(selectedIncident.startsAt) }}
-        </span>
-        <span v-if="selectedIncident.endsAt">
-          {{ t('operations.endsAt') }}: {{ formatDate(selectedIncident.endsAt) }}
-        </span>
-      </div>
-      <div v-if="canMute" class="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
-        <button
-          class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
-          @click="handleMuteIncident(selectedIncident); detailsModalOpen = false"
-        >
-          <Icon icon="mdi:bell-off-outline" class="h-4 w-4" />
-          {{ t('operations.hideForOrg') }}
-        </button>
-      </div>
-    </div>
+    </template>
   </Modal>
 </template>
 
@@ -205,13 +234,15 @@ const highestSeverity = computed(() => {
   }, 'notice' as 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned')
 })
 
-// Check if user can mute (owner/admin of current org)
+// Any authenticated user can mute for themselves (personal mute)
 const canMute = computed(() => {
-  const org = auth.currentOrg?.value
-  if (!org) return false
-  const orgRoles = auth.orgRoles?.value ?? {}
-  const role = orgRoles[org.id]
-  return role === 'owner' || role === 'admin'
+  return !!auth.user?.value
+})
+
+// Dynamic link based on context - org users go to settings, tenant users go to tenant-admin
+const viewAllLink = computed(() => {
+  const hasActiveOrg = !!auth.currentOrg?.value
+  return hasActiveOrg ? '/settings/operations' : '/tenant-admin/operations/visibility'
 })
 
 const sourcePillClasses = 'bg-black/10 text-current dark:bg-white/10'

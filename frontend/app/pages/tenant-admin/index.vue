@@ -309,6 +309,13 @@
                   <Icon icon="mdi:history" class="h-4 w-4" />
                   {{ t('admin.tenantAdmin.operations.viewHistory') }}
                 </NuxtLink>
+                <NuxtLink
+                  to="/tenant-admin/operations/visibility"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                >
+                  <Icon icon="mdi:eye-outline" class="h-4 w-4" />
+                  {{ t('admin.tenantAdmin.operations.visibility') }}
+                </NuxtLink>
               </div>
             </div>
 

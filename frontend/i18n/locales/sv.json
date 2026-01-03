@@ -3,14 +3,26 @@
     "from": "Från",
     "showDetails": "Visa detaljer",
     "hide": "Göm",
+    "hideForMe": "Göm för mig",
     "hideForOrg": "Göm för organisationen",
+    "hideForTenant": "Göm för tenant",
+    "showForMe": "Visa igen",
+    "showForOrg": "Visa för organisationen",
+    "showForTenant": "Visa för tenant",
+    "viewAll": "Visa alla",
     "incidentDetails": "Driftmeddelande",
     "startsAt": "Startar",
     "endsAt": "Slutar",
+    "createdAt": "Skapad",
     "planned": "Planerad",
     "multipleIncidents": "{count} aktiva driftmeddelanden",
     "collapse": "Dölj",
     "expand": "Visa alla",
+    "hiddenForMe": "Gömd för mig",
+    "hiddenForOrg": "Gömd för organisationen",
+    "hiddenForTenant": "Gömd för tenant",
+    "noHiddenIncidents": "Inga gömda driftmeddelanden",
+    "allIncidentsVisible": "Alla driftmeddelanden är synliga",
     "severity": {
       "critical": "Kritisk",
       "outage": "Driftstörning",
@@ -250,7 +262,15 @@
     "sections": {
       "account": "Konto",
       "organizations": "Organisationer",
-      "password": "Byt lösenord"
+      "password": "Byt lösenord",
+      "operations": "Driftmeddelanden"
+    },
+    "operations": {
+      "title": "Gömda driftmeddelanden",
+      "subtitle": "Driftmeddelanden du har gömt för dig själv",
+      "noHiddenIncidents": "Du har inga gömda driftmeddelanden",
+      "showAgain": "Visa igen",
+      "loading": "Laddar..."
     },
     "fields": {
       "email": "E-post",
@@ -477,6 +497,29 @@
     },
     "delegations": {
       "open": "Delegationer"
+    },
+    "operations": {
+      "title": "Driftmeddelanden",
+      "description": "Se alla driftmeddelanden och hantera vilka som visas.",
+      "subtitle": "Se och hantera driftmeddelanden för din organisation",
+      "loading": "Laddar driftmeddelanden...",
+      "activeIncidents": "Aktiva driftmeddelanden",
+      "hiddenIncidents": "Gömda driftmeddelanden",
+      "hiddenForMe": "Gömda för mig",
+      "hiddenForOrg": "Gömda för organisationen",
+      "noActiveIncidents": "Inga aktiva driftmeddelanden",
+      "noHiddenIncidents": "Inga gömda driftmeddelanden",
+      "hideForMe": "Göm för mig",
+      "showForMe": "Visa igen",
+      "hideForOrg": "Göm för organisationen",
+      "showForOrg": "Visa för organisationen",
+      "hiddenBadge": "Gömd",
+      "actions": "Åtgärder",
+      "features": {
+        "viewAll": "Se alla aktiva och planerade driftmeddelanden",
+        "manage": "Göm eller visa meddelanden du valt att dölja",
+        "unmute": "Visa igen tidigare gömda meddelanden"
+      }
     },
     "members": {
       "title": "Medlemmar",
@@ -1031,6 +1074,15 @@
         "createIncident": "Skapa driftmeddelande",
         "createNews": "Skapa nyhet",
         "viewHistory": "Visa historik",
+        "visibility": "Synlighet",
+        "visibilityTitle": "Driftmeddelanden – Synlighet",
+        "visibilitySubtitle": "Se och hantera vilka driftmeddelanden som är synliga för nedströms organisationer",
+        "hideForTenant": "Göm för tenant",
+        "showForTenant": "Visa för tenant",
+        "hiddenForTenant": "Gömd för tenant",
+        "hiddenForOrg": "Gömd för org",
+        "hiddenForUser": "Gömd för dig",
+        "noHiddenForTenant": "Inga gömda driftmeddelanden på tenantnivå",
         "manageAll": "Hantera alla",
         "edit": "Redigera",
         "resolved": "Löst",

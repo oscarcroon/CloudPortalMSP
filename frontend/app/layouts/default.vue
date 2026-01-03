@@ -104,12 +104,12 @@ onMounted(() => {
 async function handleMuteIncident(incident: { id: string }) {
   try {
     if (feedInstance) {
-      await feedInstance.muteIncident(incident.id, 'organization')
+      // Use personal mute (per user) as default from banner
+      await feedInstance.muteIncidentForUser(incident.id)
     } else {
-      // Fallback if feed not loaded yet
-      await $fetch(`/api/admin/incidents/${incident.id}/mute`, {
+      // Fallback if feed not loaded yet - use new user mute endpoint
+      await $fetch(`/api/operations/incidents/${incident.id}/mute`, {
         method: 'POST',
-        body: { targetType: 'organization' },
         credentials: 'include'
       })
       // Remove from local list
