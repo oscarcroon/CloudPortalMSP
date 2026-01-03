@@ -3,6 +3,14 @@
     <TopBar />
     <MainNavbar />
 
+    <!-- Operations Incident Banner -->
+    <IncidentBanner
+      v-if="hasActiveIncidents"
+      :incidents="activeIncidents"
+      :show-details="true"
+      @mute="handleMuteIncident"
+    />
+
     <div v-if="authError" class="mx-auto max-w-6xl px-4">
       <div class="mb-4 flex items-start justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
         <p>{{ authError }}</p>
@@ -44,15 +52,47 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from '#imports'
+import { computed, onMounted, ref, watch } from '#imports'
 import TopBar from '~/components/layout/TopBar.vue'
 import MainNavbar from '~/components/layout/MainNavbar.vue'
+import IncidentBanner from '~/components/operations/IncidentBanner.vue'
 import { useAuth } from '~/composables/useAuth'
 import { useBreadcrumbs } from '~/composables/useBreadcrumbs'
 
 const auth = useAuth()
 if (import.meta.client) {
   await auth.bootstrap()
+}
+
+// Operations feed - only load on client
+const activeIncidents = ref<any[]>([])
+const hasActiveIncidents = computed(() => activeIncidents.value.length > 0)
+
+onMounted(async () => {
+  // Dynamically import and use the operations feed on client only
+  try {
+    const { useOperationsFeed } = await import('~/composables/useOperationsFeed')
+    const feed = useOperationsFeed()
+    // Watch for incidents
+    watch(() => feed.activeIncidents.value, (incidents) => {
+      activeIncidents.value = incidents
+    }, { immediate: true })
+  } catch (err) {
+    console.error('Failed to load operations feed:', err)
+  }
+})
+
+async function handleMuteIncident(incident: { id: string }) {
+  try {
+    await $fetch(`/api/admin/incidents/${incident.id}/mute`, {
+      method: 'POST',
+      body: { targetType: 'organization' }
+    })
+    // Remove from local list
+    activeIncidents.value = activeIncidents.value.filter((i) => i.id !== incident.id)
+  } catch (err) {
+    console.error('Failed to mute incident:', err)
+  }
 }
 
 const authError = computed(() => auth.state.value.error)

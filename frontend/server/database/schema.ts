@@ -1456,6 +1456,168 @@ export const tenantMemberMspRoles = sqliteTable(
   })
 )
 
+// ────────────────────────────────────────────────────────────────────────────
+// OPERATIONS: Tenant Incidents (Driftmeddelanden) & News Posts
+// ────────────────────────────────────────────────────────────────────────────
+
+export type IncidentSeverity = 'critical' | 'outage' | 'notice' | 'maintenance'
+export type IncidentStatus = 'active' | 'resolved'
+export type NewsPostStatus = 'draft' | 'published' | 'archived'
+export type IncidentMuteTargetType = 'tenant' | 'organization'
+
+/**
+ * Tenant Incidents (Driftmeddelanden)
+ * Created by distributors/providers, inherited downstream.
+ */
+export const tenantIncidents = sqliteTable(
+  'tenant_incidents',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    sourceTenantId: text('source_tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    bodyMarkdown: text('body_markdown'),
+    severity: text('severity').notNull().$type<IncidentSeverity>().default('notice'),
+    status: text('status').notNull().$type<IncidentStatus>().default('active'),
+    startsAt: integer('starts_at', { mode: 'timestamp_ms' }),
+    endsAt: integer('ends_at', { mode: 'timestamp_ms' }),
+    resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
+    createdByUserId: text('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    updatedByUserId: text('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    deletedAt: integer('deleted_at', { mode: 'timestamp_ms' }),
+    deletedByUserId: text('deleted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    sourceTenantIdx: index('tenant_incidents_source_tenant_idx').on(table.sourceTenantId),
+    statusIdx: index('tenant_incidents_status_idx').on(table.status),
+    activeIdx: index('tenant_incidents_active_idx').on(
+      table.sourceTenantId,
+      table.status,
+      table.startsAt,
+      table.endsAt
+    ),
+    deletedIdx: index('tenant_incidents_deleted_idx').on(table.deletedAt)
+  })
+)
+
+/**
+ * Tenant Incident Mutes
+ * Allows downstream tenants/organizations to hide inherited incidents.
+ */
+export const tenantIncidentMutes = sqliteTable(
+  'tenant_incident_mutes',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    incidentId: text('incident_id')
+      .notNull()
+      .references(() => tenantIncidents.id, { onDelete: 'cascade' }),
+    targetType: text('target_type').notNull().$type<IncidentMuteTargetType>(),
+    targetTenantId: text('target_tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
+    mutedByUserId: text('muted_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    mutedAt: integer('muted_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(strftime('%s','now') * 1000)`),
+    muteUntil: integer('mute_until', { mode: 'timestamp_ms' })
+  },
+  (table) => ({
+    incidentIdx: index('tenant_incident_mutes_incident_idx').on(table.incidentId),
+    tenantMuteUnique: uniqueIndex('tenant_incident_mutes_tenant_unique').on(
+      table.incidentId,
+      table.targetType,
+      table.targetTenantId
+    ),
+    orgMuteUnique: uniqueIndex('tenant_incident_mutes_org_unique').on(
+      table.incidentId,
+      table.targetType,
+      table.organizationId
+    )
+  })
+)
+
+/**
+ * Tenant News Posts (Nyheter)
+ * Blog-style posts created by distributors/providers, inherited downstream.
+ */
+export const tenantNewsPosts = sqliteTable(
+  'tenant_news_posts',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    sourceTenantId: text('source_tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    slug: text('slug').notNull(),
+    summary: text('summary'),
+    heroImageUrl: text('hero_image_url'),
+    bodyMarkdown: text('body_markdown'),
+    status: text('status').notNull().$type<NewsPostStatus>().default('draft'),
+    publishedAt: integer('published_at', { mode: 'timestamp_ms' }),
+    createdByUserId: text('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    updatedByUserId: text('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    sourceTenantIdx: index('tenant_news_posts_source_tenant_idx').on(table.sourceTenantId),
+    statusIdx: index('tenant_news_posts_status_idx').on(table.status),
+    publishedIdx: index('tenant_news_posts_published_idx').on(
+      table.sourceTenantId,
+      table.status,
+      table.publishedAt
+    ),
+    slugUnique: uniqueIndex('tenant_news_posts_slug_unique').on(table.sourceTenantId, table.slug)
+  })
+)
+
+// Relations for operations tables
+export const tenantIncidentsRelations = relations(tenantIncidents, ({ one, many }) => ({
+  sourceTenant: one(tenants, {
+    fields: [tenantIncidents.sourceTenantId],
+    references: [tenants.id]
+  }),
+  createdBy: one(users, {
+    fields: [tenantIncidents.createdByUserId],
+    references: [users.id],
+    relationName: 'incidentCreatedBy'
+  }),
+  mutes: many(tenantIncidentMutes)
+}))
+
+export const tenantIncidentMutesRelations = relations(tenantIncidentMutes, ({ one }) => ({
+  incident: one(tenantIncidents, {
+    fields: [tenantIncidentMutes.incidentId],
+    references: [tenantIncidents.id]
+  }),
+  targetTenant: one(tenants, {
+    fields: [tenantIncidentMutes.targetTenantId],
+    references: [tenants.id]
+  }),
+  organization: one(organizations, {
+    fields: [tenantIncidentMutes.organizationId],
+    references: [organizations.id]
+  }),
+  mutedBy: one(users, {
+    fields: [tenantIncidentMutes.mutedByUserId],
+    references: [users.id]
+  })
+}))
+
+export const tenantNewsPostsRelations = relations(tenantNewsPosts, ({ one }) => ({
+  sourceTenant: one(tenants, {
+    fields: [tenantNewsPosts.sourceTenantId],
+    references: [tenants.id]
+  }),
+  createdBy: one(users, {
+    fields: [tenantNewsPosts.createdByUserId],
+    references: [users.id],
+    relationName: 'newsCreatedBy'
+  })
+}))
+
 export const mspOrgDelegationRelations = relations(mspOrgDelegations, ({ many, one }) => ({
   org: one(organizations, {
     fields: [mspOrgDelegations.orgId],

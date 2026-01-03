@@ -392,6 +392,13 @@
       "tag": "0048_windows_dns_blocked_zones",
       "version": "6",
       "idx": 55
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.510,
+      "tag": "0049_tenant_operations",
+      "version": "6",
+      "idx": 56
     }
   ],
   "version": "6"

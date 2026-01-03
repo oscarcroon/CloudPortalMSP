@@ -1,0 +1,275 @@
+<template>
+  <div v-if="visibleIncidents.length > 0" class="mx-auto max-w-6xl px-4">
+    <!-- Single incident display -->
+    <div
+      v-if="visibleIncidents.length === 1"
+      :class="bannerClasses(visibleIncidents[0].severity)"
+      class="mb-4 flex items-start justify-between rounded-lg px-4 py-3 text-sm"
+    >
+      <div class="flex items-start gap-3 flex-1 min-w-0">
+        <Icon :icon="severityIconName(visibleIncidents[0].severity)" class="h-5 w-5 flex-shrink-0 mt-0.5" :class="severityIconClass(visibleIncidents[0].severity)" />
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-semibold">{{ visibleIncidents[0].title }}</span>
+            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="sourcePillClasses">
+              {{ t('operations.from') }} {{ visibleIncidents[0].sourceTenantName }}
+            </span>
+          </div>
+          <p v-if="visibleIncidents[0].bodyMarkdown" class="mt-1 text-sm opacity-90 line-clamp-2">
+            {{ stripMarkdown(visibleIncidents[0].bodyMarkdown) }}
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 ml-3 flex-shrink-0">
+        <button
+          v-if="showDetails"
+          class="text-xs font-medium underline underline-offset-2 hover:opacity-80"
+          @click="openDetailsModal"
+        >
+          {{ t('operations.showDetails') }}
+        </button>
+        <button
+          v-if="canMute"
+          class="text-xs font-medium opacity-70 hover:opacity-100"
+          @click="handleMuteIncident(visibleIncidents[0])"
+        >
+          {{ t('operations.hide') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Multiple incidents display -->
+    <div
+      v-else
+      :class="bannerClasses(highestSeverity)"
+      class="mb-4 rounded-lg px-4 py-3 text-sm"
+    >
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <Icon :icon="severityIconName(highestSeverity)" class="h-5 w-5 flex-shrink-0" :class="severityIconClass(highestSeverity)" />
+          <span class="font-semibold">
+            {{ t('operations.multipleIncidents', { count: visibleIncidents.length }) }}
+          </span>
+        </div>
+        <button
+          class="text-xs font-medium underline underline-offset-2 hover:opacity-80"
+          @click="showAllIncidents = !showAllIncidents"
+        >
+          {{ showAllIncidents ? t('operations.collapse') : t('operations.expand') }}
+        </button>
+      </div>
+
+      <!-- Expanded list -->
+      <div v-if="showAllIncidents" class="mt-3 space-y-2 border-t border-current/20 pt-3">
+        <div
+          v-for="incident in visibleIncidents"
+          :key="incident.id"
+          class="flex items-start justify-between gap-3 rounded-md bg-black/5 dark:bg-white/5 px-3 py-2"
+        >
+          <div class="flex items-start gap-2 min-w-0 flex-1">
+            <Icon :icon="severityIconName(incident.severity)" class="h-4 w-4 flex-shrink-0 mt-0.5" :class="severityIconClass(incident.severity)" />
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium">{{ incident.title }}</span>
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs" :class="sourcePillClasses">
+                  {{ incident.sourceTenantName }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            v-if="canMute"
+            class="text-xs opacity-70 hover:opacity-100 flex-shrink-0"
+            @click="handleMuteIncident(incident)"
+          >
+            {{ t('operations.hide') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Details modal -->
+  <Modal v-if="detailsModalOpen" :open="detailsModalOpen" @close="detailsModalOpen = false">
+    <template #title>{{ t('operations.incidentDetails') }}</template>
+    <div v-if="selectedIncident" class="space-y-4">
+      <div class="flex items-center gap-2">
+        <span :class="severityBadgeClasses(selectedIncident.severity)" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
+          {{ t(`operations.severity.${selectedIncident.severity}`) }}
+        </span>
+        <span class="text-xs text-slate-500 dark:text-slate-400">
+          {{ t('operations.from') }} {{ selectedIncident.sourceTenantName }}
+        </span>
+      </div>
+      <h3 class="text-lg font-semibold">{{ selectedIncident.title }}</h3>
+      <div
+        v-if="selectedIncident.bodyMarkdown"
+        class="prose prose-sm dark:prose-invert max-w-none"
+        v-html="renderMarkdown(selectedIncident.bodyMarkdown).html"
+      />
+      <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+        <span v-if="selectedIncident.startsAt">
+          {{ t('operations.startsAt') }}: {{ formatDate(selectedIncident.startsAt) }}
+        </span>
+        <span v-if="selectedIncident.endsAt">
+          {{ t('operations.endsAt') }}: {{ formatDate(selectedIncident.endsAt) }}
+        </span>
+      </div>
+      <div v-if="canMute" class="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+        <button
+          class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
+          @click="handleMuteIncident(selectedIncident); detailsModalOpen = false"
+        >
+          <Icon icon="mdi:bell-off-outline" class="h-4 w-4" />
+          {{ t('operations.hideForOrg') }}
+        </button>
+      </div>
+    </div>
+  </Modal>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { Icon } from '@iconify/vue'
+import { useI18n } from 'vue-i18n'
+import { useAuth } from '~/composables/useAuth'
+import { renderMarkdown } from '~~/shared/markdown'
+import Modal from '~/components/shared/Modal.vue'
+
+interface Incident {
+  id: string
+  title: string
+  bodyMarkdown: string | null
+  severity: 'critical' | 'outage' | 'notice' | 'maintenance'
+  status: string
+  startsAt: Date | string | null
+  endsAt: Date | string | null
+  createdAt: Date | string
+  sourceTenantId: string
+  sourceTenantName: string
+  sourceTenantType: string
+  isMuted: boolean
+}
+
+const props = defineProps<{
+  incidents: Incident[]
+  showDetails?: boolean
+}>()
+
+const emit = defineEmits<{
+  mute: [incident: Incident]
+}>()
+
+const { t } = useI18n()
+const auth = useAuth()
+
+const showAllIncidents = ref(false)
+const detailsModalOpen = ref(false)
+const selectedIncident = ref<Incident | null>(null)
+
+const visibleIncidents = computed(() =>
+  props.incidents.filter((i) => !i.isMuted)
+)
+
+const highestSeverity = computed(() => {
+  const severityOrder: Record<string, number> = { critical: 0, outage: 1, maintenance: 2, notice: 3 }
+  return visibleIncidents.value.reduce((highest, incident) => {
+    const currentRank = severityOrder[incident.severity] ?? 999
+    const highestRank = severityOrder[highest] ?? 999
+    return currentRank < highestRank ? incident.severity : highest
+  }, 'notice' as 'critical' | 'outage' | 'notice' | 'maintenance')
+})
+
+// Check if user can mute (owner/admin of current org)
+const canMute = computed(() => {
+  const org = auth.currentOrg?.value
+  if (!org) return false
+  const orgRoles = auth.orgRoles?.value ?? {}
+  const role = orgRoles[org.id]
+  return role === 'owner' || role === 'admin'
+})
+
+const sourcePillClasses = 'bg-black/10 text-current dark:bg-white/10'
+
+function bannerClasses(severity: string) {
+  const base = 'border'
+  switch (severity) {
+    case 'critical':
+      return `${base} border-red-300 bg-red-50 text-red-800 dark:border-red-500/50 dark:bg-red-500/10 dark:text-red-100`
+    case 'outage':
+      return `${base} border-orange-300 bg-orange-50 text-orange-800 dark:border-orange-500/50 dark:bg-orange-500/10 dark:text-orange-100`
+    case 'maintenance':
+      return `${base} border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-500/50 dark:bg-blue-500/10 dark:text-blue-100`
+    case 'notice':
+    default:
+      return `${base} border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-100`
+  }
+}
+
+function severityBadgeClasses(severity: string) {
+  switch (severity) {
+    case 'critical':
+      return 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-200'
+    case 'outage':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-200'
+    case 'maintenance':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
+    case 'notice':
+    default:
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200'
+  }
+}
+
+function severityIconName(severity: string): string {
+  switch (severity) {
+    case 'critical':
+      return 'mdi:alert-circle'
+    case 'outage':
+      return 'mdi:alert'
+    case 'maintenance':
+      return 'mdi:wrench'
+    case 'notice':
+    default:
+      return 'mdi:information'
+  }
+}
+
+function severityIconClass(severity: string): string {
+  switch (severity) {
+    case 'critical':
+      return 'text-red-600 dark:text-red-400'
+    case 'outage':
+      return 'text-orange-600 dark:text-orange-400'
+    case 'maintenance':
+      return 'text-blue-600 dark:text-blue-400'
+    case 'notice':
+    default:
+      return 'text-amber-600 dark:text-amber-400'
+  }
+}
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/[#*_~`>\[\]()]/g, '')
+    .replace(/\n+/g, ' ')
+    .trim()
+    .slice(0, 200)
+}
+
+function formatDate(date: Date | string | null): string {
+  if (!date) return ''
+  const d = typeof date === 'string' ? new Date(date) : date
+  return d.toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+function openDetailsModal() {
+  if (visibleIncidents.value.length === 1) {
+    selectedIncident.value = visibleIncidents.value[0]
+    detailsModalOpen.value = true
+  }
+}
+
+function handleMuteIncident(incident: Incident) {
+  emit('mute', incident)
+}
+</script>

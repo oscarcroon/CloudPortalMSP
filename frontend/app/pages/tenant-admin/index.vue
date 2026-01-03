@@ -168,48 +168,215 @@
           <div class="mt-4">
             <!-- Incidents -->
             <div v-if="activeTab === 'incidents'" class="space-y-4">
-              <div class="flex flex-col items-center justify-center py-8 text-center">
-                <Icon icon="mdi:check-circle-outline" class="h-10 w-10 text-emerald-500" />
-                <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                  {{ t('admin.tenantAdmin.operations.noIncidents') }}
-                </p>
-              </div>
+              <!-- Filter buttons -->
               <div class="flex flex-wrap gap-2">
                 <button
-                  disabled
-                  class="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-400 dark:bg-white/5 dark:text-slate-500"
+                  v-for="filter in incidentFilters"
+                  :key="filter.key"
+                  class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition"
+                  :class="incidentFilter === filter.key
+                    ? 'bg-brand text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20'"
+                  @click="incidentFilter = filter.key"
+                >
+                  <Icon :icon="filter.icon" class="h-3.5 w-3.5" />
+                  {{ filter.label }}
+                  <span
+                    v-if="filter.count > 0"
+                    class="ml-0.5 rounded-full px-1.5 text-[10px]"
+                    :class="incidentFilter === filter.key ? 'bg-white/20' : 'bg-slate-200 dark:bg-white/10'"
+                  >
+                    {{ filter.count }}
+                  </span>
+                </button>
+              </div>
+
+              <!-- Loading -->
+              <div v-if="incidentsLoading" class="flex justify-center py-8">
+                <Icon icon="mdi:loading" class="h-8 w-8 animate-spin text-brand" />
+              </div>
+
+              <!-- Has incidents -->
+              <template v-else-if="filteredIncidents.length > 0">
+                <div class="space-y-2">
+                  <div
+                    v-for="incident in paginatedIncidents"
+                    :key="incident.id"
+                    class="flex items-center justify-between rounded-lg border px-4 py-3"
+                    :class="incidentBorderClass(incident.severity)"
+                  >
+                    <div class="flex items-center gap-3 min-w-0">
+                      <Icon :icon="incidentIcon(incident.severity)" class="h-5 w-5 flex-shrink-0" :class="incidentIconClass(incident.severity)" />
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                          <p class="font-medium text-slate-900 dark:text-slate-100 truncate">{{ incident.title }}</p>
+                          <!-- Scheduled badge -->
+                          <span
+                            v-if="isScheduled(incident)"
+                            class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
+                          >
+                            <Icon icon="mdi:calendar-clock" class="h-3 w-3" />
+                            {{ t('admin.tenantAdmin.operations.filters.scheduled') }}
+                          </span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                          <template v-if="isScheduled(incident) && incident.startsAt">
+                            {{ t('admin.tenantAdmin.operations.scheduledFor', { date: formatDateTime(incident.startsAt) }) }}
+                          </template>
+                          <template v-else>
+                            {{ formatDate(incident.createdAt) }}
+                          </template>
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        v-if="incident.status === 'active' && !isScheduled(incident)"
+                        class="inline-flex items-center gap-1 rounded-md border border-emerald-600 bg-transparent px-2 py-1 text-xs font-medium text-emerald-600 transition hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-500 dark:hover:bg-emerald-500/10"
+                        :disabled="resolvingIncidentId === incident.id"
+                        @click.prevent="resolveIncident(incident.id)"
+                      >
+                        <Icon v-if="resolvingIncidentId === incident.id" icon="mdi:loading" class="h-3.5 w-3.5 animate-spin" />
+                        <Icon v-else icon="mdi:check-circle" class="h-3.5 w-3.5" />
+                        {{ t('admin.tenantAdmin.operations.markResolved') }}
+                      </button>
+                      <span
+                        v-else-if="incident.status === 'resolved'"
+                        class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
+                      >
+                        <Icon icon="mdi:check-circle" class="h-3.5 w-3.5" />
+                        {{ t('admin.tenantAdmin.operations.resolved') }}
+                      </span>
+                      <span
+                        v-else-if="incident.status === 'active' && !isScheduled(incident)"
+                        class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
+                      >
+                        <Icon icon="mdi:circle" class="h-2.5 w-2.5" />
+                        {{ t('admin.tenantAdmin.operations.status.active') }}
+                      </span>
+                      <NuxtLink
+                        :to="`/tenant-admin/operations/incidents/${incident.id}`"
+                        class="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                        :title="t('admin.tenantAdmin.operations.edit')"
+                      >
+                        <Icon icon="mdi:pencil" class="h-3.5 w-3.5" />
+                      </NuxtLink>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="filteredIncidents.length > incidentsPerPage" class="flex items-center justify-between">
+                  <p class="text-xs text-slate-500 dark:text-slate-400">
+                    {{ t('admin.tenantAdmin.operations.showing', { count: paginatedIncidents.length, total: filteredIncidents.length }) }}
+                  </p>
+                  <button
+                    class="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+                    @click="showAllIncidents = !showAllIncidents"
+                  >
+                    <Icon :icon="showAllIncidents ? 'mdi:chevron-up' : 'mdi:chevron-down'" class="h-4 w-4" />
+                    {{ showAllIncidents ? t('admin.tenantAdmin.operations.showLess') : t('admin.tenantAdmin.operations.showMore') }}
+                  </button>
+                </div>
+              </template>
+
+              <!-- No incidents for filter -->
+              <div v-else class="flex flex-col items-center justify-center py-8 text-center">
+                <Icon icon="mdi:check-circle-outline" class="h-10 w-10 text-emerald-500" />
+                <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                  {{ incidentFilter === 'scheduled'
+                    ? t('admin.tenantAdmin.operations.noScheduled')
+                    : incidentFilter === 'ongoing'
+                      ? t('admin.tenantAdmin.operations.noOngoing')
+                      : t('admin.tenantAdmin.operations.noIncidents') }}
+                </p>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="flex flex-wrap gap-2">
+                <NuxtLink
+                  v-if="canCreateIncidents"
+                  :to="`/tenant-admin/operations/incidents/new`"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white transition hover:bg-brand/90"
                 >
                   <Icon icon="mdi:plus" class="h-4 w-4" />
                   {{ t('admin.tenantAdmin.operations.createIncident') }}
-                  <span class="ml-1 rounded bg-slate-200 px-1.5 py-0.5 text-xs dark:bg-white/10">{{ t('admin.tenantAdmin.comingSoon') }}</span>
-                </button>
-                <button
-                  disabled
-                  class="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-500"
+                </NuxtLink>
+                <NuxtLink
+                  :to="`/tenant-admin/operations/incidents`"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
                 >
                   <Icon icon="mdi:history" class="h-4 w-4" />
                   {{ t('admin.tenantAdmin.operations.viewHistory') }}
-                </button>
+                </NuxtLink>
               </div>
             </div>
 
             <!-- News -->
             <div v-if="activeTab === 'news'" class="space-y-4">
-              <div class="flex flex-col items-center justify-center py-8 text-center">
+              <!-- Loading -->
+              <div v-if="newsLoading" class="flex justify-center py-8">
+                <Icon icon="mdi:loading" class="h-8 w-8 animate-spin text-brand" />
+              </div>
+
+              <!-- Has news -->
+              <template v-else-if="newsList.length > 0">
+                <div class="space-y-2">
+                  <div
+                    v-for="post in newsList.slice(0, 5)"
+                    :key="post.id"
+                    class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10"
+                  >
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div
+                        v-if="post.heroImageUrl"
+                        class="h-10 w-10 flex-shrink-0 rounded-lg bg-cover bg-center"
+                        :style="{ backgroundImage: `url(${post.heroImageUrl})` }"
+                      />
+                      <Icon v-else icon="mdi:newspaper-variant-outline" class="h-5 w-5 flex-shrink-0 text-slate-400" />
+                      <div class="min-w-0">
+                        <p class="font-medium text-slate-900 dark:text-slate-100 truncate">{{ post.title }}</p>
+                        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                          <span :class="newsStatusClass(post.status)">{{ t(`admin.tenantAdmin.operations.newsStatus.${post.status}`) }}</span>
+                          <span v-if="post.publishedAt">{{ formatDate(post.publishedAt) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <NuxtLink
+                      :to="`/tenant-admin/operations/news/${post.id}`"
+                      class="text-xs font-medium text-brand hover:underline flex-shrink-0"
+                    >
+                      {{ t('admin.tenantAdmin.operations.edit') }}
+                    </NuxtLink>
+                  </div>
+                </div>
+              </template>
+
+              <!-- No news -->
+              <div v-else class="flex flex-col items-center justify-center py-8 text-center">
                 <Icon icon="mdi:newspaper-variant-outline" class="h-10 w-10 text-slate-400" />
                 <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">
                   {{ t('admin.tenantAdmin.operations.noNews') }}
                 </p>
               </div>
+
+              <!-- Action buttons -->
               <div class="flex flex-wrap gap-2">
-                <button
-                  disabled
-                  class="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-400 dark:bg-white/5 dark:text-slate-500"
+                <NuxtLink
+                  v-if="canCreateNews"
+                  :to="`/tenant-admin/operations/news/new`"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white transition hover:bg-brand/90"
                 >
                   <Icon icon="mdi:plus" class="h-4 w-4" />
                   {{ t('admin.tenantAdmin.operations.createNews') }}
-                  <span class="ml-1 rounded bg-slate-200 px-1.5 py-0.5 text-xs dark:bg-white/10">{{ t('admin.tenantAdmin.comingSoon') }}</span>
-                </button>
+                </NuxtLink>
+                <NuxtLink
+                  :to="`/tenant-admin/operations/news`"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                >
+                  <Icon icon="mdi:format-list-bulleted" class="h-4 w-4" />
+                  {{ t('admin.tenantAdmin.operations.manageAll') }}
+                </NuxtLink>
               </div>
             </div>
           </div>
@@ -336,13 +503,216 @@ const { t } = useI18n()
 const auth = useAuth()
 
 const activeTab = ref<'incidents' | 'news'>('incidents')
+const resolvingIncidentId = ref<string | null>(null)
+const incidentFilter = ref<'all' | 'ongoing' | 'scheduled' | 'resolved'>('all')
+const showAllIncidents = ref(false)
+const incidentsPerPage = 5
 
 const currentTenant = computed(() => auth.currentTenant.value)
+
+// --- Operations: Incidents & News ---
+interface IncidentItem {
+  id: string
+  title: string
+  severity: 'critical' | 'outage' | 'notice' | 'maintenance'
+  status: 'active' | 'resolved'
+  startsAt: string | null
+  endsAt: string | null
+  createdAt: string
+  deletedAt: string | null
+}
+
+interface NewsItem {
+  id: string
+  title: string
+  slug: string
+  status: 'draft' | 'published' | 'archived'
+  heroImageUrl: string | null
+  publishedAt: string | null
+  createdAt: string
+}
+
+interface IncidentsResponse {
+  incidents: IncidentItem[]
+  tenantType: string
+}
+
+interface NewsResponse {
+  posts: NewsItem[]
+  tenantType: string
+}
+
+// Get tenant ID for fetch operations
+const tenantId = computed(() => currentTenant.value?.id)
+
+// Fetch incidents for current tenant
+const { data: incidentsData, pending: incidentsLoading, refresh: refreshIncidents } = useFetch<IncidentsResponse>(
+  () => `/api/admin/tenants/${tenantId.value}/incidents?filter=all`,
+  {
+    key: `tenant-incidents-${tenantId.value}`,
+    watch: [tenantId],
+    default: () => ({ incidents: [], tenantType: '' }),
+    server: false,
+    lazy: true,
+    immediate: !!tenantId.value
+  }
+)
+
+// Fetch news for current tenant
+const { data: newsData, pending: newsLoading, refresh: refreshNews } = useFetch<NewsResponse>(
+  () => `/api/admin/tenants/${tenantId.value}/news?status=all&limit=10`,
+  {
+    key: `tenant-news-${tenantId.value}`,
+    watch: [tenantId],
+    default: () => ({ posts: [], tenantType: '' }),
+    server: false,
+    lazy: true,
+    immediate: !!tenantId.value
+  }
+)
+
+// Trigger fetch when tenantId becomes available
+watch(tenantId, (newTenantId) => {
+  if (newTenantId) {
+    refreshIncidents()
+    refreshNews()
+  }
+}, { immediate: true })
+
+const incidentsList = computed(() => incidentsData.value?.incidents ?? [])
+const newsList = computed(() => newsData.value?.posts ?? [])
+
+const canCreateIncidents = computed(() => {
+  const tenant = currentTenant.value
+  if (!tenant) return false
+  return tenant.type === 'distributor' || tenant.type === 'provider'
+})
+
+const canCreateNews = computed(() => canCreateIncidents.value)
+
+// Helper to check if an incident is scheduled for the future
+function isScheduled(incident: IncidentItem): boolean {
+  if (!incident.startsAt || incident.status === 'resolved') return false
+  const now = new Date()
+  const startsAt = new Date(incident.startsAt)
+  return startsAt > now
+}
+
+// Helper to check if an incident is currently ongoing
+function isOngoing(incident: IncidentItem): boolean {
+  if (incident.status === 'resolved') return false
+  if (!incident.startsAt) return incident.status === 'active'
+  const now = new Date()
+  const startsAt = new Date(incident.startsAt)
+  return startsAt <= now && incident.status === 'active'
+}
+
+// Categorized incident counts
+const ongoingCount = computed(() => incidentsList.value.filter(isOngoing).length)
+const scheduledCount = computed(() => incidentsList.value.filter(isScheduled).length)
+const resolvedCount = computed(() => incidentsList.value.filter(i => i.status === 'resolved').length)
+
+// Filter options with counts
+const incidentFilters = computed(() => [
+  { key: 'all' as const, label: t('admin.tenantAdmin.operations.filters.all'), icon: 'mdi:format-list-bulleted', count: incidentsList.value.length },
+  { key: 'ongoing' as const, label: t('admin.tenantAdmin.operations.filters.ongoing'), icon: 'mdi:circle', count: ongoingCount.value },
+  { key: 'scheduled' as const, label: t('admin.tenantAdmin.operations.filters.scheduled'), icon: 'mdi:calendar-clock', count: scheduledCount.value },
+  { key: 'resolved' as const, label: t('admin.tenantAdmin.operations.filters.resolved'), icon: 'mdi:check-circle', count: resolvedCount.value }
+])
+
+// Filtered incidents based on selected filter
+const filteredIncidents = computed(() => {
+  const incidents = incidentsList.value
+  switch (incidentFilter.value) {
+    case 'ongoing':
+      return incidents.filter(isOngoing)
+    case 'scheduled':
+      return incidents.filter(isScheduled)
+    case 'resolved':
+      return incidents.filter(i => i.status === 'resolved')
+    default:
+      return incidents
+  }
+})
+
+// Paginated incidents
+const paginatedIncidents = computed(() => {
+  if (showAllIncidents.value) {
+    return filteredIncidents.value
+  }
+  return filteredIncidents.value.slice(0, incidentsPerPage)
+})
+
+// Reset pagination when filter changes
+watch(incidentFilter, () => {
+  showAllIncidents.value = false
+})
+
+async function resolveIncident(incidentId: string) {
+  if (!tenantId.value || resolvingIncidentId.value) return
+  
+  resolvingIncidentId.value = incidentId
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/resolve`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    await refreshIncidents()
+  } catch (err) {
+    console.error('Failed to resolve incident:', err)
+  } finally {
+    resolvingIncidentId.value = null
+  }
+}
+
+function incidentIcon(severity: string): string {
+  switch (severity) {
+    case 'critical': return 'mdi:alert-circle'
+    case 'outage': return 'mdi:alert'
+    case 'maintenance': return 'mdi:wrench'
+    default: return 'mdi:information'
+  }
+}
+
+function incidentIconClass(severity: string): string {
+  switch (severity) {
+    case 'critical': return 'text-red-500'
+    case 'outage': return 'text-orange-500'
+    case 'maintenance': return 'text-blue-500'
+    default: return 'text-amber-500'
+  }
+}
+
+function incidentBorderClass(severity: string): string {
+  switch (severity) {
+    case 'critical': return 'border-red-200 bg-red-50/50 dark:border-red-500/30 dark:bg-red-500/5'
+    case 'outage': return 'border-orange-200 bg-orange-50/50 dark:border-orange-500/30 dark:bg-orange-500/5'
+    case 'maintenance': return 'border-blue-200 bg-blue-50/50 dark:border-blue-500/30 dark:bg-blue-500/5'
+    default: return 'border-slate-200 dark:border-white/10'
+  }
+}
+
+function newsStatusClass(status: string): string {
+  switch (status) {
+    case 'published': return 'text-emerald-600 dark:text-emerald-400'
+    case 'draft': return 'text-amber-600 dark:text-amber-400'
+    case 'archived': return 'text-slate-500 dark:text-slate-400'
+    default: return ''
+  }
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('sv-SE', { dateStyle: 'short' })
+}
+
+function formatDateTime(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('sv-SE', { dateStyle: 'short' }) + ' ' + date.toLocaleTimeString('sv-SE', { timeStyle: 'short' })
+}
 const isSuperAdmin = computed(() => auth.isSuperAdmin.value)
 const organizationCount = computed(() => auth.organizations.value?.length ?? 0)
-
-// Fetch tenant details for member count
-const tenantId = computed(() => currentTenant.value?.id)
 
 interface MembersResponse {
   members: { membershipId: string }[]
