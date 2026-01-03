@@ -41,8 +41,16 @@
     <div v-else class="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-800">
       <Icon icon="mdi:package-variant" class="mx-auto h-12 w-12 text-slate-400" />
       <p class="mt-4 text-sm text-slate-600 dark:text-slate-400">
-        {{ t('dashboard.noModules') }}
+        {{ noModulesMessage }}
       </p>
+      <div v-if="isTenantOnlyContext" class="mt-4">
+        <NuxtLink
+          to="/tenant-admin"
+          class="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+        >
+          {{ t('dashboard.goToTenantAdmin') }}
+        </NuxtLink>
+      </div>
     </div>
 
     <div class="grid gap-6 lg:grid-cols-2">
@@ -92,6 +100,20 @@ const router = useRouter()
 const auth = useAuth()
 const { modules: allModules, loading, fetchVisibleModules } = useModules()
 const { toggleFavorite, isFavorite, pending: favoritesPending } = useFavorites()
+
+const hasOrganizationContext = computed(() => Boolean(auth.currentOrg.value?.id))
+const hasTenantContext = computed(() => Boolean(auth.currentTenant.value?.id))
+const isTenantOnlyContext = computed(() => hasTenantContext.value && !hasOrganizationContext.value)
+
+const noModulesMessage = computed(() => {
+  if (!hasOrganizationContext.value && hasTenantContext.value) {
+    return t('dashboard.noModulesTenantContext')
+  }
+  if (!hasOrganizationContext.value && !hasTenantContext.value) {
+    return t('dashboard.noModulesNoContext')
+  }
+  return t('dashboard.noModules')
+})
 
 // Filtrera moduler för dashboarden:
 // - Visa alla moduler som är enabled (eller undefined)

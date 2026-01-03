@@ -131,14 +131,14 @@
 import { Icon } from '@iconify/vue'
 import {
   rbacRoles,
-  tenantRoles,
-  rbacPermissions,
+  standardTenantRoles,
   rolePermissionMap,
   tenantRolePermissionMap,
   type RbacRole,
-  type TenantRole,
   type RbacPermission
 } from '~/constants/rbac'
+
+type StandardTenantRole = (typeof standardTenantRoles)[number]
 
 definePageMeta({
   layout: 'default',
@@ -154,23 +154,26 @@ const allOrgPermissions = computed(() => {
   return Array.from(permissions).sort()
 })
 
-// Get all unique permissions used by tenant roles
+// Get all unique permissions used by standard tenant roles (excludes msp-* roles)
 const allTenantPermissions = computed(() => {
   const permissions = new Set<RbacPermission>()
-  for (const rolePermissions of Object.values(tenantRolePermissionMap)) {
-    rolePermissions.forEach(perm => permissions.add(perm))
+  for (const role of standardTenantRoles) {
+    const rolePermissions = tenantRolePermissionMap[role]
+    if (rolePermissions) {
+      rolePermissions.forEach(perm => permissions.add(perm))
+    }
   }
   return Array.from(permissions).sort()
 })
 
 const orgRoles = rbacRoles
-const tenantRolesList = tenantRoles
+const tenantRolesList = standardTenantRoles
 
 const hasOrgPermission = (role: RbacRole, permission: RbacPermission): boolean => {
   return rolePermissionMap[role]?.includes(permission) ?? false
 }
 
-const hasTenantPermission = (role: TenantRole, permission: RbacPermission): boolean => {
+const hasTenantPermission = (role: StandardTenantRole, permission: RbacPermission): boolean => {
   return tenantRolePermissionMap[role]?.includes(permission) ?? false
 }
 
@@ -180,13 +183,14 @@ const getRoleLabel = (role: RbacRole): string => {
     admin: 'Admin',
     member: 'Member',
     operator: 'Operator',
-    viewer: 'Viewer'
+    viewer: 'Viewer',
+    support: 'Support'
   }
   return labels[role] ?? role
 }
 
-const getTenantRoleLabel = (role: TenantRole): string => {
-  const labels: Record<TenantRole, string> = {
+const getTenantRoleLabel = (role: StandardTenantRole): string => {
+  const labels: Record<StandardTenantRole, string> = {
     admin: 'Admin',
     user: 'User',
     viewer: 'Viewer',
