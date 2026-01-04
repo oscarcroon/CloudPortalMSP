@@ -1,6 +1,50 @@
 <template>
   <section class="mod-windows-dns-panel space-y-4">
-    <header class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <!-- Selection Mode Action Bar -->
+    <header
+      v-if="selectionMode"
+      class="flex flex-col gap-3 rounded-xl border border-brand/30 bg-brand/5 p-3 md:flex-row md:items-center md:justify-between dark:bg-brand/10"
+    >
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {{ $t('windowsDns.zoneList.selected', { count: selectedZones.length }) }}
+        </span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Select/Deselect all -->
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-300"
+          @click="toggleSelectAll"
+        >
+          <Icon :icon="selectedZones.length === zones.length ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'" class="h-4 w-4" />
+          {{ selectedZones.length === zones.length ? $t('windowsDns.zoneList.deselectAll') : $t('windowsDns.zoneList.selectAll') }}
+        </button>
+        <!-- Export selected -->
+        <button
+          v-if="selectedZones.length > 0"
+          type="button"
+          class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="bulkExporting"
+          @click="bulkExportZones"
+        >
+          <Icon :icon="bulkExporting ? 'mdi:loading' : 'mdi:download-multiple'" :class="{ 'animate-spin': bulkExporting }" class="h-4 w-4" />
+          {{ $t('windowsDns.zoneList.exportSelected', { count: selectedZones.length }) }}
+        </button>
+        <!-- Cancel selection mode -->
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+          @click="exitSelectionMode"
+        >
+          <Icon icon="mdi:close" class="h-4 w-4" />
+          {{ $t('windowsDns.zoneList.cancelSelection') }}
+        </button>
+      </div>
+    </header>
+
+    <!-- Normal Header -->
+    <header v-else class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
         <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {{ $t('windowsDns.zoneList.label') }}
@@ -9,8 +53,19 @@
           {{ $t('windowsDns.zoneList.title') }}
         </h2>
       </div>
-      <div v-if="moduleRights?.canManageZones" class="flex flex-col gap-2 md:flex-row md:items-center">
+      <div class="flex flex-col gap-2 md:flex-row md:items-center">
+        <!-- Enter selection mode button -->
         <button
+          v-if="zones.length > 1"
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-300"
+          @click="enterSelectionMode"
+        >
+          <Icon icon="mdi:checkbox-multiple-marked-outline" class="h-4 w-4" />
+          {{ $t('windowsDns.zoneList.selectMultiple') }}
+        </button>
+        <button
+          v-if="moduleRights?.canManageZones"
           type="button"
           class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:cursor-not-allowed disabled:opacity-60"
           @click="openCreateModal"
@@ -33,9 +88,24 @@
       <div
         v-for="zone in zones"
         :key="zone.id"
-        class="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
+        class="group rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
+        :class="{ 'ring-2 ring-brand': selectionMode && selectedZones.includes(zone.id) }"
+        @click="selectionMode ? toggleZoneSelection(zone.id) : null"
       >
         <div class="flex items-center justify-between gap-3">
+          <!-- Selection checkbox (only in selection mode) -->
+          <button
+            v-if="selectionMode"
+            type="button"
+            class="flex-shrink-0 p-0.5 rounded transition hover:bg-slate-100 dark:hover:bg-slate-800"
+            @click.stop="toggleZoneSelection(zone.id)"
+          >
+            <Icon 
+              :icon="selectedZones.includes(zone.id) ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'" 
+              class="h-5 w-5" 
+              :class="selectedZones.includes(zone.id) ? 'text-brand' : 'text-slate-400'"
+            />
+          </button>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-slate-900 dark:text-slate-50">{{ zone.zoneName }}</p>
             <p v-if="zone.serverName" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -115,17 +185,30 @@
           <span v-else class="text-xs text-slate-400 dark:text-slate-500">
             &nbsp;
           </span>
-          <NuxtLink
-            v-if="isValidUuid(zone.id)"
-            :to="`/dns/${zone.id}`"
-            class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
-          >
-            {{ $t('windowsDns.zoneList.viewZone') }}
-            <Icon icon="mdi:arrow-right" class="h-4 w-4" />
-          </NuxtLink>
-          <span v-else class="text-xs text-slate-400 dark:text-slate-500">
-            {{ $t('windowsDns.zoneList.invalidZone') }}
-          </span>
+          <div class="flex items-center gap-2">
+            <!-- Export button (only when NOT in selection mode, visible on hover) -->
+            <button
+              v-if="isValidUuid(zone.id) && !selectionMode"
+              type="button"
+              class="inline-flex items-center justify-center rounded-lg border border-transparent p-1.5 text-slate-400 opacity-0 transition group-hover:opacity-100 hover:border-slate-200 hover:bg-slate-50 hover:text-brand dark:hover:border-slate-700 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="exportingZoneId === zone.id"
+              :title="$t('windowsDns.zoneList.export')"
+              @click.stop="exportZone(zone)"
+            >
+              <Icon :icon="exportingZoneId === zone.id ? 'mdi:loading' : 'mdi:download'" :class="{ 'animate-spin': exportingZoneId === zone.id }" class="h-4 w-4" />
+            </button>
+            <NuxtLink
+              v-if="isValidUuid(zone.id)"
+              :to="`/dns/${zone.id}`"
+              class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+            >
+              {{ $t('windowsDns.zoneList.viewZone') }}
+              <Icon icon="mdi:arrow-right" class="h-4 w-4" />
+            </NuxtLink>
+            <span v-else class="text-xs text-slate-400 dark:text-slate-500">
+              {{ $t('windowsDns.zoneList.invalidZone') }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -321,6 +404,122 @@ const loadingRecordCounts = ref(false)
 const nsStatus = ref<Record<string, NameserverCheckStatus>>({})
 const loadingNsStatus = ref(false)
 const nsServiceUnavailable = ref(false)
+
+// Export state
+const exportingZoneId = ref<string | null>(null)
+const bulkExporting = ref(false)
+const selectedZones = ref<string[]>([])
+
+// Selection mode state
+const selectionMode = ref(false)
+
+const enterSelectionMode = () => {
+  selectionMode.value = true
+  selectedZones.value = []
+}
+
+const exitSelectionMode = () => {
+  selectionMode.value = false
+  selectedZones.value = []
+}
+
+// Selection helpers
+const toggleZoneSelection = (zoneId: string) => {
+  const index = selectedZones.value.indexOf(zoneId)
+  if (index === -1) {
+    selectedZones.value.push(zoneId)
+  } else {
+    selectedZones.value.splice(index, 1)
+  }
+}
+
+const toggleSelectAll = () => {
+  if (selectedZones.value.length === props.zones.length) {
+    selectedZones.value = []
+  } else {
+    selectedZones.value = props.zones.map(z => z.id)
+  }
+}
+
+// Export single zone
+const exportZone = async (zone: Zone) => {
+  if (!isValidUuid(zone.id)) return
+  
+  exportingZoneId.value = zone.id
+  try {
+    const content = await $fetch<string>(`/api/dns/windows/zones/${zone.id}/export`, {
+      responseType: 'text'
+    })
+    
+    // Create and trigger download
+    const blob = new Blob([content], { type: 'text/plain' })
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = `${zone.zoneName.replace(/\./g, '_')}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(downloadUrl)
+  } catch (err: any) {
+    console.error('[windows-dns] Export failed:', err)
+    // Could show a toast notification here
+  } finally {
+    exportingZoneId.value = null
+  }
+}
+
+// Bulk export selected zones
+const bulkExportZones = async () => {
+  if (selectedZones.value.length === 0) return
+  
+  bulkExporting.value = true
+  let successCount = 0
+  let failCount = 0
+  
+  try {
+    // Export each selected zone
+    for (const zoneId of selectedZones.value) {
+      const zone = props.zones.find(z => z.id === zoneId)
+      if (!zone || !isValidUuid(zone.id)) {
+        failCount++
+        continue
+      }
+      
+      try {
+        const content = await $fetch<string>(`/api/dns/windows/zones/${zone.id}/export`, {
+          responseType: 'text'
+        })
+        
+        // Create and trigger download
+        const blob = new Blob([content], { type: 'text/plain' })
+        const downloadUrl = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = downloadUrl
+        link.download = `${zone.zoneName.replace(/\./g, '_')}.txt`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(downloadUrl)
+        
+        successCount++
+        // Small delay between downloads to avoid browser blocking
+        await new Promise(resolve => setTimeout(resolve, 300))
+      } catch (err) {
+        console.error(`[windows-dns] Export failed for zone ${zone.zoneName}:`, err)
+        failCount++
+      }
+    }
+    
+    console.log(`[windows-dns] Bulk export complete: ${successCount} success, ${failCount} failed`)
+    // Exit selection mode after successful export
+    if (failCount === 0) {
+      exitSelectionMode()
+    }
+  } finally {
+    bulkExporting.value = false
+  }
+}
 
 // Get delegation status for a zone
 const getDelegationStatus = (zoneName: string): 'active' | 'pending' | 'error' | 'unknown' => {

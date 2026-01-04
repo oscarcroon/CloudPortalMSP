@@ -600,6 +600,35 @@ export class WindowsDnsClient {
   }
 
   /**
+   * Export zone as BIND-format text file.
+   * Uses records.read scope (zone-scoped).
+   * Returns the raw text content of the zone file.
+   */
+  async exportZone(zoneId: string): Promise<string> {
+    const token = await getToken(this.config, this.orgId, ['records.read'])
+    const baseUrl = getLayerBaseUrl(this.config.instanceId)
+    const url = `${baseUrl}/zones/${zoneId}/export`
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'text/plain'
+      }
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText)
+      throw createError({
+        statusCode: response.status,
+        message: `[windows-dns] Export failed: ${errorText}`
+      })
+    }
+
+    return await response.text()
+  }
+
+  /**
    * List records for a specific zone with explicit zone access.
    * Use this when you need to access a zone that may not be in the allowlist.
    */

@@ -37,6 +37,17 @@
             <Icon icon="mdi:dns" class="h-4 w-4" />
             {{ $t('windowsDns.zone.badge') }}
           </span>
+          <!-- Export zone button -->
+          <button
+            v-if="zoneId && isValidZoneId && zoneData?.zone"
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="exporting"
+            @click="exportZone"
+          >
+            <Icon :icon="exporting ? 'mdi:loading' : 'mdi:download'" :class="{ 'animate-spin': exporting }" class="h-4 w-4" />
+            {{ $t('windowsDns.zone.export') }}
+          </button>
         </div>
       </div>
     </header>
@@ -260,6 +271,37 @@ const refreshRecords = async () => {
 
 const refreshAll = async () => {
   await Promise.all([fetchZone(), fetchRecords()])
+}
+
+// Export zone state
+const exporting = ref(false)
+
+const exportZone = async () => {
+  if (!zoneId.value || !isValidZoneId.value || !zoneData.value?.zone) return
+  
+  exporting.value = true
+  try {
+    const content = await $fetch<string>(`/api/dns/windows/zones/${zoneId.value}/export`, {
+      responseType: 'text'
+    })
+    
+    // Create and trigger download
+    const blob = new Blob([content], { type: 'text/plain' })
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = `${zoneData.value.zone.zoneName.replace(/\./g, '_')}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(downloadUrl)
+  } catch (err: any) {
+    console.error('[windows-dns] Export failed:', err)
+    const { $i18n } = useNuxtApp()
+    zoneError.value = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.zone.exportError')
+  } finally {
+    exporting.value = false
+  }
 }
 
 // Delete zone state
