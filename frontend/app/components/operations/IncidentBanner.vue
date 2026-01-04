@@ -148,7 +148,7 @@
         <!-- Body -->
         <div
           v-if="selectedIncident.bodyMarkdown"
-          class="prose prose-sm dark:prose-invert max-w-none"
+          class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-h1:text-xl prose-h1:mt-4 prose-h1:mb-2 prose-h2:text-lg prose-h2:mt-3 prose-h2:mb-2 prose-h3:text-base prose-h3:mt-2 prose-h3:mb-1 prose-p:leading-relaxed prose-p:mb-2 prose-a:text-brand prose-a:font-medium prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 dark:prose-strong:text-slate-100 prose-strong:font-semibold prose-code:text-xs prose-pre:bg-slate-900 dark:prose-pre:bg-slate-950 prose-pre:text-slate-100 prose-blockquote:border-l-brand prose-blockquote:bg-blue-50 dark:prose-blockquote:bg-blue-950/20 prose-blockquote:text-blue-900 dark:prose-blockquote:text-blue-200 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5"
           v-html="renderMarkdown(selectedIncident.bodyMarkdown).html"
         />
 
@@ -168,6 +168,14 @@
 
         <!-- Actions -->
         <div v-if="canMute" class="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <NuxtLink
+            :to="`/incidents/${selectedIncident.slug}`"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand/90"
+            @click="detailsModalOpen = false"
+          >
+            <Icon icon="heroicons:arrow-right" class="h-4 w-4" />
+            {{ t('operations.showDetails') }}
+          </NuxtLink>
           <button
             class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
             @click="handleMuteIncident(selectedIncident); detailsModalOpen = false"
@@ -192,6 +200,7 @@ import Modal from '~/components/shared/Modal.vue'
 interface Incident {
   id: string
   title: string
+  slug: string
   bodyMarkdown: string | null
   severity: 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
   status: string
@@ -257,7 +266,7 @@ function bannerClasses(severity: string) {
     case 'maintenance':
       return `${base} border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-100`
     case 'planned':
-      return `${base} border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-500/50 dark:bg-blue-500/10 dark:text-blue-100`
+      return `${base} border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-500/50 dark:bg-sky-500/10 dark:text-sky-100`
     case 'notice':
     default:
       return `${base} border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-100`
@@ -273,7 +282,7 @@ function severityBadgeClasses(severity: string) {
     case 'maintenance':
       return 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200'
     case 'planned':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-200'
+      return 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200'
     case 'notice':
     default:
       return 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200'
@@ -305,7 +314,7 @@ function severityIconClass(severity: string): string {
     case 'maintenance':
       return 'text-sky-600 dark:text-sky-400'
     case 'planned':
-      return 'text-blue-600 dark:text-blue-400'
+      return 'text-sky-600 dark:text-sky-400'
     case 'notice':
     default:
       return 'text-amber-600 dark:text-amber-400'
@@ -342,3 +351,77 @@ function handleMuteIncident(incident: Incident) {
   emit('mute', incident)
 }
 </script>
+
+<style scoped>
+/* Additional styling for markdown content in banner */
+:deep(.prose code) {
+  background-color: rgb(241 245 249);
+  color: rgb(30 41 59);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.75em;
+  font-weight: 500;
+}
+
+.dark :deep(.prose code) {
+  background-color: rgb(30 41 59);
+  color: rgb(226 232 240);
+}
+
+:deep(.prose pre) {
+  background-color: rgb(30 41 59);
+  color: rgb(226 232 240);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.75rem;
+}
+
+.dark :deep(.prose pre) {
+  background-color: rgb(15 23 42);
+}
+
+:deep(.prose pre code) {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+  font-weight: normal;
+}
+
+:deep(.prose blockquote) {
+  border-left-color: rgb(var(--brand, 28 109 208));
+  border-left-width: 3px;
+  background-color: rgb(239 246 255);
+  padding: 0.5rem 0.75rem;
+  margin: 1rem 0;
+  border-radius: 0 0.25rem 0.25rem 0;
+  color: rgb(30 64 175);
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+.dark :deep(.prose blockquote) {
+  border-left-color: rgb(96 165 250);
+  background-color: rgb(30 58 138 / 0.2);
+  color: rgb(191 219 254);
+}
+
+:deep(.prose blockquote > :first-child) {
+  margin-top: 0;
+}
+
+:deep(.prose blockquote > :last-child) {
+  margin-bottom: 0;
+}
+
+:deep(.prose img) {
+  border-radius: 0.375rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  max-width: 100%;
+  height: auto;
+}
+</style>

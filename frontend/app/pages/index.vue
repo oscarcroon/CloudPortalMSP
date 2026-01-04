@@ -69,23 +69,83 @@
 
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card transition-colors dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center gap-3">
-          <Icon icon="mdi:newspaper-outline" class="h-6 w-6 text-brand" />
+          <Icon icon="heroicons:newspaper" class="h-6 w-6 text-brand" />
           <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('dashboard.news') }}</h3>
         </div>
-        <ul class="mt-4 space-y-4 text-sm text-slate-600 dark:text-slate-300">
-          <li v-for="post in news" :key="post.title">
-            <p class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">{{ post.date }}</p>
-            <p class="mt-1 font-medium text-slate-800 dark:text-slate-100">{{ post.title }}</p>
-            <p class="text-slate-500 dark:text-slate-400">{{ post.summary }}</p>
+        
+        <!-- Filter tabs -->
+        <div class="mt-4 flex gap-2">
+          <button
+            v-for="filterOption in newsFilterOptions"
+            :key="filterOption.value"
+            :class="[
+              'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+              newsFilter === filterOption.value
+                ? 'bg-brand text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700'
+            ]"
+            @click="newsFilter = filterOption.value"
+          >
+            {{ filterOption.label }}
+          </button>
+        </div>
+        
+        <!-- Loading state -->
+        <div v-if="newsLoading" class="mt-4 space-y-3">
+          <div v-for="i in 2" :key="i" class="animate-pulse">
+            <div class="h-3 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+            <div class="mt-2 h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
+            <div class="mt-1 h-3 w-full rounded bg-slate-200 dark:bg-slate-700" />
+          </div>
+        </div>
+        
+        <!-- News list -->
+        <ul v-else-if="filteredNews.length > 0" class="mt-4 space-y-4 text-sm text-slate-600 dark:text-slate-300">
+          <li v-for="post in filteredNews" :key="post.id">
+            <NuxtLink
+              :to="`/news/${post.slug}`"
+              class="group block rounded-lg p-2 -mx-2 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            >
+              <div class="flex items-center gap-2">
+                <p class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  {{ formatNewsDate(post.publishedAt) }}
+                </p>
+                <span class="text-xs text-slate-300 dark:text-slate-600">•</span>
+                <p class="text-xs text-slate-400 dark:text-slate-500">
+                  {{ post.sourceTenantName }}
+                </p>
+              </div>
+              <p class="mt-1 font-medium text-slate-800 group-hover:text-brand dark:text-slate-100 dark:group-hover:text-brand">
+                {{ post.title }}
+              </p>
+              <p class="text-slate-500 dark:text-slate-400">{{ post.summary }}</p>
+            </NuxtLink>
           </li>
         </ul>
+
+        <!-- View all link -->
+        <div v-if="filteredNews.length > 0" class="mt-4 text-center">
+          <NuxtLink
+            to="/news"
+            class="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+          >
+            {{ t('news.viewAll') }}
+            <Icon icon="heroicons:arrow-right" class="h-4 w-4" />
+          </NuxtLink>
+        </div>
+        
+        <!-- Empty state -->
+        <div v-else class="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+          <Icon icon="heroicons:newspaper" class="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
+          <p class="mt-2">{{ t('dashboard.noNews') }}</p>
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
@@ -93,6 +153,7 @@ import DashboardCard from '~/components/dashboard/DashboardCard.vue'
 import { useAuth } from '~/composables/useAuth'
 import { useModules } from '~/composables/useModules'
 import { useFavorites } from '~/composables/useFavorites'
+import { useOperationsFeed, type FeedNewsPost } from '~/composables/useOperationsFeed'
 
 const { t } = useI18n()
 
@@ -100,6 +161,36 @@ const router = useRouter()
 const auth = useAuth()
 const { modules: allModules, loading, fetchVisibleModules } = useModules()
 const { toggleFavorite, isFavorite, pending: favoritesPending } = useFavorites()
+const { latestNews, loading: newsLoading, fetchFeed } = useOperationsFeed()
+
+// News filter: 'all' | 'distributor' | 'provider'
+type NewsFilter = 'all' | 'distributor' | 'provider'
+const newsFilter = ref<NewsFilter>('all')
+
+// Filter options for news
+const newsFilterOptions = computed(() => [
+  { value: 'all' as const, label: t('dashboard.newsFilter.all') },
+  { value: 'distributor' as const, label: t('dashboard.newsFilter.distributor') },
+  { value: 'provider' as const, label: t('dashboard.newsFilter.provider') }
+])
+
+// Filtered news based on sourceTenantType
+const filteredNews = computed<FeedNewsPost[]>(() => {
+  if (!latestNews.value || latestNews.value.length === 0) {
+    return []
+  }
+  if (newsFilter.value === 'all') {
+    return latestNews.value
+  }
+  return latestNews.value.filter((post) => post.sourceTenantType === newsFilter.value)
+})
+
+// Format date for display
+function formatNewsDate(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+}
 
 const hasOrganizationContext = computed(() => Boolean(auth.currentOrg.value?.id))
 const hasTenantContext = computed(() => Boolean(auth.currentTenant.value?.id))
@@ -149,23 +240,14 @@ const statusItems = [
   { label: 'WordPress', value: t('dashboard.statusLabels.maintenance'), variant: 'danger' }
 ] as const
 
-const news = [
-  {
-    title: t('dashboard.newsItems.firstSite.title'),
-    summary: t('dashboard.newsItems.firstSite.summary'),
-    date: t('dashboard.newsItems.firstSite.date')
-  },
-  {
-    title: t('dashboard.newsItems.dnsEmail.title'),
-    summary: t('dashboard.newsItems.dnsEmail.summary'),
-    date: t('dashboard.newsItems.dnsEmail.date')
-  }
-]
 
 const organisations = auth.organizations
 
 onMounted(async () => {
-  await fetchVisibleModules()
+  await Promise.all([
+    fetchVisibleModules(),
+    fetchFeed()
+  ])
 })
 
 // Dynamic gradient based on branding

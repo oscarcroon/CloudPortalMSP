@@ -31,9 +31,41 @@
       "planned": "Planerad"
     }
   },
+  "incident": {
+    "title": "Driftmeddelande",
+    "backToDashboard": "Tillbaka till startsidan",
+    "notFound": "Driftmeddelandet kunde inte hittas eller så har du inte behörighet att se det.",
+    "distributor": "Distributör",
+    "provider": "Leverantör",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "status": {
+      "active": "Aktiv",
+      "resolved": "Löst",
+      "closed": "Stängd",
+      "archived": "Arkiverad"
+    },
+    "resolvedAt": "Löst"
+  },
+  "news": {
+    "title": "Nyhet",
+    "allNews": "Alla nyheter",
+    "allNewsDescription": "Senaste nyheterna från dina leverantörer och distributörer.",
+    "backToDashboard": "Tillbaka till startsidan",
+    "notFound": "Nyheten kunde inte hittas eller så har du inte behörighet att se den.",
+    "noNewsYet": "Inga nyheter att visa just nu.",
+    "moreNews": "Fler nyheter",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "viewAll": "Visa alla",
+    "filterAll": "Alla",
+    "distributor": "Distributör",
+    "provider": "Leverantör"
+  },
   "common": {
     "save": "Spara",
     "loadMore": "Ladda fler",
+    "loading": "Laddar...",
     "saving": "Sparar...",
     "update": "Uppdatera",
     "updating": "Uppdaterar...",
@@ -43,7 +75,9 @@
     "delete": "Ta bort",
     "unknown": "Okänd",
     "refresh": "Uppdatera",
-    "redirecting": "Omdirigerar..."
+    "redirecting": "Omdirigerar...",
+    "all": "Alla",
+    "edit": "Redigera"
   },
   "auth": {
     "logout": "Logga ut",
@@ -333,23 +367,17 @@
     "goToTenantAdmin": "Gå till tenant-admin",
     "status": "Status",
     "news": "Nyheter",
+    "noNews": "Inga nyheter just nu.",
     "module": "Modul",
     "statusLabels": {
       "ok": "OK",
       "degraded": "Degraded",
       "maintenance": "Maintenance"
     },
-    "newsItems": {
-      "firstSite": {
-        "title": "Din första webbplats? Kom igång smidigt",
-        "summary": "Följ våra fem steg för en snabb och säker lansering.",
-        "date": "28 okt"
-      },
-      "dnsEmail": {
-        "title": "Hur hänger DNS och e-post ihop?",
-        "summary": "Kort guide för SPF, DKIM och MX.",
-        "date": "14 okt"
-      }
+    "newsFilter": {
+      "all": "Alla",
+      "distributor": "Distributör",
+      "provider": "Leverantör"
     }
   },
   "settings": {
@@ -503,6 +531,8 @@
       "description": "Se alla driftmeddelanden och hantera vilka som visas.",
       "subtitle": "Se och hantera driftmeddelanden för din organisation",
       "loading": "Laddar driftmeddelanden...",
+      "upstreamTab": "Inkommande",
+      "internalTab": "Organisationens egna",
       "activeIncidents": "Aktiva driftmeddelanden",
       "hiddenIncidents": "Gömda driftmeddelanden",
       "hiddenForMe": "Gömda för mig",
@@ -520,6 +550,17 @@
         "manage": "Göm eller visa meddelanden du valt att dölja",
         "unmute": "Visa igen tidigare gömda meddelanden"
       }
+    },
+    "incidents": {
+      "title": "Organisationens driftmeddelanden",
+      "subtitle": "Skapa och hantera interna driftmeddelanden som bara syns för organisationen",
+      "create": "Skapa driftmeddelande",
+      "createFirst": "Skapa första driftmeddelandet",
+      "edit": "Redigera driftmeddelande",
+      "backToList": "Tillbaka till listan",
+      "noIncidents": "Inga driftmeddelanden",
+      "noIncidentsDesc": "Skapa ett internt driftmeddelande för att informera organisationens medlemmar.",
+      "loading": "Laddar..."
     },
     "members": {
       "title": "Medlemmar",
@@ -1128,10 +1169,18 @@
         "incidentNotFound": "Driftmeddelandet kunde inte hittas.",
         "status": {
           "active": "Pågående",
-          "resolved": "Löst"
+          "resolved": "Löst",
+          "archived": "Arkiverad"
         },
         "markResolved": "Markera som löst",
         "reactivate": "Återaktivera",
+        "archive": "Arkivera",
+        "unarchive": "Återställ",
+        "archivedIncidents": "Arkiverade",
+        "noArchivedIncidents": "Inga arkiverade driftmeddelanden",
+        "deleteIncidentTitle": "Ta bort driftmeddelande",
+        "deleteConfirmation": "Är du säker på att du vill ta bort detta driftmeddelande? Denna åtgärd kan inte ångras.",
+        "confirmDelete": "Ja, ta bort",
         "filters": {
           "all": "Alla",
           "ongoing": "Pågående",

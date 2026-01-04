@@ -1,18 +1,18 @@
 /**
- * POST /api/admin/tenants/:tenantId/incidents
+ * POST /api/organizations/:orgId/incidents
  *
- * Creates a new incident for a tenant.
- * Only distributors and providers can create incidents.
+ * Creates a new internal incident for an organization.
+ * Only organization owners, admins, and support can create incidents.
  */
 
 import { eq, and } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
-import { tenantIncidents, tenants } from '../../../../../database/schema'
-import { getDb } from '../../../../../utils/db'
-import { requireTenantPermission } from '../../../../../utils/rbac'
-import { ensureAuthState } from '../../../../../utils/session'
-import { logTenantAction } from '../../../../../utils/audit'
+import { tenantIncidents, organizations } from '../../../../database/schema'
+import { getDb } from '../../../../utils/db'
+import { requirePermission } from '../../../../utils/rbac'
+import { ensureAuthState } from '../../../../utils/session'
+import { logOrganizationAction } from '../../../../utils/audit'
 import { createId } from '@paralleldrive/cuid2'
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -48,12 +48,13 @@ function generateSlug(title: string): string {
 }
 
 export default defineEventHandler(async (event) => {
-  const tenantId = getRouterParam(event, 'id')
-  if (!tenantId) {
-    throw createError({ statusCode: 400, message: 'Missing tenant ID' })
+  const orgId = getRouterParam(event, 'orgId')
+  if (!orgId) {
+    throw createError({ statusCode: 400, message: 'Missing organization ID' })
   }
 
-  await requireTenantPermission(event, 'tenants:manage', tenantId)
+  // Require org:manage permission (owner, admin, support)
+  await requirePermission(event, 'org:manage', orgId)
   const auth = await ensureAuthState(event)
   if (!auth) {
     throw createError({ statusCode: 401, message: 'Not authenticated' })
@@ -61,22 +62,15 @@ export default defineEventHandler(async (event) => {
 
   const db = getDb()
 
-  // Verify tenant exists and is distributor or provider
-  const [tenant] = await db
-    .select({ type: tenants.type })
-    .from(tenants)
-    .where(eq(tenants.id, tenantId))
+  // Verify organization exists
+  const [org] = await db
+    .select({ id: organizations.id, name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
     .limit(1)
 
-  if (!tenant) {
-    throw createError({ statusCode: 404, message: 'Tenant not found' })
-  }
-
-  if (tenant.type === 'organization') {
-    throw createError({
-      statusCode: 403,
-      message: 'Only distributors and providers can create incidents'
-    })
+  if (!org) {
+    throw createError({ statusCode: 404, message: 'Organization not found' })
   }
 
   const payload = createIncidentSchema.parse(await readBody(event))
@@ -84,7 +78,7 @@ export default defineEventHandler(async (event) => {
   // Generate or use provided slug
   let slug = payload.slug || generateSlug(payload.title)
 
-  // Handle slug collisions within the same tenant
+  // Handle slug collisions within the same organization
   let slugSuffix = 0
   let finalSlug = slug
   while (true) {
@@ -92,7 +86,10 @@ export default defineEventHandler(async (event) => {
       .select({ id: tenantIncidents.id })
       .from(tenantIncidents)
       .where(
-        and(eq(tenantIncidents.sourceTenantId, tenantId), eq(tenantIncidents.slug, finalSlug))
+        and(
+          eq(tenantIncidents.sourceOrganizationId, orgId),
+          eq(tenantIncidents.slug, finalSlug)
+        )
       )
       .limit(1)
 
@@ -106,7 +103,8 @@ export default defineEventHandler(async (event) => {
 
   await db.insert(tenantIncidents).values({
     id: incidentId,
-    sourceTenantId: tenantId,
+    sourceTenantId: null, // Organization incidents don't have a tenant source
+    sourceOrganizationId: orgId,
     title: payload.title,
     slug: finalSlug,
     bodyMarkdown: payload.bodyMarkdown ?? null,
@@ -125,7 +123,7 @@ export default defineEventHandler(async (event) => {
     .from(tenantIncidents)
     .where(eq(tenantIncidents.id, incidentId))
 
-  await logTenantAction(
+  await logOrganizationAction(
     event,
     'INCIDENT_CREATED',
     {
@@ -133,7 +131,7 @@ export default defineEventHandler(async (event) => {
       title: payload.title,
       severity: payload.severity
     },
-    tenantId
+    orgId
   )
 
   return { incident }

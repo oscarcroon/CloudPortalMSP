@@ -509,6 +509,7 @@
           <li>• {{ t('settings.operations.features.unmute') }}</li>
         </ul>
       </div>
+
     </div>
   </section>
 </template>
@@ -657,6 +658,7 @@ async function handleSetPrimary(orgId: string) {
 }
 
 const hasActiveOrg = computed(() => Boolean(auth.state.value.data?.currentOrgId))
+
 const organizationSectionTitle = computed(() =>
   hasActiveTenant.value && auth.currentTenant.value
     ? t('settings.organizations.titleForTenant', { tenant: auth.currentTenant.value.name })

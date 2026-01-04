@@ -1461,7 +1461,7 @@ export const tenantMemberMspRoles = sqliteTable(
 // ────────────────────────────────────────────────────────────────────────────
 
 export type IncidentSeverity = 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
-export type IncidentStatus = 'active' | 'resolved'
+export type IncidentStatus = 'active' | 'resolved' | 'archived'
 export type NewsPostStatus = 'draft' | 'published' | 'archived'
 export type IncidentMuteTargetType = 'tenant' | 'organization'
 
@@ -1473,10 +1473,14 @@ export const tenantIncidents = sqliteTable(
   'tenant_incidents',
   {
     id: text('id').primaryKey().$defaultFn(createId),
+    // Source can be either a tenant (provider/distributor) or an organization (internal incidents)
+    // At least one of these must be set
     sourceTenantId: text('source_tenant_id')
-      .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
+    sourceOrganizationId: text('source_organization_id')
+      .references(() => organizations.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
+    slug: text('slug').notNull(),
     bodyMarkdown: text('body_markdown'),
     severity: text('severity').notNull().$type<IncidentSeverity>().default('notice'),
     status: text('status').notNull().$type<IncidentStatus>().default('active'),
@@ -1491,7 +1495,10 @@ export const tenantIncidents = sqliteTable(
   },
   (table) => ({
     sourceTenantIdx: index('tenant_incidents_source_tenant_idx').on(table.sourceTenantId),
+    sourceOrgIdx: index('tenant_incidents_source_org_idx').on(table.sourceOrganizationId),
     statusIdx: index('tenant_incidents_status_idx').on(table.status),
+    slugTenantIdx: index('tenant_incidents_slug_tenant_idx').on(table.sourceTenantId, table.slug),
+    slugOrgIdx: index('tenant_incidents_slug_org_idx').on(table.sourceOrganizationId, table.slug),
     activeIdx: index('tenant_incidents_active_idx').on(
       table.sourceTenantId,
       table.status,

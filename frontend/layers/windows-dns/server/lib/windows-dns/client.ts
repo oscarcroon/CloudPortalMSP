@@ -10,13 +10,13 @@ import type {
   WindowsDnsSystemMintTokenResponse
 } from './types'
 import { getOrgConfig, saveOrgConfig, getAllowedZoneIds } from './org-config'
-import { getOrMintToken, generateCacheKey } from './token-cache'
+import { getOrMintToken, generateCacheKey, invalidateToken, invalidateOrgTokens } from './token-cache'
 
 // Drift token configuration
 // These values are sent to the backend which handles mint-or-return-existing logic
 const DRIFT_TOKEN_TTL_HOURS = 1          // 1 hour TTL per request
 const DRIFT_TOKEN_RENEW_WINDOW_MINUTES = 15  // Renew if within 15 min of expiry
-const DRIFT_TOKEN_MAX_AGE_HOURS = 24     // Force fresh mint after 24 hours
+const DRIFT_TOKEN_MAX_AGE_HOURS = 168    // Force fresh mint after 7 days (was 24h)
 
 /**
  * Get the global Layer API configuration from environment.
@@ -125,6 +125,22 @@ export const systemRequest = async <T>(
 }
 
 /**
+ * Check if an error indicates token expiry.
+ */
+const isTokenExpiredError = (error: any): boolean => {
+  const message = 
+    error?.data?.errors?.[0]?.message ||
+    error?.data?.message ||
+    error?.message ||
+    ''
+  return (
+    message.includes('Token expired') ||
+    message.includes('token expired') ||
+    error?.response?.status === 401
+  )
+}
+
+/**
  * Make a token-authenticated request to the public API.
  * Uses per-account tokens (wdns_tok_*) for drift operations.
  */
@@ -148,11 +164,6 @@ export const tokenRequest = async <T>(
       }
     })
 
-    // Debug logging for POST requests
-    if (options?.method === 'POST') {
-      console.log(`[windows-dns] tokenRequest POST ${path} response:`, JSON.stringify(res, null, 2))
-    }
-
     if (!res?.success) {
       const message = res?.errors?.[0]?.message ?? 'Windows DNS API error'
       throw createError({ statusCode: 502, message: `[windows-dns] ${message}` })
@@ -168,6 +179,48 @@ export const tokenRequest = async <T>(
       'Windows DNS API error'
 
     throw createError({ statusCode, message: `[windows-dns] ${message}` })
+  }
+}
+
+/**
+ * Make a token-authenticated request with automatic retry on token expiry.
+ * 
+ * If the token has expired:
+ * 1. Invalidates the cached token for the org
+ * 2. Gets a fresh token via the provided getTokenFn
+ * 3. Retries the request once
+ * 
+ * This handles the edge case where the client-side cache is valid but
+ * the backend has rotated/expired the token (e.g., past maxAge).
+ */
+export const tokenRequestWithRetry = async <T>(
+  orgId: string,
+  instanceId: string | null | undefined,
+  getTokenFn: () => Promise<string>,
+  path: string,
+  options?: { method?: string; body?: unknown; query?: Record<string, string> }
+): Promise<T> => {
+  const token = await getTokenFn()
+  
+  try {
+    return await tokenRequest<T>(instanceId, token, path, options)
+  } catch (error: any) {
+    // Check if this is a token expiry error
+    if (isTokenExpiredError(error)) {
+      console.log(`[windows-dns] Token expired for org ${orgId}, invalidating cache and retrying...`)
+      
+      // Invalidate all cached tokens for this org
+      invalidateOrgTokens(orgId)
+      
+      // Get a fresh token (will mint a new one since cache is invalidated)
+      const freshToken = await getTokenFn()
+      
+      // Retry the request with the fresh token
+      return await tokenRequest<T>(instanceId, freshToken, path, options)
+    }
+    
+    // Re-throw other errors
+    throw error
   }
 }
 
@@ -203,20 +256,47 @@ export const parseCoreIdFromExternalRef = (externalRef: string | null | undefine
 }
 
 /**
+ * Format account name for display.
+ * Includes both the org name and coreId for easy identification.
+ * 
+ * Examples:
+ * - "Acme Corp (ABCD)" - when org name is available
+ * - "ABCD" - when only coreId is available (fallback)
+ */
+const formatAccountName = (orgName: string | undefined | null, coreId: string): string => {
+  const normalizedCoreId = coreId.toUpperCase()
+  
+  // If orgName is missing or just the fallback format "Org <id>", use coreId only
+  if (!orgName || orgName.startsWith('Org ') || orgName === normalizedCoreId) {
+    return normalizedCoreId
+  }
+  
+  // Include both org name and coreId for identification
+  return `${orgName} (${normalizedCoreId})`
+}
+
+/**
  * Ensure a Windows DNS account exists for the org.
  * Creates one if it doesn't exist, using the org's COREID as externalRef.
  * Uses system-token (LayerToken) for bootstrap.
  * 
  * externalRef format: `coreid:<coreid>` (new format)
+ * 
+ * @param config - Org configuration
+ * @param orgId - Organization ID
+ * @param orgName - Organization name (optional, will use coreId if not provided)
+ * @param coreId - The organization's COREID
  */
 export const ensureAccount = async (
   config: WindowsDnsOrgConfig,
   orgId: string,
-  orgName: string,
+  orgName: string | undefined | null,
   coreId: string
 ): Promise<{ accountId: string; created: boolean }> => {
   // Use prefixed format for externalRef
   const externalRef = formatCoreIdExternalRef(coreId)
+  // Format a readable account name
+  const accountName = formatAccountName(orgName, coreId)
 
   try {
   const result = await systemRequest<{ account: { id: string }; created: boolean }>(
@@ -225,7 +305,7 @@ export const ensureAccount = async (
     {
       method: 'POST',
       body: {
-        name: orgName,
+        name: accountName,
           externalRef
       }
     }
@@ -252,7 +332,7 @@ export const ensureAccount = async (
     const errorMessage = error?.message || 'Unknown error'
     throw createError({
       statusCode: error?.statusCode ?? 502,
-      message: `Failed to ensure Windows DNS account for org ${orgId} (coreId: ${coreId}, externalRef: ${externalRef}): ${errorMessage}`
+      message: `Failed to ensure Windows DNS account "${accountName}" (coreId: ${coreId}): ${errorMessage}`
     })
   }
 }
@@ -483,8 +563,12 @@ export class WindowsDnsClient {
    * - Pass '*' for admin/bootstrap operations to see all zones
    */
   async listZones(allowedZoneIds: string[] | '*' = '*'): Promise<WindowsDnsZoneSummary[]> {
-    const token = await getToken(this.config, this.orgId, ['zones.read'], allowedZoneIds)
-    return tokenRequest<WindowsDnsZoneSummary[]>(this.config.instanceId, token, '/zones')
+    return tokenRequestWithRetry<WindowsDnsZoneSummary[]>(
+      this.orgId,
+      this.config.instanceId,
+      () => getToken(this.config, this.orgId, ['zones.read'], allowedZoneIds),
+      '/zones'
+    )
   }
 
   /**
@@ -493,8 +577,12 @@ export class WindowsDnsClient {
    */
   async autodiscoverZones(): Promise<WindowsDnsZoneSummary[]> {
     // autodiscover.read is self-filtered by coreId, no zone restriction needed
-    const token = await getToken(this.config, this.orgId, ['autodiscover.read'], '*')
-    return tokenRequest<WindowsDnsZoneSummary[]>(this.config.instanceId, token, '/autodiscover/zones')
+    return tokenRequestWithRetry<WindowsDnsZoneSummary[]>(
+      this.orgId,
+      this.config.instanceId,
+      () => getToken(this.config, this.orgId, ['autodiscover.read'], '*'),
+      '/autodiscover/zones'
+    )
   }
 
   /**
@@ -503,8 +591,12 @@ export class WindowsDnsClient {
    */
   async listRecords(zoneId: string): Promise<WindowsDnsRecord[]> {
     // records.read is zone-scoped, will automatically use allowlist from DB
-    const token = await getToken(this.config, this.orgId, ['records.read'])
-    return tokenRequest<WindowsDnsRecord[]>(this.config.instanceId, token, `/zones/${zoneId}/dns_records`)
+    return tokenRequestWithRetry<WindowsDnsRecord[]>(
+      this.orgId,
+      this.config.instanceId,
+      () => getToken(this.config, this.orgId, ['records.read']),
+      `/zones/${zoneId}/dns_records`
+    )
   }
 
   /**
@@ -512,8 +604,12 @@ export class WindowsDnsClient {
    * Use this when you need to access a zone that may not be in the allowlist.
    */
   async listRecordsForZone(zoneId: string): Promise<WindowsDnsRecord[]> {
-    const token = await getTokenForZones(this.config, this.orgId, ['records.read'], [zoneId])
-    return tokenRequest<WindowsDnsRecord[]>(this.config.instanceId, token, `/zones/${zoneId}/dns_records`)
+    return tokenRequestWithRetry<WindowsDnsRecord[]>(
+      this.orgId,
+      this.config.instanceId,
+      () => getTokenForZones(this.config, this.orgId, ['records.read'], [zoneId]),
+      `/zones/${zoneId}/dns_records`
+    )
   }
 
   /**
@@ -522,11 +618,13 @@ export class WindowsDnsClient {
    */
   async createRecord(zoneId: string, record: Partial<WindowsDnsRecord>): Promise<WindowsDnsRecord> {
     // records.write is zone-scoped, will automatically use allowlist from DB
-    const token = await getToken(this.config, this.orgId, ['records.write'])
-    return tokenRequest<WindowsDnsRecord>(this.config.instanceId, token, `/zones/${zoneId}/dns_records`, {
-      method: 'POST',
-      body: record
-    })
+    return tokenRequestWithRetry<WindowsDnsRecord>(
+      this.orgId,
+      this.config.instanceId,
+      () => getToken(this.config, this.orgId, ['records.write']),
+      `/zones/${zoneId}/dns_records`,
+      { method: 'POST', body: record }
+    )
   }
 
   /**
@@ -534,11 +632,13 @@ export class WindowsDnsClient {
    * Use this when you need to access a zone that may not be in the allowlist.
    */
   async createRecordInZone(zoneId: string, record: Partial<WindowsDnsRecord>): Promise<WindowsDnsRecord> {
-    const token = await getTokenForZones(this.config, this.orgId, ['records.write'], [zoneId])
-    return tokenRequest<WindowsDnsRecord>(this.config.instanceId, token, `/zones/${zoneId}/dns_records`, {
-      method: 'POST',
-      body: record
-    })
+    return tokenRequestWithRetry<WindowsDnsRecord>(
+      this.orgId,
+      this.config.instanceId,
+      () => getTokenForZones(this.config, this.orgId, ['records.write'], [zoneId]),
+      `/zones/${zoneId}/dns_records`,
+      { method: 'POST', body: record }
+    )
   }
 
   /**
@@ -546,11 +646,13 @@ export class WindowsDnsClient {
    * Uses records.write scope (zone-scoped, uses allowlist).
    */
   async deleteRecord(zoneId: string, record: { name: string; type: string; content?: string }): Promise<void> {
-    const token = await getTokenForZones(this.config, this.orgId, ['records.write'], [zoneId])
-    await tokenRequest<void>(this.config.instanceId, token, `/zones/${zoneId}/dns_records/delete`, {
-      method: 'POST',
-      body: record
-    })
+    await tokenRequestWithRetry<void>(
+      this.orgId,
+      this.config.instanceId,
+      () => getTokenForZones(this.config, this.orgId, ['records.write'], [zoneId]),
+      `/zones/${zoneId}/dns_records/delete`,
+      { method: 'POST', body: record }
+    )
   }
 
   /**
@@ -559,11 +661,13 @@ export class WindowsDnsClient {
    * Note: If name/type/content changes, backend will return new recordId.
    */
   async updateRecord(zoneId: string, recordId: string, updates: Partial<WindowsDnsRecord>): Promise<WindowsDnsRecord> {
-    const token = await getTokenForZones(this.config, this.orgId, ['records.write'], [zoneId])
-    return tokenRequest<WindowsDnsRecord>(this.config.instanceId, token, `/zones/${zoneId}/dns_records/${recordId}`, {
-      method: 'PATCH',
-      body: updates
-    })
+    return tokenRequestWithRetry<WindowsDnsRecord>(
+      this.orgId,
+      this.config.instanceId,
+      () => getTokenForZones(this.config, this.orgId, ['records.write'], [zoneId]),
+      `/zones/${zoneId}/dns_records/${recordId}`,
+      { method: 'PATCH', body: updates }
+    )
   }
 
   /**
@@ -572,13 +676,13 @@ export class WindowsDnsClient {
    */
   async createZone(zoneName: string, zoneType: string, serverId: string): Promise<WindowsDnsZoneSummary> {
     // zones.create is not zone-scoped (we're creating a new zone)
-    const token = await getToken(this.config, this.orgId, ['zones.create'], '*')
-    const result = await tokenRequest<WindowsDnsZoneSummary>(this.config.instanceId, token, '/zones', {
-      method: 'POST',
-      body: { zoneName, zoneType, serverId }
-    })
-    console.log('[windows-dns] createZone API result:', JSON.stringify(result, null, 2))
-    return result
+    return tokenRequestWithRetry<WindowsDnsZoneSummary>(
+      this.orgId,
+      this.config.instanceId,
+      () => getToken(this.config, this.orgId, ['zones.create'], '*'),
+      '/zones',
+      { method: 'POST', body: { zoneName, zoneType, serverId } }
+    )
   }
 
   /**
@@ -587,22 +691,13 @@ export class WindowsDnsClient {
    */
   async updateZone(zoneId: string, updates: Partial<{ zoneName: string }>): Promise<WindowsDnsZoneSummary> {
     // zones.write is zone-scoped, will automatically use allowlist from DB
-    const token = await getToken(this.config, this.orgId, ['zones.write'])
-    return tokenRequest<WindowsDnsZoneSummary>(this.config.instanceId, token, `/zones/${zoneId}`, {
-      method: 'PATCH',
-      body: updates
-    })
-  }
-
-  /**
-   * Delete a zone.
-   * Uses zones.write scope (zone-scoped).
-   */
-  async deleteZone(zoneId: string): Promise<void> {
-    const token = await getTokenForZones(this.config, this.orgId, ['zones.write'], [zoneId])
-    await tokenRequest<void>(this.config.instanceId, token, `/zones/${zoneId}`, {
-      method: 'DELETE'
-    })
+    return tokenRequestWithRetry<WindowsDnsZoneSummary>(
+      this.orgId,
+      this.config.instanceId,
+      () => getToken(this.config, this.orgId, ['zones.write']),
+      `/zones/${zoneId}`,
+      { method: 'PATCH', body: updates }
+    )
   }
 }
 

@@ -36,11 +36,15 @@ interface PendingMint {
 }
 
 // In-memory cache storage
+// Key format: cacheKey (hash) -> CachedToken
+// We also maintain a reverse lookup for org-based invalidation
 const tokenCache = new Map<string, CachedToken>()
 const pendingMints = new Map<string, PendingMint>()
+const cacheKeyToOrgId = new Map<string, string>()
 
 /**
  * Generate a deterministic cache key for a token request.
+ * Also stores the orgId mapping for later invalidation.
  */
 export const generateCacheKey = (params: {
   orgId: string
@@ -57,7 +61,12 @@ export const generateCacheKey = (params: {
         : '*'
 
   const raw = `${params.orgId}:${params.accountId}:${scopesPart}:${zonesPart}`
-  return createHash('sha256').update(raw).digest('hex').slice(0, 32)
+  const cacheKey = createHash('sha256').update(raw).digest('hex').slice(0, 32)
+  
+  // Store the orgId mapping for later invalidation
+  cacheKeyToOrgId.set(cacheKey, params.orgId)
+  
+  return cacheKey
 }
 
 /**
@@ -148,17 +157,26 @@ export const invalidateToken = (cacheKey: string): void => {
 }
 
 /**
- * Invalidate all tokens for an org (e.g., when org config changes).
+ * Invalidate all tokens for an org (e.g., when org config changes or tokens expire).
  */
 export const invalidateOrgTokens = (orgId: string): void => {
-  for (const key of tokenCache.keys()) {
-    // Cache keys start with org-derived hash, but we can't easily reverse that
-    // For now, clear all tokens - in production, store orgId with the token
-    // or use a different key structure
+  const keysToDelete: string[] = []
+  
+  for (const [cacheKey, mappedOrgId] of cacheKeyToOrgId.entries()) {
+    if (mappedOrgId === orgId) {
+      keysToDelete.push(cacheKey)
+    }
   }
-  // Simple approach: clear all tokens when org config changes
-  // This is safe but not optimal for multi-tenant scenarios
-  // In production, consider prefixing keys with orgId
+  
+  for (const key of keysToDelete) {
+    tokenCache.delete(key)
+    cacheKeyToOrgId.delete(key)
+    pendingMints.delete(key)
+  }
+  
+  if (keysToDelete.length > 0) {
+    console.log(`[windows-dns] Invalidated ${keysToDelete.length} cached tokens for org ${orgId}`)
+  }
 }
 
 /**
@@ -167,6 +185,7 @@ export const invalidateOrgTokens = (orgId: string): void => {
 export const clearAllTokens = (): void => {
   tokenCache.clear()
   pendingMints.clear()
+  cacheKeyToOrgId.clear()
 }
 
 /**

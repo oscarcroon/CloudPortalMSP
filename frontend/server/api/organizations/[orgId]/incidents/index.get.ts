@@ -1,7 +1,8 @@
 /**
- * GET /api/admin/tenants/:tenantId/incidents
+ * GET /api/organizations/:orgId/incidents
  *
- * Lists incidents for a tenant. Only the source tenant's incidents are returned.
+ * Lists internal incidents for an organization.
+ * Only organization members can view incidents.
  * Query params:
  * - filter: 'active' | 'all' | 'archived' (default: 'active')
  * - includeDeleted: 'true' | 'false' (default: 'false', superadmin only)
@@ -9,18 +10,19 @@
 
 import { eq, and, isNull, desc, ne } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam, getQuery } from 'h3'
-import { tenantIncidents, tenants, users } from '../../../../../database/schema'
-import { getDb } from '../../../../../utils/db'
-import { requireTenantPermission } from '../../../../../utils/rbac'
-import { ensureAuthState } from '../../../../../utils/session'
+import { tenantIncidents, organizations, users } from '../../../../database/schema'
+import { getDb } from '../../../../utils/db'
+import { requirePermission } from '../../../../utils/rbac'
+import { ensureAuthState } from '../../../../utils/session'
 
 export default defineEventHandler(async (event) => {
-  const tenantId = getRouterParam(event, 'id')
-  if (!tenantId) {
-    throw createError({ statusCode: 400, message: 'Missing tenant ID' })
+  const orgId = getRouterParam(event, 'orgId')
+  if (!orgId) {
+    throw createError({ statusCode: 400, message: 'Missing organization ID' })
   }
 
-  await requireTenantPermission(event, 'tenants:read', tenantId)
+  // Require at least org:read permission
+  await requirePermission(event, 'org:read', orgId)
   const auth = await ensureAuthState(event)
 
   const query = getQuery(event)
@@ -29,19 +31,19 @@ export default defineEventHandler(async (event) => {
 
   const db = getDb()
 
-  // Verify tenant exists and is distributor or provider
-  const [tenant] = await db
-    .select({ type: tenants.type })
-    .from(tenants)
-    .where(eq(tenants.id, tenantId))
+  // Verify organization exists
+  const [org] = await db
+    .select({ id: organizations.id, name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
     .limit(1)
 
-  if (!tenant) {
-    throw createError({ statusCode: 404, message: 'Tenant not found' })
+  if (!org) {
+    throw createError({ statusCode: 404, message: 'Organization not found' })
   }
 
-  // Build query conditions
-  const conditions = [eq(tenantIncidents.sourceTenantId, tenantId)]
+  // Build query conditions for organization-specific incidents
+  const conditions = [eq(tenantIncidents.sourceOrganizationId, orgId)]
 
   if (!includeDeleted) {
     conditions.push(isNull(tenantIncidents.deletedAt))
@@ -60,6 +62,7 @@ export default defineEventHandler(async (event) => {
     .select({
       id: tenantIncidents.id,
       title: tenantIncidents.title,
+      slug: tenantIncidents.slug,
       bodyMarkdown: tenantIncidents.bodyMarkdown,
       severity: tenantIncidents.severity,
       status: tenantIncidents.status,
@@ -85,7 +88,7 @@ export default defineEventHandler(async (event) => {
         ? { id: i.createdByUserId, email: i.createdByEmail, fullName: i.createdByName }
         : null
     })),
-    tenantType: tenant.type
+    organizationName: org.name
   }
 })
 

@@ -13,6 +13,7 @@ import {
   tenantIncidentUserMutes,
   tenantNewsPosts,
   tenants,
+  organizations,
   type IncidentSeverity,
   type IncidentStatus,
   type NewsPostStatus
@@ -31,6 +32,7 @@ const SEVERITY_RANK: Record<IncidentSeverity, number> = {
 export interface FeedIncident {
   id: string
   title: string
+  slug: string
   bodyMarkdown: string | null
   severity: IncidentSeverity
   status: IncidentStatus
@@ -92,7 +94,10 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
     currentTenantId: opts.currentTenantId
   })
 
-  if (sources.sourceIds.length === 0) {
+  // For org context, we still want to show org-internal incidents even if no upstream sources
+  const hasOrgContext = Boolean(opts.currentOrgId)
+  
+  if (sources.sourceIds.length === 0 && !hasOrgContext) {
     return { activeIncidents: [], latestNews: [], sources }
   }
 
@@ -100,10 +105,16 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
   const plannedDaysAhead = opts.plannedDaysAhead ?? DEFAULT_PLANNED_DAYS_AHEAD
 
   // Fetch incidents and news in parallel
-  const [incidents, news, tenantInfo] = await Promise.all([
-    fetchActiveIncidents(sources.sourceIds, now, plannedDaysAhead),
-    fetchLatestNews(sources.sourceIds, now, opts.newsLimit ?? 3),
-    getSourceTenantInfo(sources.sourceIds)
+  // Pass orgId to include organization-internal incidents
+  const [incidents, news, tenantInfo, orgInfo] = await Promise.all([
+    fetchActiveIncidents(sources.sourceIds, now, plannedDaysAhead, opts.currentOrgId),
+    sources.sourceIds.length > 0 
+      ? fetchLatestNews(sources.sourceIds, now, opts.newsLimit ?? 3) 
+      : Promise.resolve([]),
+    sources.sourceIds.length > 0 
+      ? getSourceTenantInfo(sources.sourceIds) 
+      : Promise.resolve(new Map()),
+    opts.currentOrgId ? getOrganizationInfo(opts.currentOrgId) : Promise.resolve(null)
   ])
 
   const incidentIds = incidents.map((i) => i.id)
@@ -127,7 +138,29 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
   // Build feed incidents with source info and mute status
   const activeIncidents: FeedIncident[] = incidents
     .map((incident) => {
-      const sourceInfo = tenantInfo.get(incident.sourceTenantId)
+      // Determine source info: either from tenant or from organization
+      let sourceName: string
+      let sourceType: 'provider' | 'distributor' | 'organization'
+      let sourceId: string
+      
+      if (incident.sourceOrganizationId && orgInfo) {
+        // Organization-internal incident
+        sourceName = orgInfo.name
+        sourceType = 'organization'
+        sourceId = incident.sourceOrganizationId
+      } else if (incident.sourceTenantId) {
+        // Tenant incident (provider/distributor)
+        const sourceInfo = tenantInfo.get(incident.sourceTenantId)
+        sourceName = sourceInfo?.name ?? 'Unknown'
+        sourceType = sourceInfo?.type ?? 'provider'
+        sourceId = incident.sourceTenantId
+      } else {
+        // Fallback (shouldn't happen)
+        sourceName = 'Unknown'
+        sourceType = 'organization'
+        sourceId = ''
+      }
+      
       const isUserMuted = userMutedIncidentIds.has(incident.id)
       const isScopeMuted = scopeMutedIncidentIds.has(incident.id)
       const isMuted = isUserMuted || isScopeMuted
@@ -137,15 +170,16 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
       return {
         id: incident.id,
         title: incident.title,
+        slug: incident.slug,
         bodyMarkdown: incident.bodyMarkdown,
         severity: incident.severity as IncidentSeverity,
         status: incident.status as IncidentStatus,
         startsAt: incident.startsAt,
         endsAt: incident.endsAt,
         createdAt: incident.createdAt,
-        sourceTenantId: incident.sourceTenantId,
-        sourceTenantName: sourceInfo?.name ?? 'Unknown',
-        sourceTenantType: sourceInfo?.type ?? 'provider',
+        sourceTenantId: sourceId,
+        sourceTenantName: sourceName,
+        sourceTenantType: sourceType,
         isUserMuted,
         isScopeMuted,
         isMuted,
@@ -192,28 +226,52 @@ export async function getEffectiveFeed(opts: GetFeedOptions): Promise<Operations
  * - Active incidents with no startsAt or startsAt <= now
  * - Planned incidents with startsAt within the next N days
  */
-async function fetchActiveIncidents(sourceIds: string[], now: Date, plannedDaysAhead: number) {
+async function fetchActiveIncidents(
+  sourceIds: string[],
+  now: Date,
+  plannedDaysAhead: number,
+  orgId?: string | null
+) {
   const db = getDb()
 
   // Calculate the lookahead window for planned incidents
   const plannedWindow = new Date(now.getTime() + plannedDaysAhead * 24 * 60 * 60 * 1000)
 
+  // Build source conditions: tenant sources OR organization source
+  const sourceConditions = []
+  
+  if (sourceIds.length > 0) {
+    sourceConditions.push(inArray(tenantIncidents.sourceTenantId, sourceIds))
+  }
+  
+  if (orgId) {
+    sourceConditions.push(eq(tenantIncidents.sourceOrganizationId, orgId))
+  }
+
+  // If no sources at all, return empty
+  if (sourceConditions.length === 0) {
+    return []
+  }
+
   return db
     .select({
       id: tenantIncidents.id,
       title: tenantIncidents.title,
+      slug: tenantIncidents.slug,
       bodyMarkdown: tenantIncidents.bodyMarkdown,
       severity: tenantIncidents.severity,
       status: tenantIncidents.status,
       startsAt: tenantIncidents.startsAt,
       endsAt: tenantIncidents.endsAt,
       createdAt: tenantIncidents.createdAt,
-      sourceTenantId: tenantIncidents.sourceTenantId
+      sourceTenantId: tenantIncidents.sourceTenantId,
+      sourceOrganizationId: tenantIncidents.sourceOrganizationId
     })
     .from(tenantIncidents)
     .where(
       and(
-        inArray(tenantIncidents.sourceTenantId, sourceIds),
+        // Source is either from allowed tenants OR from the current organization
+        or(...sourceConditions),
         eq(tenantIncidents.status, 'active'),
         isNull(tenantIncidents.deletedAt),
         // Time window: 
@@ -330,5 +388,23 @@ async function getUserMutedIncidentIds(opts: {
     )
 
   return new Set(mutes.map((m) => m.incidentId))
+}
+
+/**
+ * Get organization info for organization-internal incidents.
+ */
+async function getOrganizationInfo(orgId: string): Promise<{ id: string; name: string } | null> {
+  const db = getDb()
+  
+  const [org] = await db
+    .select({
+      id: organizations.id,
+      name: organizations.name
+    })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1)
+  
+  return org ?? null
 }
 

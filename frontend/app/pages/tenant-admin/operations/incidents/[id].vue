@@ -20,7 +20,8 @@
 
     <form v-else-if="incident" @submit.prevent="handleSubmit" class="max-w-2xl space-y-6">
       <!-- Status badge -->
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Active status -->
         <span
           v-if="incident.status === 'active'"
           class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
@@ -28,13 +29,24 @@
           <Icon icon="mdi:circle" class="h-2 w-2" />
           {{ t('admin.tenantAdmin.operations.status.active') }}
         </span>
+        <!-- Resolved status -->
         <span
-          v-else
-          class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
+          v-else-if="incident.status === 'resolved'"
+          class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600 dark:bg-slate-500/20 dark:text-slate-400"
         >
           <Icon icon="mdi:check-circle" class="h-4 w-4" />
           {{ t('admin.tenantAdmin.operations.resolved') }}
         </span>
+        <!-- Archived status -->
+        <span
+          v-else-if="incident.status === 'archived'"
+          class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
+        >
+          <Icon icon="mdi:archive" class="h-4 w-4" />
+          {{ t('admin.tenantAdmin.operations.status.archived') }}
+        </span>
+
+        <!-- Action buttons based on status -->
         <button
           v-if="incident.status === 'active'"
           type="button"
@@ -47,7 +59,7 @@
           {{ t('admin.tenantAdmin.operations.markResolved') }}
         </button>
         <button
-          v-else
+          v-if="incident.status === 'resolved'"
           type="button"
           :disabled="statusChanging"
           class="inline-flex items-center gap-1.5 rounded-lg border-2 border-amber-600 bg-transparent px-3 py-1.5 text-sm font-medium text-amber-600 transition hover:bg-amber-50 disabled:opacity-50 dark:border-amber-500 dark:text-amber-500 dark:hover:bg-amber-500/10"
@@ -56,6 +68,17 @@
           <Icon v-if="statusChanging" icon="mdi:loading" class="h-4 w-4 animate-spin" />
           <Icon v-else icon="mdi:refresh" class="h-4 w-4" />
           {{ t('admin.tenantAdmin.operations.reactivate') }}
+        </button>
+        <button
+          v-if="incident.status === 'archived'"
+          type="button"
+          :disabled="statusChanging"
+          class="inline-flex items-center gap-1.5 rounded-lg border-2 border-slate-600 bg-transparent px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-500 dark:text-slate-500 dark:hover:bg-slate-500/10"
+          @click="unarchiveIncident"
+        >
+          <Icon v-if="statusChanging" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+          <Icon v-else icon="mdi:archive-arrow-up" class="h-4 w-4" />
+          {{ t('admin.tenantAdmin.operations.unarchive') }}
         </button>
       </div>
 
@@ -232,22 +255,77 @@
       </div>
 
       <!-- Actions -->
-      <div class="flex items-center gap-3">
-        <button
-          type="submit"
-          :disabled="submitting || !form.title.trim()"
-          class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Icon v-if="submitting" icon="mdi:loading" class="h-4 w-4 animate-spin" />
-          <Icon v-else icon="mdi:check" class="h-4 w-4" />
-          {{ t('common.save') }}
-        </button>
-        <NuxtLink
-          to="/tenant-admin/operations/incidents"
-          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
-        >
-          {{ t('common.cancel') }}
-        </NuxtLink>
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <button
+            type="submit"
+            :disabled="submitting || !form.title.trim()"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Icon v-if="submitting" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+            <Icon v-else icon="mdi:check" class="h-4 w-4" />
+            {{ t('common.save') }}
+          </button>
+          <NuxtLink
+            to="/tenant-admin/operations/incidents"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+          >
+            {{ t('common.cancel') }}
+          </NuxtLink>
+        </div>
+
+        <!-- Archive / Delete actions -->
+        <div class="flex items-center gap-2">
+          <button
+            v-if="incident.status !== 'archived'"
+            type="button"
+            :disabled="actionProcessing"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
+            @click="archiveIncident"
+          >
+            <Icon v-if="actionProcessing" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+            <Icon v-else icon="mdi:archive" class="h-4 w-4" />
+            {{ t('admin.tenantAdmin.operations.archive') }}
+          </button>
+          <button
+            type="button"
+            :disabled="actionProcessing"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-50 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+            @click="confirmDelete"
+          >
+            <Icon v-if="actionProcessing" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+            <Icon v-else icon="mdi:delete" class="h-4 w-4" />
+            {{ t('common.delete') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Delete confirmation dialog -->
+      <div
+        v-if="showDeleteConfirm"
+        class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-500/40 dark:bg-red-500/10"
+      >
+        <p class="text-sm text-red-700 dark:text-red-300">
+          {{ t('admin.tenantAdmin.operations.deleteConfirmation') }}
+        </p>
+        <div class="mt-3 flex items-center gap-3">
+          <button
+            type="button"
+            :disabled="actionProcessing"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+            @click="deleteIncident"
+          >
+            <Icon v-if="actionProcessing" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+            {{ t('admin.tenantAdmin.operations.confirmDelete') }}
+          </button>
+          <button
+            type="button"
+            class="text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+            @click="showDeleteConfirm = false"
+          >
+            {{ t('common.cancel') }}
+          </button>
+        </div>
       </div>
     </form>
 
@@ -277,6 +355,10 @@ const auth = useAuth()
 const incidentId = computed(() => route.params.id as string)
 const currentTenant = computed(() => auth.currentTenant.value)
 const tenantId = computed(() => currentTenant.value?.id)
+
+// Action states
+const actionProcessing = ref(false)
+const showDeleteConfirm = ref(false)
 
 interface IncidentDetail {
   id: string
@@ -543,6 +625,62 @@ async function reactivateIncident() {
     error.value = err.data?.message || err.message || 'Failed to reactivate incident'
   } finally {
     statusChanging.value = false
+  }
+}
+
+async function archiveIncident() {
+  if (!tenantId.value || !incidentId.value) return
+  actionProcessing.value = true
+  error.value = null
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/archive`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    await refresh()
+  } catch (err: any) {
+    error.value = err.data?.message || err.message || 'Failed to archive incident'
+  } finally {
+    actionProcessing.value = false
+  }
+}
+
+async function unarchiveIncident() {
+  if (!tenantId.value || !incidentId.value) return
+  statusChanging.value = true
+  error.value = null
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/unarchive`, {
+      method: 'POST',
+      credentials: 'include'
+    })
+    await refresh()
+  } catch (err: any) {
+    error.value = err.data?.message || err.message || 'Failed to unarchive incident'
+  } finally {
+    statusChanging.value = false
+  }
+}
+
+function confirmDelete() {
+  showDeleteConfirm.value = true
+}
+
+async function deleteIncident() {
+  if (!tenantId.value || !incidentId.value) return
+  actionProcessing.value = true
+  error.value = null
+  try {
+    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    })
+    router.push('/tenant-admin/operations/incidents')
+  } catch (err: any) {
+    error.value = err.data?.message || err.message || 'Failed to delete incident'
+    showDeleteConfirm.value = false
+  } finally {
+    actionProcessing.value = false
   }
 }
 </script>

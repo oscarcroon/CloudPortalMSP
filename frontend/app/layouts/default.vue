@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from '#imports'
+import { computed, onMounted, onUnmounted, ref, watch } from '#imports'
 import TopBar from '~/components/layout/TopBar.vue'
 import MainNavbar from '~/components/layout/MainNavbar.vue'
 import IncidentBanner from '~/components/operations/IncidentBanner.vue'
@@ -69,6 +69,8 @@ const activeIncidents = ref<any[]>([])
 const hasActiveIncidents = computed(() => activeIncidents.value.length > 0)
 
 let feedInstance: ReturnType<typeof useOperationsFeed> | null = null
+let lastFocusTime = 0
+const FOCUS_REFRESH_THROTTLE_MS = 5000 // Minimum 5 seconds between focus refreshes
 
 async function loadOperationsFeed() {
   // Only run on client
@@ -92,13 +94,51 @@ async function loadOperationsFeed() {
         await feedInstance.fetchFeed()
       }
     })
+    
+    // Refresh feed when page becomes visible (user returns to tab/window)
+    // This helps show new incidents when user comes back to the tab
+    // Throttled to prevent excessive requests
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      window.addEventListener('focus', handleWindowFocus)
+    }
   } catch (err) {
     console.error('Failed to load operations feed:', err)
   }
 }
 
+async function handleVisibilityChange() {
+  if (!document.hidden && feedInstance) {
+    // Page became visible, refresh feed (throttled)
+    const now = Date.now()
+    if (now - lastFocusTime > FOCUS_REFRESH_THROTTLE_MS) {
+      lastFocusTime = now
+      await feedInstance.fetchFeed()
+    }
+  }
+}
+
+async function handleWindowFocus() {
+  // Window gained focus, refresh feed (throttled)
+  if (feedInstance) {
+    const now = Date.now()
+    if (now - lastFocusTime > FOCUS_REFRESH_THROTTLE_MS) {
+      lastFocusTime = now
+      await feedInstance.fetchFeed()
+    }
+  }
+}
+
 onMounted(() => {
   loadOperationsFeed()
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('focus', handleWindowFocus)
+  }
 })
 
 async function handleMuteIncident(incident: { id: string }) {

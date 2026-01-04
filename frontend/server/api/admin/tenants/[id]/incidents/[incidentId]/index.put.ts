@@ -17,8 +17,8 @@ import { logTenantAction } from '../../../../../../utils/audit'
 const updateIncidentSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   bodyMarkdown: z.string().max(10000).optional().nullable(),
-  severity: z.enum(['critical', 'outage', 'notice', 'maintenance']).optional(),
-  status: z.enum(['active', 'resolved']).optional(),
+  severity: z.enum(['critical', 'outage', 'notice', 'maintenance', 'planned']).optional(),
+  status: z.enum(['active', 'resolved', 'archived']).optional(),
   startsAt: z.string().datetime().optional().nullable(),
   endsAt: z.string().datetime().optional().nullable()
 })

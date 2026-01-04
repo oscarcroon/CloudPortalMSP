@@ -677,6 +677,7 @@ function incidentIcon(severity: string): string {
     case 'critical': return 'mdi:alert-circle'
     case 'outage': return 'mdi:alert'
     case 'maintenance': return 'mdi:wrench'
+    case 'planned': return 'mdi:calendar-clock'
     default: return 'mdi:information'
   }
 }
@@ -685,7 +686,8 @@ function incidentIconClass(severity: string): string {
   switch (severity) {
     case 'critical': return 'text-red-500'
     case 'outage': return 'text-orange-500'
-    case 'maintenance': return 'text-blue-500'
+    case 'maintenance':
+    case 'planned': return 'text-blue-500'
     default: return 'text-amber-500'
   }
 }
@@ -694,7 +696,8 @@ function incidentBorderClass(severity: string): string {
   switch (severity) {
     case 'critical': return 'border-red-200 bg-red-50/50 dark:border-red-500/30 dark:bg-red-500/5'
     case 'outage': return 'border-orange-200 bg-orange-50/50 dark:border-orange-500/30 dark:bg-orange-500/5'
-    case 'maintenance': return 'border-blue-200 bg-blue-50/50 dark:border-blue-500/30 dark:bg-blue-500/5'
+    case 'maintenance':
+    case 'planned': return 'border-blue-200 bg-blue-50/50 dark:border-blue-500/30 dark:bg-blue-500/5'
     default: return 'border-slate-200 dark:border-white/10'
   }
 }

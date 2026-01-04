@@ -249,6 +249,9 @@ async function showForTenant(incidentId: string) {
       credentials: 'include'
     })
     await fetchIncidents()
+    // Refresh operations feed in layout (banner)
+    const { refreshOperationsFeed } = await import('~/composables/useOperationsFeed')
+    await refreshOperationsFeed()
   } catch (err) {
     console.error('Failed to show incident for tenant:', err)
   } finally {
@@ -261,6 +264,7 @@ function severityIcon(severity: string): string {
     case 'critical': return 'mdi:alert-circle'
     case 'outage': return 'mdi:alert'
     case 'maintenance': return 'mdi:wrench'
+    case 'planned': return 'mdi:calendar-clock'
     default: return 'mdi:information'
   }
 }
@@ -269,7 +273,8 @@ function severityIconClass(severity: string): string {
   switch (severity) {
     case 'critical': return 'text-red-600 dark:text-red-400'
     case 'outage': return 'text-orange-600 dark:text-orange-400'
-    case 'maintenance': return 'text-blue-600 dark:text-blue-400'
+    case 'maintenance':
+    case 'planned': return 'text-blue-600 dark:text-blue-400'
     default: return 'text-amber-600 dark:text-amber-400'
   }
 }
@@ -278,7 +283,8 @@ function severityBgClass(severity: string): string {
   switch (severity) {
     case 'critical': return 'bg-red-100 dark:bg-red-500/20'
     case 'outage': return 'bg-orange-100 dark:bg-orange-500/20'
-    case 'maintenance': return 'bg-blue-100 dark:bg-blue-500/20'
+    case 'maintenance':
+    case 'planned': return 'bg-blue-100 dark:bg-blue-500/20'
     default: return 'bg-amber-100 dark:bg-amber-500/20'
   }
 }
@@ -287,7 +293,8 @@ function severityBadgeClass(severity: string): string {
   switch (severity) {
     case 'critical': return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
     case 'outage': return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'
-    case 'maintenance': return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+    case 'maintenance':
+    case 'planned': return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
     default: return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
   }
 }

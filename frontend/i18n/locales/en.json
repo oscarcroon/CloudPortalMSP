@@ -29,11 +29,48 @@
       "maintenance": "Maintenance",
       "notice": "Notice",
       "planned": "Planned"
+    },
+    "status": {
+      "active": "Active",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "archived": "Archived"
     }
+  },
+  "incident": {
+    "title": "Incident",
+    "backToDashboard": "Back to dashboard",
+    "notFound": "Incident not found or you don't have permission to view it.",
+    "distributor": "Distributor",
+    "provider": "Provider",
+    "previous": "Previous",
+    "next": "Next",
+    "status": {
+      "active": "Active",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "resolvedAt": "Resolved"
+  },
+  "news": {
+    "title": "News",
+    "allNews": "All news",
+    "allNewsDescription": "Latest news from your providers and distributors.",
+    "backToDashboard": "Back to dashboard",
+    "notFound": "News post not found or you don't have permission to view it.",
+    "noNewsYet": "No news to show at the moment.",
+    "moreNews": "More news",
+    "previous": "Previous",
+    "next": "Next",
+    "viewAll": "View all",
+    "filterAll": "All",
+    "distributor": "Distributor",
+    "provider": "Provider"
   },
   "common": {
     "save": "Save",
     "loadMore": "Load more",
+    "loading": "Loading...",
     "saving": "Saving...",
     "update": "Update",
     "updating": "Updating...",
@@ -43,7 +80,9 @@
     "delete": "Delete",
     "unknown": "Unknown",
     "refresh": "Refresh",
-    "redirecting": "Redirecting..."
+    "redirecting": "Redirecting...",
+    "all": "All",
+    "edit": "Edit"
   },
   "auth": {
     "logout": "Log out",
@@ -333,23 +372,17 @@
     "goToTenantAdmin": "Go to tenant admin",
     "status": "Status",
     "news": "News",
+    "noNews": "No news at the moment.",
     "module": "Module",
     "statusLabels": {
       "ok": "OK",
       "degraded": "Degraded",
       "maintenance": "Maintenance"
     },
-    "newsItems": {
-      "firstSite": {
-        "title": "Your first website? Get started smoothly",
-        "summary": "Follow our five steps for a quick and secure launch.",
-        "date": "Oct 28"
-      },
-      "dnsEmail": {
-        "title": "How do DNS and email work together?",
-        "summary": "Quick guide to SPF, DKIM and MX.",
-        "date": "Oct 14"
-      }
+    "newsFilter": {
+      "all": "All",
+      "distributor": "Distributor",
+      "provider": "Provider"
     }
   },
   "settings": {
@@ -503,6 +536,8 @@
       "description": "View all incidents and manage which ones are displayed.",
       "subtitle": "View and manage incidents for your organization",
       "loading": "Loading incidents...",
+      "upstreamTab": "Incoming",
+      "internalTab": "Organization's own",
       "activeIncidents": "Active incidents",
       "hiddenIncidents": "Hidden incidents",
       "hiddenForMe": "Hidden for me",
@@ -520,6 +555,17 @@
         "manage": "Hide or show incidents you have hidden",
         "unmute": "Restore previously hidden incidents"
       }
+    },
+    "incidents": {
+      "title": "Organization incidents",
+      "subtitle": "Create and manage internal incidents visible only to the organization",
+      "create": "Create incident",
+      "createFirst": "Create first incident",
+      "edit": "Edit incident",
+      "backToList": "Back to list",
+      "noIncidents": "No incidents",
+      "noIncidentsDesc": "Create an internal incident to inform organization members.",
+      "loading": "Loading..."
     },
     "members": {
       "title": "Members",
@@ -1128,10 +1174,18 @@
         "incidentNotFound": "Incident not found.",
         "status": {
           "active": "Ongoing",
-          "resolved": "Resolved"
+          "resolved": "Resolved",
+          "archived": "Archived"
         },
         "markResolved": "Mark as resolved",
         "reactivate": "Reactivate",
+        "archive": "Archive",
+        "unarchive": "Restore",
+        "archivedIncidents": "Archived",
+        "noArchivedIncidents": "No archived incidents",
+        "deleteIncidentTitle": "Delete incident",
+        "deleteConfirmation": "Are you sure you want to delete this incident? This action cannot be undone.",
+        "confirmDelete": "Yes, delete",
         "filters": {
           "all": "All",
           "ongoing": "Ongoing",

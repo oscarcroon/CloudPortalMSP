@@ -39,9 +39,10 @@ export default defineEventHandler(async (event) => {
   // Bootstrap: ensure account exists if not yet created
   if (!config?.windowsDnsAccountId) {
     try {
-      const orgName = auth.currentOrgName ?? `Org ${orgId}`
+      // Get org name from organizations array (currentOrgName doesn't exist in AuthState)
+      const currentOrg = auth.organizations.find(o => o.id === orgId)
       console.log(`[windows-dns] Ensuring account for org ${orgId} with rawCoreId ${rawCoreId}`)
-      const { accountId, created } = await ensureAccount(config ?? { coreId: rawCoreId }, orgId, orgName, rawCoreId)
+      const { accountId, created } = await ensureAccount(config ?? { coreId: rawCoreId }, orgId, currentOrg?.name, rawCoreId)
       console.log(`[windows-dns] Account ensured: ${accountId} (created: ${created})`)
       
       // Reload config to get the updated accountId
@@ -99,10 +100,10 @@ export default defineEventHandler(async (event) => {
       console.log(`[windows-dns] Account not found in layer during autodiscover, attempting auto-healing for org ${orgId}`)
       await clearAccountId(orgId)
       
-      // Re-create account and retry
-      const orgName = auth.currentOrgName ?? `Org ${orgId}`
+      // Re-create account and retry - get org name from organizations array
+      const healingOrg = auth.organizations.find(o => o.id === orgId)
       try {
-        const { accountId } = await ensureAccount({ coreId: rawCoreId }, orgId, orgName, rawCoreId)
+        const { accountId } = await ensureAccount({ coreId: rawCoreId }, orgId, healingOrg?.name, rawCoreId)
         console.log(`[windows-dns] Auto-healing successful, new accountId: ${accountId}`)
         
         // Retry autodiscover

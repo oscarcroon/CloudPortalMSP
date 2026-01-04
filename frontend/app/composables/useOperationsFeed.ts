@@ -4,6 +4,9 @@
 
 import { ref, computed } from 'vue'
 
+// Global feed instance for cross-component refresh
+let globalFeedInstance: ReturnType<typeof useOperationsFeed> | null = null
+
 export interface FeedIncident {
   id: string
   title: string
@@ -157,7 +160,7 @@ export function useOperationsFeed() {
   // Note: fetchFeed should be called explicitly by the consumer
   // to avoid duplicate calls and timing issues
 
-  return {
+  const instance = {
     feed,
     loading,
     error,
@@ -174,6 +177,22 @@ export function useOperationsFeed() {
     // Legacy aliases
     muteIncident,
     unmuteIncident
+  }
+
+  // Store as global instance for cross-component refresh
+  globalFeedInstance = instance
+
+  return instance
+}
+
+/**
+ * Global function to refresh the operations feed from any component.
+ * This is useful when muting/unmuting incidents from pages that don't
+ * directly use useOperationsFeed.
+ */
+export async function refreshOperationsFeed() {
+  if (globalFeedInstance) {
+    await globalFeedInstance.fetchFeed()
   }
 }
 
