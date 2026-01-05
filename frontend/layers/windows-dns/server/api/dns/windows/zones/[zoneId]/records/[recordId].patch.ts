@@ -2,6 +2,8 @@ import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
+import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
+import { assertNotSoa, assertRecordNotSoa, isSoaType } from '@windows-dns/server/utils/assert-not-soa'
 
 const MAX_COMMENT_LENGTH = 2000
 
@@ -46,8 +48,40 @@ export default defineEventHandler(async (event) => {
     body.comment = trimmedComment || null
   }
 
+  // Block SOA record updates - SOA is managed via Zone settings
+  // If type is provided, check it directly
+  if (body?.type !== undefined) {
+    assertNotSoa(body.type)
+  }
+
+  // Normalize TXT content: strip surrounding double quotes (Windows DNS rejects them)
+  // UI sends type with every PATCH now; if missing, we still normalize content defensively
+  if (body?.content !== undefined) {
+    const isTxt = body?.type !== undefined
+      ? String(body.type).toUpperCase() === 'TXT'
+      : false // fallback: don't normalize if type unknown (safe default)
+    if (isTxt) {
+      const normalized = normalizeTxtContent(body.content)
+      console.log(`[windows-dns] Normalized TXT content for zoneId=${zoneId}, recordId=${recordId}`)
+      if (!normalized) {
+        throw createError({
+          statusCode: 400,
+          message: 'TXT-värdet får inte vara tomt.'
+        })
+      }
+      body.content = normalized
+    }
+  }
+
   try {
     const client = await getClientForOrg(orgId)
+
+    // If type was not provided, look up the record to check if it's SOA
+    // This ensures SOA cannot be updated even if type is omitted from the request
+    if (body?.type === undefined) {
+      const records = await client.listRecordsForZone(zoneId)
+      assertRecordNotSoa(recordId, records)
+    }
     
     // Build update payload with only provided fields
     const updates: Record<string, unknown> = {}

@@ -84,6 +84,21 @@
       }
     },
 
+    "zoneInfo": {
+      "label": "Zone Information",
+      "title": "Zone Info (SOA)",
+      "primaryNs": "Primary Nameserver",
+      "responsibleParty": "Responsible Party (rname)",
+      "serial": "Serial",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "expire": "Expire",
+      "minimumTtl": "Minimum TTL",
+      "ttl": "TTL",
+      "details": "Show details",
+      "notFound": "SOA record not found for this zone."
+    },
+
     "zone": {
       "label": "DNS Zone",
       "loadingZone": "Loading zone...",
@@ -178,6 +193,7 @@
       "createError": "Failed to create record",
       "updateError": "Failed to update record",
       "contentRequired": "Please enter a value for the new record before saving.",
+      "txtEmptyError": "TXT value cannot be empty.",
       "deleteError": "Failed to delete record",
       "missingRecordId": "Missing record ID - cannot update",
       "pagination": "Page {page} of {pages}"

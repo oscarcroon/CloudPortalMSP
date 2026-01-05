@@ -506,6 +506,7 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
 
 const props = defineProps<{
   zoneId: string
@@ -610,9 +611,22 @@ const formatRecordContent = (record: any) => {
 
   switch (type) {
     case 'MX': {
+      // Handle both formats:
+      // 1. New format: priority as separate field, content = "mail.example.com"
+      // 2. Old format: priority embedded in content = "10 mail.example.com"
       const parts = content.split(/\s+/)
-      if (parts.length >= 2) {
+      const firstPartIsNumber = parts.length > 0 && /^\d+$/.test(parts[0])
+
+      if (record.priority !== undefined && record.priority !== null && !firstPartIsNumber) {
+        // New format: priority is separate, content is just the exchange
+        return `<span class="text-slate-500">${record.priority}</span> ${content}`
+      } else if (firstPartIsNumber && parts.length >= 2) {
+        // Old format: priority embedded in content
         return `<span class="text-slate-500">${parts[0]}</span> ${parts.slice(1).join(' ')}`
+      }
+      // Fallback: just show content with default priority indication
+      if (record.priority !== undefined && record.priority !== null) {
+        return `<span class="text-slate-500">${record.priority}</span> ${content}`
       }
       return content
     }
@@ -645,10 +659,12 @@ const formatRecordContent = (record: any) => {
 }
 
 // Build content string from type-specific fields
+// Note: For MX, priority is sent separately - content should only contain the exchange
 const buildContent = (form: any) => {
   switch (form.type) {
     case 'MX':
-      return `${form.mxPriority ?? 10} ${form.mxExchange ?? ''}`
+      // Only return the exchange - priority is sent as a separate field
+      return form.mxExchange ?? ''
     case 'SRV':
       return `${form.srvPriority ?? 0} ${form.srvWeight ?? 0} ${form.srvPort ?? 0} ${form.srvTarget ?? ''}`
     case 'CAA':
@@ -661,14 +677,33 @@ const buildContent = (form: any) => {
 }
 
 // Parse content string into type-specific fields
-const parseContent = (type: string, content: string) => {
+const parseContent = (type: string, content: string, record?: any) => {
   const parts = content.split(/\s+/)
   switch (type) {
-    case 'MX':
-      return {
-        mxPriority: parseInt(parts[0], 10) || 10,
-        mxExchange: parts.slice(1).join(' ') || ''
+    case 'MX': {
+      // Priority may be stored separately (record.priority) or embedded in content (legacy)
+      // Check if first part looks like a priority number
+      const firstPartIsNumber = parts.length > 0 && /^\d+$/.test(parts[0])
+      if (record?.priority !== undefined && record.priority !== null) {
+        // Priority is stored separately - content is just the exchange
+        return {
+          mxPriority: Number(record.priority) || 10,
+          mxExchange: content.trim()
+        }
+      } else if (firstPartIsNumber && parts.length > 1) {
+        // Legacy: priority embedded in content (e.g., "10 mail.example.com")
+        return {
+          mxPriority: parseInt(parts[0], 10) || 10,
+          mxExchange: parts.slice(1).join(' ') || ''
+        }
+      } else {
+        // Content is just the exchange, use default priority
+        return {
+          mxPriority: 10,
+          mxExchange: content.trim()
+        }
       }
+    }
     case 'SRV':
       return {
         srvPriority: parseInt(parts[0], 10) || 0,
@@ -711,8 +746,12 @@ const recordPreview = computed(() => {
   // Format content for display (similar to formatRecordContent but for preview)
   // Check if content is empty or just whitespace
   const hasContent = content.trim().length > 0
+  // For MX, pass priority so it displays correctly in preview
+  const previewRecord = newRecord.type === 'MX'
+    ? { type: newRecord.type, content, priority: newRecord.mxPriority }
+    : { type: newRecord.type, content }
   const formattedContent = hasContent 
-    ? formatRecordContent({ type: newRecord.type, content }) 
+    ? formatRecordContent(previewRecord) 
     : ''
   
   const ttl = displayTtl(newRecord.ttl)
@@ -795,7 +834,19 @@ const createRecord = async () => {
   creating.value = true
   createError.value = null
   try {
-    const content = isSimpleType(newRecord.type) ? newRecord.content : buildContent(newRecord)
+    let content = isSimpleType(newRecord.type) ? newRecord.content : buildContent(newRecord)
+
+    // Normalize TXT content: remove surrounding double quotes
+    if (newRecord.type === 'TXT') {
+      content = normalizeTxtContent(content)
+      if (!content) {
+        const { $i18n } = useNuxtApp()
+        createError.value = $i18n.t('windowsDns.records.txtEmptyError') || 'TXT-värdet får inte vara tomt.'
+        creating.value = false
+        return
+      }
+    }
+
     const payload: any = {
       type: newRecord.type,
       name: newRecord.name,
@@ -863,8 +914,12 @@ const editRecordPreview = computed(() => {
   // Format content for display (similar to formatRecordContent but for preview)
   // Check if content is empty or just whitespace
   const hasContent = content.trim().length > 0
+  // For MX, pass priority so it displays correctly in preview
+  const previewRecord = editForm.type === 'MX'
+    ? { type: editForm.type, content, priority: editForm.mxPriority }
+    : { type: editForm.type, content }
   const formattedContent = hasContent 
-    ? formatRecordContent({ type: editForm.type, content }) 
+    ? formatRecordContent(previewRecord) 
     : ''
   
   const ttl = displayTtl(editForm.ttl)
@@ -910,7 +965,7 @@ const editForm = reactive({
 const startEdit = (record: any) => {
   editingId.value = record.id || record.name + record.type
   const content = record.content || record.value || record.data || ''
-  const parsed = parseContent(record.type, content)
+  const parsed = parseContent(record.type, content, record)
 
   Object.assign(editForm, {
     type: record.type,
@@ -956,8 +1011,19 @@ const updateRecord = async () => {
       return
     }
 
-    const newContent = isSimpleType(editForm.type) ? editForm.content : buildContent(editForm)
+    let newContent = isSimpleType(editForm.type) ? editForm.content : buildContent(editForm)
     const origContent = original?.content || original?.value || original?.data || ''
+
+    // Normalize TXT content: remove surrounding double quotes
+    if (editForm.type === 'TXT') {
+      newContent = normalizeTxtContent(newContent)
+      if (!newContent) {
+        const { $i18n } = useNuxtApp()
+        updateError.value = $i18n.t('windowsDns.records.txtEmptyError') || 'TXT-värdet får inte vara tomt.'
+        updating.value = false
+        return
+      }
+    }
 
     const typeChanged = editForm.type !== original?.type
 
@@ -1030,10 +1096,19 @@ const updateRecord = async () => {
     }
 
     // Default: normal PATCH for same-type edits
-    const payload: Record<string, unknown> = {}
+    // Always include type so server can apply type-specific normalization
+    const payload: Record<string, unknown> = { type: editForm.type }
     if (editForm.name !== (original?.name || '@')) payload.name = editForm.name
-    if (newContent !== origContent) payload.content = newContent
     if (editForm.ttl !== (original?.ttl ?? 3600)) payload.ttl = editForm.ttl
+
+    // For MX: always send content (exchange only) and priority separately
+    // This handles the case where old content might have had priority embedded
+    if (editForm.type === 'MX') {
+      payload.content = newContent // Just the exchange
+      payload.priority = editForm.mxPriority
+    } else if (newContent !== origContent) {
+      payload.content = newContent
+    }
 
     const origComment = original?.comment ?? ''
     if (editForm.comment !== origComment) {

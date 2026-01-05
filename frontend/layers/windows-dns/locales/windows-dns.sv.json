@@ -84,6 +84,21 @@
       }
     },
 
+    "zoneInfo": {
+      "label": "Zone Information",
+      "title": "Zone Info (SOA)",
+      "primaryNs": "Primär namnserver",
+      "responsibleParty": "Ansvarig (rname)",
+      "serial": "Serial",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "expire": "Expire",
+      "minimumTtl": "Minimum TTL",
+      "ttl": "TTL",
+      "details": "Visa detaljer",
+      "notFound": "SOA-post saknas för denna zon."
+    },
+
     "zone": {
       "label": "DNS Zone",
       "loadingZone": "Laddar zon...",
@@ -178,6 +193,7 @@
       "createError": "Kunde inte skapa record",
       "updateError": "Kunde inte uppdatera record",
       "contentRequired": "Fyll i ett värde för det nya recordet innan du sparar.",
+      "txtEmptyError": "TXT-värdet får inte vara tomt.",
       "deleteError": "Kunde inte ta bort record",
       "missingRecordId": "Saknar record ID - kan inte uppdatera",
       "pagination": "Sida {page} av {pages}"

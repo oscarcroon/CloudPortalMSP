@@ -69,12 +69,19 @@
       </div>
     </div>
 
-    <!-- Records table -->
+    <!-- Zone Info Panel (SOA) -->
+    <WindowsDnsZoneInfoPanel
+      v-if="zoneId && recordsData?.records && soaRecord"
+      :zone-name="zoneData?.zone?.zoneName ?? ''"
+      :soa-record="soaRecord"
+    />
+
+    <!-- Records table (excludes SOA) -->
     <WindowsDnsRecordsTable
       v-if="zoneId && recordsData?.records"
       :zone-id="zoneId"
       :zone-name="zoneData?.zone?.zoneName ?? ''"
-      :records="recordsData.records"
+      :records="tableRecords"
       :can-edit="recordsData.access?.canEditRecords ?? false"
       @refresh="refreshRecords"
     />
@@ -173,6 +180,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import WindowsDnsRecordsTable from '@windows-dns/components/WindowsDnsRecordsTable.vue'
+import WindowsDnsZoneInfoPanel from '@windows-dns/components/WindowsDnsZoneInfoPanel.vue'
 import { useEntityNames } from '~/composables/useEntityNames'
 
 const route = useRoute()
@@ -205,6 +213,22 @@ const recordsData = ref<{
   records: any[]
   access: { canEditRecords: boolean; canEditZones: boolean }
 } | null>(null)
+
+// Extract SOA record (case-insensitive) for Zone Info panel
+const soaRecord = computed(() => {
+  if (!recordsData.value?.records) return null
+  return recordsData.value.records.find(
+    r => String(r.type ?? '').trim().toUpperCase() === 'SOA'
+  ) ?? null
+})
+
+// Filter out SOA from table records - SOA is displayed in Zone Info panel instead
+const tableRecords = computed(() => {
+  if (!recordsData.value?.records) return []
+  return recordsData.value.records.filter(
+    r => String(r.type ?? '').trim().toUpperCase() !== 'SOA'
+  )
+})
 
 const fetchZone = async () => {
   // Guard: Don't fetch if zoneId is invalid

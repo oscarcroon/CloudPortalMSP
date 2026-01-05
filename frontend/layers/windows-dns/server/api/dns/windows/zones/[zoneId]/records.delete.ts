@@ -2,6 +2,7 @@ import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
+import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -29,6 +30,9 @@ export default defineEventHandler(async (event) => {
       message: 'name and type are required.'
     })
   }
+
+  // Block SOA record deletion - SOA is managed via Zone settings
+  assertNotSoa(body.type)
 
   try {
     const client = await getClientForOrg(orgId)

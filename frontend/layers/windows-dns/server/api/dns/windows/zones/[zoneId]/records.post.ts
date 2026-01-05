@@ -2,6 +2,8 @@ import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
+import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
+import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
 
 const MAX_COMMENT_LENGTH = 2000
 
@@ -44,6 +46,22 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Block SOA record creation - SOA is managed via Zone settings
+  assertNotSoa(body.type)
+
+  // Normalize TXT content: strip surrounding double quotes (Windows DNS rejects them)
+  let normalizedContent = body.content
+  if (String(body.type).toUpperCase() === 'TXT') {
+    normalizedContent = normalizeTxtContent(body.content)
+    console.log(`[windows-dns] Normalized TXT content for zoneId=${zoneId}`)
+    if (!normalizedContent) {
+      throw createError({
+        statusCode: 400,
+        message: 'TXT-värdet får inte vara tomt.'
+      })
+    }
+  }
+
   // Validate and normalize comment
   let comment: string | undefined = undefined
   if (body.comment !== undefined && body.comment !== null && String(body.comment).trim()) {
@@ -63,7 +81,7 @@ export default defineEventHandler(async (event) => {
     const recordPayload: any = {
       name: body.name,
       type: body.type,
-      content: body.content,
+      content: normalizedContent,
       ttl: body.ttl ?? 3600
     }
     if (body.priority !== undefined) {
