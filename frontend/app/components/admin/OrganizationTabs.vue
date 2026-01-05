@@ -3,7 +3,7 @@
     <NuxtLink
       v-for="tab in tabs"
       :key="tab.key"
-      :to="`/platform-admin/organizations/${slug}/${tab.key}`"
+      :to="`${basePath}/organizations/${slug}/${tab.key}`"
       class="inline-flex items-center gap-2 rounded-full border px-4 py-1 text-sm font-semibold transition"
       :class="tabClass(tab.key)"
     >
@@ -14,12 +14,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from '#imports'
 import { Icon } from '@iconify/vue'
+import { useRoute } from 'vue-router'
 
 const props = defineProps<{
   slug: string
   active: 'overview' | 'members' | 'auth' | 'email' | 'delegations'
 }>()
+
+const route = useRoute()
+const basePath = computed(() => {
+  // Determine base path based on current route
+  if (route.path.startsWith('/tenant-admin')) {
+    return '/tenant-admin'
+  }
+  return '/platform-admin'
+})
 
 const tabs = [
   { key: 'overview', label: 'Översikt', icon: 'mdi:view-dashboard-outline' },

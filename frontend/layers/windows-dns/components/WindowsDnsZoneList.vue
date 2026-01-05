@@ -3,35 +3,19 @@
     <!-- Selection Mode Action Bar -->
     <header
       v-if="selectionMode"
-      class="flex flex-col gap-3 rounded-xl border border-brand/30 bg-brand/5 p-3 md:flex-row md:items-center md:justify-between dark:bg-brand/10"
+      class="space-y-3 rounded-xl border border-brand/30 bg-brand/5 p-3 dark:bg-brand/10"
     >
-      <div class="flex items-center gap-3">
-        <span class="text-sm font-medium text-slate-700 dark:text-slate-200">
-          {{ $t('windowsDns.zoneList.selected', { count: selectedZones.length }) }}
-        </span>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <!-- Select/Deselect all -->
-        <button
-          type="button"
-          class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-300"
-          @click="toggleSelectAll"
-        >
-          <Icon :icon="selectedZones.length === zones.length ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'" class="h-4 w-4" />
-          {{ selectedZones.length === zones.length ? $t('windowsDns.zoneList.deselectAll') : $t('windowsDns.zoneList.selectAll') }}
-        </button>
-        <!-- Export selected -->
-        <button
-          v-if="selectedZones.length > 0"
-          type="button"
-          class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
-          :disabled="bulkExporting"
-          @click="bulkExportZones"
-        >
-          <Icon :icon="bulkExporting ? 'mdi:loading' : 'mdi:download-multiple'" :class="{ 'animate-spin': bulkExporting }" class="h-4 w-4" />
-          {{ $t('windowsDns.zoneList.exportSelected', { count: selectedZones.length }) }}
-        </button>
-        <!-- Cancel selection mode -->
+      <!-- Top row: Search + Cancel -->
+      <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div class="relative flex-1 max-w-sm">
+          <Icon icon="mdi:magnify" class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            v-model="selectionSearch"
+            type="text"
+            :placeholder="$t('windowsDns.zoneList.searchToSelect')"
+            class="w-full rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+          />
+        </div>
         <button
           type="button"
           class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -40,6 +24,54 @@
           <Icon icon="mdi:close" class="h-4 w-4" />
           {{ $t('windowsDns.zoneList.cancelSelection') }}
         </button>
+      </div>
+      
+      <!-- Bottom row: Selection info + Actions -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-medium text-slate-700 dark:text-slate-200">
+            {{ $t('windowsDns.zoneList.selected', { count: selectedZones.length }) }}
+          </span>
+          <span v-if="selectionSearch && filteredZones.length !== zones.length" class="text-xs text-slate-500 dark:text-slate-400">
+            ({{ $t('windowsDns.zoneList.filteredOf', { filtered: filteredZones.length, total: zones.length }) }})
+          </span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Select all filtered -->
+          <button
+            type="button"
+            class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-300"
+            @click="toggleSelectAllFiltered"
+          >
+            <Icon :icon="allFilteredSelected ? 'mdi:checkbox-marked' : 'mdi:checkbox-blank-outline'" class="h-4 w-4" />
+            {{ allFilteredSelected ? $t('windowsDns.zoneList.deselectAll') : $t('windowsDns.zoneList.selectAllFiltered', { count: filteredZones.length }) }}
+          </button>
+          <!-- Export selected -->
+          <button
+            v-if="selectedZones.length > 0"
+            type="button"
+            class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="bulkExporting"
+            @click="bulkExportZones"
+          >
+            <Icon :icon="bulkExporting ? 'mdi:loading' : selectedZones.length > 5 ? 'mdi:folder-zip' : 'mdi:download-multiple'" :class="{ 'animate-spin': bulkExporting }" class="h-4 w-4" />
+            {{ selectedZones.length > 5 
+              ? $t('windowsDns.zoneList.exportAsZip', { count: selectedZones.length })
+              : $t('windowsDns.zoneList.exportSelected', { count: selectedZones.length }) 
+            }}
+          </button>
+        </div>
+      </div>
+      
+      <!-- Progress indicator during bulk export -->
+      <div v-if="bulkExporting" class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+        <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+          <div 
+            class="h-full rounded-full bg-brand transition-all duration-300"
+            :style="{ width: `${exportProgress}%` }"
+          />
+        </div>
+        <span>{{ exportProgressText }}</span>
       </div>
     </header>
 
@@ -86,11 +118,11 @@
 
     <div v-else class="grid gap-4 md:grid-cols-2">
       <div
-        v-for="zone in zones"
+        v-for="(zone, index) in displayedZones"
         :key="zone.id"
         class="group rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
         :class="{ 'ring-2 ring-brand': selectionMode && selectedZones.includes(zone.id) }"
-        @click="selectionMode ? toggleZoneSelection(zone.id) : null"
+        @click="(e) => selectionMode ? handleZoneClick(zone.id, index, e) : null"
       >
         <div class="flex items-center justify-between gap-3">
           <!-- Selection checkbox (only in selection mode) -->
@@ -344,6 +376,7 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import JSZip from 'jszip'
 
 type Zone = {
   id: string
@@ -409,18 +442,47 @@ const nsServiceUnavailable = ref(false)
 const exportingZoneId = ref<string | null>(null)
 const bulkExporting = ref(false)
 const selectedZones = ref<string[]>([])
+const exportProgress = ref(0)
+const exportProgressText = ref('')
 
 // Selection mode state
 const selectionMode = ref(false)
+const selectionSearch = ref('')
+const lastClickedIndex = ref<number | null>(null)
+
+// Filtered zones based on search
+const filteredZones = computed(() => {
+  if (!selectionSearch.value.trim()) return props.zones
+  const search = selectionSearch.value.toLowerCase().trim()
+  return props.zones.filter(z => 
+    z.zoneName.toLowerCase().includes(search) ||
+    z.serverName?.toLowerCase().includes(search)
+  )
+})
+
+// Displayed zones (filtered when in selection mode, all otherwise)
+const displayedZones = computed(() => {
+  return selectionMode.value ? filteredZones.value : props.zones
+})
+
+// Check if all filtered zones are selected
+const allFilteredSelected = computed(() => {
+  if (filteredZones.value.length === 0) return false
+  return filteredZones.value.every(z => selectedZones.value.includes(z.id))
+})
 
 const enterSelectionMode = () => {
   selectionMode.value = true
   selectedZones.value = []
+  selectionSearch.value = ''
+  lastClickedIndex.value = null
 }
 
 const exitSelectionMode = () => {
   selectionMode.value = false
   selectedZones.value = []
+  selectionSearch.value = ''
+  lastClickedIndex.value = null
 }
 
 // Selection helpers
@@ -430,6 +492,42 @@ const toggleZoneSelection = (zoneId: string) => {
     selectedZones.value.push(zoneId)
   } else {
     selectedZones.value.splice(index, 1)
+  }
+}
+
+// Handle zone click with shift+click support for range selection
+const handleZoneClick = (zoneId: string, index: number, event: MouseEvent) => {
+  if (event.shiftKey && lastClickedIndex.value !== null) {
+    // Range selection
+    const start = Math.min(lastClickedIndex.value, index)
+    const end = Math.max(lastClickedIndex.value, index)
+    const zonesToSelect = displayedZones.value.slice(start, end + 1).map(z => z.id)
+    
+    // Add all zones in range to selection (without duplicates)
+    for (const id of zonesToSelect) {
+      if (!selectedZones.value.includes(id)) {
+        selectedZones.value.push(id)
+      }
+    }
+  } else {
+    toggleZoneSelection(zoneId)
+  }
+  lastClickedIndex.value = index
+}
+
+// Toggle select all filtered zones
+const toggleSelectAllFiltered = () => {
+  if (allFilteredSelected.value) {
+    // Deselect all filtered
+    const filteredIds = new Set(filteredZones.value.map(z => z.id))
+    selectedZones.value = selectedZones.value.filter(id => !filteredIds.has(id))
+  } else {
+    // Select all filtered (add to existing selection)
+    for (const zone of filteredZones.value) {
+      if (!selectedZones.value.includes(zone.id)) {
+        selectedZones.value.push(zone.id)
+      }
+    }
   }
 }
 
@@ -469,45 +567,107 @@ const exportZone = async (zone: Zone) => {
   }
 }
 
-// Bulk export selected zones
+// Bulk export selected zones (ZIP if >5, individual files otherwise)
 const bulkExportZones = async () => {
   if (selectedZones.value.length === 0) return
   
   bulkExporting.value = true
+  exportProgress.value = 0
+  exportProgressText.value = ''
+  
+  const useZip = selectedZones.value.length > 5
   let successCount = 0
   let failCount = 0
+  const totalCount = selectedZones.value.length
   
   try {
-    // Export each selected zone
-    for (const zoneId of selectedZones.value) {
-      const zone = props.zones.find(z => z.id === zoneId)
-      if (!zone || !isValidUuid(zone.id)) {
-        failCount++
-        continue
+    if (useZip) {
+      // ZIP packaging for many zones
+      const zip = new JSZip()
+      const zoneFiles: { name: string; content: string }[] = []
+      
+      for (let i = 0; i < selectedZones.value.length; i++) {
+        const zoneId = selectedZones.value[i]
+        const zone = props.zones.find(z => z.id === zoneId)
+        
+        exportProgress.value = Math.round(((i + 1) / totalCount) * 100)
+        exportProgressText.value = `${i + 1}/${totalCount}`
+        
+        if (!zone || !isValidUuid(zone.id)) {
+          failCount++
+          continue
+        }
+        
+        try {
+          const content = await $fetch<string>(`/api/dns/windows/zones/${zone.id}/export`, {
+            responseType: 'text'
+          })
+          zoneFiles.push({
+            name: `${zone.zoneName.replace(/\./g, '_')}.txt`,
+            content
+          })
+          successCount++
+        } catch (err) {
+          console.error(`[windows-dns] Export failed for zone ${zone.zoneName}:`, err)
+          failCount++
+        }
       }
       
-      try {
-        const content = await $fetch<string>(`/api/dns/windows/zones/${zone.id}/export`, {
-          responseType: 'text'
-        })
+      // Add all files to ZIP
+      for (const file of zoneFiles) {
+        zip.file(file.name, file.content)
+      }
+      
+      // Generate and download ZIP
+      exportProgressText.value = 'Skapar ZIP...'
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const downloadUrl = URL.createObjectURL(zipBlob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      const timestamp = new Date().toISOString().slice(0, 10)
+      link.download = `dns-zones-${timestamp}.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(downloadUrl)
+      
+    } else {
+      // Individual downloads for few zones
+      for (let i = 0; i < selectedZones.value.length; i++) {
+        const zoneId = selectedZones.value[i]
+        const zone = props.zones.find(z => z.id === zoneId)
         
-        // Create and trigger download
-        const blob = new Blob([content], { type: 'text/plain' })
-        const downloadUrl = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = downloadUrl
-        link.download = `${zone.zoneName.replace(/\./g, '_')}.txt`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(downloadUrl)
+        exportProgress.value = Math.round(((i + 1) / totalCount) * 100)
+        exportProgressText.value = `${i + 1}/${totalCount}`
         
-        successCount++
-        // Small delay between downloads to avoid browser blocking
-        await new Promise(resolve => setTimeout(resolve, 300))
-      } catch (err) {
-        console.error(`[windows-dns] Export failed for zone ${zone.zoneName}:`, err)
-        failCount++
+        if (!zone || !isValidUuid(zone.id)) {
+          failCount++
+          continue
+        }
+        
+        try {
+          const content = await $fetch<string>(`/api/dns/windows/zones/${zone.id}/export`, {
+            responseType: 'text'
+          })
+          
+          // Create and trigger download
+          const blob = new Blob([content], { type: 'text/plain' })
+          const downloadUrl = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = downloadUrl
+          link.download = `${zone.zoneName.replace(/\./g, '_')}.txt`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(downloadUrl)
+          
+          successCount++
+          // Small delay between downloads to avoid browser blocking
+          await new Promise(resolve => setTimeout(resolve, 300))
+        } catch (err) {
+          console.error(`[windows-dns] Export failed for zone ${zone.zoneName}:`, err)
+          failCount++
+        }
       }
     }
     
@@ -518,6 +678,8 @@ const bulkExportZones = async () => {
     }
   } finally {
     bulkExporting.value = false
+    exportProgress.value = 0
+    exportProgressText.value = ''
   }
 }
 

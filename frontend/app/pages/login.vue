@@ -30,6 +30,7 @@
         >
         <input
           id="password"
+          ref="passwordInput"
           v-model="password"
           type="password"
           required
@@ -106,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from '#imports'
+import { computed, nextTick, ref, watch } from '#imports'
 import type { FetchError } from 'ofetch'
 import { useAuth } from '~/composables/useAuth'
 import { useLoginBranding } from '~/composables/useLoginBranding'
@@ -123,6 +124,7 @@ const step = ref<'email' | 'password'>('email')
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
+const passwordInput = ref<HTMLInputElement | null>(null)
 interface IdentityProviderSummary {
   organizationId: string
   organizationName: string
@@ -222,6 +224,14 @@ const resetToEmailStep = () => {
   providers.value.identityProviders = []
   errorMessage.value = ''
 }
+
+// Auto-focus password field when step changes to 'password'
+watch(step, async (newStep) => {
+  if (newStep === 'password') {
+    await nextTick()
+    passwordInput.value?.focus()
+  }
+})
 
 const brandingSourceLabel = computed(() =>
   formatBrandingSource(

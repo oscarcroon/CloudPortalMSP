@@ -46,6 +46,7 @@
     "drizzle-orm": "^0.44.7",
     "isomorphic-dompurify": "^2.35.0",
     "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
     "marked": "^17.0.1",
     "mysql2": "^3.11.3",
     "nuxt": "^4.2.1",

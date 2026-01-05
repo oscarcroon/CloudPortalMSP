@@ -26,7 +26,7 @@ async function runAutoSetup(
   client: WindowsDnsClient,
   orgId: string,
   coreId: string
-): Promise<{ zonesActivated: number; zones: any[] }> {
+): Promise<{ zonesActivated: number; zones: any[]; accountNotFound?: boolean }> {
   console.log(`[windows-dns] Running automatic setup for org ${orgId} with coreId ${coreId}`)
   
   try {
@@ -63,7 +63,18 @@ async function runAutoSetup(
   } catch (error: any) {
     console.error(`[windows-dns] Auto-setup failed for org ${orgId}:`, error?.message || error)
     console.error(`[windows-dns] Auto-setup error details:`, error)
-    // Don't throw - we'll continue and let the user manually run autodiscover
+    
+    // Check if this is an "account not found" error - needs auto-healing
+    const isAccountNotFound = 
+      error?.statusCode === 404 && 
+      (error?.message?.includes('not found') || error?.message?.includes('Account'))
+    
+    if (isAccountNotFound) {
+      console.log(`[windows-dns] Account not found during auto-setup, flagging for auto-healing`)
+      return { zonesActivated: 0, zones: [], accountNotFound: true }
+    }
+    
+    // For other errors, continue and let the user manually run autodiscover
     return { zonesActivated: 0, zones: [] }
   }
 }
@@ -141,7 +152,75 @@ export default defineEventHandler(async (event) => {
     // If this is a new setup or no zones are activated, run auto-setup
     if (isNewSetup || existingAllowedZones.length === 0) {
       console.log(`[windows-dns] Triggering auto-setup (isNewSetup=${isNewSetup}, allowedZones=${existingAllowedZones.length})`)
-      const { zonesActivated, zones: discoveredZones } = await runAutoSetup(client, orgId, rawCoreId)
+      const { zonesActivated, zones: discoveredZones, accountNotFound } = await runAutoSetup(client, orgId, rawCoreId)
+      
+      // If account was not found during auto-setup, trigger auto-healing
+      if (accountNotFound) {
+        console.log(`[windows-dns] Account not found during auto-setup, triggering auto-healing for org ${orgId}`)
+        await clearAccountId(orgId)
+        
+        // Re-create account
+        const healingOrg = auth.organizations.find(o => o.id === orgId)
+        try {
+          const { accountId, created } = await ensureAccount({ coreId: rawCoreId }, orgId, healingOrg?.name, rawCoreId)
+          console.log(`[windows-dns] Auto-healed account: ${accountId}`)
+          
+          // Small delay for new account
+          if (created) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
+          
+          config = await getOrgConfig(orgId)
+          
+          if (config?.windowsDnsAccountId) {
+            // Get new client and retry auto-setup
+            const healedClient = await getClientForOrg(orgId)
+            const retryResult = await runAutoSetup(healedClient, orgId, rawCoreId)
+            
+            if (retryResult.zonesActivated > 0) {
+              return {
+                zones: retryResult.zones,
+                autoSetup: {
+                  performed: true,
+                  zonesActivated: retryResult.zonesActivated,
+                  autoHealed: true
+                },
+                moduleRights: {
+                  canManageZones: moduleRights.canCreateZones || moduleRights.canEditZones,
+                  canEditRecords: moduleRights.canEditRecords,
+                  canAutodiscover: moduleRights.canAutodiscover,
+                  canManageOwnership: moduleRights.canManageOwnership,
+                  canManageOrgConfig: moduleRights.canManageOrgConfig
+                }
+              }
+            }
+            
+            // No zones found after healing
+            return {
+              zones: [],
+              autoSetup: {
+                performed: true,
+                zonesActivated: 0,
+                autoHealed: true,
+                message: 'Account was recreated. No matching zones found. Make sure your DNS zones have a TXT record with COREID=' + rawCoreId
+              },
+              moduleRights: {
+                canManageZones: moduleRights.canCreateZones || moduleRights.canEditZones,
+                canEditRecords: moduleRights.canEditRecords,
+                canAutodiscover: moduleRights.canAutodiscover,
+                canManageOwnership: moduleRights.canManageOwnership,
+                canManageOrgConfig: moduleRights.canManageOrgConfig
+              }
+            }
+          }
+        } catch (retryError: any) {
+          console.error(`[windows-dns] Auto-healing during auto-setup failed for org ${orgId}:`, retryError)
+          throw createError({
+            statusCode: retryError?.statusCode ?? 502,
+            message: retryError?.message ?? 'Failed to recreate Windows DNS account during auto-healing.'
+          })
+        }
+      }
       
       if (zonesActivated > 0) {
         // Return the discovered zones directly (they're now activated)
