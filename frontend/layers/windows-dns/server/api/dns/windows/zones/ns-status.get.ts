@@ -1,5 +1,7 @@
 import { defineEventHandler, createError } from 'h3'
 import { ofetch } from 'ofetch'
+import { ensureAuthState } from '~~/server/utils/session'
+import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 
 /**
  * Nameserver check status for a zone
@@ -29,31 +31,50 @@ interface ApiListResponse<T> {
  * Fetches nameserver check status from the WindowsDNS backend.
  * Used to show pending/active delegation status for zones.
  */
-export default defineEventHandler(async () => {
-  const windowsDnsApiUrl = process.env.WINDOWS_DNS_API_URL
-  const layerToken = process.env.WINDOWS_DNS_LAYER_TOKEN
-
-  if (!windowsDnsApiUrl) {
-    throw createError({
-      statusCode: 500,
-      message: 'WINDOWS_DNS_API_URL not configured'
-    })
+export default defineEventHandler(async (event) => {
+  // Require an authenticated portal session (same as other windows-dns endpoints)
+  const auth = await ensureAuthState(event)
+  if (!auth?.currentOrgId) {
+    throw createError({ statusCode: 400, message: 'Organization missing from session.' })
   }
 
-  if (!layerToken) {
-    throw createError({
-      statusCode: 500,
-      message: 'WINDOWS_DNS_LAYER_TOKEN not configured'
-    })
+  const moduleRights = await getWindowsDnsModuleAccessForUser(auth.currentOrgId, auth.user.id)
+  if (!moduleRights.canView) {
+    throw createError({ statusCode: 403, message: 'No permission to view Windows DNS zones.' })
+  }
+
+  const windowsDnsApiUrl = process.env.WINDOWS_DNS_API_URL
+  // Admin endpoints in WindowsDNS backend are protected by x-admin-key / Authorization (adminAuth).
+  const adminKey = (process.env.WINDOWS_DNS_ADMIN_KEY || process.env.ADMIN_API_KEY || '').trim()
+
+  // NS status is an optional feature; degrade gracefully if not configured.
+  if (!windowsDnsApiUrl || !adminKey) {
+    return {
+      success: true,
+      items: [],
+      statusByZoneName: {},
+      serviceUnavailable: true,
+      reason: !windowsDnsApiUrl
+        ? 'WINDOWS_DNS_API_URL not configured'
+        : 'WINDOWS_DNS_ADMIN_KEY not configured'
+    }
   }
 
   try {
+    const baseUrl = windowsDnsApiUrl.replace(/\/$/, '')
+    // Be tolerant to both styles of WINDOWS_DNS_API_URL:
+    // - .../api/v1  (recommended)
+    // - ...         (legacy)
+    const adminEndpoint = baseUrl.endsWith('/api/v1')
+      ? `${baseUrl}/admin/nameserver-checks`
+      : `${baseUrl}/api/v1/admin/nameserver-checks`
+
     // Fetch nameserver checks from the backend admin API
     const response = await ofetch<ApiListResponse<NameserverCheckStatus>>(
-      `${windowsDnsApiUrl}/api/v1/admin/nameserver-checks`,
+      adminEndpoint,
       {
         headers: {
-          Authorization: `Bearer ${layerToken}`,
+          'x-admin-key': adminKey,
           'Content-Type': 'application/json'
         }
       }
@@ -80,7 +101,8 @@ export default defineEventHandler(async () => {
   } catch (error: any) {
     // If the backend is unavailable, return empty status gracefully
     // This allows the UI to work even if NS-check service is down
-    if (error?.statusCode === 502 || error?.code === 'ECONNREFUSED') {
+    const upstreamStatus = error?.response?.status ?? error?.statusCode
+    if (upstreamStatus === 502 || error?.code === 'ECONNREFUSED') {
       console.warn('[windows-dns] NS check service unavailable, returning empty status')
       return {
         success: true,
@@ -90,8 +112,16 @@ export default defineEventHandler(async () => {
       }
     }
 
-    const statusCode = error?.statusCode ?? 500
-    const message = error?.message ?? 'Failed to fetch NS check status'
+    // Avoid leaking upstream auth details; treat as a backend integration error.
+    if (upstreamStatus === 401) {
+      throw createError({
+        statusCode: 502,
+        message: 'Windows DNS NS status backend rejected admin key. Check WINDOWS_DNS_ADMIN_KEY.'
+      })
+    }
+
+    const statusCode = upstreamStatus ?? 500
+    const message = error?.data?.errors?.[0]?.message ?? error?.message ?? 'Failed to fetch NS check status'
     
     throw createError({ statusCode, message })
   }

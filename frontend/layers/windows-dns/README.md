@@ -68,6 +68,10 @@ WINDOWS_DNS_API_URL=http://windowsdns-layer:4001/api/v1
 # Created in WindowsDNS Admin Panel → Integrations → CoreAPI Integration
 WINDOWS_DNS_LAYER_TOKEN=wdns_sys_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx...
 
+# Optional: Admin key (WindowsDNS backend) for NS status endpoints
+# Only required if you want to use: GET /api/dns/windows/zones/ns-status
+WINDOWS_DNS_ADMIN_KEY=your-admin-key
+
 # Optional: HMAC pepper for hashing (set in WindowsDNS Layer API)
 # SYSTEM_TOKEN_PEPPER=your-secret-pepper
 ```
