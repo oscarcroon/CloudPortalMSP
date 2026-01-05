@@ -728,6 +728,21 @@ export class WindowsDnsClient {
       { method: 'PATCH', body: updates }
     )
   }
+
+  /**
+   * Delete a zone.
+   * Uses zones.write scope (zone-scoped).
+   * This removes the zone from Windows DNS server and database.
+   */
+  async deleteZone(zoneId: string): Promise<{ deleted: boolean; id: string; zoneName: string }> {
+    return tokenRequestWithRetry<{ deleted: boolean; id: string; zoneName: string }>(
+      this.orgId,
+      this.config.instanceId,
+      () => getTokenForZones(this.config, this.orgId, ['zones.write'], [zoneId]),
+      `/zones/${zoneId}`,
+      { method: 'DELETE' }
+    )
+  }
 }
 
 /**

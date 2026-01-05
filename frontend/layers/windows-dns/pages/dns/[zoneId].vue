@@ -1,26 +1,26 @@
 <template>
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
+    <!-- Back button -->
+    <NuxtLink
+      to="/dns"
+      class="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-brand dark:text-slate-400 dark:hover:text-brand"
+    >
+      <Icon icon="mdi:arrow-left" class="h-4 w-4" />
+      {{ $t('windowsDns.zone.back') }}
+    </NuxtLink>
+
     <header class="flex flex-col gap-2">
       <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {{ $t('windowsDns.zone.label') }}
       </p>
       <div class="flex flex-col gap-1">
-        <div class="flex items-center gap-3">
-          <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">
-            <span v-if="zonePending" class="inline-flex items-center gap-2 text-base text-slate-500 dark:text-slate-400">
-              <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
-              {{ $t('windowsDns.zone.loadingZone') }}
-            </span>
-            <span v-else>{{ zoneData?.zone?.zoneName ?? '—' }}</span>
-          </h1>
-          <NuxtLink
-            to="/dns"
-            class="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-          >
-            <Icon icon="mdi:arrow-left" class="h-4 w-4" />
-            {{ $t('windowsDns.zone.back') }}
-          </NuxtLink>
-        </div>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-50">
+          <span v-if="zonePending" class="inline-flex items-center gap-2 text-base text-slate-500 dark:text-slate-400">
+            <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
+            {{ $t('windowsDns.zone.loadingZone') }}
+          </span>
+          <span v-else>{{ zoneData?.zone?.zoneName ?? '—' }}</span>
+        </h1>
         <p class="text-sm text-slate-600 dark:text-slate-300">
           <template v-if="zonePending">
             <span class="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
@@ -29,14 +29,10 @@
             </span>
           </template>
           <template v-else>
-            {{ zoneData?.zone?.serverName }} &middot; {{ zoneData?.zone?.zoneType ?? 'Primary' }}
+            {{ zoneData?.zone?.serverName }}
           </template>
         </p>
         <div class="flex items-center gap-2">
-          <span class="mod-windows-dns-badge">
-            <Icon icon="mdi:dns" class="h-4 w-4" />
-            {{ $t('windowsDns.zone.badge') }}
-          </span>
           <!-- Export zone button -->
           <button
             v-if="zoneId && isValidZoneId && zoneData?.zone"
