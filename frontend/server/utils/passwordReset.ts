@@ -29,7 +29,8 @@ export const triggerPasswordReset = async (userId: string, email: string) => {
     })
     .where(eq(users.id, userId))
 
-  const rowsAffected = (result as any)?.rowsAffected ?? 0
+  // SQLite returns { changes }, MySQL returns [{ affectedRows }]
+  const rowsAffected = (result as any)?.changes ?? (result as any)?.[0]?.affectedRows ?? 0
   if (rowsAffected === 0) {
     throw createError({ statusCode: 404, message: 'Användaren kunde inte uppdateras.' })
   }

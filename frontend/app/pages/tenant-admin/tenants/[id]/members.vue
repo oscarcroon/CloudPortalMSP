@@ -117,12 +117,14 @@
                 <td class="px-6 py-3">
                   <select
                     :disabled="
+                      !canManageMembers ||
                       member.status !== 'active' ||
                       roleLoadingId === member.membershipId ||
                       statusLoadingId === member.membershipId ||
                       deleteLoadingId === member.membershipId
                     "
                     class="rounded border border-slate-200 bg-transparent px-2 py-1 text-sm dark:border-white/10"
+                    :class="{ 'cursor-not-allowed opacity-60': !canManageMembers }"
                     :value="member.role"
                     @change="handleRoleChange(member, ($event.target as HTMLSelectElement).value)"
                   >
@@ -155,6 +157,7 @@
                       :options="mspRoleDropdownOptions"
                       :model-value="memberMspRoles[member.membershipId] || []"
                       :disabled="
+                        !canManageMembers ||
                         member.status !== 'active' ||
                         mspRolesLoadingId === member.membershipId ||
                         statusLoadingId === member.membershipId ||
@@ -293,7 +296,7 @@
                   {{ formatDate(member.addedAt) }}
                 </td>
                 <td class="px-6 py-3">
-                  <div class="flex flex-wrap gap-2 text-xs">
+                  <div v-if="canManageMembers" class="flex flex-wrap gap-2 text-xs">
                     <button
                       v-if="member.status === 'active'"
                       class="rounded border border-amber-200 px-3 py-1 text-amber-700 transition hover:border-amber-300 hover:text-amber-600 dark:border-amber-500/30 dark:text-amber-200"
@@ -318,6 +321,7 @@
                       {{ deleteLoadingId === member.membershipId ? t('adminTenants.members.actions.removing') : t('adminTenants.members.actions.remove') }}
                     </button>
                   </div>
+                  <span v-else class="text-xs text-slate-400 dark:text-slate-500">—</span>
                 </td>
               </tr>
             </tbody>
@@ -935,6 +939,20 @@ const canInvite = computed(() => {
     return role === 'admin'
   }
   return false
+})
+
+// Check if user can manage members (change roles, disable, remove)
+// Requires tenants:manage-members permission
+const canManageMembers = computed(() => {
+  if (!tenant.value) return false
+  if (auth.isSuperAdmin.value) return true
+  
+  const role = auth.state.value.data?.tenantRoles?.[tenant.value.id]
+  if (!role) return false
+  
+  // Roles with tenants:manage-members permission
+  const rolesWithManageMembers = ['admin', 'msp-global-admin', 'msp-full-admin']
+  return rolesWithManageMembers.includes(role)
 })
 
 const formatDate = (value: string | null) => {

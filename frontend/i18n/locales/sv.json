@@ -282,6 +282,7 @@
     "noContexts": "Inga kontexter tillgängliga.",
     "selectContext": "Välj kontext",
     "delegation": "Delegation",
+    "mspAccess": "Åtkomst via MSP-roll",
     "errors": {
       "switchTenantFailed": "Kunde inte byta till denna tenant.",
       "switchContextFailed": "Kunde inte byta kontext.",

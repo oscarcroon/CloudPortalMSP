@@ -82,6 +82,12 @@
                 <div class="flex items-center gap-1.5">
                   <p class="truncate font-medium">{{ org.name }}</p>
                   <Icon
+                    v-if="org.accessType === 'msp' || org.accessType === 'superadmin'"
+                    icon="mdi:account-hard-hat"
+                    class="h-3.5 w-3.5 shrink-0 text-brand"
+                    :title="t('contextSwitcher.mspAccess')"
+                  />
+                  <Icon
                     v-if="org.accessType === 'delegation'"
                     icon="mdi:account-key"
                     class="h-3.5 w-3.5 shrink-0 text-emerald-400"
@@ -118,7 +124,21 @@
           @click="trySelectOrg(org)"
         >
           <div class="min-w-0 flex-1">
-            <p class="truncate font-semibold">{{ org.name }}</p>
+            <div class="flex items-center gap-1.5">
+              <p class="truncate font-semibold">{{ org.name }}</p>
+              <Icon
+                v-if="org.accessType === 'msp' || org.accessType === 'superadmin'"
+                icon="mdi:account-hard-hat"
+                class="h-4 w-4 shrink-0 text-brand"
+                :title="t('contextSwitcher.mspAccess')"
+              />
+              <Icon
+                v-if="org.accessType === 'delegation'"
+                icon="mdi:account-key"
+                class="h-4 w-4 shrink-0 text-emerald-400"
+                :title="t('contextSwitcher.delegation')"
+              />
+            </div>
             <p class="text-xs text-slate-400">{{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}</p>
           </div>
           <div class="flex items-center gap-1">
