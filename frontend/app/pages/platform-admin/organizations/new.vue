@@ -67,15 +67,6 @@
             />
           </div>
           <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Standardroll</label>
-            <select
-              v-model="form.defaultRole"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            >
-              <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
-            </select>
-          </div>
-          <div>
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">COREID <span class="text-red-500">*</span></label>
             <input
               v-model="form.coreId"
@@ -215,7 +206,6 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#imports'
-import { rbacRoles } from '~/constants/rbac'
 import type { AdminCreateOrganizationResponse, AdminTenantSummary } from '~/types/admin'
 import TenantSelector from '~/components/admin/TenantSelector.vue'
 import { useAuth } from '~/composables/useAuth'
@@ -237,7 +227,6 @@ if (import.meta.client) {
     await router.replace('/settings?error=missing-permission')
   }
 }
-const roles = rbacRoles
 const steps = [
   { id: 1, label: 'Organisationsdetaljer' },
   { id: 2, label: 'Ägarkonto' }
@@ -272,7 +261,6 @@ const form = reactive({
   name: '',
   slug: '',
   billingEmail: '',
-  defaultRole: roles[3],
   coreId: '',
   ownerEmail: ''
 })
@@ -391,7 +379,6 @@ const handleSubmit = async () => {
   try {
     const payload = {
       name: form.name.trim(),
-      defaultRole: form.defaultRole,
       tenantId: form.tenantId,
       owner: {
         email: form.ownerEmail.trim()

@@ -311,6 +311,7 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
   // Everything else (module/layer pages) will trigger a full page reload
   const coreRoutes = [
     '/admin/',           // Admin pages handle context via their own logic
+    '/tenant-admin',     // Tenant admin pages
     '/settings/',        // Settings pages are reactive
     '/profile',          // Profile is user-specific, not org-specific
     '/login',            // Auth pages

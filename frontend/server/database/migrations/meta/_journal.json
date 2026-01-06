@@ -374,31 +374,38 @@
     },
     {
       "breakpoints": true,
-      "when": 1765784406.510,
+      "when": 1765784406.51,
       "tag": "0046_windows_dns_coreid_first",
       "version": "6",
       "idx": 53
     },
     {
       "breakpoints": true,
-      "when": 1765784406.510,
+      "when": 1765784406.51,
       "tag": "0047_org_api_tokens",
       "version": "6",
       "idx": 54
     },
     {
       "breakpoints": true,
-      "when": 1765784406.510,
+      "when": 1765784406.51,
       "tag": "0048_windows_dns_blocked_zones",
       "version": "6",
       "idx": 55
     },
     {
       "breakpoints": true,
-      "when": 1765784406.510,
+      "when": 1765784406.51,
       "tag": "0049_tenant_operations",
       "version": "6",
       "idx": 56
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1767643731832,
+      "tag": "0057_blushing_black_knight",
+      "breakpoints": true
     }
   ],
   "version": "6"

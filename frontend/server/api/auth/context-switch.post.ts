@@ -144,23 +144,6 @@ export default defineEventHandler(async (event) => {
   // Validate and set tenant if provided
   if (body.tenantId !== undefined) {
     if (body.tenantId) {
-      // Verify membership
-      const [membership] = await db
-        .select()
-        .from(tenantMemberships)
-        .where(
-          and(
-            eq(tenantMemberships.userId, auth.user.id),
-            eq(tenantMemberships.tenantId, body.tenantId),
-            eq(tenantMemberships.status, 'active')
-          )
-        )
-        .limit(1)
-
-      if (!membership) {
-        throw createError({ statusCode: 403, message: 'Du har inte åtkomst till denna tenant.' })
-      }
-
       const [target] = await db
         .select({
           id: tenants.id,
@@ -176,19 +159,39 @@ export default defineEventHandler(async (event) => {
         throw createError({ statusCode: 404, message: 'Tenant kunde inte hittas.' })
       }
 
-      // Check if MFA is required for context switch
-      if (target.requireMfaOnContextSwitch && !auth.user.isSuperAdmin) {
-        const mfaResult = await requireMfa(event, 'tenant', body.tenantId, 'contextSwitch')
-        if (!mfaResult.success && mfaResult.requiresMfa) {
-          throw createError({
-            statusCode: 403,
-            message: 'MFA krävs för att byta till denna tenant.',
-            data: {
-              requiresMfa: true,
-              scope: 'tenant',
-              scopeId: body.tenantId
-            }
-          })
+      // Superadmins can switch to any tenant without membership
+      if (!auth.user.isSuperAdmin) {
+        // Verify membership for non-superadmins
+        const [membership] = await db
+          .select()
+          .from(tenantMemberships)
+          .where(
+            and(
+              eq(tenantMemberships.userId, auth.user.id),
+              eq(tenantMemberships.tenantId, body.tenantId),
+              eq(tenantMemberships.status, 'active')
+            )
+          )
+          .limit(1)
+
+        if (!membership) {
+          throw createError({ statusCode: 403, message: 'Du har inte åtkomst till denna tenant.' })
+        }
+
+        // Check if MFA is required for context switch
+        if (target.requireMfaOnContextSwitch) {
+          const mfaResult = await requireMfa(event, 'tenant', body.tenantId, 'contextSwitch')
+          if (!mfaResult.success && mfaResult.requiresMfa) {
+            throw createError({
+              statusCode: 403,
+              message: 'MFA krävs för att byta till denna tenant.',
+              data: {
+                requiresMfa: true,
+                scope: 'tenant',
+                scopeId: body.tenantId
+              }
+            })
+          }
         }
       }
 

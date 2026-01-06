@@ -722,7 +722,6 @@ function formatDateTime(dateStr: string | null): string {
   return date.toLocaleDateString('sv-SE', { dateStyle: 'short' }) + ' ' + date.toLocaleTimeString('sv-SE', { timeStyle: 'short' })
 }
 const isSuperAdmin = computed(() => auth.isSuperAdmin.value)
-const organizationCount = computed(() => auth.organizations.value?.length ?? 0)
 
 interface MembersResponse {
   members: { membershipId: string }[]
@@ -758,6 +757,24 @@ const { data: modulesData } = useFetch<ModulesResponse>(
     default: () => ({ modules: [] })
   }
 )
+
+// Fetch organizations for current tenant (not from auth state, which only shows user's memberships)
+interface OrganizationsResponse {
+  organizations: { id: string; name: string; slug: string }[]
+}
+
+const { data: organizationsData } = useFetch<OrganizationsResponse>(
+  () => tenantId.value ? `/api/admin/tenants/${tenantId.value}/organizations` : '',
+  {
+    immediate: !!tenantId.value,
+    watch: [tenantId],
+    default: () => ({ organizations: [] })
+  }
+)
+
+const organizationCount = computed(() => {
+  return organizationsData.value?.organizations?.length ?? 0
+})
 
 const memberCount = computed(() => {
   return membersData.value?.members?.length ?? null

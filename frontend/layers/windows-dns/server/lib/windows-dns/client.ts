@@ -128,7 +128,7 @@ export const systemRequest = async <T>(
  * Check if an error indicates token expiry.
  */
 const isTokenExpiredError = (error: any): boolean => {
-  const message = 
+  const message =
     error?.data?.errors?.[0]?.message ||
     error?.data?.message ||
     error?.message ||
@@ -201,24 +201,24 @@ export const tokenRequestWithRetry = async <T>(
   options?: { method?: string; body?: unknown; query?: Record<string, string> }
 ): Promise<T> => {
   const token = await getTokenFn()
-  
+
   try {
     return await tokenRequest<T>(instanceId, token, path, options)
   } catch (error: any) {
     // Check if this is a token expiry error
     if (isTokenExpiredError(error)) {
       console.log(`[windows-dns] Token expired for org ${orgId}, invalidating cache and retrying...`)
-      
+
       // Invalidate all cached tokens for this org
       invalidateOrgTokens(orgId)
-      
+
       // Get a fresh token (will mint a new one since cache is invalidated)
       const freshToken = await getTokenFn()
-      
+
       // Retry the request with the fresh token
       return await tokenRequest<T>(instanceId, freshToken, path, options)
     }
-    
+
     // Re-throw other errors
     throw error
   }
@@ -265,12 +265,12 @@ export const parseCoreIdFromExternalRef = (externalRef: string | null | undefine
  */
 const formatAccountName = (orgName: string | undefined | null, coreId: string): string => {
   const normalizedCoreId = coreId.toUpperCase()
-  
+
   // If orgName is missing or just the fallback format "Org <id>", use coreId only
   if (!orgName || orgName.startsWith('Org ') || orgName === normalizedCoreId) {
     return normalizedCoreId
   }
-  
+
   // Include both org name and coreId for identification
   return `${orgName} (${normalizedCoreId})`
 }
@@ -299,17 +299,17 @@ export const ensureAccount = async (
   const accountName = formatAccountName(orgName, coreId)
 
   try {
-  const result = await systemRequest<{ account: { id: string }; created: boolean }>(
-    config.instanceId,
-    '/accounts/ensure',
-    {
-      method: 'POST',
-      body: {
-        name: accountName,
+    const result = await systemRequest<{ account: { id: string }; created: boolean }>(
+      config.instanceId,
+      '/accounts/ensure',
+      {
+        method: 'POST',
+        body: {
+          name: accountName,
           externalRef
+        }
       }
-    }
-  )
+    )
 
     if (!result?.account?.id) {
       throw createError({
@@ -319,12 +319,12 @@ export const ensureAccount = async (
     }
 
     // Update org config with the account ID (coreId is derived from organizations, not stored here)
-  await saveOrgConfig(orgId, {
+    await saveOrgConfig(orgId, {
       windowsDnsAccountId: result.account.id
-  })
+    })
 
-  return {
-    accountId: result.account.id,
+    return {
+      accountId: result.account.id,
       created: result.created ?? false
     }
   } catch (error: any) {
@@ -370,8 +370,8 @@ const mintToken = async (
           name: `drift-token-portal`, // Consistent name for drift tokens
           scopes,
           // Only send allowedZoneIds for explicit selector
-          allowedZoneIds: zoneSelector === 'explicit' && allowedZoneIds !== '*' 
-            ? allowedZoneIds 
+          allowedZoneIds: zoneSelector === 'explicit' && allowedZoneIds !== '*'
+            ? allowedZoneIds
             : undefined,
           // Drift token configuration
           purpose: 'drift',
@@ -459,8 +459,8 @@ export const getToken = async (
   // Determine zone selector strategy
   // - Use 'account_set' for general operations (dynamic based on ownership/COREID)
   // - Use 'explicit' only when specific zone IDs are required
-  const zoneSelector: WindowsDnsZoneSelector = (useAccountSet && allowedZoneIds === '*') 
-    ? 'account_set' 
+  const zoneSelector: WindowsDnsZoneSelector = (useAccountSet && allowedZoneIds === '*')
+    ? 'account_set'
     : 'explicit'
 
   // For explicit selector, we need actual zone IDs
@@ -495,11 +495,11 @@ export const getToken = async (
       zoneSelector,
       effectiveAllowedZoneIds
     )
-    
+
     if (renewed) {
       console.log(`[windows-dns] Token renewed for account ${config.windowsDnsAccountId}, scopes: ${scopes.join(',')}`)
     }
-    
+
     return {
       token,
       expiresAt,
@@ -553,7 +553,7 @@ export class WindowsDnsClient {
   constructor(
     private orgId: string,
     private config: WindowsDnsOrgConfig
-  ) {}
+  ) { }
 
   /**
    * List zones for the authenticated account.

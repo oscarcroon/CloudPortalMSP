@@ -14,7 +14,7 @@ export interface AuthOrganization {
   hasLocalLoginOverride: boolean
   tenantId?: string | null
   lastAccessedAt?: number | null
-  accessType?: 'direct' | 'msp' | 'delegation'
+  accessType?: 'direct' | 'msp' | 'delegation' | 'superadmin'
   expiresAt?: number | null
 }
 

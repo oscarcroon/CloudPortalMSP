@@ -259,6 +259,7 @@ export const buildAuthState = async (
   }
 
   // Add proxy organizations for resolvedOrgId if user has access via tenant + includeChildren
+  // Also add for superadmins who can access any organization
   if (resolvedOrgId && !orgRoles[resolvedOrgId]) {
     const [resolvedOrg] = await db
       .select({
@@ -276,7 +277,9 @@ export const buildAuthState = async (
 
     if (resolvedOrg) {
       const proxyRole = deriveProxyRoleForTenant(resolvedOrg.tenantId)
-      if (proxyRole) {
+      // Superadmins can access any organization - give them admin role
+      const effectiveRole = proxyRole ?? (user.isSuperAdmin ? 'admin' : null)
+      if (effectiveRole) {
         const proxyOrg: AuthOrganization = {
           id: resolvedOrg.id,
           name: resolvedOrg.name,
@@ -285,14 +288,14 @@ export const buildAuthState = async (
           isSuspended: Boolean(resolvedOrg.isSuspended),
           logoUrl: normalizeStoredLogoUrl(resolvedOrg.logoUrl),
           requireSso: Boolean(resolvedOrg.requireSso),
-          hasLocalLoginOverride: false,
-          role: proxyRole,
+          hasLocalLoginOverride: user.isSuperAdmin, // Superadmins can bypass SSO
+          role: effectiveRole,
           tenantId: resolvedOrg.tenantId ?? null,
           lastAccessedAt: null,
-          accessType: 'msp'
+          accessType: user.isSuperAdmin && !proxyRole ? 'superadmin' : 'msp'
         }
         organizationPayload.push(proxyOrg)
-        orgRoles[proxyOrg.id] = proxyRole
+        orgRoles[proxyOrg.id] = effectiveRole
       }
     }
   }
