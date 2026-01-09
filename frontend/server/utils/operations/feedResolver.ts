@@ -407,4 +407,3 @@ async function getOrganizationInfo(orgId: string): Promise<{ id: string; name: s
   
   return org ?? null
 }
-

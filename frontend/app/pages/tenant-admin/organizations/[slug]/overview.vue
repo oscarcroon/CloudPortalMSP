@@ -1,8 +1,8 @@
 <template>
   <section class="space-y-8">
     <header class="space-y-1">
-      <NuxtLink to="/tenant-admin/tenants" class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500">
-        ← Tillbaka till listan
+      <NuxtLink to="/tenant-admin" class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500">
+        ← Tillbaka
       </NuxtLink>
       <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ organization?.name ?? 'Organisation' }}</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">Översikt och grundinställningar.</p>
@@ -11,8 +11,8 @@
     <OrganizationTabs :slug="slug" active="overview" />
 
     <div v-if="showCreatedBanner" class="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-300">
-      Organisationen skapades. Hantera medlemmar under
-      <NuxtLink to="/settings/members" class="font-semibold underline hover:no-underline">Inställningar → Medlemmar</NuxtLink>
+      Organisationen skapades. Hantera medlemmar via fliken
+      <NuxtLink :to="`/tenant-admin/organizations/${slug}/members`" class="font-semibold underline hover:no-underline">Medlemmar</NuxtLink>
       eller konfigurera SSO via fliken <strong>Auth</strong>.
     </div>
 
