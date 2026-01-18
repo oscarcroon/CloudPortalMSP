@@ -62,8 +62,9 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   { path: '/ncentral', labelKey: 'nav.ncentral', label: 'N-Central', icon: 'mdi:remote-desktop' },
   { path: '/cloudflare-dns', labelKey: 'cloudflareDns.title', label: 'Cloudflare DNS', icon: 'mdi:shield-check-outline' },
   { path: '/cloudflare-dns/admin', labelKey: 'cloudflareDns.admin.title', label: 'Administration', icon: 'mdi:cog-outline' },
-  { path: '/dns', labelKey: 'windowsDns.index.title', label: 'DNS Zones', icon: 'mdi:dns' },
-  { path: '/dns/autodiscover', labelKey: 'windowsDns.autodiscover.title', label: 'Autodiscover', icon: 'mdi:auto-fix' }
+  { path: '/dns', labelKey: 'windowsDns.index.title', label: 'DNS Zones', icon: 'mdi:globe' },
+  { path: '/dns/autodiscover', labelKey: 'windowsDns.autodiscover.title', label: 'Autodiscover', icon: 'mdi:auto-fix' },
+  { path: '/dns/redirects', labelKey: 'windowsDns.redirects.title', label: 'Omdirigeringar', icon: 'mdi:arrow-right' }
 ]
 
 const HUMANIZE_SEGMENTS: Record<string, string> = {
