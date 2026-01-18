@@ -239,7 +239,10 @@ const primaryNavSource = computed(() => {
 })
 
 const maxPrimaryLinks = computed(() => {
-  const currentWidth = width.value
+  // Use a consistent default width on server to avoid hydration mismatch
+  // On server, width.value will be undefined, so we use 0 to get the default (2)
+  // On client, use the actual width value
+  const currentWidth = process.client && width.value ? width.value : 0
   if (currentWidth >= 1600) return 6
   if (currentWidth >= 1360) return 5
   if (currentWidth >= 1100) return 4
