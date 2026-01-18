@@ -139,7 +139,7 @@
             />
           </button>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-slate-900 dark:text-slate-50">{{ zone.zoneName }}</p>
+            <p class="text-lg font-medium text-slate-900 dark:text-slate-50">{{ zone.zoneName }}</p>
             <p v-if="zone.serverName" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {{ zone.serverName }}
             </p>

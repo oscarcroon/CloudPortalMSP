@@ -114,27 +114,29 @@ onMounted(async () => {
     <!-- Zone Grid -->
     <div
       v-else
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+      class="grid gap-4 md:grid-cols-2"
     >
       <NuxtLink
         v-for="zone in filteredZones"
         :key="zone.id"
         :to="`/dns/redirects/${zone.id}`"
-        class="block p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+        class="group block rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
       >
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">
-            {{ zone.name }}
-          </h3>
-          <span
-            class="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300"
-          >
-            {{ zone.redirectCount || 0 }}
-          </span>
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <h3 class="text-lg font-medium text-slate-900 dark:text-slate-50">
+              {{ zone.name }}
+            </h3>
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              {{ t('windowsDns.redirects.zone_selection.redirect_count', { count: zone.redirectCount || 0 }) }}
+            </p>
+          </div>
+          <div class="flex-shrink-0">
+            <svg class="w-6 h-6 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </div>
         </div>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          {{ t('windowsDns.redirects.zone_selection.redirect_count', { count: zone.redirectCount || 0 }) }}
-        </p>
       </NuxtLink>
     </div>
   </div>
