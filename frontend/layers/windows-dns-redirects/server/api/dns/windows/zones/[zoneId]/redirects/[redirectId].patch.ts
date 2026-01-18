@@ -256,7 +256,7 @@ export default defineEventHandler(async (event) => {
       // Create new records
       for (const entry of plan.entries.filter(e => e.action === 'create')) {
         try {
-          await client.createRecord(zoneId, {
+          await client.createRecordInZone(zoneId, {
             name: entry.record.name,
             type: entry.record.type,
             content: entry.record.content,
