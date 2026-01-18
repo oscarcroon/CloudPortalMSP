@@ -9,7 +9,14 @@ import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirects, windowsDnsAllowedZones } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
-import { hostToZoneRecordName, normalizeRedirectHost } from '@windows-dns-redirects/server/utils/normalizeHost'
+import { normalizeRedirectHost } from '@windows-dns-redirects/server/utils/normalizeHost'
+import {
+  buildDnsPlan,
+  buildRecordKey,
+  getManagedComment,
+  isDnsIntegrationEnabled,
+  trackManagedRecord
+} from '@windows-dns-redirects/server/utils/dnsPlanRedirectRecords'
 import type { WindowsDnsRedirectCreateInput } from '../../../../types'
 
 export default defineEventHandler(async (event) => {
@@ -49,6 +56,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Zone not found or not accessible.' })
   }
 
+  const zoneName = allowedZone.zoneName || ''
   const body = await readBody<WindowsDnsRedirectCreateInput>(event)
   const applyDnsChanges = body?.applyDnsChanges === true
 
@@ -82,7 +90,7 @@ export default defineEventHandler(async (event) => {
   // Validate and normalize host
   let host: string
   try {
-    host = normalizeRedirectHost((body as any)?.host, allowedZone.zoneName)
+    host = normalizeRedirectHost(body.host, zoneName)
   } catch (e: any) {
     throw createError({ statusCode: 400, message: e?.message ?? 'Invalid host.' })
   }
@@ -103,7 +111,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Check for duplicate source path
+  // Check for duplicate (host + sourcePath)
   const [existing] = await db
     .select({ id: windowsDnsRedirects.id })
     .from(windowsDnsRedirects)
@@ -127,87 +135,99 @@ export default defineEventHandler(async (event) => {
   /**
    * DNS record integration (optional, env-driven)
    *
-   * The redirects system requires the zone apex (default "@") to point at the redirects ingress.
-   * If configured and there is a conflict, we return a 409 with a before/after plan unless
-   * the client explicitly acknowledges via `applyDnsChanges: true`.
+   * If DNS integration is enabled:
+   * - Apex hosts (@) get A records pointing to configured IPv4 (+ AAAA for IPv6)
+   * - Subdomain hosts get CNAME pointing to zone apex
+   *
+   * If there's a conflict, return 409 with plan unless applyDnsChanges=true.
    */
-  const dnsRecordContent = process.env.WINDOWS_DNS_REDIRECTS_DNS_RECORD_CONTENT?.trim()
-  const dnsRecordType = (process.env.WINDOWS_DNS_REDIRECTS_DNS_RECORD_TYPE || 'CNAME').trim().toUpperCase()
-  const dnsRecordName = (() => {
-    try {
-      return hostToZoneRecordName(host, allowedZone.zoneName)
-    } catch {
-      return '@'
-    }
-  })()
-  const dnsRecordTtlRaw = process.env.WINDOWS_DNS_REDIRECTS_DNS_RECORD_TTL?.trim()
-  const dnsRecordTtl = dnsRecordTtlRaw ? Number(dnsRecordTtlRaw) : 3600
-
-  if (dnsRecordContent) {
+  if (isDnsIntegrationEnabled()) {
     const client = await getClientForOrg(orgId)
-    const zoneRecords = await client.listRecordsForZone(zoneId)
+    const existingRecords = await client.listRecordsForZone(zoneId)
 
-    const conflictTypes = new Set(['A', 'AAAA', 'CNAME'])
-    const relevant = zoneRecords.filter((r: any) => String(r?.name ?? '').trim() === dnsRecordName && conflictTypes.has(String(r?.type ?? '').toUpperCase()))
+    const plan = buildDnsPlan(host, zoneName, existingRecords)
 
-    const desired = {
-      name: dnsRecordName,
-      type: dnsRecordType,
-      content: dnsRecordContent,
-      ttl: Number.isFinite(dnsRecordTtl) && dnsRecordTtl > 0 ? dnsRecordTtl : 3600
-    }
-
-    const alreadyCorrect = relevant.some((r: any) =>
-      String(r?.type ?? '').toUpperCase() === desired.type &&
-      String(r?.content ?? '').trim() === desired.content
-    )
-
-    const hasConflict = relevant.length > 0 && !alreadyCorrect
-
-    if (hasConflict && !applyDnsChanges) {
+    if (plan.hasConflicts && !applyDnsChanges) {
+      // Return conflict details for UI to show before/after
       throw createError({
         statusCode: 409,
-        message: `DNS record conflict for "${dnsRecordName}".`,
+        message: `DNS record conflict for "${plan.recordName}".`,
         data: {
           code: 'DNS_RECORD_CONFLICT',
-          recordName: dnsRecordName,
-          before: relevant.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            type: r.type,
-            content: r.content,
-            ttl: r.ttl
-          })),
-          after: [desired],
+          recordName: plan.recordName,
+          before: plan.conflicts.map(c => c.existing).filter(Boolean),
+          after: plan.entries
+            .filter(e => e.action === 'create')
+            .map(e => ({
+              name: e.record.name,
+              type: e.record.type,
+              content: e.record.content,
+              ttl: e.record.ttl
+            }))
         }
       })
     }
 
-    if (hasConflict && applyDnsChanges) {
-      // Need DNS edit rights if we are going to change DNS
+    // Apply DNS changes if needed
+    // Auto-apply if no conflicts, require explicit confirmation if conflicts exist
+    const needsChanges = plan.entries.some(e => e.action !== 'noop')
+    const shouldApply = needsChanges && (applyDnsChanges || !plan.hasConflicts)
+    if (shouldApply) {
+      // Need DNS edit rights
       if (!moduleRights.canEditRecords) {
-        throw createError({ statusCode: 403, message: 'No permission to modify DNS records for redirects.' })
+        throw createError({
+          statusCode: 403,
+          message: 'No permission to modify DNS records for redirects.'
+        })
       }
 
-      // Remove conflicting records for this name (A/AAAA/CNAME) then create the desired record.
-      for (const r of relevant) {
+      const managedComment = getManagedComment()
+
+      // Delete conflicting records first
+      for (const entry of plan.entries.filter(e => e.action === 'delete')) {
         try {
           await client.deleteRecord(zoneId, {
-            name: r.name,
-            type: r.type,
-            content: r.content
+            name: entry.existing?.name || entry.record.name,
+            type: entry.existing?.type || entry.record.type,
+            content: entry.existing?.content || entry.record.content
           })
         } catch (e: any) {
           console.error('[windows-dns-redirects] Failed to delete conflicting DNS record:', e?.message || e)
-          throw createError({ statusCode: 502, message: 'Failed to remove conflicting DNS record(s).' })
+          throw createError({
+            statusCode: 502,
+            message: 'Failed to remove conflicting DNS record(s).'
+          })
         }
       }
 
-      try {
-        await client.createRecord(zoneId, desired as any)
-      } catch (e: any) {
-        console.error('[windows-dns-redirects] Failed to create DNS record for redirects:', e?.message || e)
-        throw createError({ statusCode: 502, message: 'Failed to create DNS record required for redirects.' })
+      // Create new records
+      for (const entry of plan.entries.filter(e => e.action === 'create')) {
+        try {
+          await client.createRecord(zoneId, {
+            name: entry.record.name,
+            type: entry.record.type,
+            content: entry.record.content,
+            ttl: entry.record.ttl,
+            comment: managedComment
+          })
+
+          // Track in managed records table
+          const recordKey = buildRecordKey(entry.record.type, entry.record.name)
+          await trackManagedRecord({
+            zoneId,
+            recordKey,
+            // Apex records are shared, subdomains are owned by the redirect
+            managedBy: plan.isApex ? 'redirects_shared' : 'redirects',
+            managedId: plan.isApex ? null : undefined, // Will be set after redirect is created
+            userId: auth.user.id
+          })
+        } catch (e: any) {
+          console.error('[windows-dns-redirects] Failed to create DNS record:', e?.message || e)
+          throw createError({
+            statusCode: 502,
+            message: 'Failed to create DNS record required for redirects.'
+          })
+        }
       }
     }
   }
@@ -218,7 +238,7 @@ export default defineEventHandler(async (event) => {
     .values({
       organizationId: orgId,
       zoneId,
-      zoneName: allowedZone.zoneName,
+      zoneName,
       host,
       sourcePath: body.sourcePath,
       destinationUrl: body.destinationUrl,
@@ -228,6 +248,24 @@ export default defineEventHandler(async (event) => {
       createdBy: auth.user.id
     })
     .returning()
+
+  // Update managed record with redirect ID for CNAME (subdomain) records
+  if (isDnsIntegrationEnabled()) {
+    const plan = buildDnsPlan(host, zoneName, [])
+    if (!plan.isApex) {
+      // Update the managed record entry with the redirect ID
+      for (const entry of plan.entries.filter(e => e.action !== 'noop')) {
+        const recordKey = buildRecordKey(entry.record.type, entry.record.name)
+        await trackManagedRecord({
+          zoneId,
+          recordKey,
+          managedBy: 'redirects',
+          managedId: redirect.id,
+          userId: auth.user.id
+        })
+      }
+    }
+  }
 
   return {
     redirect: {

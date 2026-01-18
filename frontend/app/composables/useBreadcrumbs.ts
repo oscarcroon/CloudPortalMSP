@@ -113,13 +113,18 @@ export const useBreadcrumbs = () => {
       // 3) Fallback: check if it's a dynamic ID/slug and try to resolve name
       if (!crumb) {
         const prevSegment = pathSegments[i - 1]
+        const prevPrevSegment = pathSegments[i - 2]
         const isId = /^[0-9a-f-]{20,}$/i.test(segment) || /^[a-z0-9]{20,}$/i.test(segment)
         const isEntitySegment = prevSegment === 'tenants' || prevSegment === 'organizations' || prevSegment === 'dns' || prevSegment === 'cloudflare-dns'
+        // Check if we're in a nested route like /dns/redirects/[zoneId] where zoneId should be resolved
+        const isZoneIdInRedirects = isId && prevSegment === 'redirects' && prevPrevSegment === 'dns'
         
-        if (isId || isEntitySegment) {
+        if (isId || isEntitySegment || isZoneIdInRedirects) {
+          // For zone IDs under redirects, use 'dns' as context for entity resolution
+          const entityContext = isZoneIdInRedirects ? 'dns' : prevSegment
           // Try to get name from cache or auth stores
-          const resolvedName = resolveEntityName(segment, prevSegment, entityNames, auth)
-          const contextIcon = getContextIcon(prevSegment)
+          const resolvedName = resolveEntityName(segment, entityContext, entityNames, auth)
+          const contextIcon = getContextIcon(isZoneIdInRedirects ? 'dns' : prevSegment)
           
           if (resolvedName) {
             crumb = { 
@@ -128,7 +133,7 @@ export const useBreadcrumbs = () => {
             }
           } else {
             // Fallback to shortened ID with context, or humanized segment
-            const contextLabel = getContextLabel(prevSegment)
+            const contextLabel = getContextLabel(isZoneIdInRedirects ? 'dns' : prevSegment)
             if (isId && contextLabel) {
               crumb = { 
                 label: `${contextLabel} ${shortId(segment)}`,

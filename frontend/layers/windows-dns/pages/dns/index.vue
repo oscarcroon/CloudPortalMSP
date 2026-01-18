@@ -38,7 +38,7 @@
           to="/dns/redirects"
           class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
         >
-          <Icon icon="mdi:redirect" class="h-4 w-4" />
+          <Icon icon="mdi:arrow-right" class="h-4 w-4" />
           {{ $t('windowsDns.redirects.title') }}
         </NuxtLink>
         <!-- Manage zones button - only for admins -->

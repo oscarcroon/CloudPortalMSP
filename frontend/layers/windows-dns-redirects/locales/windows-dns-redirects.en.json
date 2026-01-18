@@ -27,7 +27,8 @@
         "empty_description": "Create your first redirect to get started.",
         "create_first": "Create First Redirect",
         "columns": {
-          "source": "Source Path",
+          "host": "Host",
+          "source": "Path",
           "destination": "Destination URL",
           "type": "Type",
           "status_code": "Status",
@@ -58,9 +59,12 @@
       "form": {
         "create_title": "Create Redirect",
         "edit_title": "Edit Redirect",
+        "host": "Host",
+        "host_placeholder": "{'@'} or www",
+        "host_help": "Empty or {'@'} = apex ({zoneName}). Enter 'www' for subdomain.",
         "source_path": "Source Path",
-        "source_path_placeholder": "/old-page",
-        "source_path_help": "The path to redirect from (must start with /)",
+        "source_path_placeholder": "/ or /old-page",
+        "source_path_help": "Empty or '/' = root. Otherwise enter path starting with /",
         "destination_url": "Destination URL",
         "destination_url_placeholder": "https://example.com/new-page",
         "destination_url_help": "The full URL to redirect to",
@@ -70,12 +74,17 @@
         "cancel": "Cancel",
         "save": "Saving",
         "create": "Create",
-        "update": "Update"
+        "update": "Update",
+        "preset_label": "Quick Setup",
+        "preset_none": "Custom",
+        "preset_domain_move": "Domain Move (apex + www)",
+        "preset_domain_move_description": "Creates two redirects: apex and www → new domain"
       },
 
       "validation": {
+        "host_invalid": "Invalid host. Enter {'@'} for apex, a subdomain label (e.g. 'www'), or a full hostname within the zone.",
         "source_required": "Source path is required",
-        "source_format": "Source path must start with /",
+        "source_format": "Paths (except root) must start with /",
         "destination_required": "Destination URL is required",
         "destination_format": "Invalid URL format",
         "invalid_regex": "Invalid regular expression"

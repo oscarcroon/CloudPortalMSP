@@ -196,7 +196,14 @@
       "txtEmptyError": "TXT-värdet får inte vara tomt.",
       "deleteError": "Kunde inte ta bort record",
       "missingRecordId": "Saknar record ID - kan inte uppdatera",
-      "pagination": "Sida {page} av {pages}"
+      "pagination": "Sida {page} av {pages}",
+      "redirectManaged": {
+        "badge": "Redirect",
+        "content": "Hanteras av Redirects",
+        "tooltip": "Denna DNS-post hanteras automatiskt av Redirect-tjänsten",
+        "editWarning": "Denna post hanteras av Redirects. Ändringar kan påverka omdirigeringar.",
+        "openRedirects": "Öppna i Redirects"
+      }
     },
 
     "autodiscover": {

@@ -8,6 +8,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirects, windowsDnsAllowedZones, windowsDnsRedirectImportLogs } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
+import { normalizeRedirectHost } from '@windows-dns-redirects/server/utils/normalizeHost'
 import type { WindowsDnsRedirectImportRow, WindowsDnsRedirectImportError } from '../../../../types'
 
 interface ImportBody {
@@ -53,6 +54,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Zone not found or not accessible.' })
   }
 
+  const zoneName = allowedZone.zoneName || ''
   const body = await readBody<ImportBody>(event)
 
   if (!body.rows || !Array.isArray(body.rows) || body.rows.length === 0) {
@@ -66,9 +68,12 @@ export default defineEventHandler(async (event) => {
 
   const skipDuplicates = body.skipDuplicates !== false
 
-  // Get existing source paths for duplicate detection
+  // Get existing (host, sourcePath) pairs for duplicate detection
   const existingRedirects = await db
-    .select({ sourcePath: windowsDnsRedirects.sourcePath })
+    .select({
+      host: windowsDnsRedirects.host,
+      sourcePath: windowsDnsRedirects.sourcePath
+    })
     .from(windowsDnsRedirects)
     .where(
       and(
@@ -77,7 +82,8 @@ export default defineEventHandler(async (event) => {
       )
     )
 
-  const existingPaths = new Set(existingRedirects.map(r => r.sourcePath))
+  // Create a set of existing host|sourcePath combinations
+  const existingKeys = new Set(existingRedirects.map(r => `${r.host || zoneName}|${r.sourcePath}`))
 
   const errors: WindowsDnsRedirectImportError[] = []
   const toInsert: any[] = []
@@ -87,6 +93,15 @@ export default defineEventHandler(async (event) => {
   for (let i = 0; i < body.rows.length; i++) {
     const row = body.rows[i]
     const rowNum = i + 1
+
+    // Normalize host (defaults to zoneName if empty/undefined)
+    let host: string
+    try {
+      host = normalizeRedirectHost(row.host, zoneName)
+    } catch (e: any) {
+      errors.push({ row: rowNum, field: 'host', message: e?.message || 'Invalid host', value: row.host })
+      continue
+    }
 
     // Validate sourcePath
     if (!row.sourcePath) {
@@ -136,19 +151,20 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Check for duplicate
-    if (existingPaths.has(row.sourcePath)) {
+    // Check for duplicate based on (host, sourcePath)
+    const key = `${host}|${row.sourcePath}`
+    if (existingKeys.has(key)) {
       if (skipDuplicates) {
         continue // Silently skip
       } else {
-        errors.push({ row: rowNum, field: 'sourcePath', message: 'Duplicate source path', value: row.sourcePath })
+        errors.push({ row: rowNum, field: 'sourcePath', message: `Duplicate redirect for host "${host}"`, value: row.sourcePath })
         continue
       }
     }
 
     // Check for duplicate in current import batch
-    if (toInsert.some(r => r.sourcePath === row.sourcePath)) {
-      errors.push({ row: rowNum, field: 'sourcePath', message: 'Duplicate source path in import', value: row.sourcePath })
+    if (toInsert.some(r => r.host === host && r.sourcePath === row.sourcePath)) {
+      errors.push({ row: rowNum, field: 'sourcePath', message: `Duplicate redirect in import for host "${host}"`, value: row.sourcePath })
       continue
     }
 
@@ -156,7 +172,8 @@ export default defineEventHandler(async (event) => {
     toInsert.push({
       organizationId: orgId,
       zoneId,
-      zoneName: allowedZone.zoneName,
+      zoneName,
+      host,
       sourcePath: row.sourcePath,
       destinationUrl: row.destinationUrl,
       redirectType,
@@ -166,7 +183,7 @@ export default defineEventHandler(async (event) => {
     })
 
     // Track in set to prevent duplicates within batch
-    existingPaths.add(row.sourcePath)
+    existingKeys.add(key)
   }
 
   // Insert valid redirects

@@ -13,6 +13,9 @@ const toast = useWindowsDnsRedirectToast()
 // Get user permissions from the portal's permission system
 const { hasPermission } = usePermission()
 
+// Cache entity names for breadcrumbs
+const entityNames = useEntityNames()
+
 // Format date for display
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return '—'
@@ -246,6 +249,10 @@ async function fetchZoneInfo() {
     if (zone) {
       zoneName.value = zone.name
       zoneExists.value = true
+      // Cache zone name for breadcrumbs
+      if (zone.name) {
+        entityNames.setName('zone', zone.id, zone.name)
+      }
     } else {
       zoneExists.value = false
     }
@@ -322,22 +329,6 @@ onMounted(() => {
         {{ t('windowsDns.redirects.zone_not_found.back') }}
       </NuxtLink>
     </div>
-
-    <!-- Breadcrumb -->
-    <nav v-if="zoneExists" class="mb-4">
-      <ol class="flex items-center space-x-2 text-sm">
-        <li>
-          <NuxtLink
-            to="/dns/redirects"
-            class="text-blue-600 hover:text-blue-700"
-          >
-            {{ t('windowsDns.redirects.title') }}
-          </NuxtLink>
-        </li>
-        <li class="text-gray-400">/</li>
-        <li class="text-gray-600 dark:text-gray-400">{{ zoneName || zoneId }}</li>
-      </ol>
-    </nav>
 
     <!-- Statistics Panel -->
     <WindowsDnsRedirectStatsPanel v-if="zoneExists" :zone-id="zoneId" />
@@ -498,6 +489,7 @@ onMounted(() => {
                 class="rounded border-gray-300 dark:border-gray-600"
               />
             </th>
+            <th class="pb-3 pr-4">{{ t('windowsDns.redirects.list.columns.host') }}</th>
             <th class="pb-3 pr-4">{{ t('windowsDns.redirects.list.columns.source') }}</th>
             <th class="pb-3 pr-4">{{ t('windowsDns.redirects.list.columns.destination') }}</th>
             <th class="pb-3 pr-4">{{ t('windowsDns.redirects.list.columns.type') }}</th>
@@ -537,6 +529,11 @@ onMounted(() => {
                 @change="toggleSelect(redirect.id)"
                 class="rounded border-gray-300 dark:border-gray-600"
               />
+            </td>
+            <td class="py-3 pr-4 font-mono text-sm text-gray-900 dark:text-white max-w-xs truncate" :title="redirect.host || zoneName">
+              <span class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                {{ redirect.host || zoneName }}
+              </span>
             </td>
             <td class="py-3 pr-4 font-mono text-sm text-gray-900 dark:text-white max-w-xs truncate" :title="redirect.sourcePath">
               {{ redirect.sourcePath }}
@@ -647,6 +644,7 @@ onMounted(() => {
       :is-open="showCreateModal"
       :redirect="editingRedirect"
       :zone-id="zoneId"
+      :zone-name="zoneName"
       @close="showCreateModal = false"
       @saved="handleSaved"
     />

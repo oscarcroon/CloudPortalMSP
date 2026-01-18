@@ -52,6 +52,7 @@ export default defineEventHandler(async (event) => {
   const page = Math.max(1, parseInt(query.page as string) || 1)
   const pageSize = Math.min(100, Math.max(1, parseInt(query.pageSize as string) || 20))
   const search = (query.search as string) || ''
+  const host = (query.host as string) || ''
   const type = query.type as string | undefined
   const statusCode = query.statusCode ? parseInt(query.statusCode as string) : undefined
   const isActive = query.isActive !== undefined ? query.isActive === 'true' : undefined
@@ -68,6 +69,10 @@ export default defineEventHandler(async (event) => {
     conditions.push(
       like(windowsDnsRedirects.sourcePath, `%${search}%`)
     )
+  }
+
+  if (host) {
+    conditions.push(eq(windowsDnsRedirects.host, host))
   }
 
   if (type && ['simple', 'wildcard', 'regex'].includes(type)) {

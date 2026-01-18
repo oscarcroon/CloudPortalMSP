@@ -87,6 +87,7 @@ export default defineEventHandler(async (event) => {
     setHeader(event, 'Content-Disposition', `attachment; filename="${allowedZone.zoneName}-redirects.json"`)
 
     return redirects.map(r => ({
+      host: r.host || allowedZone.zoneName, // Fallback for legacy redirects
       sourcePath: r.sourcePath,
       destinationUrl: r.destinationUrl,
       redirectType: r.redirectType,
@@ -102,12 +103,13 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'Content-Disposition', `attachment; filename="${allowedZone.zoneName}-redirects.csv"`)
 
   // CSV header
-  const headers = ['sourcePath', 'destinationUrl', 'redirectType', 'statusCode', 'isActive', 'hitCount', 'createdAt']
+  const headers = ['host', 'sourcePath', 'destinationUrl', 'redirectType', 'statusCode', 'isActive', 'hitCount', 'createdAt']
   const csvLines = [headers.join(',')]
 
   // CSV rows
   for (const redirect of redirects) {
     const row = [
+      escapeCSV(redirect.host || allowedZone.zoneName), // Fallback for legacy redirects
       escapeCSV(redirect.sourcePath),
       escapeCSV(redirect.destinationUrl),
       redirect.redirectType,

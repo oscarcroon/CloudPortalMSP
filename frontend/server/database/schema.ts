@@ -1734,4 +1734,5 @@ export const windowsDnsRedirects = windowsDnsRedirectsSchemaInstance.windowsDnsR
 export const windowsDnsRedirectHits = windowsDnsRedirectsSchemaInstance.windowsDnsRedirectHits
 export const windowsDnsRedirectOrgConfig = windowsDnsRedirectsSchemaInstance.windowsDnsRedirectOrgConfig
 export const windowsDnsRedirectImportLogs = windowsDnsRedirectsSchemaInstance.windowsDnsRedirectImportLogs
+export const windowsDnsManagedRecords = windowsDnsRedirectsSchemaInstance.windowsDnsManagedRecords
 

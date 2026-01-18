@@ -196,7 +196,14 @@
       "txtEmptyError": "TXT value cannot be empty.",
       "deleteError": "Failed to delete record",
       "missingRecordId": "Missing record ID - cannot update",
-      "pagination": "Page {page} of {pages}"
+      "pagination": "Page {page} of {pages}",
+      "redirectManaged": {
+        "badge": "Redirect",
+        "content": "Managed by Redirects",
+        "tooltip": "This DNS record is automatically managed by the Redirect service",
+        "editWarning": "This record is managed by Redirects. Changes may affect redirects.",
+        "openRedirects": "Open in Redirects"
+      }
     },
 
     "autodiscover": {

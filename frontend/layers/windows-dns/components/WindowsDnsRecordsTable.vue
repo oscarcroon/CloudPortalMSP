@@ -268,10 +268,20 @@
                 </span>
               </td>
               <td class="px-4 py-3 align-top font-mono text-sm">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1 flex-wrap">
                   <span>{{ record.name || '@' }}</span>
+                  <!-- Redirect badge for managed records -->
                   <span
-                    v-if="record.comment"
+                    v-if="isRedirectManagedRecord(record)"
+                    class="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                    :title="$t('windowsDns.records.redirectManaged.tooltip')"
+                  >
+                    <Icon icon="mdi:arrow-right" class="h-3 w-3" />
+                    {{ $t('windowsDns.records.redirectManaged.badge') }}
+                  </span>
+                  <!-- Comment badge (only show if not redirect-managed) -->
+                  <span
+                    v-else-if="record.comment"
                     class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-200"
                     :title="record.comment"
                   >
@@ -280,27 +290,45 @@
                 </div>
               </td>
               <td class="px-4 py-3 align-top break-all">
-                <span v-html="formatRecordContent(record)"></span>
+                <!-- Mask content for redirect-managed records -->
+                <span v-if="isRedirectManagedRecord(record)" class="text-slate-500 dark:text-slate-400 italic">
+                  {{ $t('windowsDns.records.redirectManaged.content') }}
+                </span>
+                <span v-else v-html="formatRecordContent(record)"></span>
               </td>
               <td class="px-4 py-3 align-top">{{ displayTtl(record.ttl) }}</td>
               <td v-if="canEdit" class="px-4 py-3 text-right">
                 <div class="flex justify-end gap-2">
-                  <button
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
-                    type="button"
-                    :title="$t('windowsDns.records.edit')"
-                    @click="startEdit(record)"
-                  >
-                    <Icon icon="mdi:pencil" class="h-4 w-4" />
-                  </button>
-                  <button
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:border-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500/60 dark:border-red-700 dark:text-red-400"
-                    type="button"
-                    :title="$t('windowsDns.records.delete')"
-                    @click="deleteRecord(record)"
-                  >
-                    <Icon icon="mdi:trash-can-outline" class="h-4 w-4" />
-                  </button>
+                  <!-- Redirect-managed: show link to redirects instead of edit/delete -->
+                  <template v-if="isRedirectManagedRecord(record)">
+                    <NuxtLink
+                      :to="`/dns/redirects/${props.zoneId}`"
+                      class="inline-flex h-8 items-center gap-1 rounded-lg border border-purple-200 px-2 text-sm text-purple-600 transition hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                      :title="$t('windowsDns.records.redirectManaged.openRedirects')"
+                    >
+                      <Icon icon="mdi:arrow-right" class="h-4 w-4" />
+                      <span class="hidden sm:inline">{{ $t('windowsDns.records.redirectManaged.openRedirects') }}</span>
+                    </NuxtLink>
+                  </template>
+                  <!-- Normal records: edit/delete buttons -->
+                  <template v-else>
+                    <button
+                      class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+                      type="button"
+                      :title="$t('windowsDns.records.edit')"
+                      @click="startEdit(record)"
+                    >
+                      <Icon icon="mdi:pencil" class="h-4 w-4" />
+                    </button>
+                    <button
+                      class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:border-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500/60 dark:border-red-700 dark:text-red-400"
+                      type="button"
+                      :title="$t('windowsDns.records.delete')"
+                      @click="deleteRecord(record)"
+                    >
+                      <Icon icon="mdi:trash-can-outline" class="h-4 w-4" />
+                    </button>
+                  </template>
                 </div>
               </td>
             </tr>
@@ -587,6 +615,15 @@ const displayTtl = (ttl?: number | null) => {
   if (ttl < 3600) return `${Math.round(ttl / 60)}m`
   if (ttl < 86400) return `${Math.round(ttl / 3600)}h`
   return `${Math.round(ttl / 86400)}d`
+}
+
+// Redirect-managed record detection
+// Records managed by redirects have a comment starting with "[redirects]"
+const REDIRECT_MANAGED_PREFIX = '[redirects]'
+
+const isRedirectManagedRecord = (record: any): boolean => {
+  const comment = record?.comment?.trim() || ''
+  return comment.toLowerCase().startsWith(REDIRECT_MANAGED_PREFIX.toLowerCase())
 }
 
 // Helper functions for type-specific handling

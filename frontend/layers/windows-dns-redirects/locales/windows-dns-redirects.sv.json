@@ -27,7 +27,8 @@
         "empty_description": "Skapa din första omdirigering för att komma igång.",
         "create_first": "Skapa första omdirigeringen",
         "columns": {
-          "source": "Källsökväg",
+          "host": "Värd",
+          "source": "Sökväg",
           "destination": "Mål-URL",
           "type": "Typ",
           "status_code": "Status",
@@ -58,9 +59,12 @@
       "form": {
         "create_title": "Skapa omdirigering",
         "edit_title": "Redigera omdirigering",
+        "host": "Värd",
+        "host_placeholder": "{'@'} eller www",
+        "host_help": "Tomt eller {'@'} = apex ({zoneName}). Skriv 'www' för subdomän.",
         "source_path": "Källsökväg",
-        "source_path_placeholder": "/gammal-sida",
-        "source_path_help": "Sökvägen att omdirigera från (måste börja med /)",
+        "source_path_placeholder": "/ eller /gammal-sida",
+        "source_path_help": "Tomt eller '/' = roten. Annars ange sökväg som börjar med /",
         "destination_url": "Mål-URL",
         "destination_url_placeholder": "https://example.com/ny-sida",
         "destination_url_help": "Den fullständiga URL:en att omdirigera till",
@@ -70,12 +74,17 @@
         "cancel": "Avbryt",
         "save": "Sparar",
         "create": "Skapa",
-        "update": "Uppdatera"
+        "update": "Uppdatera",
+        "preset_label": "Snabbval",
+        "preset_none": "Anpassad",
+        "preset_domain_move": "Domänflytt (apex + www)",
+        "preset_domain_move_description": "Skapar två omdirigeringar: apex och www → ny domän"
       },
 
       "validation": {
+        "host_invalid": "Ogiltig värd. Ange {'@'} för apex, subdomain-label (t.ex. 'www'), eller fullständigt hostname inom zonen.",
         "source_required": "Källsökväg krävs",
-        "source_format": "Källsökväg måste börja med /",
+        "source_format": "Sökvägar (utom roten) måste börja med /",
         "destination_required": "Mål-URL krävs",
         "destination_format": "Ogiltigt URL-format",
         "invalid_regex": "Ogiltigt reguljärt uttryck"

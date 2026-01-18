@@ -15,6 +15,11 @@ export interface WindowsDnsRedirect {
   organizationId: string
   zoneId: string
   zoneName: string
+  /**
+   * Full hostname for this redirect (e.g. "example.com", "www.example.com").
+   * Used for matching in Traefik and for DNS record creation.
+   */
+  host: string
   sourcePath: string
   destinationUrl: string
   redirectType: WindowsDnsRedirectType
@@ -31,6 +36,13 @@ export interface WindowsDnsRedirect {
 export interface WindowsDnsRedirectCreateInput {
   zoneId: string
   zoneName: string
+  /**
+   * Target host for the redirect. Accepts:
+   * - Empty/@ → apex (zoneName)
+   * - Subdomain label (e.g. "www") → www.zoneName
+   * - Full hostname ending with zoneName
+   */
+  host?: string
   sourcePath: string
   destinationUrl: string
   redirectType: WindowsDnsRedirectType
@@ -45,11 +57,19 @@ export interface WindowsDnsRedirectCreateInput {
 
 // Update redirect input
 export interface WindowsDnsRedirectUpdateInput {
+  /**
+   * Target host for the redirect (same rules as create).
+   */
+  host?: string
   sourcePath?: string
   destinationUrl?: string
   redirectType?: WindowsDnsRedirectType
   statusCode?: WindowsDnsRedirectStatusCode
   isActive?: boolean
+  /**
+   * When true, the backend is allowed to apply required DNS record changes.
+   */
+  applyDnsChanges?: boolean
 }
 
 // Redirect hit tracking
@@ -63,6 +83,10 @@ export interface WindowsDnsRedirectHit {
 
 // Import/Export types
 export interface WindowsDnsRedirectImportRow {
+  /**
+   * Target host (empty/@ for apex, or subdomain label, or full hostname).
+   */
+  host?: string
   sourcePath: string
   destinationUrl: string
   redirectType?: WindowsDnsRedirectType
@@ -151,9 +175,26 @@ export interface WindowsDnsRedirectPaginatedResponse<T> {
 // Filter and sort types
 export interface WindowsDnsRedirectFilters {
   search?: string
+  host?: string
   type?: WindowsDnsRedirectType
   statusCode?: WindowsDnsRedirectStatusCode
   isActive?: boolean
+}
+
+// DNS conflict details returned when a redirect would conflict with existing DNS records
+export interface WindowsDnsRedirectDnsConflict {
+  code: 'DNS_RECORD_CONFLICT'
+  recordName: string
+  before: WindowsDnsRedirectDnsRecord[]
+  after: WindowsDnsRedirectDnsRecord[]
+}
+
+export interface WindowsDnsRedirectDnsRecord {
+  id?: string
+  name: string
+  type: string
+  content: string
+  ttl: number
 }
 
 export type WindowsDnsRedirectSortField = 'createdAt' | 'updatedAt' | 'hitCount' | 'lastHitAt' | 'sourcePath'

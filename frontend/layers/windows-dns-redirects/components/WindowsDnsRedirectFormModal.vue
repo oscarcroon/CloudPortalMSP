@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * WindowsDnsRedirect Form Modal
- * Create or edit redirect rules
+ * Create or edit redirect rules with host support and presets
  */
 import type { WindowsDnsRedirect } from '../../types'
 import type { WindowsDnsRedirectErrorType } from '../composables/useWindowsDnsRedirectError'
@@ -10,6 +10,7 @@ const props = defineProps<{
   isOpen: boolean
   redirect?: WindowsDnsRedirect | null
   zoneId: string
+  zoneName: string
 }>()
 
 const emit = defineEmits<{
@@ -37,20 +38,35 @@ const showDnsConflictModal = ref(false)
 
 // Field-level error state
 const fieldErrors = ref<{
+  host: string
   sourcePath: string
   destinationUrl: string
 }>({
+  host: '',
   sourcePath: '',
   destinationUrl: '',
 })
 
+// Preset options
+type PresetType = 'none' | 'domain_move'
+const selectedPreset = ref<PresetType>('none')
+
 // Form state
 const form = ref({
+  host: '',
   sourcePath: '',
   destinationUrl: '',
   redirectType: 'simple' as 'simple' | 'wildcard' | 'regex',
   statusCode: 301,
   isActive: true,
+})
+
+// Computed display host - shows effective host based on input
+const displayHost = computed(() => {
+  const h = form.value.host.trim()
+  if (!h || h === '@') return props.zoneName
+  if (h.includes('.')) return h
+  return `${h}.${props.zoneName}`
 })
 
 // Reset form when modal opens
@@ -59,10 +75,19 @@ watch(() => props.isOpen, (isOpen) => {
     errorMessage.value = ''
     errorType.value = null
     showRetry.value = false
+    selectedPreset.value = 'none'
     clearFieldErrors()
     if (props.redirect) {
       // Edit mode - populate form
+      // For display, show the subdomain label if host ends with zoneName
+      let hostDisplay = props.redirect.host || ''
+      if (hostDisplay === props.zoneName) {
+        hostDisplay = '@'
+      } else if (hostDisplay.endsWith(`.${props.zoneName}`)) {
+        hostDisplay = hostDisplay.slice(0, -(props.zoneName.length + 1))
+      }
       form.value = {
+        host: hostDisplay,
         sourcePath: props.redirect.sourcePath,
         destinationUrl: props.redirect.destinationUrl,
         redirectType: props.redirect.redirectType,
@@ -72,6 +97,7 @@ watch(() => props.isOpen, (isOpen) => {
     } else {
       // Create mode - reset form
       form.value = {
+        host: '',
         sourcePath: '',
         destinationUrl: '',
         redirectType: 'simple',
@@ -79,6 +105,18 @@ watch(() => props.isOpen, (isOpen) => {
         isActive: true,
       }
     }
+  }
+})
+
+// Apply preset when selected
+watch(selectedPreset, (preset) => {
+  if (preset === 'domain_move') {
+    // Preset fills in default values for domain move
+    form.value.sourcePath = '/*'
+    form.value.redirectType = 'wildcard'
+    form.value.statusCode = 301
+    form.value.isActive = true
+    // Host stays as user input (will handle apex+www separately)
   }
 })
 
@@ -100,6 +138,7 @@ const redirectTypes = computed(() => [
 // Clear field errors
 function clearFieldErrors() {
   fieldErrors.value = {
+    host: '',
     sourcePath: '',
     destinationUrl: '',
   }
@@ -110,17 +149,26 @@ function validateForm(): boolean {
   clearFieldErrors()
   let isValid = true
 
+  // Validate host (basic client-side check; server normalizes fully)
+  const hostInput = form.value.host.trim()
+  if (hostInput && hostInput !== '@') {
+    // If it contains dots, must end with zoneName
+    if (hostInput.includes('.') && !hostInput.endsWith(props.zoneName)) {
+      fieldErrors.value.host = t('windowsDns.redirects.validation.host_invalid')
+      isValid = false
+    }
+  }
+
   // Validate source path
-  if (!form.value.sourcePath) {
-    fieldErrors.value.sourcePath = t('windowsDns.redirects.validation.source_required')
-    isValid = false
-  } else if (!form.value.sourcePath.startsWith('/')) {
+  // Empty or "/" means root, otherwise must start with /
+  const sourcePath = form.value.sourcePath.trim()
+  if (sourcePath && sourcePath !== '/' && !sourcePath.startsWith('/')) {
     fieldErrors.value.sourcePath = t('windowsDns.redirects.validation.source_format')
     isValid = false
-  } else if (form.value.redirectType === 'regex') {
+  } else if (form.value.redirectType === 'regex' && sourcePath) {
     // Validate regex syntax for regex type redirects
     try {
-      new RegExp(form.value.sourcePath)
+      new RegExp(sourcePath)
     } catch (e) {
       fieldErrors.value.sourcePath = t('windowsDns.redirects.validation.invalid_regex')
       isValid = false
@@ -166,31 +214,78 @@ function extractDnsConflict(error: any): DnsConflictPayload | null {
   }
 }
 
-// Submit form
+// Build request body
+function buildRequestBody(applyDnsChanges = false) {
+  // Normalize source path: empty means root "/"
+  const sourcePath = form.value.sourcePath.trim() || '/'
+  return {
+    host: form.value.host.trim() || '@',
+    sourcePath,
+    destinationUrl: form.value.destinationUrl,
+    redirectType: form.value.redirectType,
+    statusCode: form.value.statusCode,
+    isActive: form.value.isActive,
+    applyDnsChanges,
+  }
+}
+
+// Submit form (handles domain move preset with multiple redirects)
 async function handleSubmit() {
   clearError()
   clearDnsConflict()
 
   if (!validateForm()) {
-    // Field errors are displayed - don't submit
     return
   }
 
   isSubmitting.value = true
 
   try {
+    // Domain move preset: create both apex and www redirects
+    if (!isEditing.value && selectedPreset.value === 'domain_move') {
+      const results: WindowsDnsRedirect[] = []
+
+      // Create apex redirect
+      const apexBody = {
+        ...buildRequestBody(),
+        host: '@',
+      }
+      const apexResponse = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
+        method: 'POST',
+        body: apexBody,
+      })
+      results.push(apexResponse.redirect)
+
+      // Create www redirect
+      const wwwBody = {
+        ...buildRequestBody(),
+        host: 'www',
+      }
+      const wwwResponse = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
+        method: 'POST',
+        body: wwwBody,
+      })
+      results.push(wwwResponse.redirect)
+
+      // Emit first redirect (apex) as the "saved" one
+      emit('saved', results[0])
+      emit('close')
+      return
+    }
+
+    // Normal single redirect
     let response
     if (isEditing.value && props.redirect) {
       // Update existing redirect
       response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects/${props.redirect.id}`, {
         method: 'PATCH',
-        body: form.value,
+        body: buildRequestBody(),
       })
     } else {
       // Create new redirect
       response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
         method: 'POST',
-        body: form.value,
+        body: buildRequestBody(),
       })
     }
 
@@ -198,13 +293,11 @@ async function handleSubmit() {
     emit('close')
   } catch (error: any) {
     // DNS conflict flow: show before/after warning and require explicit confirmation
-    if (!isEditing.value) {
-      const conflict = extractDnsConflict(error)
-      if (conflict) {
-        dnsConflict.value = conflict
-        showDnsConflictModal.value = true
-        return
-      }
+    const conflict = extractDnsConflict(error)
+    if (conflict) {
+      dnsConflict.value = conflict
+      showDnsConflictModal.value = true
+      return
     }
 
     // Parse the error and show user-friendly message
@@ -226,10 +319,18 @@ async function confirmApplyDnsChangesAndSubmit() {
 
   isSubmitting.value = true
   try {
-    const response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
-      method: 'POST',
-      body: { ...form.value, applyDnsChanges: true },
-    })
+    let response
+    if (isEditing.value && props.redirect) {
+      response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects/${props.redirect.id}`, {
+        method: 'PATCH',
+        body: buildRequestBody(true),
+      })
+    } else {
+      response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
+        method: 'POST',
+        body: buildRequestBody(true),
+      })
+    }
     emit('saved', response.redirect)
     emit('close')
   } catch (error: any) {
@@ -341,6 +442,53 @@ if (import.meta.client) {
               @dismiss="clearError"
             />
 
+            <!-- Preset selector (only for create mode) -->
+            <div v-if="!isEditing">
+              <label for="preset" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {{ t('windowsDns.redirects.form.preset_label') }}
+              </label>
+              <select
+                id="preset"
+                v-model="selectedPreset"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="none">{{ t('windowsDns.redirects.form.preset_none') }}</option>
+                <option value="domain_move">{{ t('windowsDns.redirects.form.preset_domain_move') }}</option>
+              </select>
+              <p v-if="selectedPreset === 'domain_move'" class="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                {{ t('windowsDns.redirects.form.preset_domain_move_description') }}
+              </p>
+            </div>
+
+            <!-- Host (hide when using domain_move preset since it creates both apex and www) -->
+            <div v-if="selectedPreset !== 'domain_move'">
+              <label for="host" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {{ t('windowsDns.redirects.form.host') }}
+              </label>
+              <div class="relative">
+                <input
+                  id="host"
+                  v-model="form.host"
+                  type="text"
+                  :placeholder="t('windowsDns.redirects.form.host_placeholder')"
+                  :class="[
+                    'w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm',
+                    fieldErrors.host
+                      ? 'border-red-500 dark:border-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  ]"
+                  @input="fieldErrors.host = ''"
+                />
+              </div>
+              <p v-if="fieldErrors.host" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                {{ fieldErrors.host }}
+              </p>
+              <p v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('windowsDns.redirects.form.host_help', { zoneName }) }}
+                <span v-if="form.host" class="font-medium"> → {{ displayHost }}</span>
+              </p>
+            </div>
+
             <!-- Source Path -->
             <div>
               <label for="sourcePath" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -393,8 +541,8 @@ if (import.meta.client) {
               </p>
             </div>
 
-            <!-- Redirect Type -->
-            <fieldset>
+            <!-- Redirect Type (hide in domain_move preset since it's always wildcard) -->
+            <fieldset v-if="selectedPreset !== 'domain_move'">
               <legend class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {{ t('windowsDns.redirects.form.redirect_type') }}
               </legend>

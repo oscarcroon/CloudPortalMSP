@@ -1,11 +1,64 @@
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
+import { eq, and } from 'drizzle-orm'
 import { ensureAuthState } from '~~/server/utils/session'
+import { getDb } from '~~/server/utils/db'
+import { windowsDnsRedirects, windowsDnsAllowedZones } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
 import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
 
 const MAX_COMMENT_LENGTH = 2000
+
+/**
+ * Check if creating this record would conflict with a redirect.
+ * Returns the conflicting redirect's host if found, null otherwise.
+ */
+async function checkRedirectConflict(
+  orgId: string,
+  zoneId: string,
+  zoneName: string,
+  recordName: string,
+  recordType: string
+): Promise<string | null> {
+  // Only check for A, AAAA, and CNAME records
+  const conflictTypes = ['A', 'AAAA', 'CNAME']
+  if (!conflictTypes.includes(recordType.toUpperCase())) {
+    return null
+  }
+
+  const db = getDb()
+
+  // Convert record name to full hostname
+  const normalizedName = recordName.trim().toLowerCase().replace(/\.$/, '')
+  let fullHost: string
+  if (normalizedName === '@' || normalizedName === '' || normalizedName === zoneName.toLowerCase()) {
+    fullHost = zoneName.toLowerCase()
+  } else if (normalizedName.endsWith(`.${zoneName.toLowerCase()}`)) {
+    fullHost = normalizedName
+  } else {
+    fullHost = `${normalizedName}.${zoneName}`.toLowerCase()
+  }
+
+  // Get all redirects for this zone and check for matching host
+  const redirects = await db
+    .select({ host: windowsDnsRedirects.host })
+    .from(windowsDnsRedirects)
+    .where(
+      and(
+        eq(windowsDnsRedirects.organizationId, orgId),
+        eq(windowsDnsRedirects.zoneId, zoneId)
+      )
+    )
+
+  for (const redirect of redirects) {
+    if (redirect.host.toLowerCase() === fullHost) {
+      return redirect.host
+    }
+  }
+
+  return null
+}
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -76,6 +129,37 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    const db = getDb()
+
+    // Get zone name for conflict checking
+    const [allowedZone] = await db
+      .select({ zoneName: windowsDnsAllowedZones.zoneName })
+      .from(windowsDnsAllowedZones)
+      .where(
+        and(
+          eq(windowsDnsAllowedZones.organizationId, orgId),
+          eq(windowsDnsAllowedZones.zoneId, zoneId)
+        )
+      )
+      .limit(1)
+
+    const zoneName = allowedZone?.zoneName || ''
+
+    // Check for redirect conflicts (A, AAAA, CNAME records that would interfere with redirects)
+    if (zoneName) {
+      const conflictingHost = await checkRedirectConflict(orgId, zoneId, zoneName, body.name, body.type)
+      if (conflictingHost) {
+        throw createError({
+          statusCode: 409,
+          message: `Det finns redan en omdirigering för "${conflictingHost}". Ta bort omdirigeringen först eller hantera DNS-poster via omdirigeringshanteraren.`,
+          data: {
+            code: 'REDIRECT_CONFLICT',
+            host: conflictingHost
+          }
+        })
+      }
+    }
+
     const client = await getClientForOrg(orgId)
 
     const recordPayload: any = {

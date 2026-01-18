@@ -130,23 +130,26 @@ function generateTraefikConfig(
   const activeRedirects = redirects.filter(r => r.isActive)
 
   for (const redirect of activeRedirects) {
+    // Use redirect.host (FQDN) for matching; fallback to zoneName for legacy redirects
     const zoneName = zoneMap.get(redirect.zoneId) || redirect.zoneName
+    const hostMatch = redirect.host || zoneName
     const routerId = `redirect-${redirect.id}`
     const middlewareId = `redirect-middleware-${redirect.id}`
 
     // Build the rule based on redirect type
+    // Host is now per-redirect (supports subdomains like www.example.com)
     let rule: string
     if (redirect.redirectType === 'simple') {
-      rule = `Host(\`${zoneName}\`) && Path(\`${redirect.sourcePath}\`)`
+      rule = `Host(\`${hostMatch}\`) && Path(\`${redirect.sourcePath}\`)`
     } else if (redirect.redirectType === 'wildcard') {
       // Convert wildcard to regex for Traefik
       const regexPath = redirect.sourcePath
         .replace(/\*/g, '.*')
         .replace(/\?/g, '.')
-      rule = `Host(\`${zoneName}\`) && PathRegexp(\`^${regexPath}$\`)`
+      rule = `Host(\`${hostMatch}\`) && PathRegexp(\`^${regexPath}$\`)`
     } else {
       // Regex type
-      rule = `Host(\`${zoneName}\`) && PathRegexp(\`${redirect.sourcePath}\`)`
+      rule = `Host(\`${hostMatch}\`) && PathRegexp(\`${redirect.sourcePath}\`)`
     }
 
     // Router configuration
@@ -159,13 +162,14 @@ function generateTraefikConfig(
     }
 
     // Middleware for redirect
+    // The regex needs to match the specific host for proper capture groups
     config.http.middlewares[middlewareId] = {
       redirectRegex: {
         regex: redirect.redirectType === 'simple'
-          ? `^https?://[^/]+${escapeRegex(redirect.sourcePath)}$`
+          ? `^https?://${escapeRegex(hostMatch)}${escapeRegex(redirect.sourcePath)}$`
           : redirect.redirectType === 'wildcard'
-            ? `^https?://[^/]+${redirect.sourcePath.replace(/\*/g, '(.*)').replace(/\?/g, '(.)')}$`
-            : `^https?://[^/]+${redirect.sourcePath}$`,
+            ? `^https?://${escapeRegex(hostMatch)}${redirect.sourcePath.replace(/\*/g, '(.*)').replace(/\?/g, '(.)')}$`
+            : `^https?://${escapeRegex(hostMatch)}${redirect.sourcePath}$`,
         replacement: redirect.destinationUrl,
         permanent: redirect.statusCode === 301 || redirect.statusCode === 308
       }

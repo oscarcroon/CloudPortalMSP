@@ -3,7 +3,7 @@
  * Uses factory pattern to allow integration with the main app's organization table
  */
 
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { createId } from '@paralleldrive/cuid2'
@@ -58,6 +58,13 @@ export function createWindowsDnsRedirectsSchema(
         table.organizationId,
         table.zoneId,
         table.host
+      ),
+      // Unique constraint: no duplicate (host, sourcePath) per org+zone
+      uniqueHostPath: uniqueIndex('windows_dns_redirects_unique_host_path').on(
+        table.organizationId,
+        table.zoneId,
+        table.host,
+        table.sourcePath
       ),
     })
   )
@@ -130,11 +137,64 @@ export function createWindowsDnsRedirectsSchema(
     })
   )
 
+  /**
+   * Managed DNS records table - tracks which DNS records are managed by redirects.
+   * This provides a robust source of truth beyond just comment prefixes.
+   * 
+   * For apex records (A/AAAA), managedBy='redirects_shared' and managedId=null
+   * (shared across all redirects for that zone).
+   * For CNAME records, managedBy='redirects' and managedId=redirectId
+   * (owned by a specific redirect).
+   */
+  const windowsDnsManagedRecords = sqliteTable(
+    'windows_dns_managed_records',
+    {
+      id: text('id').primaryKey().$defaultFn(() => createId()),
+      zoneId: text('zone_id').notNull(),
+      /**
+       * Record key format: "<type>|<name>" e.g. "A|@", "CNAME|www", "AAAA|@"
+       */
+      recordKey: text('record_key').notNull(),
+      /**
+       * What manages this record: 'redirects' (specific redirect) or 'redirects_shared' (apex shared)
+       */
+      managedBy: text('managed_by', { enum: ['redirects', 'redirects_shared'] }).notNull(),
+      /**
+       * For 'redirects': the redirect ID that owns this record.
+       * For 'redirects_shared': null (apex records shared by all redirects).
+       */
+      managedId: text('managed_id'),
+      lastAppliedByUserId: text('last_applied_by_user_id'),
+      lastAppliedAt: integer('last_applied_at', { mode: 'timestamp' }),
+      createdAt: integer('created_at', { mode: 'timestamp' })
+        .notNull()
+        .default(sql`(strftime('%s', 'now'))`),
+      updatedAt: integer('updated_at', { mode: 'timestamp' })
+        .notNull()
+        .default(sql`(strftime('%s', 'now'))`),
+    },
+    (table) => ({
+      zoneIdIdx: index('windows_dns_managed_records_zone_id_idx').on(table.zoneId),
+      managedIdIdx: index('windows_dns_managed_records_managed_id_idx').on(table.managedId),
+      zoneManagerIdx: index('windows_dns_managed_records_zone_manager_idx').on(
+        table.zoneId,
+        table.managedBy
+      ),
+      // Unique: one manager per record key per zone
+      uniqueZoneRecordManager: uniqueIndex('windows_dns_managed_records_unique').on(
+        table.zoneId,
+        table.recordKey,
+        table.managedBy
+      ),
+    })
+  )
+
   return {
     windowsDnsRedirects,
     windowsDnsRedirectHits,
     windowsDnsRedirectOrgConfig,
     windowsDnsRedirectImportLogs,
+    windowsDnsManagedRecords,
   }
 }
 
@@ -148,3 +208,5 @@ export type WindowsDnsRedirectOrgConfigRecord = WindowsDnsRedirectsSchemaType['w
 export type NewWindowsDnsRedirectOrgConfigRecord = WindowsDnsRedirectsSchemaType['windowsDnsRedirectOrgConfig']['$inferInsert']
 export type WindowsDnsRedirectImportLogRecord = WindowsDnsRedirectsSchemaType['windowsDnsRedirectImportLogs']['$inferSelect']
 export type NewWindowsDnsRedirectImportLogRecord = WindowsDnsRedirectsSchemaType['windowsDnsRedirectImportLogs']['$inferInsert']
+export type WindowsDnsManagedRecordRecord = WindowsDnsRedirectsSchemaType['windowsDnsManagedRecords']['$inferSelect']
+export type NewWindowsDnsManagedRecordRecord = WindowsDnsRedirectsSchemaType['windowsDnsManagedRecords']['$inferInsert']
