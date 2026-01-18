@@ -75,10 +75,10 @@ watch(() => props.isOpen, (isOpen) => {
     errorMessage.value = ''
     errorType.value = null
     showRetry.value = false
-    selectedPreset.value = 'none'
     clearFieldErrors()
     if (props.redirect) {
       // Edit mode - populate form
+      selectedPreset.value = 'none'
       // For display, show the subdomain label if host ends with zoneName
       let hostDisplay = props.redirect.host || ''
       if (hostDisplay === props.zoneName) {
@@ -95,7 +95,8 @@ watch(() => props.isOpen, (isOpen) => {
         isActive: props.redirect.isActive,
       }
     } else {
-      // Create mode - reset form
+      // Create mode - reset form with domain_move preset as default
+      selectedPreset.value = 'domain_move'
       form.value = {
         host: '',
         sourcePath: '',
@@ -112,6 +113,8 @@ watch(() => props.isOpen, (isOpen) => {
 watch(selectedPreset, (preset) => {
   if (preset === 'domain_move') {
     // Preset fills in default values for domain move
+    // Use '/*' for wildcard to match all paths including root (/)
+    // In wildcard: '/*' matches both root and all sub-paths
     form.value.sourcePath = '/*'
     form.value.redirectType = 'wildcard'
     form.value.statusCode = 301
@@ -128,12 +131,81 @@ const statusCodes = computed(() => [
   { value: 308, label: t('windowsDns.redirects.status_codes.308') },
 ])
 
+// Status code help text based on selected code
+const statusCodeHelp = computed(() => {
+  switch (form.value.statusCode) {
+    case 301:
+      return t('windowsDns.redirects.form.status_code_help_301')
+    case 302:
+      return t('windowsDns.redirects.form.status_code_help_302')
+    case 307:
+      return t('windowsDns.redirects.form.status_code_help_307')
+    case 308:
+      return t('windowsDns.redirects.form.status_code_help_308')
+    default:
+      return t('windowsDns.redirects.form.status_code_help')
+  }
+})
+
 // Type options
 const redirectTypes = computed(() => [
   { value: 'simple', label: t('windowsDns.redirects.types.simple'), description: t('windowsDns.redirects.types.simple_description') },
   { value: 'wildcard', label: t('windowsDns.redirects.types.wildcard'), description: t('windowsDns.redirects.types.wildcard_description') },
   { value: 'regex', label: t('windowsDns.redirects.types.regex'), description: t('windowsDns.redirects.types.regex_description') },
 ])
+
+// Dynamic examples based on redirect type
+const sourcePathExample = computed(() => {
+  switch (form.value.redirectType) {
+    case 'simple':
+      return '/gammal-sida'
+    case 'wildcard':
+      return '/produkter/*'
+    case 'regex':
+      return '^/blog/(.+)$'
+    default:
+      return '/gammal-sida'
+  }
+})
+
+const destinationUrlExample = computed(() => {
+  switch (form.value.redirectType) {
+    case 'simple':
+      return 'https://example.com/ny-sida'
+    case 'wildcard':
+      return 'https://example.com/shop/*'
+    case 'regex':
+      return 'https://example.com/articles/$1'
+    default:
+      return 'https://example.com/ny-sida'
+  }
+})
+
+const sourcePathHelp = computed(() => {
+  switch (form.value.redirectType) {
+    case 'simple':
+      return t('windowsDns.redirects.form.source_path_help_simple')
+    case 'wildcard':
+      return t('windowsDns.redirects.form.source_path_help_wildcard')
+    case 'regex':
+      return t('windowsDns.redirects.form.source_path_help_regex')
+    default:
+      return t('windowsDns.redirects.form.source_path_help')
+  }
+})
+
+const destinationUrlHelp = computed(() => {
+  switch (form.value.redirectType) {
+    case 'simple':
+      return t('windowsDns.redirects.form.destination_url_help_simple')
+    case 'wildcard':
+      return t('windowsDns.redirects.form.destination_url_help_wildcard')
+    case 'regex':
+      return t('windowsDns.redirects.form.destination_url_help_regex')
+    default:
+      return t('windowsDns.redirects.form.destination_url_help')
+  }
+})
 
 // Clear field errors
 function clearFieldErrors() {
@@ -498,7 +570,7 @@ if (import.meta.client) {
                 id="sourcePath"
                 v-model="form.sourcePath"
                 type="text"
-                :placeholder="t('windowsDns.redirects.form.source_path_placeholder')"
+                :placeholder="sourcePathExample"
                 :class="[
                   'w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm',
                   fieldErrors.sourcePath
@@ -511,7 +583,10 @@ if (import.meta.client) {
                 {{ fieldErrors.sourcePath }}
               </p>
               <p v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {{ t('windowsDns.redirects.form.source_path_help') }}
+                {{ sourcePathHelp }}
+                <span class="block mt-1 font-mono text-xs text-blue-600 dark:text-blue-400">
+                  Exempel: {{ sourcePathExample }}
+                </span>
               </p>
             </div>
 
@@ -524,7 +599,7 @@ if (import.meta.client) {
                 id="destinationUrl"
                 v-model="form.destinationUrl"
                 type="text"
-                :placeholder="t('windowsDns.redirects.form.destination_url_placeholder')"
+                :placeholder="destinationUrlExample"
                 :class="[
                   'w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm',
                   fieldErrors.destinationUrl
@@ -537,7 +612,10 @@ if (import.meta.client) {
                 {{ fieldErrors.destinationUrl }}
               </p>
               <p v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {{ t('windowsDns.redirects.form.destination_url_help') }}
+                {{ destinationUrlHelp }}
+                <span class="block mt-1 font-mono text-xs text-blue-600 dark:text-blue-400">
+                  Exempel: {{ destinationUrlExample }}
+                </span>
               </p>
             </div>
 
@@ -578,6 +656,9 @@ if (import.meta.client) {
                   {{ code.label }}
                 </option>
               </select>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ statusCodeHelp }}
+              </p>
             </div>
 
             <!-- Active Toggle -->
