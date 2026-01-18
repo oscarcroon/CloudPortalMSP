@@ -112,7 +112,8 @@
         "bulk_activate": "Activate Selected",
         "bulk_deactivate": "Deactivate Selected",
         "bulk_delete": "Delete Selected",
-        "clear_selection": "Clear Selection"
+        "clear_selection": "Clear Selection",
+        "open_dns_manager": "Open DNS Manager"
       },
 
       "bulk": {
@@ -146,6 +147,10 @@
       "import": {
         "title": "Import Redirects",
         "description": "Upload a CSV or TXT file to bulk import redirects.",
+        "format_title": "File Format",
+        "format_csv": "Columns: sourcePath (source path), destinationUrl (destination URL), redirectType (simple/wildcard/regex), statusCode (301/302/307/308), isActive (true/false). First row can be headers.",
+        "format_txt": "Space-separated: source path destination URL type status code (optional). Example: /old-page https://example.com/new-page simple 301",
+        "download_sample": "Download Sample File",
         "file_label": "Choose file",
         "drag_drop": "Click or drag file here",
         "file_help": "Supports CSV and TXT formats",

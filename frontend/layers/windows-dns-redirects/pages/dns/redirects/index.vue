@@ -86,21 +86,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Connected to DNS Layer Indicator -->
-    <div
-      v-if="!isLoading && !isUsingMockData"
-      class="mb-6 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
-    >
-      <div class="flex items-center gap-2">
-        <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-        <span class="text-sm text-green-700 dark:text-green-300">
-          {{ t('windowsDns.redirects.zone_selection.connected_to_dns') }}
-        </span>
-      </div>
-    </div>
-
     <!-- Search -->
     <div class="mb-6">
       <input

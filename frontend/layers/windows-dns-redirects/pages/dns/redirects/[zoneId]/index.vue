@@ -339,25 +339,34 @@ onMounted(() => {
         <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           {{ t('windowsDns.redirects.list.title', { zoneName: zoneName || zoneId }) }}
         </h1>
+        <NuxtLink
+          :to="`/dns/${zoneId}`"
+          class="inline-flex items-center gap-1.5 mt-2 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          {{ t('windowsDns.redirects.actions.open_dns_manager') }}
+        </NuxtLink>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
         <button
           v-if="canImport"
-          class="px-3 sm:px-4 py-2 min-h-[44px] text-sm sm:text-base text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+          class="px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
           @click="showImportModal = true"
         >
           {{ t('windowsDns.redirects.actions.import') }}
         </button>
         <button
           v-if="canExport"
-          class="px-3 sm:px-4 py-2 min-h-[44px] text-sm sm:text-base text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+          class="px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
           @click="showExportModal = true"
         >
           {{ t('windowsDns.redirects.actions.export') }}
         </button>
         <button
           v-if="canCreate"
-          class="px-3 sm:px-4 py-2 min-h-[44px] text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          class="px-3 py-2 text-sm font-semibold bg-brand text-white rounded-lg shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
           @click="openCreateModal"
         >
           {{ t('windowsDns.redirects.actions.create') }}
@@ -469,7 +478,7 @@ onMounted(() => {
       </p>
       <button
         v-if="canCreate"
-        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        class="px-3 py-2 text-sm font-semibold bg-brand text-white rounded-lg shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
         @click="openCreateModal"
       >
         {{ t('windowsDns.redirects.list.create_first') }}

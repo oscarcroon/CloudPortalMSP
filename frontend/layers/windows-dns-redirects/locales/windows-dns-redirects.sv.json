@@ -112,7 +112,8 @@
         "bulk_activate": "Aktivera valda",
         "bulk_deactivate": "Inaktivera valda",
         "bulk_delete": "Ta bort valda",
-        "clear_selection": "Rensa markering"
+        "clear_selection": "Rensa markering",
+        "open_dns_manager": "Öppna DNS-hanteraren"
       },
 
       "bulk": {
@@ -146,6 +147,10 @@
       "import": {
         "title": "Importera omdirigeringar",
         "description": "Ladda upp en CSV- eller TXT-fil för att massimportera omdirigeringar.",
+        "format_title": "Filformat",
+        "format_csv": "Kolumner: sourcePath (källsökväg), destinationUrl (mål-URL), redirectType (simple/wildcard/regex), statusCode (301/302/307/308), isActive (true/false). Första raden kan vara rubriker.",
+        "format_txt": "Mellanslagsseparerad: källsökväg mål-URL typ statuskod (valfritt). Exempel: /old-page https://example.com/new-page simple 301",
+        "download_sample": "Ladda ner exempelfil",
         "file_label": "Välj fil",
         "drag_drop": "Klicka eller dra fil hit",
         "file_help": "Stöder CSV- och TXT-format",

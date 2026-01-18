@@ -21,6 +21,7 @@ const ENV_PUBLIC_IPV6 = 'WINDOWS_DNS_REDIRECTS_PUBLIC_IPV6'
 const ENV_PUBLIC_IPV6S = 'WINDOWS_DNS_REDIRECTS_PUBLIC_IPV6S'
 const ENV_PUBLIC_TTL = 'WINDOWS_DNS_REDIRECTS_PUBLIC_TTL'
 const ENV_MANAGED_COMMENT = 'WINDOWS_DNS_REDIRECTS_MANAGED_COMMENT_TEXT'
+const ENV_CNAME_TARGET = 'WINDOWS_DNS_REDIRECTS_CNAME_TARGET'
 
 const DEFAULT_TTL = 3600
 const DEFAULT_MANAGED_COMMENT = '[redirects] managed'
@@ -98,6 +99,17 @@ export function getManagedComment(): string {
 }
 
 /**
+ * Get the CNAME target for subdomain redirects.
+ * If not configured, returns null (will fall back to zone apex).
+ *
+ * Example: WINDOWS_DNS_REDIRECTS_CNAME_TARGET=traefik.example.com
+ */
+export function getCnameTarget(): string | null {
+  const target = process.env[ENV_CNAME_TARGET]?.trim()
+  return target || null
+}
+
+/**
  * Check if DNS integration is enabled (at least one public IP configured).
  */
 export function isDnsIntegrationEnabled(): boolean {
@@ -108,7 +120,8 @@ export function isDnsIntegrationEnabled(): boolean {
  * Build the desired DNS records for a given host.
  *
  * - Apex (@): A record(s) pointing to configured IPv4(s), optionally AAAA for IPv6
- * - Subdomain: CNAME pointing to the zone apex
+ * - Subdomain: CNAME pointing to configured target (WINDOWS_DNS_REDIRECTS_CNAME_TARGET)
+ *              or falls back to zone apex if not configured
  */
 export function buildDesiredRecords(host: string, zoneName: string): DnsRecordSpec[] {
   const recordName = hostToZoneRecordName(host, zoneName)
@@ -126,8 +139,9 @@ export function buildDesiredRecords(host: string, zoneName: string): DnsRecordSp
       records.push({ name: '@', type: 'AAAA', content: ip, ttl, comment })
     }
   } else {
-    // Subdomain: CNAME to zone apex
-    records.push({ name: recordName, type: 'CNAME', content: zoneName, ttl, comment })
+    // Subdomain: CNAME to configured target or zone apex
+    const cnameTarget = getCnameTarget() || zoneName
+    records.push({ name: recordName, type: 'CNAME', content: cnameTarget, ttl, comment })
   }
 
   return records

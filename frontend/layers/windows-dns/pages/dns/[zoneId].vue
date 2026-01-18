@@ -37,7 +37,7 @@
           <NuxtLink
             v-if="zoneId && isValidZoneId && zoneData?.zone"
             :to="`/dns/redirects/${zoneId}`"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-300"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
           >
             <Icon icon="mdi:arrow-right" class="h-4 w-4" />
             {{ $t('windowsDns.redirects.title') }}

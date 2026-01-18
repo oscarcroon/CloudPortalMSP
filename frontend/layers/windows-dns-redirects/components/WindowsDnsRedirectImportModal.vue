@@ -360,6 +360,26 @@ function handleClose() {
   }
 }
 
+// Download sample file
+function downloadSampleFile() {
+  const sampleCSV = `sourcePath,destinationUrl,redirectType,statusCode,isActive
+/old-page,https://example.com/new-page,simple,301,true
+/products/*,https://example.com/shop/*,wildcard,302,true
+^/blog/(.+)$,https://example.com/articles/$1,regex,301,true
+/redirect-me,https://example.com/target,simple,307,false`
+
+  const blob = new Blob([sampleCSV], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', 'redirects-example.csv')
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 // Reset state when modal opens
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
@@ -423,9 +443,40 @@ watch(() => props.isOpen, (isOpen) => {
 
             <!-- File Upload -->
             <div v-if="parsedRows.length === 0">
-              <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+              <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">
                 {{ t('windowsDns.redirects.import.description') }}
               </p>
+
+              <!-- Format explanation -->
+              <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
+                <div class="flex items-start justify-between mb-2">
+                  <p class="font-medium text-blue-900 dark:text-blue-200">
+                    {{ t('windowsDns.redirects.import.format_title') }}
+                  </p>
+                  <button
+                    type="button"
+                    class="px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+                    @click="downloadSampleFile"
+                  >
+                    <svg class="inline-block w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    {{ t('windowsDns.redirects.import.download_sample') }}
+                  </button>
+                </div>
+                <div class="text-blue-800 dark:text-blue-300 space-y-2 text-xs">
+                  <div>
+                    <p class="font-semibold mb-1">CSV-format:</p>
+                    <p class="mb-1">{{ t('windowsDns.redirects.import.format_csv') }}</p>
+                    <p class="font-mono text-xs bg-white dark:bg-gray-800 p-2 rounded break-all">sourcePath,destinationUrl,redirectType,statusCode,isActive</p>
+                  </div>
+                  <div>
+                    <p class="font-semibold mb-1">TXT-format:</p>
+                    <p class="mb-1">{{ t('windowsDns.redirects.import.format_txt') }}</p>
+                    <p class="font-mono text-xs bg-white dark:bg-gray-800 p-2 rounded">/old-page https://example.com/new-page simple 301</p>
+                  </div>
+                </div>
+              </div>
 
               <label class="block">
                 <span class="sr-only">{{ t('windowsDns.redirects.import.file_label') }}</span>
