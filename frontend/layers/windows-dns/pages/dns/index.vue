@@ -23,32 +23,32 @@
         <p v-if="state.data" class="text-xs text-slate-500 dark:text-slate-400">
           {{ $t('windowsDns.index.showing', { filtered: filteredZones.length, total: state.data.zones.length }) }}
         </p>
+        <!-- Redirects button -->
+        <NuxtLink
+          to="/dns/redirects"
+          class="inline-flex h-10 w-fit items-center gap-2 rounded-lg bg-brand px-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
+        >
+          <Icon icon="mdi:arrow-right" class="h-4 w-4" />
+          {{ $t('windowsDns.redirects.title') }}
+        </NuxtLink>
       </div>
       <div class="flex items-center gap-2 self-start">
+        <!-- Manage zones button - only for admins -->
         <button
-          class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:cursor-not-allowed disabled:opacity-60"
+          v-if="state.data?.moduleRights?.canManageOwnership"
+          class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-brand hover:text-white hover:border-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+          @click="showManageModal = true"
+        >
+          <Icon icon="mdi:cog" class="h-4 w-4" />
+          {{ $t('windowsDns.index.manageZones') }}
+        </button>
+        <button
+          class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-brand hover:text-white hover:border-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           :disabled="state.pending"
           :title="$t('windowsDns.index.refreshTitle')"
           @click="fetchZones(true)"
         >
           <Icon icon="mdi:refresh" class="h-5 w-5" :class="{ 'animate-spin': state.pending }" />
-        </button>
-        <!-- Redirects button -->
-        <NuxtLink
-          to="/dns/redirects"
-          class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
-        >
-          <Icon icon="mdi:arrow-right" class="h-4 w-4" />
-          {{ $t('windowsDns.redirects.title') }}
-        </NuxtLink>
-        <!-- Manage zones button - only for admins -->
-        <button
-          v-if="state.data?.moduleRights?.canManageOwnership"
-          class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
-          @click="showManageModal = true"
-        >
-          <Icon icon="mdi:cog" class="h-4 w-4" />
-          {{ $t('windowsDns.index.manageZones') }}
         </button>
       </div>
     </header>

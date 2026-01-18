@@ -1,7 +1,7 @@
 {
   "windowsDns": {
-    "redirects": {
-      "title": "Redirects",
+      "redirects": {
+        "title": "Manage Redirects",
       "description": "Manage HTTP redirects for your domains",
 
       "zone_selection": {

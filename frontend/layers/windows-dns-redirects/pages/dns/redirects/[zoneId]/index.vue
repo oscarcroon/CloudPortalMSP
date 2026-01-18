@@ -366,9 +366,12 @@ onMounted(() => {
         </button>
         <button
           v-if="canCreate"
-          class="px-3 py-2 text-sm font-semibold bg-brand text-white rounded-lg shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
+          class="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-brand text-white rounded-lg shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
           @click="openCreateModal"
         >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
           {{ t('windowsDns.redirects.actions.create') }}
         </button>
       </div>

@@ -1,7 +1,7 @@
 {
   "windowsDns": {
-    "redirects": {
-      "title": "Omdirigeringar",
+      "redirects": {
+        "title": "Hantera omdirigeringar",
       "description": "Hantera HTTP-omdirigeringar för dina domäner",
 
       "zone_selection": {
