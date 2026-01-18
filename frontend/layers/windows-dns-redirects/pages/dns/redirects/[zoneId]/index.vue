@@ -376,7 +376,7 @@ onMounted(() => {
 
       <select
         v-model="filters.type"
-        class="flex-1 sm:flex-none px-3 sm:px-4 py-2 min-h-[44px] text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+        class="flex-1 sm:flex-none pl-3 sm:pl-4 pr-8 sm:pr-10 py-2 min-h-[44px] text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
       >
         <option :value="undefined">{{ t('windowsDns.redirects.filters.all_types') }}</option>
         <option value="simple">{{ t('windowsDns.redirects.types.simple') }}</option>
@@ -397,7 +397,7 @@ onMounted(() => {
 
       <select
         v-model="filters.isActive"
-        class="flex-1 sm:flex-none px-3 sm:px-4 py-2 min-h-[44px] text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+        class="flex-1 sm:flex-none pl-3 sm:pl-4 pr-8 sm:pr-10 py-2 min-h-[44px] text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
       >
         <option :value="undefined">{{ t('windowsDns.redirects.filters.all_statuses') }}</option>
         <option :value="true">{{ t('windowsDns.redirects.filters.active') }}</option>
