@@ -9,6 +9,7 @@ import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirects, windowsDnsAllowedZones } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
+import { hostToZoneRecordName, normalizeRedirectHost } from '@windows-dns-redirects/server/utils/normalizeHost'
 import type { WindowsDnsRedirectCreateInput } from '../../../../types'
 
 export default defineEventHandler(async (event) => {
@@ -78,6 +79,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid redirect type.' })
   }
 
+  // Validate and normalize host
+  let host: string
+  try {
+    host = normalizeRedirectHost((body as any)?.host, allowedZone.zoneName)
+  } catch (e: any) {
+    throw createError({ statusCode: 400, message: e?.message ?? 'Invalid host.' })
+  }
+
   // Validate status code
   const validStatusCodes = [301, 302, 307, 308]
   const statusCode = body.statusCode || 301
@@ -102,6 +111,7 @@ export default defineEventHandler(async (event) => {
       and(
         eq(windowsDnsRedirects.organizationId, orgId),
         eq(windowsDnsRedirects.zoneId, zoneId),
+        eq(windowsDnsRedirects.host, host),
         eq(windowsDnsRedirects.sourcePath, body.sourcePath)
       )
     )
@@ -110,7 +120,7 @@ export default defineEventHandler(async (event) => {
   if (existing) {
     throw createError({
       statusCode: 409,
-      message: `A redirect with source path "${body.sourcePath}" already exists.`
+      message: `A redirect for host "${host}" with source path "${body.sourcePath}" already exists.`
     })
   }
 
@@ -123,7 +133,13 @@ export default defineEventHandler(async (event) => {
    */
   const dnsRecordContent = process.env.WINDOWS_DNS_REDIRECTS_DNS_RECORD_CONTENT?.trim()
   const dnsRecordType = (process.env.WINDOWS_DNS_REDIRECTS_DNS_RECORD_TYPE || 'CNAME').trim().toUpperCase()
-  const dnsRecordName = (process.env.WINDOWS_DNS_REDIRECTS_DNS_RECORD_NAME || '@').trim()
+  const dnsRecordName = (() => {
+    try {
+      return hostToZoneRecordName(host, allowedZone.zoneName)
+    } catch {
+      return '@'
+    }
+  })()
   const dnsRecordTtlRaw = process.env.WINDOWS_DNS_REDIRECTS_DNS_RECORD_TTL?.trim()
   const dnsRecordTtl = dnsRecordTtlRaw ? Number(dnsRecordTtlRaw) : 3600
 
@@ -203,6 +219,7 @@ export default defineEventHandler(async (event) => {
       organizationId: orgId,
       zoneId,
       zoneName: allowedZone.zoneName,
+      host,
       sourcePath: body.sourcePath,
       destinationUrl: body.destinationUrl,
       redirectType,

@@ -413,6 +413,13 @@
       "when": 1768681712819,
       "tag": "0058_silky_titanium_man",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1768744056683,
+      "tag": "0059_mature_terrax",
+      "breakpoints": true
     }
   ],
   "version": "6"

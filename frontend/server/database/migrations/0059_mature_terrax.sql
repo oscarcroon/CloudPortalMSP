@@ -1,0 +1,2 @@
+ALTER TABLE `windows_dns_redirects` ADD `host` text DEFAULT '' NOT NULL;--> statement-breakpoint
+CREATE INDEX `windows_dns_redirects_org_zone_host_idx` ON `windows_dns_redirects` (`organization_id`,`zone_id`,`host`);

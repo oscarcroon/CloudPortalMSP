@@ -25,6 +25,11 @@ export function createWindowsDnsRedirectsSchema(
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
       zoneId: text('zone_id').notNull(),
       zoneName: text('zone_name').notNull(),
+      /**
+       * Full hostname (e.g. "example.com", "www.example.com").
+       * For legacy rows, this may be an empty string; treat as zoneName (apex).
+       */
+      host: text('host').notNull().default(''),
       sourcePath: text('source_path').notNull(),
       destinationUrl: text('destination_url').notNull(),
       redirectType: text('redirect_type', { enum: ['simple', 'wildcard', 'regex'] })
@@ -48,6 +53,11 @@ export function createWindowsDnsRedirectsSchema(
       orgZoneIdx: index('windows_dns_redirects_org_zone_idx').on(
         table.organizationId,
         table.zoneId
+      ),
+      orgZoneHostIdx: index('windows_dns_redirects_org_zone_host_idx').on(
+        table.organizationId,
+        table.zoneId,
+        table.host
       ),
     })
   )
