@@ -15,6 +15,18 @@ export interface WindowsDnsModuleRights {
   canManageOwnership: boolean
   canAutodiscover: boolean
   canManageOrgConfig: boolean
+  // Redirect permissions
+  canAccessRedirects: boolean
+  canViewRedirects: boolean
+  canCreateRedirects: boolean
+  canEditRedirects: boolean
+  canDeleteRedirects: boolean
+  canImportRedirects: boolean
+  canExportRedirects: boolean
+  canViewRedirectConfig: boolean
+  canEditRedirectConfig: boolean
+  canViewTraefik: boolean
+  canSyncTraefik: boolean
 }
 
 export interface WindowsDnsZoneAccess extends WindowsDnsModuleRights {

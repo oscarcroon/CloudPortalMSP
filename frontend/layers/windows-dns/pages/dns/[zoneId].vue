@@ -33,6 +33,15 @@
           </template>
         </p>
         <div class="flex items-center gap-2">
+          <!-- Redirects link -->
+          <NuxtLink
+            v-if="zoneId && isValidZoneId && zoneData?.zone"
+            :to="`/dns/redirects/${zoneId}`"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-300"
+          >
+            <Icon icon="mdi:redirect" class="h-4 w-4" />
+            {{ $t('windowsDns.redirects.title') }}
+          </NuxtLink>
           <!-- Export zone button -->
           <button
             v-if="zoneId && isValidZoneId && zoneData?.zone"

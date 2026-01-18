@@ -83,8 +83,12 @@ const isTokenValid = (cached: CachedToken): boolean => {
  */
 export const getCachedToken = (cacheKey: string): CachedToken | null => {
   const cached = tokenCache.get(cacheKey)
-  if (!cached) return null
+  if (!cached) {
+    console.log(`[token-cache] getCachedToken: no entry for ${cacheKey.slice(0, 12)}...`)
+    return null
+  }
   if (!isTokenValid(cached)) {
+    console.log(`[token-cache] getCachedToken: entry expired for ${cacheKey.slice(0, 12)}..., removing`)
     tokenCache.delete(cacheKey)
     return null
   }
@@ -100,12 +104,12 @@ export const setCachedToken = (cacheKey: string, token: CachedToken): void => {
 
 /**
  * Get or mint a token with singleflight protection.
- * 
+ *
  * This provides client-side deduplication of concurrent requests:
  * - If token exists in cache and is valid, returns it immediately
  * - If a mint is already in progress, awaits that instead of making a parallel call
  * - Otherwise, calls the backend which handles mint-or-return-existing
- * 
+ *
  * The backend also deduplicates via fingerprinting, so even on cache miss
  * we get efficient token reuse.
  *
@@ -119,18 +123,27 @@ export const getOrMintToken = async (
 ): Promise<CachedToken> => {
   // Check cache first
   const cached = getCachedToken(cacheKey)
-  if (cached) return cached
+  if (cached) {
+    console.log(`[token-cache] Cache HIT for key ${cacheKey.slice(0, 12)}..., token expires at ${new Date(cached.expiresAt).toISOString()}`)
+    return cached
+  }
+  console.log(`[token-cache] Cache MISS for key ${cacheKey.slice(0, 12)}...`)
 
   // Check if a mint is already in progress (singleflight)
   const pending = pendingMints.get(cacheKey)
   if (pending) {
+    console.log(`[token-cache] Pending mint found for key ${cacheKey.slice(0, 12)}..., waiting...`)
     return pending.promise
   }
+
+  console.log(`[token-cache] Starting new mint for key ${cacheKey.slice(0, 12)}...`)
 
   // Start a new mint
   const mintPromise = (async () => {
     try {
+      console.log(`[token-cache] Calling mintFn...`)
       const result = await mintFn()
+      console.log(`[token-cache] mintFn returned token ${result.token.slice(0, 20)}..., expiresAt=${new Date(result.expiresAt).toISOString()}`)
       const cachedToken: CachedToken = {
         token: result.token,
         expiresAt: result.expiresAt,
@@ -160,23 +173,34 @@ export const invalidateToken = (cacheKey: string): void => {
  * Invalidate all tokens for an org (e.g., when org config changes or tokens expire).
  */
 export const invalidateOrgTokens = (orgId: string): void => {
+  console.log(`[token-cache] invalidateOrgTokens called for org ${orgId}`)
+  console.log(`[token-cache] Current cache state: tokenCache.size=${tokenCache.size}, cacheKeyToOrgId.size=${cacheKeyToOrgId.size}, pendingMints.size=${pendingMints.size}`)
+
   const keysToDelete: string[] = []
-  
+
   for (const [cacheKey, mappedOrgId] of cacheKeyToOrgId.entries()) {
+    console.log(`[token-cache] Checking key ${cacheKey.slice(0, 12)}... -> org ${mappedOrgId}`)
     if (mappedOrgId === orgId) {
       keysToDelete.push(cacheKey)
     }
   }
-  
+
   for (const key of keysToDelete) {
+    const hadToken = tokenCache.has(key)
+    const hadPending = pendingMints.has(key)
     tokenCache.delete(key)
     cacheKeyToOrgId.delete(key)
     pendingMints.delete(key)
+    console.log(`[token-cache] Deleted key ${key.slice(0, 12)}...: hadToken=${hadToken}, hadPending=${hadPending}`)
   }
-  
+
   if (keysToDelete.length > 0) {
     console.log(`[windows-dns] Invalidated ${keysToDelete.length} cached tokens for org ${orgId}`)
+  } else {
+    console.log(`[token-cache] No tokens found to invalidate for org ${orgId}`)
   }
+
+  console.log(`[token-cache] After invalidation: tokenCache.size=${tokenCache.size}, pendingMints.size=${pendingMints.size}`)
 }
 
 /**

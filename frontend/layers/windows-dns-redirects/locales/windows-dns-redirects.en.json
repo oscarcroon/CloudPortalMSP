@@ -1,0 +1,229 @@
+{
+  "windowsDns": {
+    "redirects": {
+      "title": "Redirects",
+      "description": "Manage HTTP redirects for your domains",
+
+      "zone_selection": {
+        "title": "Select Zone",
+        "description": "Choose a DNS zone to manage its redirects",
+        "search_placeholder": "Search zones...",
+        "no_zones": "No zones available",
+        "redirect_count": "{count} redirect | {count} redirects",
+        "mock_data_warning": "Using Development Data",
+        "mock_data_description": "DNS Layer API is not configured. Showing mock data for development.",
+        "connected_to_dns": "Connected to DNS Layer"
+      },
+
+      "zone_not_found": {
+        "title": "Zone Not Found",
+        "description": "The zone \"{zoneId}\" does not exist or you don't have access to it.",
+        "back": "Back to Zone Selection"
+      },
+
+      "list": {
+        "title": "Redirects for {zoneName}",
+        "empty": "No redirects found",
+        "empty_description": "Create your first redirect to get started.",
+        "create_first": "Create First Redirect",
+        "columns": {
+          "source": "Source Path",
+          "destination": "Destination URL",
+          "type": "Type",
+          "status_code": "Status",
+          "hits": "Hits",
+          "active": "Active",
+          "created": "Created",
+          "last_hit": "Last Hit",
+          "actions": "Actions"
+        }
+      },
+
+      "types": {
+        "simple": "Simple",
+        "wildcard": "Wildcard",
+        "regex": "Regex",
+        "simple_description": "Exact path match",
+        "wildcard_description": "Pattern with wildcards (*)",
+        "regex_description": "Regular expression"
+      },
+
+      "status_codes": {
+        "301": "301 - Moved Permanently",
+        "302": "302 - Found (Temporary)",
+        "307": "307 - Temporary Redirect",
+        "308": "308 - Permanent Redirect"
+      },
+
+      "form": {
+        "create_title": "Create Redirect",
+        "edit_title": "Edit Redirect",
+        "source_path": "Source Path",
+        "source_path_placeholder": "/old-page",
+        "source_path_help": "The path to redirect from (must start with /)",
+        "destination_url": "Destination URL",
+        "destination_url_placeholder": "https://example.com/new-page",
+        "destination_url_help": "The full URL to redirect to",
+        "redirect_type": "Redirect Type",
+        "status_code": "Status Code",
+        "is_active": "Active",
+        "cancel": "Cancel",
+        "save": "Saving",
+        "create": "Create",
+        "update": "Update"
+      },
+
+      "validation": {
+        "source_required": "Source path is required",
+        "source_format": "Source path must start with /",
+        "destination_required": "Destination URL is required",
+        "destination_format": "Invalid URL format",
+        "invalid_regex": "Invalid regular expression"
+      },
+
+      "confirm": {
+        "delete_title": "Delete Redirect",
+        "delete_message": "Are you sure you want to delete this redirect? This action cannot be undone.",
+        "delete_message_with_source": "Are you sure you want to delete the redirect for \"{source}\"? This action cannot be undone.",
+        "bulk_delete_title": "Delete {count} Redirects",
+        "bulk_delete_message": "Are you sure you want to delete {count} redirects? This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete",
+        "deleting": "Deleting..."
+      },
+
+      "actions": {
+        "create": "Create Redirect",
+        "edit": "Edit",
+        "delete": "Delete",
+        "activate": "Activate",
+        "deactivate": "Deactivate",
+        "import": "Import",
+        "export": "Export",
+        "bulk_activate": "Activate Selected",
+        "bulk_deactivate": "Deactivate Selected",
+        "bulk_delete": "Delete Selected",
+        "clear_selection": "Clear Selection"
+      },
+
+      "bulk": {
+        "selected": "selected"
+      },
+
+      "filters": {
+        "search": "Search redirects...",
+        "all_types": "All Types",
+        "all_status_codes": "All Status Codes",
+        "all_statuses": "All Statuses",
+        "active": "Active",
+        "inactive": "Inactive",
+        "clear": "Clear Filters"
+      },
+
+      "pagination": {
+        "showing": "Showing {from} to {to} of {total}",
+        "page": "Page {current} of {total}",
+        "previous": "Previous",
+        "next": "Next"
+      },
+
+      "toast": {
+        "created": "Redirect for \"{source}\" created successfully",
+        "updated": "Redirect for \"{source}\" updated successfully",
+        "deleted": "Redirect for \"{source}\" deleted successfully",
+        "delete_failed": "Failed to delete redirect"
+      },
+
+      "import": {
+        "title": "Import Redirects",
+        "description": "Upload a CSV or TXT file to bulk import redirects.",
+        "file_label": "Choose file",
+        "drag_drop": "Click or drag file here",
+        "file_help": "Supports CSV and TXT formats",
+        "preview_title": "Preview",
+        "skip_duplicates": "Skip existing redirects with same source path",
+        "choose_different": "Choose a different file",
+        "importing": "Importing...",
+        "confirm": "Import"
+      },
+
+      "export": {
+        "title": "Export Redirects",
+        "description": "Download your redirects in CSV or TXT format.",
+        "downloading": "Downloading...",
+        "export_all": "Export All",
+        "export_filtered": "Export Filtered"
+      },
+
+      "stats": {
+        "title": "Statistics",
+        "export": "Export Stats",
+        "total_redirects": "Total Redirects",
+        "active": "Active",
+        "inactive": "Inactive",
+        "total_hits": "Total Hits",
+        "hits_over_time": "Hits Over Time",
+        "by_type": "By Type",
+        "top_redirects": "Top Redirects",
+        "no_hits_yet": "No redirects with hits yet"
+      },
+
+      "errors": {
+        "network": {
+          "title": "Connection Error",
+          "message": "Unable to connect to the server. Please check your internet connection.",
+          "retry": "Try Again",
+          "save_failed": "Failed to save. Please try again.",
+          "load_failed": "Failed to load. Please try again.",
+          "delete_failed": "Failed to delete. Please try again."
+        },
+        "server": {
+          "title": "Server Error",
+          "message": "Something went wrong on the server. Please try again later.",
+          "retry": "Try Again"
+        },
+        "validation": {
+          "title": "Validation Error",
+          "message": "Please check your input and try again.",
+          "retry": "Fix and Retry"
+        },
+        "generic": {
+          "title": "Error",
+          "message": "An unexpected error occurred. Please try again.",
+          "retry": "Try Again"
+        }
+      },
+
+      "traefik": {
+        "title": "Traefik Configuration",
+        "status": "Status",
+        "last_sync": "Last Sync",
+        "sync_now": "Sync Now",
+        "syncing": "Syncing...",
+        "synced": "Synced",
+        "pending": "Pending",
+        "error": "Error",
+        "rollback": "Rollback",
+        "dry_run": "Preview Changes"
+      },
+
+      "config": {
+        "title": "Configuration",
+        "traefik_path": "Traefik Config Path",
+        "traefik_path_help": "Path to the Traefik dynamic configuration directory"
+      },
+
+      "dns_conflict": {
+        "title": "DNS conflict detected",
+        "description": "For redirects to work, the DNS record \"{recordName}\" must point to the redirects service. If you continue, existing records will be replaced.",
+        "warning": "This may impact traffic and other services using the same DNS name. Review the changes carefully before continuing.",
+        "before": "Before",
+        "after": "After",
+        "ack": "I understand that existing DNS records may be replaced and that this can impact traffic.",
+        "cancel": "Cancel",
+        "continue": "Continue and update DNS",
+        "applying": "Updating DNS..."
+      }
+    }
+  }
+}

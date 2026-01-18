@@ -10,7 +10,7 @@ const loginBrandingSlugSuffixes = (process.env.LOGIN_BRANDING_SLUG_SUFFIXES || '
   .filter(Boolean)
 
 export default defineNuxtConfig({
-  extends: ['./layers/cloudflare-dns'],
+  extends: ['./layers/cloudflare-dns', './layers/windows-dns'],
   imports: {
     dirs: ['layers']
   },

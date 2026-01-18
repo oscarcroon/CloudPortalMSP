@@ -47,7 +47,19 @@ export const buildModuleRights = (portalPermissions: Set<string>): WindowsDnsMod
   canEditRecords: portalPermissions.has('windows-dns:records:write'),
   canManageOwnership: portalPermissions.has('windows-dns:ownership:write'),
   canAutodiscover: portalPermissions.has('windows-dns:autodiscover:read'),
-  canManageOrgConfig: portalPermissions.has('windows-dns:manage_org_config')
+  canManageOrgConfig: portalPermissions.has('windows-dns:manage_org_config'),
+  // Redirect permissions
+  canAccessRedirects: portalPermissions.has('windows-dns:redirects:access'),
+  canViewRedirects: portalPermissions.has('windows-dns:redirects:view'),
+  canCreateRedirects: portalPermissions.has('windows-dns:redirects:create'),
+  canEditRedirects: portalPermissions.has('windows-dns:redirects:edit'),
+  canDeleteRedirects: portalPermissions.has('windows-dns:redirects:delete'),
+  canImportRedirects: portalPermissions.has('windows-dns:redirects:import'),
+  canExportRedirects: portalPermissions.has('windows-dns:redirects:export'),
+  canViewRedirectConfig: portalPermissions.has('windows-dns:redirects:config:view'),
+  canEditRedirectConfig: portalPermissions.has('windows-dns:redirects:config:edit'),
+  canViewTraefik: portalPermissions.has('windows-dns:redirects:traefik:view'),
+  canSyncTraefik: portalPermissions.has('windows-dns:redirects:traefik:sync')
 })
 
 /**

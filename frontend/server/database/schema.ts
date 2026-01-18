@@ -15,6 +15,7 @@ import type { OrganizationMemberStatus } from '~/types/admin'
 // Import layer schemas
 import { createCloudflareDnsSchema } from '~~/layers/cloudflare-dns/server/database'
 import { createWindowsDnsSchema } from '~~/layers/windows-dns/server/database'
+import { createWindowsDnsRedirectsSchema } from '~~/layers/windows-dns-redirects/server/database'
 
 export type BrandingTargetType = 'organization' | 'provider' | 'distributor' | 'global'
 
@@ -1722,4 +1723,15 @@ export const windowsDnsOrgConfig = windowsDnsSchemaInstance.windowsDnsOrgConfig
 export const windowsDnsAllowedZones = windowsDnsSchemaInstance.windowsDnsAllowedZones
 export const windowsDnsLastDiscovery = windowsDnsSchemaInstance.windowsDnsLastDiscovery
 export const windowsDnsBlockedZones = windowsDnsSchemaInstance.windowsDnsBlockedZones
+
+/**
+ * Windows DNS Redirects plugin tables (prefixed with windows_dns_redirect_)
+ * Schema is defined in the windows-dns-redirects layer and imported here.
+ */
+const windowsDnsRedirectsSchemaInstance = createWindowsDnsRedirectsSchema(organizations.id)
+
+export const windowsDnsRedirects = windowsDnsRedirectsSchemaInstance.windowsDnsRedirects
+export const windowsDnsRedirectHits = windowsDnsRedirectsSchemaInstance.windowsDnsRedirectHits
+export const windowsDnsRedirectOrgConfig = windowsDnsRedirectsSchemaInstance.windowsDnsRedirectOrgConfig
+export const windowsDnsRedirectImportLogs = windowsDnsRedirectsSchemaInstance.windowsDnsRedirectImportLogs
 

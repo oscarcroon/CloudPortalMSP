@@ -406,6 +406,13 @@
       "when": 1767643731832,
       "tag": "0057_blushing_black_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "6",
+      "when": 1768681712819,
+      "tag": "0058_silky_titanium_man",
+      "breakpoints": true
     }
   ],
   "version": "6"

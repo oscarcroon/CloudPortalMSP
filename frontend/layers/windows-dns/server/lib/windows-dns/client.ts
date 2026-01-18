@@ -96,6 +96,8 @@ export const systemRequest = async <T>(
   const layerToken = getLayerToken(instanceId)
   const url = `${baseUrl}/system${path}`
 
+  console.log(`[windows-dns] systemRequest: ${options?.method ?? 'GET'} ${url}`)
+
   try {
     const res = await ofetch<WindowsDnsApiResponse<T>>(url, {
       method: options?.method ?? 'GET',
@@ -105,6 +107,8 @@ export const systemRequest = async <T>(
         'Content-Type': 'application/json'
       }
     })
+
+    console.log(`[windows-dns] systemRequest response: success=${res?.success}`)
 
     if (!res?.success) {
       const message = res?.errors?.[0]?.message ?? 'Windows DNS system API error'
@@ -120,6 +124,7 @@ export const systemRequest = async <T>(
       error?.message ||
       'Windows DNS system API error'
 
+    console.log(`[windows-dns] systemRequest error: ${statusCode} ${message}`)
     throw createError({ statusCode, message: `[windows-dns] ${message}` })
   }
 }
@@ -201,22 +206,31 @@ export const tokenRequestWithRetry = async <T>(
   options?: { method?: string; body?: unknown; query?: Record<string, string> }
 ): Promise<T> => {
   const token = await getTokenFn()
+  console.log(`[windows-dns] Initial token for ${path}: ${token.slice(0, 20)}...`)
 
   try {
     return await tokenRequest<T>(instanceId, token, path, options)
   } catch (error: any) {
     // Check if this is a token expiry error
     if (isTokenExpiredError(error)) {
-      console.log(`[windows-dns] Token expired for org ${orgId}, invalidating cache and retrying...`)
+      const errorMsg = error?.data?.errors?.[0]?.message || error?.data?.message || error?.message || 'unknown'
+      console.log(`[windows-dns] Token error for org ${orgId}: "${errorMsg}", invalidating cache and retrying...`)
 
       // Invalidate all cached tokens for this org
       invalidateOrgTokens(orgId)
 
       // Get a fresh token (will mint a new one since cache is invalidated)
       const freshToken = await getTokenFn()
+      console.log(`[windows-dns] Fresh token for ${path}: ${freshToken.slice(0, 20)}... (same as before: ${token === freshToken})`)
 
       // Retry the request with the fresh token
-      return await tokenRequest<T>(instanceId, freshToken, path, options)
+      try {
+        return await tokenRequest<T>(instanceId, freshToken, path, options)
+      } catch (retryError: any) {
+        const retryMsg = retryError?.data?.errors?.[0]?.message || retryError?.data?.message || retryError?.message || 'unknown'
+        console.log(`[windows-dns] Retry also failed: "${retryMsg}"`)
+        throw retryError
+      }
     }
 
     // Re-throw other errors
@@ -360,6 +374,8 @@ const mintToken = async (
   zoneSelector: WindowsDnsZoneSelector = 'account_set',
   allowedZoneIds: string[] | '*' = '*'
 ): Promise<{ token: string; expiresAt: number; renewed: boolean }> => {
+  console.log(`[windows-dns] mintToken called for account ${accountId}, scopes=${scopes.join(',')}, zoneSelector=${zoneSelector}`)
+
   try {
     const result = await systemRequest<WindowsDnsSystemMintTokenResponse>(
       config.instanceId,
@@ -383,6 +399,8 @@ const mintToken = async (
       }
     )
 
+    console.log(`[windows-dns] mintToken response: token=${result?.token?.slice(0, 20)}..., renewed=${result?.renewed}, expiresAt=${result?.tokenInfo?.expiresAt}`)
+
     if (!result?.token) {
       throw createError({
         statusCode: 502,
@@ -395,12 +413,15 @@ const mintToken = async (
       ? result.tokenInfo.expiresAt * 1000 // Convert to ms if seconds
       : Date.now() + DRIFT_TOKEN_TTL_HOURS * 3600 * 1000
 
+    console.log(`[windows-dns] mintToken computed expiresAt: ${new Date(expiresAt).toISOString()}`)
+
     return {
       token: result.token,
       expiresAt,
       renewed: result.renewed ?? false
     }
   } catch (error: any) {
+    console.log(`[windows-dns] mintToken error: ${error?.message}`)
     // Improve error message for account not found
     if (error?.message?.includes('Account not found') || error?.statusCode === 404) {
       throw createError({

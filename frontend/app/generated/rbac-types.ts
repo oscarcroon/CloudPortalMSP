@@ -3,7 +3,7 @@
 
 export type ModuleKey = 'cloudflare-dns' | 'windows-dns'
 
-export type PermissionKey = 'cloudflare-dns:view' | 'cloudflare-dns:edit_records' | 'cloudflare-dns:admin_zones' | 'cloudflare-dns:manage_org_config' | 'cloudflare-dns:manage_acls' | 'windows-dns:view' | 'windows-dns:zones:create' | 'windows-dns:zones:write' | 'windows-dns:records:write' | 'windows-dns:ownership:read' | 'windows-dns:ownership:write' | 'windows-dns:autodiscover:read' | 'windows-dns:manage_org_config'
+export type PermissionKey = 'cloudflare-dns:view' | 'cloudflare-dns:edit_records' | 'cloudflare-dns:admin_zones' | 'cloudflare-dns:manage_org_config' | 'cloudflare-dns:manage_acls' | 'windows-dns:view' | 'windows-dns:zones:create' | 'windows-dns:zones:write' | 'windows-dns:records:write' | 'windows-dns:ownership:read' | 'windows-dns:ownership:write' | 'windows-dns:autodiscover:read' | 'windows-dns:manage_org_config' | 'windows-dns:redirects:access' | 'windows-dns:redirects:view' | 'windows-dns:redirects:create' | 'windows-dns:redirects:edit' | 'windows-dns:redirects:delete' | 'windows-dns:redirects:import' | 'windows-dns:redirects:export' | 'windows-dns:redirects:config:view' | 'windows-dns:redirects:config:edit' | 'windows-dns:redirects:traefik:view' | 'windows-dns:redirects:traefik:sync'
 
 export interface ModuleRoleKeyMap {
   'cloudflare-dns': never;
