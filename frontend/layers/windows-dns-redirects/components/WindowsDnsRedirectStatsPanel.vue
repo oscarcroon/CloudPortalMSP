@@ -12,16 +12,14 @@ const { t } = useI18n()
 const isExpanded = ref(false)
 const isLoading = ref(false)
 const stats = ref<{
-  summary: {
-    totalRedirects: number
-    activeRedirects: number
-    inactiveRedirects: number
-    totalHits: number
-  }
-  typeBreakdown: Record<string, number>
-  statusCodeBreakdown: Record<string, number>
+  totalRedirects: number
+  activeRedirects: number
+  inactiveRedirects: number
+  totalHits: number
+  hitsToday: number
+  byType: Record<string, number>
   topRedirects: Array<{ id: string; sourcePath: string; hitCount: number }>
-  dailyHits: Array<{ date: string; hits: number }>
+  dailyHits: Array<{ date: string; count: number }>
 } | null>(null)
 
 const dateRange = ref('30d')
@@ -34,9 +32,10 @@ const dateRangeOptions = [
 async function fetchStats() {
   isLoading.value = true
   try {
-    stats.value = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects/stats`, {
+    const response = await $fetch<{ stats: typeof stats.value }>(`/api/dns/windows/zones/${props.zoneId}/redirects/stats`, {
       query: { range: dateRange.value }
     })
+    stats.value = response.stats
   } catch (error) {
     console.error('Failed to fetch stats:', error)
   } finally {
@@ -71,24 +70,24 @@ function exportStats() {
 
   // Summary
   lines.push('Summary')
-  lines.push(`Total Redirects,${stats.value.summary.totalRedirects}`)
-  lines.push(`Active Redirects,${stats.value.summary.activeRedirects}`)
-  lines.push(`Inactive Redirects,${stats.value.summary.inactiveRedirects}`)
-  lines.push(`Total Hits,${stats.value.summary.totalHits}`)
+  lines.push(`Total Redirects,${stats.value.totalRedirects}`)
+  lines.push(`Active Redirects,${stats.value.activeRedirects}`)
+  lines.push(`Inactive Redirects,${stats.value.inactiveRedirects}`)
+  lines.push(`Total Hits,${stats.value.totalHits}`)
   lines.push('')
 
   // Type breakdown
   lines.push('Type Breakdown')
-  lines.push(`Simple,${stats.value.typeBreakdown.simple || 0}`)
-  lines.push(`Wildcard,${stats.value.typeBreakdown.wildcard || 0}`)
-  lines.push(`Regex,${stats.value.typeBreakdown.regex || 0}`)
+  lines.push(`Simple,${stats.value.byType.simple || 0}`)
+  lines.push(`Wildcard,${stats.value.byType.wildcard || 0}`)
+  lines.push(`Regex,${stats.value.byType.regex || 0}`)
   lines.push('')
 
   // Daily hits
   lines.push('Daily Hits')
   lines.push('Date,Hits')
   stats.value.dailyHits.forEach(day => {
-    lines.push(`${day.date},${day.hits}`)
+    lines.push(`${day.date},${day.count}`)
   })
   lines.push('')
 
@@ -115,7 +114,7 @@ function exportStats() {
 // Calculate max hits for chart scaling
 const maxHits = computed(() => {
   if (!stats.value?.dailyHits) return 1
-  return Math.max(1, ...stats.value.dailyHits.map(d => d.hits))
+  return Math.max(1, ...stats.value.dailyHits.map(d => d.count))
 })
 </script>
 
@@ -177,19 +176,19 @@ const maxHits = computed(() => {
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('windowsDns.redirects.stats.total_redirects') }}</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.summary.totalRedirects }}</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.totalRedirects }}</p>
           </div>
           <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('windowsDns.redirects.stats.active') }}</p>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.summary.activeRedirects }}</p>
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.activeRedirects }}</p>
           </div>
           <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('windowsDns.redirects.stats.inactive') }}</p>
-            <p class="text-2xl font-bold text-gray-500 dark:text-gray-400">{{ stats.summary.inactiveRedirects }}</p>
+            <p class="text-2xl font-bold text-gray-500 dark:text-gray-400">{{ stats.inactiveRedirects }}</p>
           </div>
           <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('windowsDns.redirects.stats.total_hits') }}</p>
-            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.summary.totalHits }}</p>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.totalHits }}</p>
           </div>
         </div>
 
@@ -205,13 +204,13 @@ const maxHits = computed(() => {
               >
                 <div
                   class="w-full bg-blue-500 dark:bg-blue-400 rounded-t transition-all hover:bg-blue-600 dark:hover:bg-blue-300"
-                  :style="{ height: `${Math.max(2, (day.hits / maxHits) * 100)}%` }"
-                  :title="`${day.date}: ${day.hits} hits`"
+                  :style="{ height: `${Math.max(2, (day.count / maxHits) * 100)}%` }"
+                  :title="`${day.date}: ${day.count} hits`"
                 ></div>
                 <!-- Tooltip -->
                 <div class="absolute bottom-full mb-2 hidden group-hover:block z-10">
                   <div class="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-                    {{ day.date }}: {{ day.hits }} hits
+                    {{ day.date }}: {{ day.count }} hits
                   </div>
                 </div>
               </div>
@@ -233,21 +232,21 @@ const maxHits = computed(() => {
                   <span class="w-3 h-3 rounded-full bg-blue-500"></span>
                   {{ t('windowsDns.redirects.types.simple') }}
                 </span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ stats.typeBreakdown.simple || 0 }}</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ stats.byType.simple || 0 }}</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
                   <span class="w-3 h-3 rounded-full bg-purple-500"></span>
                   {{ t('windowsDns.redirects.types.wildcard') }}
                 </span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ stats.typeBreakdown.wildcard || 0 }}</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ stats.byType.wildcard || 0 }}</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
                   <span class="w-3 h-3 rounded-full bg-orange-500"></span>
                   {{ t('windowsDns.redirects.types.regex') }}
                 </span>
-                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ stats.typeBreakdown.regex || 0 }}</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ stats.byType.regex || 0 }}</span>
               </div>
             </div>
           </div>
