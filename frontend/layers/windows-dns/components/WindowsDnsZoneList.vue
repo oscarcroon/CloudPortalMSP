@@ -117,17 +117,18 @@
     </div>
 
     <div v-else class="grid gap-4 md:grid-cols-2">
+      <!-- Selection mode: div with click handler -->
       <div
+        v-if="selectionMode"
         v-for="(zone, index) in displayedZones"
         :key="zone.id"
         class="group rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
-        :class="{ 'ring-2 ring-brand': selectionMode && selectedZones.includes(zone.id) }"
-        @click="(e) => selectionMode ? handleZoneClick(zone.id, index, e) : null"
+        :class="{ 'ring-2 ring-brand': selectedZones.includes(zone.id) }"
+        @click="(e) => handleZoneClick(zone.id, index, e)"
       >
         <div class="flex items-center justify-between gap-3">
           <!-- Selection checkbox (only in selection mode) -->
           <button
-            v-if="selectionMode"
             type="button"
             class="flex-shrink-0 p-0.5 rounded transition hover:bg-slate-100 dark:hover:bg-slate-800"
             @click.stop="toggleZoneSelection(zone.id)"
@@ -217,10 +218,101 @@
           <span v-else class="text-xs text-slate-400 dark:text-slate-500">
             &nbsp;
           </span>
+        </div>
+      </div>
+
+      <!-- Normal mode: NuxtLink (entire card is clickable) -->
+      <NuxtLink
+        v-else
+        v-for="zone in displayedZones"
+        :key="zone.id"
+        :to="isValidUuid(zone.id) ? `/dns/${zone.id}` : '#'"
+        class="group block rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-lg font-medium text-slate-900 dark:text-slate-50">{{ zone.zoneName }}</p>
+            <p v-if="zone.serverName" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {{ zone.serverName }}
+            </p>
+          </div>
           <div class="flex items-center gap-2">
-            <!-- Export button (only when NOT in selection mode, visible on hover) -->
+            <!-- Delegation status badge -->
+            <span
+              v-if="getDelegationStatus(zone.zoneName) === 'pending'"
+              class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+              :title="$t('windowsDns.zoneList.delegation.pendingTooltip', { missing: getMissingNameservers(zone.zoneName).join(', ') })"
+            >
+              <Icon icon="mdi:clock-outline" class="h-3 w-3 animate-pulse" />
+              {{ $t('windowsDns.zoneList.delegation.pending') }}
+            </span>
+            <span
+              v-else-if="getDelegationStatus(zone.zoneName) === 'active'"
+              class="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
+              :title="$t('windowsDns.zoneList.delegation.activeTooltip')"
+            >
+              <Icon icon="mdi:check-network-outline" class="h-3 w-3" />
+              {{ $t('windowsDns.zoneList.delegation.active') }}
+            </span>
+            <!-- Ownership badge -->
+            <span
+              v-if="zone.owned"
+              class="inline-flex items-center gap-1 rounded-lg border border-green-200 bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300"
+            >
+              <Icon icon="mdi:check-circle" class="h-3 w-3" />
+              {{ $t('windowsDns.zoneList.owned') }}
+            </span>
+            <span
+              v-else-if="zone.claimable"
+              class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+            >
+              <Icon icon="mdi:hand-pointing-right" class="h-3 w-3" />
+              {{ $t('windowsDns.zoneList.claimable') }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Pending delegation info -->
+        <div
+          v-if="getDelegationStatus(zone.zoneName) === 'pending' && getMissingNameservers(zone.zoneName).length > 0"
+          class="mt-3 rounded-lg border border-amber-200 bg-amber-50/50 p-2.5 dark:border-amber-700/50 dark:bg-amber-900/10"
+        >
+          <div class="flex items-start gap-2">
+            <Icon icon="mdi:information-outline" class="h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-amber-800 dark:text-amber-200">
+                {{ $t('windowsDns.zoneList.delegation.actionRequired') }}
+              </p>
+              <p class="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                {{ $t('windowsDns.zoneList.delegation.updateNameservers') }}
+              </p>
+              <div class="mt-1.5 flex flex-wrap gap-1">
+                <span
+                  v-for="ns in getMissingNameservers(zone.zoneName)"
+                  :key="ns"
+                  class="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-mono text-amber-800 dark:bg-amber-800/30 dark:text-amber-200"
+                >
+                  {{ ns }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between">
+          <span v-if="recordCounts[zone.id] !== undefined" class="text-xs text-slate-500 dark:text-slate-400">
+            {{ recordCounts[zone.id] }} {{ recordCounts[zone.id] === 1 ? $t('windowsDns.zoneList.record') : $t('windowsDns.zoneList.records') }}
+          </span>
+          <span v-else-if="loadingRecordCounts" class="text-xs text-slate-400 dark:text-slate-500">
+            {{ $t('windowsDns.zoneList.loadingRecords') }}
+          </span>
+          <span v-else class="text-xs text-slate-400 dark:text-slate-500">
+            &nbsp;
+          </span>
+          <div class="flex items-center gap-2">
+            <!-- Export button (visible on hover) -->
             <button
-              v-if="isValidUuid(zone.id) && !selectionMode"
+              v-if="isValidUuid(zone.id)"
               type="button"
               class="inline-flex items-center justify-center rounded-lg border border-transparent p-1.5 text-slate-400 opacity-0 transition group-hover:opacity-100 hover:border-slate-200 hover:bg-slate-50 hover:text-brand dark:hover:border-slate-700 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="exportingZoneId === zone.id"
@@ -229,20 +321,12 @@
             >
               <Icon :icon="exportingZoneId === zone.id ? 'mdi:loading' : 'mdi:download'" :class="{ 'animate-spin': exportingZoneId === zone.id }" class="h-4 w-4" />
             </button>
-            <NuxtLink
-              v-if="isValidUuid(zone.id)"
-              :to="`/dns/${zone.id}`"
-              class="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
-            >
-              {{ $t('windowsDns.zoneList.viewZone') }}
-              <Icon icon="mdi:arrow-right" class="h-4 w-4" />
-            </NuxtLink>
-            <span v-else class="text-xs text-slate-400 dark:text-slate-500">
+            <span v-if="!isValidUuid(zone.id)" class="text-xs text-slate-400 dark:text-slate-500">
               {{ $t('windowsDns.zoneList.invalidZone') }}
             </span>
           </div>
         </div>
-      </div>
+      </NuxtLink>
     </div>
 
     <!-- Create Zone Modal -->
