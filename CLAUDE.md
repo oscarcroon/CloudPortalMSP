@@ -17,13 +17,18 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
-### Database
+### Setup & Database
 ```bash
+# Initial setup (installs dependencies, initializes database, seeds user)
+npm run setup
+
+# Or manually:
 cd frontend
 npm run db:generate   # Generate SQL from schema
+npm run db:push       # Push schema to database (creates tables)
 npm run db:migrate    # Apply migrations
 npm run db:studio     # Open Drizzle Studio UI
-npm run seed:user     # Seed test user
+npm run seed:user     # Seed test user (auto-runs db:push if needed)
 ```
 
 ### Testing & Linting

@@ -16,6 +16,7 @@
     "lint": "eslint . --ext .ts,.js,.vue",
     "seed": "tsx scripts/seed.ts",
     "seed:user": "tsx scripts/seed-user-standalone.ts",
+    "setup": "tsx scripts/setup.ts",
     "db:add-locale": "tsx scripts/add-locale-column.ts",
     "db:fix-users": "tsx scripts/fix-users-table.ts",
     "db:fresh-start": "tsx scripts/fresh-start.ts",

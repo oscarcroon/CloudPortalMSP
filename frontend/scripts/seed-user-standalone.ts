@@ -61,7 +61,7 @@ async function seed() {
   }
 
   // Open database
-  const db = new Database(dbPath)
+  let db = new Database(dbPath)
   
   try {
     // Check if users table exists
@@ -71,12 +71,46 @@ async function seed() {
     `).get()
 
     if (!tableExists) {
-      console.error('❌ Tabellen "users" finns inte. Kör först:')
-      console.error('   npm run db:push')
-      console.error('   eller')
-      console.error('   npm run db:migrate')
-      process.exitCode = 1
-      return
+      console.log('⚠️  Tabellen "users" finns inte. Försöker initialisera databasen...')
+      db.close()
+      
+      // Try to run db:push programmatically
+      try {
+        const { execSync } = await import('child_process')
+        const { resolve, dirname } = await import('path')
+        const { fileURLToPath } = await import('url')
+        const __filename = fileURLToPath(import.meta.url)
+        const __dirname = dirname(__filename)
+        const frontendDir = resolve(__dirname, '..')
+        
+        console.log('📦 Kör db:push för att skapa tabellerna...')
+        execSync('npm run db:push', { 
+          cwd: frontendDir,
+          stdio: 'inherit',
+          encoding: 'utf-8'
+        })
+        console.log('✅ Databas initialiserad!')
+        
+        // Reopen database after push
+        db = new Database(dbPath)
+        const tableExistsAfterPush = db.prepare(`
+          SELECT name FROM sqlite_master 
+          WHERE type='table' AND name='users'
+        `).get()
+        
+        if (!tableExistsAfterPush) {
+          console.error('❌ Tabellen "users" finns fortfarande inte efter db:push.')
+          console.error('   Kör manuellt: npm run db:push')
+          process.exitCode = 1
+          return
+        }
+      } catch (pushError) {
+        console.error('❌ Kunde inte köra db:push automatiskt.')
+        console.error('   Kör manuellt: npm run db:push')
+        console.error('   Eller använd: npm run setup')
+        process.exitCode = 1
+        return
+      }
     }
 
     // Check if user already exists
@@ -121,7 +155,9 @@ async function seed() {
     console.error('❌ Misslyckades med att skapa användare:', error)
     process.exitCode = 1
   } finally {
-    db.close()
+    if (db) {
+      db.close()
+    }
   }
 }
 
