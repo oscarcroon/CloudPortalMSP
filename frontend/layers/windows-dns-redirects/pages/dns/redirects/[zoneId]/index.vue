@@ -10,9 +10,6 @@ const route = useRoute()
 const router = useRouter()
 const toast = useWindowsDnsRedirectToast()
 
-// Get user permissions from the portal's permission system
-const { hasPermission } = usePermission()
-
 // Cache entity names for breadcrumbs
 const entityNames = useEntityNames()
 
@@ -29,12 +26,26 @@ function formatDate(date: Date | string | null | undefined): string {
   })
 }
 
-// RBAC permissions - using portal's permission system
-const canCreate = computed(() => hasPermission('windows-dns:redirects:create'))
-const canEdit = computed(() => hasPermission('windows-dns:redirects:edit'))
-const canDelete = computed(() => hasPermission('windows-dns:redirects:delete'))
-const canImport = computed(() => hasPermission('windows-dns:redirects:import'))
-const canExport = computed(() => hasPermission('windows-dns:redirects:export'))
+// Module rights from API response (populated by fetchRedirects)
+const moduleRights = ref<{
+  canView?: boolean
+  canCreate?: boolean
+  canEdit?: boolean
+  canDelete?: boolean
+  canImport?: boolean
+  canExport?: boolean
+  canViewConfig?: boolean
+  canEditConfig?: boolean
+  canViewTraefik?: boolean
+  canSyncTraefik?: boolean
+}>({})
+
+// RBAC permissions - using moduleRights from API response
+const canCreate = computed(() => moduleRights.value.canCreate ?? false)
+const canEdit = computed(() => moduleRights.value.canEdit ?? false)
+const canDelete = computed(() => moduleRights.value.canDelete ?? false)
+const canImport = computed(() => moduleRights.value.canImport ?? false)
+const canExport = computed(() => moduleRights.value.canExport ?? false)
 
 const zoneId = computed(() => route.params.zoneId as string)
 
@@ -277,6 +288,11 @@ async function fetchRedirects() {
     })
     redirects.value = response.items || []
     totalCount.value = response.total || 0
+
+    // Update module rights from API response
+    if (response.moduleRights) {
+      moduleRights.value = response.moduleRights
+    }
 
     if (redirects.value.length > 0 && !zoneName.value) {
       zoneName.value = redirects.value[0].zoneName || ''

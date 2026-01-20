@@ -130,6 +130,19 @@ export default defineEventHandler(async (event) => {
     zone: {
       id: allowedZone.zoneId,
       name: allowedZone.zoneName
+    },
+    // Include module rights for frontend permission checks
+    moduleRights: {
+      canView: moduleRights.canViewRedirects,
+      canCreate: moduleRights.canCreateRedirects,
+      canEdit: moduleRights.canEditRedirects,
+      canDelete: moduleRights.canDeleteRedirects,
+      canImport: moduleRights.canImportRedirects,
+      canExport: moduleRights.canExportRedirects,
+      canViewConfig: moduleRights.canViewRedirectConfig,
+      canEditConfig: moduleRights.canEditRedirectConfig,
+      canViewTraefik: moduleRights.canViewTraefik,
+      canSyncTraefik: moduleRights.canSyncTraefik
     }
   }
 })
