@@ -1,5 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './app/constants/i18n'
+// i18n constants defined inline to avoid importing from app/ directory
+// which causes "Vue app aliases are not allowed in server runtime" error in Nitro
+const SUPPORTED_LOCALES = [
+  { code: 'sv', iso: 'sv-SE', name: 'Svenska' },
+  { code: 'en', iso: 'en-US', name: 'English' }
+] as const
+
+const DEFAULT_LOCALE = 'sv'
 
 const backendApiBase = process.env.API_BASE || 'http://localhost:4000/api'
 const backendProxyBase = backendApiBase
@@ -80,7 +87,7 @@ export default defineNuxtConfig({
     strategy: 'no_prefix',
     // Relativ till srcDir (app/): går upp en nivå till frontend/ och sedan in i i18n/locales
     langDir: '../i18n/locales',
-    lazy: true,
+    // lazy option removed in v10 - lazy loading is now always enabled by default
     defaultLocale: DEFAULT_LOCALE,
     locales: SUPPORTED_LOCALES.map((locale) => ({
       ...locale,
