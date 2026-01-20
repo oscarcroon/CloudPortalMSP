@@ -202,7 +202,7 @@ export default defineEventHandler(async (event) => {
                 performed: true,
                 zonesActivated: 0,
                 autoHealed: true,
-                message: 'Account was recreated. No matching zones found. Make sure your DNS zones have a TXT record with COREID=' + rawCoreId
+                messageKey: 'accountRecreatedNoZonesMessage'
               },
               moduleRights: {
                 canManageZones: moduleRights.canCreateZones || moduleRights.canEditZones,
@@ -246,7 +246,7 @@ export default defineEventHandler(async (event) => {
         autoSetup: {
           performed: true,
           zonesActivated: 0,
-          message: 'No matching zones found. Make sure your DNS zones have a TXT record with COREID=' + rawCoreId
+          messageKey: 'noZonesFoundMessage'
         },
         moduleRights: {
           canManageZones: moduleRights.canCreateZones || moduleRights.canEditZones,

@@ -31,6 +31,8 @@
       "noZonesFound": "No zones found",
       "noZonesFoundWithSearch": "No zones found matching \"{searchTerm}\"",
       "autoSetupMessage": "✓ {count} {zoneWord} found and activated automatically",
+      "noZonesFoundMessage": "No DNS zones found. Onboard your first DNS zone by clicking \"Create Zone\".",
+      "accountRecreatedNoZonesMessage": "No DNS zones found. Onboard your first DNS zone by clicking \"Create Zone\".",
       "needsAdminSetup": "Contact an administrator to activate zones."
     },
 

@@ -53,13 +53,21 @@
       </div>
     </header>
 
-    <!-- Auto-setup success message -->
+    <!-- Auto-setup message -->
     <div
       v-if="state.autoSetupMessage && !state.error"
-      class="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 shadow-sm dark:border-green-500/60 dark:bg-green-500/10 dark:text-green-100"
+      :class="[
+        'rounded-2xl p-4 text-sm shadow-sm',
+        state.autoSetupMessageType === 'success'
+          ? 'border border-green-200 bg-green-50 text-green-800 dark:border-green-500/60 dark:bg-green-500/10 dark:text-green-100'
+          : 'border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/60 dark:bg-amber-500/10 dark:text-amber-100'
+      ]"
     >
       <div class="flex items-center gap-2">
-        <Icon icon="mdi:check-circle" class="h-5 w-5 flex-shrink-0" />
+        <Icon 
+          :icon="state.autoSetupMessageType === 'success' ? 'mdi:check-circle' : 'mdi:information-outline'" 
+          class="h-5 w-5 flex-shrink-0" 
+        />
         <p>{{ state.autoSetupMessage }}</p>
       </div>
     </div>
@@ -162,12 +170,14 @@ const state = reactive<{
   error: string | null
   pending: boolean
   autoSetupMessage: string | null
+  autoSetupMessageType: 'success' | 'info'
   needsAdminSetup: boolean
 }>({
   data: null,
   error: null,
   pending: true,
   autoSetupMessage: null,
+  autoSetupMessageType: 'success',
   needsAdminSetup: false
 })
 
@@ -185,6 +195,7 @@ const fetchZones = async (forceRefresh = false) => {
   state.pending = true
   state.error = null
   state.autoSetupMessage = null
+  state.autoSetupMessageType = 'success'
   state.needsAdminSetup = false
   try {
     const res = await $fetch<ZonesResponse>('/api/dns/windows/zones', {
@@ -195,15 +206,20 @@ const fetchZones = async (forceRefresh = false) => {
     
     // Show feedback if auto-setup was performed
     if (res.autoSetup?.performed) {
+      const { $i18n } = useNuxtApp()
       if (res.autoSetup.zonesActivated > 0) {
-        const { $i18n } = useNuxtApp()
         const count = res.autoSetup.zonesActivated
         const zoneWord = count === 1 
           ? ($i18n.locale === 'sv' ? 'zon' : 'zone')
           : ($i18n.locale === 'sv' ? 'zoner' : 'zones')
         state.autoSetupMessage = $i18n.t('windowsDns.index.autoSetupMessage', { count, zoneWord })
+        state.autoSetupMessageType = 'success'
+      } else if (res.autoSetup.messageKey) {
+        state.autoSetupMessage = $i18n.t(`windowsDns.index.${res.autoSetup.messageKey}`)
+        state.autoSetupMessageType = 'info'
       } else if (res.autoSetup.message) {
         state.autoSetupMessage = res.autoSetup.message
+        state.autoSetupMessageType = 'info'
       }
     }
   } catch (err: any) {

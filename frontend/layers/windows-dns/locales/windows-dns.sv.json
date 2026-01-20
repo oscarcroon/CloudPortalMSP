@@ -31,6 +31,8 @@
       "noZonesFound": "Inga zoner hittades",
       "noZonesFoundWithSearch": "Inga zoner hittades som matchar \"{searchTerm}\"",
       "autoSetupMessage": "✓ {count} {zoneWord} hittades och aktiverades automatiskt",
+      "noZonesFoundMessage": "Inga DNS zoner hittade. Onborda din första DNS zon genom att trycka på \"Skapa Zon\".",
+      "accountRecreatedNoZonesMessage": "Inga DNS zoner hittade. Onborda din första DNS zon genom att trycka på \"Skapa Zon\".",
       "needsAdminSetup": "Kontakta en administratör för att aktivera zoner."
     },
 
