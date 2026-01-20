@@ -15,7 +15,7 @@
 import { execSync } from 'child_process'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { existsSync } from 'fs'
+import { existsSync, mkdirSync } from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -64,8 +64,34 @@ async function setup() {
   // Initialize database if needed
   if (!dbInitialized) {
     console.log('📦 Initialiserar databas...')
-    runCommand('npm run db:push')
-    console.log('✅ Databas initialiserad!\n')
+    
+    // Ensure data directory exists before running db:push
+    const dataDir = dirname(dbPath)
+    if (!existsSync(dataDir)) {
+      mkdirSync(dataDir, { recursive: true })
+      console.log(`📁 Skapade data-katalog: ${dataDir}`)
+    }
+    
+    // Create empty database file if it doesn't exist (drizzle-kit needs it)
+    if (!existsSync(dbPath)) {
+      try {
+        const Database = (await import('better-sqlite3')).default
+        const db = new Database(dbPath)
+        db.close()
+        console.log(`📁 Skapade tom databas-fil: ${dbPath}`)
+      } catch (error) {
+        console.error('⚠️  Kunde inte skapa databas-fil, drizzle-kit kommer att försöka skapa den...')
+      }
+    }
+    
+    try {
+      runCommand('npm run db:push')
+      console.log('✅ Databas initialiserad!\n')
+    } catch (error) {
+      console.error('\n❌ Kunde inte initialisera databasen.')
+      console.error('   Kontrollera att alla dependencies är installerade.')
+      throw error
+    }
   } else {
     console.log('✅ Databas redan initialiserad, hoppar över db:push\n')
   }

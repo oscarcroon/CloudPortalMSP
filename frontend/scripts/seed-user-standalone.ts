@@ -79,9 +79,17 @@ async function seed() {
         const { execSync } = await import('child_process')
         const { resolve, dirname } = await import('path')
         const { fileURLToPath } = await import('url')
+        const { existsSync, mkdirSync } = await import('fs')
         const __filename = fileURLToPath(import.meta.url)
         const __dirname = dirname(__filename)
         const frontendDir = resolve(__dirname, '..')
+        
+        // Ensure data directory exists before running db:push
+        const dataDir = dirname(dbPath)
+        if (!existsSync(dataDir)) {
+          mkdirSync(dataDir, { recursive: true })
+          console.log(`📁 Skapade data-katalog: ${dataDir}`)
+        }
         
         console.log('📦 Kör db:push för att skapa tabellerna...')
         execSync('npm run db:push', { 
