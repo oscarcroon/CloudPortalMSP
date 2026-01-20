@@ -9,153 +9,168 @@
       <Icon icon="mdi:chevron-down" class="h-4 w-4 text-white transition-transform" :class="{ 'rotate-180': open }" />
     </button>
 
-    <div
-      v-if="open"
-      class="z-50 overflow-y-auto border border-white/10 p-2 shadow-xl backdrop-blur context-switcher-scroll"
-      :class="dropdownClass"
-      :style="dropdownStyle"
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-1"
     >
-      <!-- Error message -->
       <div
-        v-if="auth.state.value.error"
-        class="mb-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400"
+        v-if="open"
+        class="z-50"
+        :class="dropdownClass"
+        :style="dropdownStyle"
       >
-        {{ auth.state.value.error }}
-      </div>
-      
-      <div class="mb-3 px-2">
-        <input
-          v-model="searchInput"
-          type="text"
-          class="w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-          :placeholder="t('contextSwitcher.searchPlaceholder')"
-        />
-      </div>
-
-      <!-- Tenants Section -->
-      <div v-if="filteredTenants.length > 0" class="mb-4">
-        <div
-          v-for="tenant in filteredTenants"
-          :key="tenant.id"
-          class="mt-1 rounded-md"
+        <div 
+          class="overflow-y-auto border border-white/10 p-2 shadow-2xl backdrop-blur rounded-lg context-switcher-scroll max-h-[600px]"
+          :class="isMobileDropdown ? 'rounded-none border-t border-b-0' : 'rounded-lg'"
+          :style="{ backgroundColor: navBackgroundColor }"
         >
-          <button
-            class="flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm transition"
-            :class="tenantButtonClass(tenant.id)"
-            :style="{ '--nav-hover-color': navHoverColor }"
-            @click="selectTenant(tenant.id)"
-          >
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2">
-                <Icon
-                  :icon="getTenantTypeIcon(tenant.type)"
-                  class="h-4 w-4 shrink-0"
-                  :class="getTenantTypeColor(tenant.type)"
-                />
-                <p class="truncate font-semibold">{{ tenant.name }}</p>
-              </div>
-              <p class="text-xs text-slate-400">
-                {{ getTenantTypeLabel(tenant.type) }} • {{ getRoleLabel(tenant.role) }}
-              </p>
-            </div>
-            <Icon
-              v-if="auth.state.value.data?.currentTenantId === tenant.id"
-              icon="mdi:check"
-              class="h-4 w-4 shrink-0 text-brand"
-            />
-          </button>
-
+          <!-- Error message -->
           <div
-            v-if="tenantOrganizations[tenant.id]?.length"
-            class="ml-4 mt-1 max-h-48 overflow-y-auto border-l-2 border-slate-700 pl-2 pr-1 context-switcher-scroll"
-            :style="{ '--scrollbar-thumb': scrollbarThumbColor }"
+            v-if="auth.state.value.error"
+            class="mb-2 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400"
           >
+            {{ auth.state.value.error }}
+          </div>
+          
+          <div class="mb-3 px-2">
+            <input
+              v-model="searchInput"
+              type="text"
+              class="w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              :placeholder="t('contextSwitcher.searchPlaceholder')"
+            />
+          </div>
+
+          <!-- Tenants Section -->
+          <div v-if="filteredTenants.length > 0" class="mb-4">
+            <div
+              v-for="tenant in filteredTenants"
+              :key="tenant.id"
+              class="mt-1 rounded-md"
+            >
+              <button
+                class="flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm transition"
+                :class="tenantButtonClass(tenant.id)"
+                :style="{ '--nav-hover-color': navHoverColor }"
+                @click="selectTenant(tenant.id)"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <Icon
+                      :icon="getTenantTypeIcon(tenant.type)"
+                      class="h-4 w-4 shrink-0"
+                      :class="getTenantTypeColor(tenant.type)"
+                    />
+                    <p class="truncate font-semibold">{{ tenant.name }}</p>
+                  </div>
+                  <p class="text-xs text-slate-400">
+                    {{ getTenantTypeLabel(tenant.type) }} • {{ getRoleLabel(tenant.role) }}
+                  </p>
+                </div>
+                <Icon
+                  v-if="auth.state.value.data?.currentTenantId === tenant.id"
+                  icon="mdi:check"
+                  class="h-4 w-4 shrink-0 text-brand"
+                />
+              </button>
+
+              <div
+                v-if="tenantOrganizations[tenant.id]?.length"
+                class="ml-4 mt-1 max-h-48 overflow-y-auto border-l-2 border-slate-700 pl-2 pr-1 context-switcher-scroll"
+                :style="{ '--scrollbar-thumb': scrollbarThumbColor }"
+              >
+                <button
+                  v-for="org in tenantOrganizations[tenant.id]"
+                  :key="org.id"
+                  class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-1.5 text-left text-xs transition"
+                  :class="organizationButtonClass(org.id)"
+                  :style="{ '--nav-hover-color': navHoverColor }"
+                  @click.stop="selectContext({ tenantId: tenant.id, organizationId: org.id })"
+                >
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5">
+                      <p class="truncate font-medium">{{ org.name }}</p>
+                      <Icon
+                        v-if="org.accessType === 'msp' || org.accessType === 'superadmin'"
+                        icon="mdi:account-hard-hat"
+                        class="h-3.5 w-3.5 shrink-0 text-brand"
+                        :title="t('contextSwitcher.mspAccess')"
+                      />
+                      <Icon
+                        v-if="org.accessType === 'delegation'"
+                        icon="mdi:account-key"
+                        class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                        :title="t('contextSwitcher.delegation')"
+                      />
+                    </div>
+                    <p class="text-xs text-slate-500">
+                      {{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}
+                      <span v-if="org.accessType === 'delegation' && org.expiresAt" class="ml-1 text-[11px] text-emerald-600 dark:text-emerald-300">
+                        ({{ formatExpiry(org.expiresAt) }})
+                      </span>
+                    </p>
+                  </div>
+                  <Icon
+                    v-if="auth.state.value.data?.currentOrgId === org.id"
+                    icon="mdi:check"
+                    class="h-3 w-3 shrink-0 text-brand"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Organizations Section (only standalone orgs, not shown under tenants) -->
+          <div v-if="standaloneOrganizations.length > 0">
+            <p class="px-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('contextSwitcher.organizations') }}</p>
             <button
-              v-for="org in tenantOrganizations[tenant.id]"
+              v-for="org in standaloneOrganizations"
               :key="org.id"
-              class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-1.5 text-left text-xs transition"
-              :class="organizationButtonClass(org.id)"
+              class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm transition"
+              :class="standaloneOrgButtonClass(org)"
               :style="{ '--nav-hover-color': navHoverColor }"
-              @click.stop="selectContext({ tenantId: tenant.id, organizationId: org.id })"
+              :disabled="isOrgLocked(org)"
+              @click="trySelectOrg(org)"
             >
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
-                  <p class="truncate font-medium">{{ org.name }}</p>
+                  <p class="truncate font-semibold">{{ org.name }}</p>
                   <Icon
                     v-if="org.accessType === 'msp' || org.accessType === 'superadmin'"
                     icon="mdi:account-hard-hat"
-                    class="h-3.5 w-3.5 shrink-0 text-brand"
+                    class="h-4 w-4 shrink-0 text-brand"
                     :title="t('contextSwitcher.mspAccess')"
                   />
                   <Icon
                     v-if="org.accessType === 'delegation'"
                     icon="mdi:account-key"
-                    class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                    class="h-4 w-4 shrink-0 text-emerald-400"
                     :title="t('contextSwitcher.delegation')"
                   />
                 </div>
-                <p class="text-xs text-slate-500">
-                  {{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}
-                  <span v-if="org.accessType === 'delegation' && org.expiresAt" class="ml-1 text-[11px] text-emerald-600 dark:text-emerald-300">
-                    ({{ formatExpiry(org.expiresAt) }})
-                  </span>
-                </p>
+                <p class="text-xs text-slate-400">{{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}</p>
               </div>
-              <Icon
-                v-if="auth.state.value.data?.currentOrgId === org.id"
-                icon="mdi:check"
-                class="h-3 w-3 shrink-0 text-brand"
-              />
+              <div class="flex items-center gap-1">
+                <span v-if="org.requireSso" class="text-xs text-amber-400">SSO</span>
+                <Icon
+                  v-if="auth.state.value.data?.currentOrgId === org.id"
+                  icon="mdi:check"
+                  class="h-4 w-4 shrink-0 text-brand"
+                />
+              </div>
             </button>
+
+            <p v-if="!standaloneOrganizations.length && !tenants.length" class="px-2 py-4 text-sm text-slate-400">
+              {{ t('contextSwitcher.noContexts') }}
+            </p>
           </div>
         </div>
       </div>
-
-      <!-- Organizations Section (only standalone orgs, not shown under tenants) -->
-      <div v-if="standaloneOrganizations.length > 0">
-        <p class="px-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ t('contextSwitcher.organizations') }}</p>
-        <button
-          v-for="org in standaloneOrganizations"
-          :key="org.id"
-          class="mt-1 flex w-full items-start justify-between rounded-md px-2 py-2 text-left text-sm transition"
-          :class="standaloneOrgButtonClass(org)"
-          :style="{ '--nav-hover-color': navHoverColor }"
-          :disabled="isOrgLocked(org)"
-          @click="trySelectOrg(org)"
-        >
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-1.5">
-              <p class="truncate font-semibold">{{ org.name }}</p>
-              <Icon
-                v-if="org.accessType === 'msp' || org.accessType === 'superadmin'"
-                icon="mdi:account-hard-hat"
-                class="h-4 w-4 shrink-0 text-brand"
-                :title="t('contextSwitcher.mspAccess')"
-              />
-              <Icon
-                v-if="org.accessType === 'delegation'"
-                icon="mdi:account-key"
-                class="h-4 w-4 shrink-0 text-emerald-400"
-                :title="t('contextSwitcher.delegation')"
-              />
-            </div>
-            <p class="text-xs text-slate-400">{{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}</p>
-          </div>
-          <div class="flex items-center gap-1">
-            <span v-if="org.requireSso" class="text-xs text-amber-400">SSO</span>
-            <Icon
-              v-if="auth.state.value.data?.currentOrgId === org.id"
-              icon="mdi:check"
-              class="h-4 w-4 shrink-0 text-brand"
-            />
-          </div>
-        </button>
-
-        <p v-if="!standaloneOrganizations.length && !tenants.length" class="px-2 py-4 text-sm text-slate-400">
-          {{ t('contextSwitcher.noContexts') }}
-        </p>
-      </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -206,8 +221,8 @@ const scrollbarThumbColor = computed(() => {
 })
 const dropdownClass = computed(() =>
   isMobileDropdown.value
-    ? 'fixed inset-x-0 top-0 w-screen rounded-none border-t px-4 pb-6 pt-4 md:hidden max-h-[calc(100vh-120px)]'
-    : 'absolute right-0 mt-2 hidden w-80 rounded-lg md:block max-h-[600px]'
+    ? 'fixed inset-x-0 top-0 w-screen md:hidden'
+    : 'absolute left-0 mt-2 w-80 md:block'
 )
 const dropdownStyle = computed(() => {
   const base: Record<string, string> = {

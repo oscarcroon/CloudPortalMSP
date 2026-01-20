@@ -38,7 +38,7 @@
               v-model="form.slug"
               type="text"
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              :placeholder="t('adminTenants.create.tenantDetails.slugPlaceholder')"
+              :placeholder="tenantSlugPlaceholder"
             />
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {{ t('adminTenants.create.tenantDetails.slugHint') }}
@@ -179,7 +179,7 @@
                     v-model="organizationForm.slug"
                     type="text"
                     class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-                    :placeholder="t('adminTenants.create.ownerAccount.organizationDetails.slugPlaceholder')"
+                    :placeholder="organizationSlugPlaceholder"
                   />
                 </div>
                 <div>
@@ -296,6 +296,36 @@ const form = reactive({
   slug: '',
   distributorIds: [] as string[], // For providers: which distributors to link to
   ownerEmail: ''
+})
+
+// Generate slug placeholder from tenant name
+const tenantSlugPlaceholder = computed(() => {
+  if (!form.name.trim()) {
+    return 'my-tenant'
+  }
+  return form.name
+    .toLowerCase()
+    .trim()
+    .replace(/[åä]/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50) || 'my-tenant'
+})
+
+// Generate slug placeholder from organization name
+const organizationSlugPlaceholder = computed(() => {
+  if (!organizationForm.name.trim()) {
+    return 'my-organization'
+  }
+  return organizationForm.name
+    .toLowerCase()
+    .trim()
+    .replace(/[åä]/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50) || 'my-organization'
 })
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

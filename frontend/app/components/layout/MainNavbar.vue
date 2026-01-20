@@ -53,66 +53,91 @@
             <span>{{ module.name }}</span>
           </NuxtLink>
         </li>
-        <li v-if="hasOverflowModules">
-          <div class="relative group">
+        <li v-if="hasOverflowModules" ref="overflowContainer" class="group">
+          <div class="relative">
             <button
-              class="flex items-center gap-1 py-2 hover:text-brand-light"
-              :class="hasOverflowModules ? 'text-white' : 'text-slate-400'"
+              class="flex items-center gap-1 py-2 hover:text-brand-light transition-colors"
+              :class="overflowOpen ? 'text-brand-light' : 'text-white'"
+              @click="toggleOverflow"
               :aria-label="t('nav.showMore')"
             >
-              <Icon icon="mdi:chevron-down" class="h-4 w-4 transition-transform group-hover:rotate-180" />
+              <Icon 
+                icon="mdi:chevron-down" 
+                class="h-4 w-4 transition-transform group-hover:rotate-180" 
+                :class="{ 'rotate-180': overflowOpen }" 
+              />
             </button>
-            <ul
-              class="absolute top-full left-0 z-50 mt-1 min-w-[200px] rounded-lg border border-slate-700 opacity-0 shadow-lg transition-all pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto invisible group-hover:visible"
-              :style="{ backgroundColor: navBackgroundColor }"
+            <div
+              class="absolute top-full right-0 z-50 pt-2 opacity-0 shadow-2xl transition-all duration-200 pointer-events-none invisible translate-y-2 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0"
+              :class="{ 'opacity-100 visible translate-y-0 pointer-events-auto': overflowOpen }"
             >
-              <li v-for="module in overflowNavModules" :key="module.id">
-                <NuxtLink
-                  :to="module.disabled ? '#' : module.routePath"
-                  class="flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition"
-                  :class="[
-                    module.disabled
-                      ? 'text-white/50 cursor-not-allowed'
-                      : isNavActive(module.routePath)
-                        ? 'text-brand-light bg-[color:var(--nav-active-color)] hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
-                        : 'text-white hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
-                  ]"
-                  :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
-                  @click.prevent="module.disabled ? undefined : undefined"
-                >
-                  <Icon v-if="module.icon" :icon="module.icon" class="h-4 w-4 flex-shrink-0" />
-                  <span>{{ module.name }}</span>
-                </NuxtLink>
-              </li>
-            </ul>
+              <ul
+                class="min-w-[220px] rounded-lg border border-white/10 overflow-hidden"
+                :style="{ backgroundColor: navBackgroundColor }"
+              >
+                <li v-for="module in overflowNavModules" :key="module.id" class="first:pt-1 last:pb-1">
+                  <NuxtLink
+                    :to="module.disabled ? '#' : module.routePath"
+                    class="flex items-center gap-3 whitespace-nowrap px-4 py-2.5 text-sm transition-colors"
+                    :class="[
+                      module.disabled
+                        ? 'text-white/30 cursor-not-allowed'
+                        : isNavActive(module.routePath)
+                          ? 'text-brand-light bg-white/5'
+                          : 'text-white/90 hover:bg-white/10 hover:text-white'
+                    ]"
+                    :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
+                    @click="overflowOpen = false"
+                  >
+                    <Icon v-if="module.icon" :icon="module.icon" class="h-4 w-4 flex-shrink-0 opacity-70" />
+                    <span class="font-medium">{{ module.name }}</span>
+                  </NuxtLink>
+                </li>
+              </ul>
+            </div>
           </div>
         </li>
-        <li v-if="adminNavItems.length > 0">
-          <div class="relative group">
+        <li v-if="adminNavItems.length > 0" ref="settingsContainer" class="group">
+          <div class="relative">
             <button
-              class="flex items-center gap-2 whitespace-nowrap py-2 hover:text-brand-light"
-              :class="isAnyAdminActive ? 'text-brand-light border-b border-brand-light' : 'text-white'"
+              class="flex items-center gap-2 whitespace-nowrap py-2 hover:text-brand-light transition-colors"
+              :class="settingsOpen || isAnyAdminActive ? 'text-brand-light border-b border-brand-light' : 'text-white'"
+              @click="toggleSettings"
             >
               <Icon icon="mdi:cog" class="h-4 w-4 flex-shrink-0" />
               <span>{{ t('nav.settings') }}</span>
-              <Icon icon="mdi:chevron-down" class="h-3 w-3 flex-shrink-0 transition-transform group-hover:rotate-180" />
+              <Icon 
+                icon="mdi:chevron-down" 
+                class="h-3 w-3 flex-shrink-0 transition-transform group-hover:rotate-180" 
+                :class="{ 'rotate-180': settingsOpen }" 
+              />
             </button>
-            <ul
-              class="absolute top-full left-0 z-50 pt-1 min-w-[180px] rounded-lg border border-slate-700 opacity-0 shadow-lg transition-all pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto invisible group-hover:visible"
-              :style="{ backgroundColor: navBackgroundColor }"
+            <div
+              class="absolute top-full right-0 z-50 pt-2 opacity-0 shadow-2xl transition-all duration-200 pointer-events-none invisible translate-y-2 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:translate-y-0"
+              :class="{ 'opacity-100 visible translate-y-0 pointer-events-auto': settingsOpen }"
             >
-            <li v-for="item in adminNavItems" :key="item.to">
-              <NuxtLink
-                :to="item.to"
-                class="flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition hover:[background-color:var(--nav-hover-color)] hover:text-brand-light"
-                :class="isNavActive(item.to) ? 'text-brand-light bg-[color:var(--nav-active-color)]' : 'text-white'"
-                :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
+              <ul
+                class="min-w-[200px] rounded-lg border border-white/10 overflow-hidden"
+                :style="{ backgroundColor: navBackgroundColor }"
               >
-                <Icon v-if="item.icon" :icon="item.icon" class="h-4 w-4 flex-shrink-0" />
-                <span>{{ item.label }}</span>
-              </NuxtLink>
-            </li>
-          </ul>
+                <li v-for="item in adminNavItems" :key="item.to" class="first:pt-1 last:pb-1">
+                  <NuxtLink
+                    :to="item.to"
+                    class="flex items-center gap-3 whitespace-nowrap px-4 py-2.5 text-sm transition-colors"
+                    :class="[
+                      isNavActive(item.to)
+                        ? 'text-brand-light bg-white/5'
+                        : 'text-white/90 hover:bg-white/10 hover:text-white'
+                    ]"
+                    :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
+                    @click="settingsOpen = false"
+                  >
+                    <Icon v-if="item.icon" :icon="item.icon" class="h-4 w-4 flex-shrink-0 opacity-70" />
+                    <span class="font-medium">{{ item.label }}</span>
+                  </NuxtLink>
+                </li>
+              </ul>
+            </div>
           </div>
         </li>
       </ul>
@@ -161,7 +186,7 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, onMounted, ref, useI18n, useRoute } from '#imports'
+import { computed, onMounted, onBeforeUnmount, ref, useI18n, useRoute } from '#imports'
 import { useWindowSize } from '@vueuse/core'
 import ContextSwitcher from '~/components/navigation/ContextSwitcher.vue'
 import { useAuth } from '~/composables/useAuth'
@@ -190,6 +215,39 @@ const modulesStore = useModules()
 const { favoriteModules, nonFavoriteModules } = useFavorites()
 const { width } = useWindowSize()
 const { can } = usePermission()
+
+const overflowOpen = ref(false)
+const settingsOpen = ref(false)
+const overflowContainer = ref<HTMLElement>()
+const settingsContainer = ref<HTMLElement>()
+
+const toggleOverflow = () => {
+  overflowOpen.value = !overflowOpen.value
+  if (overflowOpen.value) settingsOpen.value = false
+}
+
+const toggleSettings = () => {
+  settingsOpen.value = !settingsOpen.value
+  if (settingsOpen.value) overflowOpen.value = false
+}
+
+const handleGlobalClick = (event: MouseEvent) => {
+  const target = event.target as Node
+  if (overflowContainer.value && !overflowContainer.value.contains(target)) {
+    overflowOpen.value = false
+  }
+  if (settingsContainer.value && !settingsContainer.value.contains(target)) {
+    settingsOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleGlobalClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleGlobalClick)
+})
 
 const activeLogo = computed(() => {
   const orgLogoUrl = auth.currentOrg.value?.logoUrl
