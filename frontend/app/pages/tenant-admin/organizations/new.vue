@@ -63,7 +63,7 @@
               v-model="form.slug"
               type="text"
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-              placeholder="coreit-ab"
+              :placeholder="slugPlaceholder"
             />
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Lämna tomt för automatisk generering.</p>
           </div>
@@ -282,6 +282,21 @@ const form = reactive({
   billingEmail: '',
   coreId: '',
   ownerEmail: ''
+})
+
+// Generate slug placeholder from name
+const slugPlaceholder = computed(() => {
+  if (!form.name.trim()) {
+    return 'coreit-ab'
+  }
+  return form.name
+    .toLowerCase()
+    .trim()
+    .replace(/[åä]/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 50) || 'coreit-ab'
 })
 
 const canContinue = computed(() => {
