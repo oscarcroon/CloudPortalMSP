@@ -1,5 +1,4 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { resolve } from 'node:path'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './app/constants/i18n'
 
 const backendApiBase = process.env.API_BASE || 'http://localhost:4000/api'
@@ -16,6 +15,7 @@ export default defineNuxtConfig({
   },
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode', '@nuxtjs/i18n'],
+
   css: ['~/assets/css/tailwind.css'],
   postcss: {
     plugins: {
