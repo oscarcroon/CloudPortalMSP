@@ -29,6 +29,9 @@ const basePath = computed(() => {
   if (route.path.startsWith('/tenant-admin')) {
     return '/tenant-admin'
   }
+  if (route.path.startsWith('/admin')) {
+    return '/admin'
+  }
   return '/platform-admin'
 })
 

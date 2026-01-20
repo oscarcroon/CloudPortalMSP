@@ -6,7 +6,15 @@ export const rolePermissionMap = {
     'users:invite',
     'users:read',
     'users:manage',
-    'audit:read'
+    'audit:read',
+    'cloudflare:read',
+    'cloudflare:write',
+    'containers:read',
+    'containers:write',
+    'vms:read',
+    'vms:write',
+    'wordpress:read',
+    'wordpress:write'
   ],
   admin: [
     'org:read',
@@ -14,7 +22,15 @@ export const rolePermissionMap = {
     'users:invite',
     'users:read',
     'users:manage',
-    'audit:read'
+    'audit:read',
+    'cloudflare:read',
+    'cloudflare:write',
+    'containers:read',
+    'containers:write',
+    'vms:read',
+    'vms:write',
+    'wordpress:read',
+    'wordpress:write'
   ],
   operator: ['org:read', 'users:read'],
   member: ['org:read'],
