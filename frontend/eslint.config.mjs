@@ -3,6 +3,7 @@ import tsPlugin from '@typescript-eslint/eslint-plugin'
 import tsParser from '@typescript-eslint/parser'
 import pluginVue from 'eslint-plugin-vue'
 import vueParser from 'vue-eslint-parser'
+import globals from 'globals'
 
 const vueConfig = pluginVue.configs['flat/recommended']
 const jsConfig = {
@@ -11,7 +12,7 @@ const jsConfig = {
 }
 export default [
   {
-    ignores: ['.nuxt/**', '.output/**', 'dist/**', 'node_modules/**']
+    ignores: ['.nuxt/**', '.output/**', 'dist/**', 'node_modules/**', 'scripts/legacy/**']
   },
   jsConfig,
   ...(Array.isArray(vueConfig) ? vueConfig : [vueConfig]),
@@ -71,6 +72,23 @@ export default [
       'vue/require-default-prop': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/no-ref-as-operand': 'off'
+    }
+  },
+  {
+    files: [
+      '**/*.cjs',
+      'scripts/**/*.js',
+      'scripts/**/*.cjs',
+      'scripts/**/*.mjs'
+    ],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'script',
+      globals: globals.node
+    },
+    rules: {
+      'no-var-requires': 'off',
+      'no-console': 'off'
     }
   }
 ]

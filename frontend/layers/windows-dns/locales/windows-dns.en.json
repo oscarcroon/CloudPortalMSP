@@ -1,0 +1,287 @@
+{
+  "windowsDns": {
+    "title": "DNS",
+    "description": "Manage DNS zones, records and access.",
+    "cta": "Create zone",
+    "empty": "No zones yet.",
+
+    "statusCard": {
+      "label": "Status",
+      "title": "DNS",
+      "connected": "Connected",
+      "notConfigured": "Not configured",
+      "online": "Online",
+      "offline": "Offline",
+      "zones": "Zones",
+      "owned": "Owned",
+      "records": "Records"
+    },
+
+    "index": {
+      "label": "DNS Management",
+      "title": "DNS Zones",
+      "subtitle": "Manage your DNS zones and records.",
+      "searchPlaceholder": "Search zones...",
+      "showing": "Showing {filtered} of {total} zones",
+      "refreshTitle": "Refresh zones",
+      "manageZones": "Manage zones",
+      "loading": "Loading zones...",
+      "errorTitle": "Error loading zones",
+      "retry": "Retry",
+      "noZonesFound": "No zones found",
+      "noZonesFoundWithSearch": "No zones found matching \"{searchTerm}\"",
+      "autoSetupMessage": "✓ {count} {zoneWord} found and activated automatically",
+      "noZonesFoundMessage": "No DNS zones found. Onboard your first DNS zone by clicking \"Create Zone\".",
+      "accountRecreatedNoZonesMessage": "No DNS zones found. Onboard your first DNS zone by clicking \"Create Zone\".",
+      "needsAdminSetup": "Contact an administrator to activate zones."
+    },
+
+    "zoneList": {
+      "label": "DNS Zones",
+      "title": "DNS Zones",
+      "create": "Create Zone",
+      "loading": "Loading zones...",
+      "noZones": "No zones found.",
+      "owned": "Owned",
+      "claimable": "Claimable",
+      "record": "record",
+      "records": "records",
+      "loadingRecords": "Loading...",
+      "viewZone": "View zone",
+      "invalidZone": "Invalid zone",
+      "export": "Export",
+      "exportSelected": "Export ({count})",
+      "selectMultiple": "Select multiple",
+      "selectAll": "Select all",
+      "selectAllFiltered": "Select {count} filtered",
+      "deselectAll": "Deselect all",
+      "cancelSelection": "Cancel",
+      "selected": "{count} selected",
+      "filteredOf": "{filtered} of {total} shown",
+      "searchToSelect": "Search to filter zones...",
+      "exportAsZip": "Export {count} as ZIP",
+      "shiftClickHint": "Tip: Hold Shift and click to select multiple",
+      "delegation": {
+        "pending": "Pending delegation",
+        "active": "Delegated",
+        "pendingTooltip": "Domain is not pointing to our nameservers. Missing: {missing}",
+        "activeTooltip": "Domain is correctly delegated to our nameservers",
+        "actionRequired": "Action required",
+        "updateNameservers": "Update nameservers at your registrar to:"
+      },
+      "onboard": {
+        "label": "Onboarding",
+        "title": "Create DNS Zone",
+        "subtitle": "We guide you through adding the domain. Point name servers at your registrar; propagation can take up to 24 hours.",
+        "domainLabel": "Domain",
+        "domainPlaceholder": "example.com",
+        "nameServersTitle": "Change name servers at your registrar to:",
+        "propagation": "Propagation can take up to 24 hours after changing name servers.",
+        "copy": "Copy",
+        "copied": "Copied!",
+        "cancel": "Cancel",
+        "createZone": "Create Zone",
+        "openZone": "Open Zone",
+        "noServersError": "No DNS servers available. Please configure a server first."
+      }
+    },
+
+    "zoneInfo": {
+      "label": "Zone Information",
+      "title": "Zone Info (SOA)",
+      "primaryNs": "Primary Nameserver",
+      "responsibleParty": "Responsible Party (rname)",
+      "serial": "Serial",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "expire": "Expire",
+      "minimumTtl": "Minimum TTL",
+      "ttl": "TTL",
+      "details": "Show details",
+      "notFound": "SOA record not found for this zone."
+    },
+
+    "zone": {
+      "label": "DNS Zone",
+      "loadingZone": "Loading zone...",
+      "back": "Back to zones",
+      "loadingStatus": "Loading status...",
+      "badge": "DNS",
+      "export": "Export",
+      "exportError": "Failed to export zone",
+      "errorTitle": "Error loading zone",
+      "retry": "Retry",
+      "loadingRecords": "Loading records...",
+      "zoneNotFound": "Zone not found",
+      "failedToLoad": "Failed to load zone",
+      "invalidZoneId": "Invalid zone ID. Go back and try again.",
+      "danger": {
+        "label": "Danger zone",
+        "title": "Delete DNS zone",
+        "description": "This will permanently delete the zone and all DNS records. Cannot be undone.",
+        "deleteAction": "Delete zone"
+      },
+      "delete": {
+        "confirmLabel": "Confirm deletion",
+        "confirmTitle": "Delete DNS zone",
+        "confirmDescription": "This will permanently delete the zone and all records. Cannot be undone.",
+        "enterName": "Enter the zone name to confirm:",
+        "ack": "I understand that this action cannot be undone.",
+        "cancel": "Cancel",
+        "error": "Failed to delete zone."
+      }
+    },
+
+    "records": {
+      "label": "DNS Records",
+      "title": "Records for {zoneName}",
+      "searchPlaceholder": "Search records...",
+      "filterByType": "Filter:",
+      "allTypes": "All",
+      "showing": "Showing {shown} of {total} records",
+      "addRecord": "Add Record",
+      "cancel": "Cancel",
+      "save": "Save",
+      "preview": "Preview",
+      "previewLabel": "This record will be created:",
+      "fields": {
+        "type": "Type",
+        "name": "Name",
+        "ttl": "TTL",
+        "content": "Content",
+        "priority": "Priority",
+        "mailServer": "Mail Server",
+        "weight": "Weight",
+        "port": "Port",
+        "target": "Target",
+        "flags": "Flags",
+        "tag": "Tag",
+        "value": "Value",
+        "usage": "Usage",
+        "selector": "Selector",
+        "matchingType": "Matching Type",
+        "certificateData": "Certificate Data (hex)",
+        "comment": "Comment (optional)",
+        "commentPlaceholder": "Internal note about this record (not visible in DNS)"
+      },
+      "contentLabels": {
+        "a": "IPv4 Address",
+        "aaaa": "IPv6 Address",
+        "cname": "Target",
+        "txt": "Text Value",
+        "ns": "Name Server",
+        "ptr": "Domain Name"
+      },
+      "contentPlaceholders": {
+        "a": "192.168.1.1",
+        "aaaa": "2001:db8::1",
+        "cname": "target.example.com",
+        "txt": "v=spf1 include:_spf.example.com ~all",
+        "ns": "ns1.example.com",
+        "ptr": "host.example.com"
+      },
+      "table": {
+        "type": "Type",
+        "name": "Name",
+        "content": "Content",
+        "ttl": "TTL",
+        "actions": "Actions"
+      },
+      "noRecordsFound": "No records found",
+      "noRecordsFoundWithSearch": "No records found matching \"{searchTerm}\"",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Delete {type} record for {name}?",
+      "createError": "Failed to create record",
+      "updateError": "Failed to update record",
+      "contentRequired": "Please enter a value for the new record before saving.",
+      "txtEmptyError": "TXT value cannot be empty.",
+      "deleteError": "Failed to delete record",
+      "missingRecordId": "Missing record ID - cannot update",
+      "pagination": "Page {page} of {pages}",
+      "redirectManaged": {
+        "badge": "Redirect",
+        "content": "Managed by Redirects",
+        "tooltip": "This DNS record is automatically managed by the Redirect service",
+        "editWarning": "This record is managed by Redirects. Changes may affect redirects.",
+        "openRedirects": "Open in Redirects"
+      }
+    },
+
+    "autodiscover": {
+      "label": "Autodiscover Zones",
+      "title": "Autodiscover Zones",
+      "subtitle": "Find zones that match your organization's COREID and activate them.",
+      "info": {
+        "title": "Autodiscover searches for zones with a TXT record containing",
+        "coreIdLabel": "Your organization's COREID:",
+        "coreIdPlaceholder": "<your-id>"
+      },
+      "searching": "Searching...",
+      "runAutodiscover": "Run Autodiscover",
+      "activating": "Activating...",
+      "activateAll": "Activate all ({count})",
+      "activateSelected": "Activate selected ({count})",
+      "foundZones": "Found {count} matching {zoneWord}",
+      "alreadyActivated": "{count} already activated",
+      "activated": "Activated",
+      "available": "Available",
+      "noZonesFound": "No zones found matching your COREID",
+      "noZonesHint": "Make sure zones have a TXT record with your COREID value",
+      "backToZones": "Back to zones",
+      "error": "Autodiscover failed.",
+      "activationError": "Activation failed."
+    },
+
+    "manageZones": {
+      "title": "Manage zones",
+      "subtitle": "View, activate or hide zones for your organization.",
+      "close": "Close",
+      "loading": "Loading zones...",
+      "error": "Failed to load zones",
+      "retry": "Retry",
+      "rescan": "Rescan",
+      "rescanning": "Scanning...",
+      "coreIdInfo": "Searching for zones with COREID:",
+      "noZonesFound": "No zones found",
+      "noZonesHint": "Make sure zones have a TXT record with COREID={coreId}",
+      "status": {
+        "allowed": "Active",
+        "available": "Available",
+        "blocked": "Hidden"
+      },
+      "actions": {
+        "hide": "Hide",
+        "show": "Show",
+        "activate": "Activate",
+        "delete": "Delete"
+      },
+      "confirmHide": "Hide {count} {zoneWord}? They will no longer be visible or accessible.",
+      "confirmShow": "Show {count} {zoneWord}? They will become accessible again.",
+      "success": {
+        "hidden": "{count} {zoneWord} have been hidden",
+        "shown": "{count} {zoneWord} are now active",
+        "deleted": "{count} {zoneWord} have been deleted"
+      },
+      "delete": {
+        "confirmLabel": "Confirm deletion",
+        "confirmTitle": "Delete DNS zones",
+        "confirmDescription": "This will permanently delete {count} zone(s) including all DNS records. Cannot be undone.",
+        "ack": "I understand that this action cannot be undone.",
+        "cancel": "Cancel",
+        "error": "Failed to delete zones."
+      },
+      "zoneWord": {
+        "one": "zone",
+        "other": "zones"
+      },
+      "tabs": {
+        "all": "All",
+        "allowed": "Active",
+        "available": "Available",
+        "blocked": "Hidden"
+      }
+    }
+  }
+}
+

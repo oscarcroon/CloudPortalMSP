@@ -10,6 +10,7 @@ CREATE TABLE `role_module_role_mappings` (
 CREATE UNIQUE INDEX `role_module_role_mapping_unique` ON `role_module_role_mappings` (`rbac_role`,`module_id`,`module_role_key`);
 --> statement-breakpoint
 CREATE INDEX `role_module_role_mapping_module_idx` ON `role_module_role_mappings` (`module_id`);
+--> statement-breakpoint
 
 CREATE TABLE `member_module_role_overrides` (
 	`id` text PRIMARY KEY NOT NULL,
@@ -32,28 +33,7 @@ CREATE TABLE `member_module_role_overrides` (
 CREATE UNIQUE INDEX `member_module_role_overrides_unique` ON `member_module_role_overrides` (`organization_id`,`user_id`,`module_id`,`role_key`);
 --> statement-breakpoint
 CREATE INDEX `member_module_role_overrides_org_idx` ON `member_module_role_overrides` (`organization_id`,`module_id`);
-
-INSERT INTO `member_module_role_overrides` (
-	`id`,
-	`organization_id`,
-	`user_id`,
-	`module_id`,
-	`role_key`,
-	`effect`,
-	`created_at`,
-	`updated_at`
-)
-SELECT
-	LOWER(HEX(RANDOMBLOB(16))),
-	`context_id` AS `organization_id`,
-	`user_id`,
-	`module_id`,
-	`role_key`,
-	'grant' AS `effect`,
-	(strftime('%s','now') * 1000),
-	(strftime('%s','now') * 1000)
-FROM `user_module_roles`
-WHERE `context_type` = 'organization';
+--> statement-breakpoint
 
 DROP TABLE IF EXISTS `user_module_roles`;
 

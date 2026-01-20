@@ -1,622 +1,635 @@
 <template>
-  <section class="space-y-8">
+  <section class="space-y-6">
     <header class="space-y-2">
       <NuxtLink
         :to="`/admin/tenants/${tenantId}`"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka till tenant
+        ← {{ t('adminTenants.modules.back') }}
       </NuxtLink>
       <div>
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">
-          Modulrättigheter - {{ tenant?.name ?? 'Laddar...' }}
+        <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
+          {{ t('adminTenants.modules.title', { name: tenantName }) }}
         </h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Hantera vilka moduler som är tillgängliga och vilka rättigheter som är tillåtna för denna tenant.
-          Dessa inställningar ärvs av underordnade tenants och organisationer.
+          {{ t('adminTenants.modules.description') }}
         </p>
       </div>
     </header>
 
-    <div v-if="error" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-      {{ error }}
+    <div v-if="modulesError" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+      {{ modulesError }}
     </div>
 
-    <div v-if="pending" class="text-sm text-slate-600 dark:text-slate-400">Laddar modulrättigheter...</div>
+    <div v-if="resyncMessage" class="rounded-lg bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-300">
+      {{ resyncMessage }}
+    </div>
 
-    <div v-else-if="tenant" class="space-y-6">
-      <!-- Search input and expand all button -->
-      <div class="flex items-center gap-3">
+    <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5 md:flex-row md:items-center md:justify-between">
+      <div class="flex flex-1 flex-col gap-3 md:flex-row">
         <div class="relative flex-1">
-          <Icon icon="mdi:magnify" class="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
-            v-model="moduleSearchQuery"
+            v-model="searchInput"
             type="text"
-            placeholder="Sök efter moduler..."
-            class="w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 pr-10 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            :placeholder="t('adminTenants.modules.searchPlaceholder')"
           />
+          <button
+            v-if="searchInput"
+            type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-300"
+            @click="searchInput = ''"
+          >
+            <Icon icon="mdi:close-circle" class="h-5 w-5" />
+          </button>
+        </div>
+        <select
+          v-model="categoryFilter"
+          class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white md:w-48"
+        >
+          <option value="all">{{ t('adminTenants.modules.filters.allCategories') }}</option>
+          <option v-for="category in categories" :key="category" :value="category">
+            {{ category }}
+          </option>
+        </select>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="text-xs text-slate-500 dark:text-slate-300">
+          {{ t('adminTenants.modules.results', { count: filteredModules.length }) }}
         </div>
         <button
-          @click="toggleAllPermissions"
-          class="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          v-if="isSuperAdmin"
+          type="button"
+          :disabled="resyncing"
+          class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+          @click="resyncModules"
         >
-          <Icon :icon="allPermissionsExpanded ? 'mdi:unfold-less-horizontal' : 'mdi:unfold-more-horizontal'" class="h-5 w-5" />
-          {{ allPermissionsExpanded ? 'Dölj alla rättigheter' : 'Visa alla rättigheter' }}
+          <Icon :icon="resyncing ? 'mdi:loading' : 'mdi:refresh'" :class="{ 'animate-spin': resyncing }" class="h-4 w-4" />
+          {{ resyncing ? t('adminTenants.modules.resyncing') : t('adminTenants.modules.resync') }}
         </button>
       </div>
+    </div>
 
-      <div v-if="filteredPolicies.length === 0" class="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-white/10 dark:bg-[#0c1524]">
-        <Icon icon="mdi:puzzle-outline" class="mx-auto h-12 w-12 text-slate-400" />
-        <p class="mt-4 text-sm text-slate-600 dark:text-slate-400">
-          {{ moduleSearchQuery ? 'Inga moduler matchade sökningen' : 'Inga moduler hittades för denna tenant.' }}
-        </p>
-      </div>
+    <div v-if="pending" class="rounded-xl border border-dashed border-slate-200 p-6 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300">
+      {{ t('adminTenants.modules.loading') }}
+    </div>
 
+    <div
+      v-else-if="!filteredModules.length"
+      class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+    >
+      {{ t('adminTenants.modules.empty') }}
+    </div>
+
+    <div v-else class="space-y-3">
       <div
-        v-for="policy in filteredPolicies"
-        :key="policy.moduleId"
-        class="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0c1524]"
-        :class="{
-          'opacity-50': policy.distributorLevelDisabled
-        }"
+        v-for="module in filteredModules"
+        :key="module.key"
+        :class="[
+          'rounded-xl border p-4 shadow-sm transition',
+          getModuleStatusClass(module)
+        ]"
       >
-        <div class="border-b border-slate-200 px-6 py-4 dark:border-white/5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <Icon :icon="policy.module.icon" class="h-6 w-6 text-brand" />
-              <div>
-                <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ policy.module.name }}</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">{{ policy.module.description }}</p>
-              </div>
+        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <Icon
+                v-if="module.icon"
+                :icon="module.icon"
+                :class="[
+                  'h-6 w-6 flex-shrink-0',
+                  getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                    ? 'text-slate-400 dark:text-slate-500'
+                    : 'text-brand'
+                ]"
+              />
+              <p
+                :class="[
+                  'text-lg font-semibold',
+                  getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                    ? 'text-slate-400 dark:text-slate-500'
+                    : 'text-slate-900 dark:text-white'
+                ]"
+              >
+                {{ module.name }}
+              </p>
+              <StatusPill :variant="getModuleStatusBadgeVariant(module)">
+                {{ getModuleStatusLabel(module) }}
+              </StatusPill>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                Layer: {{ module.layerKey }}
+              </span>
             </div>
-            <!-- Show controls if module is enabled at distributor level and not disabled -->
-            <div v-if="policy.distributorLevelEnabled !== false && !policy.distributorLevelDisabled" class="flex items-center gap-4">
-              <!-- Avaktivera (gray out module) -->
-              <div class="flex flex-col items-end gap-1">
-                <label class="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    class="peer sr-only"
-                    :checked="policy.disabled"
-                    :disabled="!policy.enabled"
-                    @change="updateModuleDisabled(policy.moduleId, ($event.target as HTMLInputElement).checked)"
-                  />
-                  <div
-                    class="peer h-6 w-11 rounded-full bg-slate-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-yellow-500 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-yellow-500 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed dark:bg-slate-600"
-                  />
-                </label>
-                <span class="text-xs text-slate-500 dark:text-slate-400">Avaktivera</span>
-                <p class="text-xs text-slate-400 dark:text-slate-500">Visar utgråad</p>
-              </div>
-              <!-- Aktivera/Inaktivera (show/hide module) -->
-              <div class="flex flex-col items-end gap-1">
-                <label class="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    class="peer sr-only"
-                    :checked="policy.enabled"
-                    @change="updateModuleEnabled(policy.moduleId, ($event.target as HTMLInputElement).checked)"
-                  />
-                  <div
-                    class="peer h-6 w-11 rounded-full bg-slate-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-green-500 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-green-500 dark:bg-slate-600"
-                  />
-                </label>
-                <span class="text-xs font-medium" :class="policy.enabled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
-                  {{ policy.enabled ? 'Aktiv' : 'Inaktiverad' }}
-                </span>
-                <p class="text-xs text-slate-400 dark:text-slate-500">
-                  {{ policy.enabled ? 'Modulen är synlig' : 'Döljer modulen' }}
-                </p>
-              </div>
-            </div>
-            <!-- Show message if module is deactivated (disabled=true) at distributor level -->
-            <div v-else-if="policy.distributorLevelDisabled" class="flex items-center gap-2 rounded-lg bg-yellow-50 px-3 py-2 dark:bg-yellow-900/20">
-              <Icon icon="mdi:alert-circle-outline" class="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-              <span class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Modulen är avaktiverad på högre nivå</span>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="policy.enabled && !policy.disabled && !policy.distributorLevelDisabled && policy.module.permissions.length > 0" class="border-t border-slate-200 px-6 py-4 dark:border-white/5">
-          <button
-            @click="toggleModulePermissions(policy.moduleId)"
-            class="flex w-full items-center justify-between text-left"
-          >
-            <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Rättigheter</p>
-            <Icon 
-              :icon="expandedPermissions[policy.moduleId] ? 'mdi:chevron-up' : 'mdi:chevron-down'" 
-              class="h-5 w-5 text-slate-400" 
-            />
-          </button>
-          <div v-if="expandedPermissions[policy.moduleId]" class="mt-4 space-y-3">
-            <label
-              v-for="permission in policy.module.permissions"
-              :key="permission"
-              class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
+            <p
+              :class="[
+                'text-sm',
+                getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                  ? 'text-slate-400 dark:text-slate-500'
+                  : 'text-slate-600 dark:text-slate-400'
+              ]"
             >
-              <div>
-                <span class="font-mono text-sm text-slate-900 dark:text-white">{{ permission }}</span>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {{ getPermissionDescription(permission) }}
-                </p>
-              </div>
-              <label class="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  class="peer sr-only"
-                  :checked="policy.permissionOverrides[permission] !== false"
-                  @change="togglePermission(policy.moduleId, permission, ($event.target as HTMLInputElement).checked)"
-                />
-                <div
-                  class="peer h-5 w-9 rounded-full bg-slate-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-green-500 peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-green-500 dark:bg-slate-600"
-                />
-              </label>
-            </label>
+              {{ module.description }}
+            </p>
+            <div
+              v-if="getModuleStatus(module) === 'coming-soon' && getModuleComingSoonMessage(module)"
+              class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
+            >
+              <p class="font-semibold">{{ t('modules.statusModal.options.comingSoon.title') }}</p>
+              <p class="mt-1">{{ getModuleComingSoonMessage(module) }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
+                {{ module.category }}
+              </span>
+              <span
+                v-for="scope in module.scopes"
+                :key="scope"
+                class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-white/10 dark:text-slate-200"
+              >
+                {{ t(`adminModules.scopes.${scope}`) }}
+              </span>
+              <span
+                v-if="module.featureFlag"
+                class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-100"
+              >
+                {{ module.featureFlag }}
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="permission in module.requiredPermissions"
+                :key="permission"
+                class="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+              >
+                {{ permission }}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div v-if="policy.roleDefinitions.length > 0" class="border-t border-slate-200 px-6 py-4 dark:border-white/5">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Modulspecifika roller</p>
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Definiera vilka modulroller som är tillåtna på denna nivå. Underliggande nivåer kan endast begränsa vidare.
+          <div class="flex flex-col items-start gap-3 md:items-end">
+            <div class="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                {{ t('adminTenants.modules.policyTitle') }}
+              </p>
+              <div class="flex flex-col gap-2">
+                <label
+                  v-for="option in modeOptions"
+                  :key="option.value"
+                  class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
+                >
+                  <input
+                    :checked="module.uiMode === option.value"
+                    :disabled="module.updating"
+                    type="radio"
+                    class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
+                    :value="option.value"
+                    :name="`policy-${module.key}`"
+                    @change="onModeChange(module, option.value as PolicyMode)"
+                  />
+                  <span>{{ t(`adminTenants.modules.modes.${option.value}`) }}</span>
+                </label>
+              </div>
+              <div v-if="module.uiMode === 'allowlist'" class="space-y-1">
+                <div class="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs dark:border-white/10 dark:bg-white/5">
+                  <div class="flex items-center justify-between">
+                    <span class="font-semibold text-slate-700 dark:text-slate-200">Permissions (manifest)</span>
+                    <button
+                      class="rounded border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-white dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
+                      :disabled="permissionState(module.key).loading"
+                      @click="loadModulePermissions(module)"
+                    >
+                      {{ permissionState(module.key).items.length ? t('common.refresh') : t('common.load') }}
+                    </button>
+                  </div>
+                  <p v-if="permissionState(module.key).error" class="text-red-600 dark:text-red-300">
+                    {{ permissionState(module.key).error }}
+                  </p>
+                  <p v-else-if="permissionState(module.key).loading" class="text-slate-500 dark:text-slate-400">
+                    {{ t('adminTenants.modules.loadingPermissions') }}
+                  </p>
+                  <div v-else-if="!permissionState(module.key).items.length" class="text-slate-500 dark:text-slate-400">
+                    {{ t('adminTenants.modules.noPermissions') }}
+                  </div>
+                  <div v-else class="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <label
+                      v-for="perm in permissionState(module.key).items"
+                      :key="perm.key"
+                      class="flex items-start gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+                    >
+                      <input
+                        type="checkbox"
+                        class="mt-1 h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
+                        :checked="module.uiAllowedPermissions.includes(perm.key)"
+                        :disabled="module.updating"
+                        @change="onAllowedPermissionsChange(module, perm.key, ($event.target as HTMLInputElement).checked)"
+                      />
+                      <div class="flex-1">
+                        <p class="font-semibold">{{ perm.key }}</p>
+                        <p v-if="perm.description" class="text-[10px] text-slate-500 dark:text-slate-400">
+                          {{ perm.description }}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <p v-if="module.error" class="text-xs text-red-600 dark:text-red-400">
+                {{ module.error }}
               </p>
             </div>
-            <div class="flex flex-wrap gap-2 text-xs">
-              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                <input
-                  type="radio"
-                  :name="`role-mode-${policy.moduleId}`"
-                  value="inherit"
-                  :checked="getRoleMode(policy) === 'inherit'"
-                  :disabled="isParentRoleBlock(policy)"
-                  @change="updateRoleMode(policy, 'inherit')"
-                />
-                Ärver
-              </label>
-              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                <input
-                  type="radio"
-                  :name="`role-mode-${policy.moduleId}`"
-                  value="custom"
-                  :checked="getRoleMode(policy) === 'custom'"
-                  :disabled="isParentRoleBlock(policy)"
-                  @change="updateRoleMode(policy, 'custom')"
-                />
-                Anpassad
-              </label>
-              <label class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
-                <input
-                  type="radio"
-                  :name="`role-mode-${policy.moduleId}`"
-                  value="block"
-                  :checked="getRoleMode(policy) === 'block'"
-                  :disabled="isParentRoleBlock(policy)"
-                  @change="updateRoleMode(policy, 'block')"
-                />
-                Blockera
-              </label>
-            </div>
-          </div>
-
-          <div
-            v-if="getRoleMode(policy) === 'custom' && !isParentRoleBlock(policy)"
-            class="mt-4 grid gap-3 md:grid-cols-2"
-          >
-            <label
-              v-for="role in policy.roleDefinitions"
-              :key="role.key"
-              class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10"
+            <button
+              type="button"
+              :disabled="!canManageModuleStatus(module)"
+              :class="[
+                'inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition',
+                canManageModuleStatus(module)
+                  ? 'border-slate-200 text-slate-800 hover:border-brand hover:text-brand dark:border-white/20 dark:text-white'
+                  : 'border-slate-300 bg-slate-100 text-slate-400 cursor-not-allowed dark:border-white/10 dark:bg-slate-800 dark:text-slate-500'
+              ]"
+              @click="canManageModuleStatus(module) && openStatusModal(module)"
             >
-              <div class="pr-3">
-                <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ role.label }}</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ role.description || 'Ingen beskrivning' }}
-                </p>
-              </div>
-              <label class="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  class="peer sr-only"
-                  :checked="policy.allowedRoles?.includes(role.key) ?? false"
-                  :disabled="isParentRoleBlock(policy)"
-                  @change="toggleModuleRoleSelection(policy, role.key, ($event.target as HTMLInputElement).checked)"
-                />
-                <div
-                  class="peer h-5 w-9 rounded-full bg-slate-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-brand peer-checked:after:translate-x-full peer-focus:ring-2 peer-focus:ring-brand dark:bg-slate-600"
-                />
-              </label>
-            </label>
+              <Icon icon="mdi:cog" class="h-4 w-4" />
+              {{ t('adminTenants.modules.manageStatus') }}
+            </button>
+            <NuxtLink
+              :to="module.rootRoute"
+              class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
+              target="_blank"
+              rel="noopener"
+            >
+              <Icon icon="mdi:open-in-new" class="h-4 w-4" />
+              {{ t('adminModules.openModule') }}
+            </NuxtLink>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              {{ t('adminTenants.modules.routeLabel') }} {{ module.rootRoute }}
+            </p>
           </div>
-
-          <p
-            v-else-if="isParentRoleBlock(policy)"
-            class="mt-3 text-xs font-medium text-yellow-600 dark:text-yellow-400"
-          >
-            Modulroller blockeras på {{ getRoleSourceLabel(policy.parentRolesSource ?? null) }}.
-          </p>
-
-          <p
-            v-else-if="getRoleMode(policy) === 'block'"
-            class="mt-3 text-xs font-medium text-red-600 dark:text-red-400"
-          >
-            Alla modulroller blockeras på denna nivå.
-          </p>
         </div>
       </div>
     </div>
   </section>
+
+  <ModuleStatusModal
+    :open="statusModal.open"
+    :module="statusModal.module as any"
+    :current-enabled="statusModal.module?.tenantEnabled ?? true"
+    :current-disabled="statusModal.module?.tenantDisabled ?? false"
+    :current-coming-soon-message="statusModal.module?.tenantPolicy?.comingSoonMessage ?? null"
+    @close="closeStatusModal"
+    @save="onStatusSave"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { computed, ref, useFetch, useI18n, useRoute, watch } from '#imports'
+import { useAuth } from '~/composables/useAuth'
 import { Icon } from '@iconify/vue'
-import { useRoute } from 'vue-router'
-import type { ModuleRoleDefinition } from '~/constants/modules'
+import StatusPill from '~/components/shared/StatusPill.vue'
+import ModuleStatusModal from '~/components/modules/ModuleStatusModal.vue'
+import type { ModuleStatus } from '~/lib/module-registry'
+import type { ModuleStatusDto, PolicyMode } from '~/types/modules'
 
 definePageMeta({
   layout: 'default'
 })
 
+const { t } = useI18n()
 const route = useRoute()
-const tenantId = route.params.id as string
+const tenantId = computed(() => route.params.id as string)
+const { user } = useAuth()
+const isSuperAdmin = computed(() => user.value?.isSuperAdmin ?? false)
 
-interface ModulePolicy {
-  moduleId: string
-  module: {
-    id: string
-    name: string
-    description: string
-    category: string
-    permissions: string[]
-    icon: string
-  }
-  enabled: boolean
-  disabled: boolean
-  permissionOverrides: Record<string, boolean>
-  allowedRoles: string[] | null
-  visibilityMode: 'everyone' | 'moduleRoles'
-  roleDefinitions: ModuleRoleDefinition[]
-  defaultAllowedRoles: string[] | null
-  distributorLevelEnabled?: boolean // Whether the module is enabled at distributor level
-  distributorLevelDisabled?: boolean // Whether the module is disabled (grayed out) at distributor level
-  parentRolesBlocked?: boolean
-  parentRolesSource?: 'distributor' | null
+type UiModule = ModuleStatusDto & {
+  uiMode: PolicyMode
+  uiAllowedPermissions: string[]
+  updating?: boolean
+  error?: string | null
 }
 
-type ModuleRoleMode = 'inherit' | 'custom' | 'block'
+const modeOptions: { value: PolicyMode }[] = [
+  { value: 'inherit' },
+  { value: 'default-closed' },
+  { value: 'allowlist' },
+  { value: 'blocked' }
+]
 
-const getRoleMode = (policy: ModulePolicy): ModuleRoleMode => {
-  if (policy.allowedRoles === null) {
-    return 'inherit'
+const { data: tenantResponse } = await useFetch<{ tenant: { name: string } }>(() =>
+  `/api/admin/tenants/${tenantId.value}`
+)
+
+const { data, pending, error, refresh } = await useFetch<{ modules: ModuleStatusDto[] }>(() =>
+  tenantId.value ? `/api/admin/tenants/${tenantId.value}/modules` : null
+)
+
+const permissionCache = ref<
+  Record<
+    string,
+    {
+      loading: boolean
+      error: string
+      items: { key: string; description?: string | null }[]
+    }
+  >
+>({})
+
+const permissionState = (moduleKey: string) => {
+  if (!permissionCache.value[moduleKey]) {
+    permissionCache.value[moduleKey] = { loading: false, error: '', items: [] }
   }
-  if (Array.isArray(policy.allowedRoles) && policy.allowedRoles.length === 0) {
-    return 'block'
-  }
-  return 'custom'
+  return permissionCache.value[moduleKey]
 }
 
-const determineCustomRoles = (policy: ModulePolicy): string[] => {
-  if (policy.allowedRoles && policy.allowedRoles.length > 0) {
-    return [...policy.allowedRoles]
+const loadModulePermissions = async (module: UiModule) => {
+  const state = permissionState(module.key)
+  if (state.loading || state.items.length) return
+  state.loading = true
+  state.error = ''
+  try {
+    const res = await $fetch<{ permissions: { key: string; description?: string | null }[] }>(
+      `/api/modules/${module.key}/permissions`
+    )
+    state.items = res.permissions ?? []
+  } catch (err: any) {
+    state.error = err?.data?.message ?? err?.message ?? 'Kunde inte hämta permissions.'
+  } finally {
+    state.loading = false
   }
-  if (policy.defaultAllowedRoles && policy.defaultAllowedRoles.length > 0) {
-    return [...policy.defaultAllowedRoles]
-  }
-  if (policy.roleDefinitions.length > 0) {
-    return policy.roleDefinitions.map((role) => role.key)
-  }
-  return []
 }
 
-const isParentRoleBlock = (policy: ModulePolicy): boolean => Boolean(policy.parentRolesBlocked)
-
-const roleSourceLabels: Record<'distributor', string> = {
-  distributor: 'distributörsnivå'
-}
-
-const getRoleSourceLabel = (source?: 'distributor' | null): string => {
-  if (!source) {
-    return 'högre nivå'
+const ensurePermissionsLoaded = (module: UiModule) => {
+  const state = permissionState(module.key)
+  if (module.uiMode === 'allowlist' && !state.loading && state.items.length === 0) {
+    void loadModulePermissions(module)
   }
-  return roleSourceLabels[source] ?? 'högre nivå'
 }
 
-const tenant = ref<any>(null)
-const policies = ref<ModulePolicy[]>([])
-const pending = ref(true)
-const error = ref<string | null>(null)
-const moduleSearchQuery = ref('')
-const expandedPermissions = ref<Record<string, boolean>>({})
-const allPermissionsExpanded = ref(false)
+const modules = computed(() => data.value?.modules ?? [])
+const moduleRows = ref<UiModule[]>([])
+const modulesError = computed(() => error.value?.message ?? '')
+const tenantName = computed(() => tenantResponse.value?.tenant?.name ?? '...')
+const resyncing = ref(false)
+const resyncMessage = ref('')
 
-// Normalize text for fuzzy search (same as ContextSwitcher and settings/modules)
-function normalizeText(value: string) {
-  return value
+watch(
+  modules,
+  (list: ModuleStatusDto[] | undefined) => {
+    const safeList = list ?? []
+    moduleRows.value = safeList.map((module: ModuleStatusDto) => ({
+      ...module,
+      uiMode: module.tenantPolicy?.mode ?? 'inherit',
+      uiAllowedPermissions:
+        module.tenantPolicy?.allowedPermissions ??
+        module.effectivePolicy.allowedPermissions ??
+        module.requiredPermissions ??
+        [],
+      updating: false,
+      error: null
+    }))
+    moduleRows.value.forEach(ensurePermissionsLoaded)
+  },
+  { immediate: true }
+)
+
+const searchInput = ref('')
+const categoryFilter = ref<string>('all')
+
+const categories = computed(() => {
+  const unique = new Set(moduleRows.value.map((module) => module.category))
+  return Array.from(unique)
+})
+
+const normalize = (value: string) =>
+  value
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
-}
 
-function matchesSearch(value: string, query: string) {
-  if (!query) {
-    return true
-  }
-  return normalizeText(value).includes(normalizeText(query))
-}
+const filteredModules = computed(() => {
+  const query = normalize(searchInput.value)
+  return moduleRows.value.filter((module) => {
+    const matchesSearch =
+      !query ||
+      normalize(module.name).includes(query) ||
+      normalize(module.description).includes(query) ||
+      normalize(module.category).includes(query)
 
-// Filter policies: hide modules inactivated (enabled=false) at distributor level, show deactivated (disabled=true) with message, filter by search query
-const filteredPolicies = computed(() => {
-  // Hide modules that are inactivated (enabled=false) at distributor level
-  // These should be completely hidden
-  // But show modules that are deactivated (disabled=true) at distributor level with a message
-  let filtered = policies.value.filter((policy) => {
-    // If distributorLevelEnabled is explicitly false, hide the module completely
-    // If it's undefined or true, show it (even if disabled at distributor level)
-    return policy.distributorLevelEnabled !== false
-  })
-  
-  // Apply search query if present
-  const query = moduleSearchQuery.value
-  if (!query) {
-    return filtered
-  }
-  
-  const normalizedQuery = normalizeText(query)
-  return filtered.filter((policy) => {
-    return (
-      matchesSearch(policy.module.name, normalizedQuery) ||
-      matchesSearch(policy.module.description, normalizedQuery) ||
-      matchesSearch(policy.module.category, normalizedQuery)
-    )
+    const matchesCategory = categoryFilter.value === 'all' || module.category === categoryFilter.value
+    return matchesSearch && matchesCategory
   })
 })
 
-const fetchTenant = async () => {
-  try {
-    const response = await $fetch(`/api/admin/tenants/${tenantId}`)
-    tenant.value = response.tenant
-  } catch (err: any) {
-    error.value = err.message || 'Kunde inte hämta tenant'
+const statusVariant = (status: ModuleStatus | undefined) => {
+  switch (status) {
+    case 'beta':
+      return 'warning'
+    case 'deprecated':
+      return 'danger'
+    case 'coming-soon':
+      return 'info'
+    default:
+      return 'success'
   }
 }
 
-const fetchPolicies = async () => {
-  try {
-    pending.value = true
-    const response = await $fetch(`/api/admin/tenants/${tenantId}/modules`)
-    policies.value = response.policies || []
-  } catch (err: any) {
-    error.value = err.message || 'Kunde inte hämta modulrättigheter'
-    console.error('Failed to fetch module policies:', err)
-  } finally {
-    pending.value = false
+const updatePolicy = async (
+  module: UiModule,
+  patch: {
+    mode?: PolicyMode
+    allowedPermissions?: string[]
+    enabled?: boolean
+    disabled?: boolean
+    comingSoonMessage?: string | null
   }
-}
-
-const updateModulePolicy = async (
-  moduleId: string,
-  enabled: boolean | undefined,
-  disabled: boolean | undefined,
-  permissionOverrides: Record<string, boolean>,
-  allowedRoles?: string[] | null
 ) => {
-  const policy = policies.value.find((p) => p.moduleId === moduleId)
-  if (!policy) return
+  module.updating = true
+  module.error = null
 
-  // Store original values for rollback
-  const originalEnabled = policy.enabled
-  const originalDisabled = policy.disabled
-  const originalOverrides = { ...policy.permissionOverrides }
-  const originalAllowedRoles = policy.allowedRoles
+  const payload: any = {
+    moduleKey: module.key,
+    mode: patch.mode ?? module.uiMode,
+    allowedPermissions:
+      (patch.mode ?? module.uiMode) === 'allowlist'
+        ? patch.allowedPermissions ?? module.uiAllowedPermissions
+        : []
+  }
 
-  // Optimistically update UI
-  if (enabled !== undefined) {
-    policy.enabled = enabled
-    // If disabling, also clear disabled state
-    if (!enabled) {
-      policy.disabled = false
-    }
-  }
-  if (disabled !== undefined) {
-    policy.disabled = disabled
-  }
-  policy.permissionOverrides = { ...permissionOverrides }
-  if (allowedRoles !== undefined) {
-    policy.allowedRoles = allowedRoles
-  }
+  if (patch.enabled !== undefined) payload.enabled = patch.enabled
+  if (patch.disabled !== undefined) payload.disabled = patch.disabled
+  if (patch.comingSoonMessage !== undefined) payload.comingSoonMessage = patch.comingSoonMessage
 
   try {
-    const body: any = {
-      moduleId,
-      permissionOverrides
-    }
-    // Only include enabled/disabled if explicitly provided
-    if (enabled !== undefined) {
-      body.enabled = enabled
-    }
-    if (disabled !== undefined) {
-      body.disabled = disabled
-    }
-    if (allowedRoles !== undefined) {
-      body.allowedRoles = allowedRoles
-    }
-
-    const response = await $fetch(`/api/admin/tenants/${tenantId}/modules`, {
+    const response = await $fetch<ModuleStatusDto>(`/api/admin/tenants/${tenantId.value}/modules`, {
       method: 'PUT',
-      body
+      body: payload
     })
-    
-    // Update policy with response data to ensure consistency
-    if (response) {
-      policy.enabled = response.enabled
-      policy.disabled = response.disabled ?? false
-      policy.permissionOverrides = response.permissionOverrides || {}
-      policy.allowedRoles = response.allowedRoles ?? policy.allowedRoles ?? null
-    }
-    
-    return response
-  } catch (err: any) {
-    // Revert on error
-    policy.enabled = originalEnabled
-    policy.disabled = originalDisabled
-    policy.permissionOverrides = originalOverrides
-    policy.allowedRoles = originalAllowedRoles
-    error.value = err.message || 'Kunde inte uppdatera modulrättigheter'
-    console.error('Failed to update module policy:', err)
-    throw err
-  }
-}
 
-const updateModuleEnabled = async (moduleId: string, enabled: boolean) => {
-  const policy = policies.value.find((p) => p.moduleId === moduleId)
-  if (!policy) return
-  await updateModulePolicy(moduleId, enabled, undefined, policy.permissionOverrides)
-}
-
-const updateModuleDisabled = async (moduleId: string, disabled: boolean) => {
-  const policy = policies.value.find((p) => p.moduleId === moduleId)
-  if (!policy) return
-  await updateModulePolicy(moduleId, undefined, disabled, policy.permissionOverrides)
-}
-
-const togglePermission = async (moduleId: string, permission: string, allowed: boolean) => {
-  const policy = policies.value.find((p) => p.moduleId === moduleId)
-  if (!policy) return
-
-  // Store original value for rollback
-  const originalOverrides = { ...policy.permissionOverrides }
-
-  // Optimistically update UI
-  const newOverrides = { ...policy.permissionOverrides }
-  if (allowed) {
-    delete newOverrides[permission]
-  } else {
-    newOverrides[permission] = false
-  }
-  policy.permissionOverrides = newOverrides
-
-  try {
-    // Only update permission overrides, don't change enabled/disabled state
-    // Pass undefined for enabled/disabled to indicate we don't want to change them
-    const response = await updateModulePolicy(moduleId, undefined, undefined, newOverrides)
-    
-    // Update with response data to ensure consistency
-    if (response) {
-      policy.permissionOverrides = response.permissionOverrides || {}
+    module.uiMode = response.tenantPolicy?.mode ?? 'inherit'
+    module.uiAllowedPermissions =
+      response.tenantPolicy?.allowedPermissions ??
+      response.effectivePolicy.allowedPermissions ??
+      module.requiredPermissions ??
+      []
+    // Update the module with response data, including status fields
+    Object.assign(module, response)
+    // Ensure tenantPolicy is updated with the new enabled/disabled values
+    if (response.tenantPolicy) {
+      module.tenantPolicy = response.tenantPolicy
     }
   } catch (err: any) {
-    // Revert on error
-    policy.permissionOverrides = originalOverrides
-    error.value = err.message || 'Kunde inte uppdatera rättighet'
-    console.error('Failed to toggle permission:', err)
+    module.error = err?.data?.message ?? err?.message ?? t('adminTenants.modules.updateFailed')
+  } finally {
+    module.updating = false
+    await refresh()
   }
 }
 
-const updateRoleMode = async (policy: ModulePolicy, mode: ModuleRoleMode) => {
-  if (isParentRoleBlock(policy)) {
-    return
-  }
-  const currentMode = getRoleMode(policy)
-  if (currentMode === mode) {
-    return
-  }
-
-  if (mode === 'inherit') {
-    await updateModulePolicy(policy.moduleId, undefined, undefined, policy.permissionOverrides, null)
-    return
-  }
-
-  if (mode === 'block') {
-    await updateModulePolicy(policy.moduleId, undefined, undefined, policy.permissionOverrides, [])
-    return
-  }
-
-  const nextRoles = determineCustomRoles(policy)
-  await updateModulePolicy(policy.moduleId, undefined, undefined, policy.permissionOverrides, nextRoles)
-}
-
-const toggleModuleRoleSelection = async (
-  policy: ModulePolicy,
-  roleKey: string,
-  selected: boolean
-) => {
-  if (isParentRoleBlock(policy)) {
-    return
-  }
-  const currentRoles = new Set(policy.allowedRoles ?? [])
-  if (selected) {
-    currentRoles.add(roleKey)
+const onModeChange = async (module: UiModule, mode: PolicyMode) => {
+  module.uiMode = mode
+  if (mode !== 'allowlist') {
+    module.uiAllowedPermissions = []
   } else {
-    currentRoles.delete(roleKey)
+    ensurePermissionsLoaded(module)
   }
-
-  await updateModulePolicy(
-    policy.moduleId,
-    undefined,
-    undefined,
-    policy.permissionOverrides,
-    Array.from(currentRoles)
-  )
-}
-
-const getPermissionDescription = (permission: string): string => {
-  const descriptions: Record<string, string> = {
-    'cloudflare:read': 'Läs åtkomst till DNS-zoner och poster',
-    'cloudflare:write': 'Skriv åtkomst för att skapa och ändra DNS-poster',
-    'containers:read': 'Läs åtkomst till containers',
-    'containers:write': 'Skriv åtkomst för att hantera containers',
-    'vms:read': 'Läs åtkomst till virtuella maskiner',
-    'vms:write': 'Skriv åtkomst för att hantera virtuella maskiner',
-    'wordpress:read': 'Läs åtkomst till WordPress-sajter',
-    'wordpress:write': 'Skriv åtkomst för att hantera WordPress-sajter',
-    'org:read': 'Läs åtkomst till organisationsinformation'
-  }
-  return descriptions[permission] || permission
-}
-
-const toggleModulePermissions = (moduleId: string) => {
-  expandedPermissions.value[moduleId] = !expandedPermissions.value[moduleId]
-}
-
-const toggleAllPermissions = () => {
-  allPermissionsExpanded.value = !allPermissionsExpanded.value
-  // Update all module permissions to match the "all" state
-  filteredPolicies.value.forEach((policy) => {
-    if (policy.enabled && !policy.disabled && policy.module.permissions.length > 0) {
-      expandedPermissions.value[policy.moduleId] = allPermissionsExpanded.value
-    }
+  await updatePolicy(module, {
+    mode,
+    allowedPermissions: module.uiAllowedPermissions
   })
 }
 
-// Watch for changes in individual permissions to update "all" state
-watch(expandedPermissions, (newVal) => {
-  const modulesWithPermissions = filteredPolicies.value.filter(
-    (p) => p.enabled && !p.disabled && p.module.permissions.length > 0
-  )
-  if (modulesWithPermissions.length === 0) {
-    allPermissionsExpanded.value = false
-    return
+const onAllowedPermissionsChange = async (module: UiModule, key: string, checked: boolean) => {
+  const next = new Set(module.uiAllowedPermissions)
+  if (checked) {
+    next.add(key)
+  } else {
+    next.delete(key)
   }
-  const allExpanded = modulesWithPermissions.every(
-    (p) => newVal[p.moduleId] === true
-  )
-  const allCollapsed = modulesWithPermissions.every(
-    (p) => newVal[p.moduleId] !== true
-  )
-  // Only update if all are in the same state
-  if (allExpanded) {
-    allPermissionsExpanded.value = true
-  } else if (allCollapsed) {
-    allPermissionsExpanded.value = false
-  }
-}, { deep: true })
+  module.uiAllowedPermissions = Array.from(next)
+  await updatePolicy(module, {
+    allowedPermissions: module.uiAllowedPermissions
+  })
+}
 
-onMounted(async () => {
-  await Promise.all([fetchTenant(), fetchPolicies()])
+const statusModal = ref<{
+  open: boolean
+  module: UiModule | null
+}>({
+  open: false,
+  module: null
 })
+
+const openStatusModal = (module: UiModule) => {
+  statusModal.value = {
+    open: true,
+    module
+  }
+}
+
+const closeStatusModal = () => {
+  statusModal.value = {
+    open: false,
+    module: null
+  }
+}
+
+const onStatusSave = async (data: { enabled: boolean; disabled: boolean; comingSoonMessage: string | null }) => {
+  if (!statusModal.value.module) return
+
+  const module = statusModal.value.module
+  await updatePolicy(module, {
+    enabled: data.enabled,
+    disabled: data.disabled,
+    comingSoonMessage: data.comingSoonMessage
+  } as any)
+  closeStatusModal()
+}
+
+const getModuleStatus = (module: UiModule): 'active' | 'disabled' | 'hidden' | 'coming-soon' => {
+  // Check tenantDisabled which cascades from global -> tenant
+  const isDisabled = module.tenantDisabled === true
+  // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
+  const comingSoonMessage = module.comingSoonMessage ?? 
+    module.effectivePolicy?.comingSoonMessage ?? 
+    module.tenantPolicy?.comingSoonMessage ?? 
+    null
+  
+  if (isDisabled && comingSoonMessage) {
+    return 'coming-soon'
+  }
+  if (isDisabled) {
+    return 'disabled'
+  }
+  if (module.tenantEnabled === false) {
+    return 'hidden'
+  }
+  return 'active'
+}
+
+const getModuleStatusClass = (module: UiModule) => {
+  const status = getModuleStatus(module)
+  if (status === 'hidden') {
+    return 'border-slate-300 bg-slate-50 dark:border-white/5 dark:bg-slate-900/50 opacity-60'
+  }
+  if (status === 'disabled' || status === 'coming-soon') {
+    return 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30 opacity-75'
+  }
+  return 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5'
+}
+
+const getModuleStatusBadgeVariant = (module: UiModule) => {
+  const status = getModuleStatus(module)
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'disabled':
+      return 'warning'
+    case 'hidden':
+      return 'danger'
+    case 'coming-soon':
+      return 'info'
+    default:
+      return 'success'
+  }
+}
+
+const getModuleStatusLabel = (module: UiModule) => {
+  const status = getModuleStatus(module)
+  return t(`modules.statusModal.options.${status === 'coming-soon' ? 'comingSoon' : status}.title`)
+}
+
+const getModuleComingSoonMessage = (module: UiModule) => {
+  // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
+  return module.comingSoonMessage ?? 
+    module.effectivePolicy?.comingSoonMessage ?? 
+    module.tenantPolicy?.comingSoonMessage ?? 
+    null
+}
+
+// Kontrollera om modulen kan hanteras på tenant-nivå
+// Logik:
+// - Om modulen FINNS i listan, är den enabled på GLOBAL nivå (global inaktiverade visas inte)
+// - Om tenantEnabled=false, är det alltid TENANT som har inaktiverat (inte global)
+// - Om tenantDisabled=true men tenant inte har satt disabled, kommer det från GLOBAL eller DISTRIBUTÖR
+// Man SKA alltid kunna hantera sin egen nivås status för att kunna återställa!
+const canManageModuleStatus = (module: UiModule): boolean => {
+  // Modulen finns i listan = den är enabled globalt
+  // Så vi kan alltid hantera tenant's egen enabled/disabled status
+  
+  // Kontrollera om modulen är DISABLED på GLOBAL eller DISTRIBUTÖR nivå
+  // Vi kan inte överskriva global/distributör disabled-status
+  // tenantDisabled inkluderar global+distributör disabled, så vi behöver kontrollera
+  // om disabled kommer från tenant-nivån eller högre nivå
+  // Om tenantPolicy?.disabled är true, är det tenant som har disabled
+  // Om tenantDisabled är true men tenantPolicy?.disabled inte är true,
+  // då kommer disabled från global eller distributör nivå
+  const disabledByHigherLevel = module.tenantDisabled && !module.tenantPolicy?.disabled
+  if (disabledByHigherLevel) {
+    return false
+  }
+  
+  // Tenant kan alltid hantera sin egen status (enabled/disabled)
+  return true
+}
 </script>
 

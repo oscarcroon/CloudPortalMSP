@@ -353,6 +353,9 @@ export async function sendInvitationEmail(input: InvitationEmailInput) {
     return { link, delivery }
   }
 
+  console.warn(
+    `[mailer] Missing effective email provider for organisation ${input.organisationId}. Writing to outbox instead.`
+  )
   const storedAt = await writeOutboxPreview(
     {
       to: [{ email: input.to }],

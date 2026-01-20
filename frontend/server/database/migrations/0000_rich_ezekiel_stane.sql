@@ -1,4 +1,4 @@
-CREATE TABLE `container_instances` (
+CREATE TABLE IF NOT EXISTS `container_instances` (
 	`id` text PRIMARY KEY NOT NULL,
 	`project_id` text NOT NULL,
 	`organization_id` text NOT NULL,
@@ -15,8 +15,8 @@ CREATE TABLE `container_instances` (
 	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `container_instances_project_name_idx` ON `container_instances` (`project_id`,`name`);--> statement-breakpoint
-CREATE TABLE `container_projects` (
+CREATE UNIQUE INDEX IF NOT EXISTS `container_instances_project_name_idx` ON `container_instances` (`project_id`,`name`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `container_projects` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,
 	`name` text NOT NULL,
@@ -27,8 +27,8 @@ CREATE TABLE `container_projects` (
 	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `container_projects_org_name_idx` ON `container_projects` (`organization_id`,`name`);--> statement-breakpoint
-CREATE TABLE `dns_records` (
+CREATE UNIQUE INDEX IF NOT EXISTS `container_projects_org_name_idx` ON `container_projects` (`organization_id`,`name`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `dns_records` (
 	`id` text PRIMARY KEY NOT NULL,
 	`zone_id` text NOT NULL,
 	`organization_id` text NOT NULL,
@@ -44,8 +44,8 @@ CREATE TABLE `dns_records` (
 	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `dns_records_zone_name_idx` ON `dns_records` (`zone_id`,`name`,`type`);--> statement-breakpoint
-CREATE TABLE `dns_zones` (
+CREATE UNIQUE INDEX IF NOT EXISTS `dns_records_zone_name_idx` ON `dns_records` (`zone_id`,`name`,`type`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `dns_zones` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,
 	`name` text NOT NULL,
@@ -57,8 +57,8 @@ CREATE TABLE `dns_zones` (
 	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `dns_zones_org_name_idx` ON `dns_zones` (`organization_id`,`name`);--> statement-breakpoint
-CREATE TABLE `organization_identity_providers` (
+CREATE UNIQUE INDEX IF NOT EXISTS `dns_zones_org_name_idx` ON `dns_zones` (`organization_id`,`name`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `organization_identity_providers` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,
 	`type` text DEFAULT 'oidc' NOT NULL,
@@ -77,8 +77,8 @@ CREATE TABLE `organization_identity_providers` (
 	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `organization_idp_unique` ON `organization_identity_providers` (`organization_id`,`provider_name`);--> statement-breakpoint
-CREATE TABLE `organization_invitations` (
+CREATE UNIQUE INDEX IF NOT EXISTS `organization_idp_unique` ON `organization_identity_providers` (`organization_id`,`provider_name`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `organization_invitations` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,
 	`email` text NOT NULL,
@@ -95,8 +95,8 @@ CREATE TABLE `organization_invitations` (
 	FOREIGN KEY (`invited_by_user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `organization_invites_token_idx` ON `organization_invitations` (`token`);--> statement-breakpoint
-CREATE TABLE `organization_memberships` (
+CREATE UNIQUE INDEX IF NOT EXISTS `organization_invites_token_idx` ON `organization_invitations` (`token`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `organization_memberships` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,
 	`user_id` text NOT NULL,
@@ -109,8 +109,8 @@ CREATE TABLE `organization_memberships` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `organization_membership_unique` ON `organization_memberships` (`organization_id`,`user_id`);--> statement-breakpoint
-CREATE TABLE `organizations` (
+CREATE UNIQUE INDEX IF NOT EXISTS `organization_membership_unique` ON `organization_memberships` (`organization_id`,`user_id`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `organizations` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`slug` text NOT NULL,
@@ -125,8 +125,8 @@ CREATE TABLE `organizations` (
 	`updated_at` integer DEFAULT (strftime('%s','now') * 1000) NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `organizations_slug_idx` ON `organizations` (`slug`);--> statement-breakpoint
-CREATE TABLE `users` (
+CREATE UNIQUE INDEX IF NOT EXISTS `organizations_slug_idx` ON `organizations` (`slug`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`email` text NOT NULL,
 	`password_hash` text,
@@ -144,8 +144,8 @@ CREATE TABLE `users` (
 	`deleted_at` integer DEFAULT 'null'
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `users_email_idx` ON `users` (`email`);--> statement-breakpoint
-CREATE TABLE `vm_instances` (
+CREATE UNIQUE INDEX IF NOT EXISTS `users_email_idx` ON `users` (`email`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `vm_instances` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,
 	`name` text NOT NULL,
@@ -161,8 +161,8 @@ CREATE TABLE `vm_instances` (
 	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `vm_instances_org_name_idx` ON `vm_instances` (`organization_id`,`name`);--> statement-breakpoint
-CREATE TABLE `wordpress_sites` (
+CREATE UNIQUE INDEX IF NOT EXISTS `vm_instances_org_name_idx` ON `vm_instances` (`organization_id`,`name`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `wordpress_sites` (
 	`id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,
 	`name` text NOT NULL,
@@ -176,4 +176,4 @@ CREATE TABLE `wordpress_sites` (
 	FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `wordpress_sites_org_domain_idx` ON `wordpress_sites` (`organization_id`,`domain`);
+CREATE UNIQUE INDEX IF NOT EXISTS `wordpress_sites_org_domain_idx` ON `wordpress_sites` (`organization_id`,`domain`);

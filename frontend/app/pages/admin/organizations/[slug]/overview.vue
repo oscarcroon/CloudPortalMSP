@@ -332,6 +332,7 @@ import StatusPill from '~/components/shared/StatusPill.vue'
 import Modal from '~/components/shared/Modal.vue'
 import { rbacRoles } from '~/constants/rbac'
 import type { AdminOrganizationDetail, AdminUpdateOrganizationPayload, AdminMoveOrganizationProviderPayload } from '~/types/admin'
+import { useEntityNames } from '~/composables/useEntityNames'
 
 definePageMeta({
   layout: 'default',
@@ -341,6 +342,7 @@ definePageMeta({
 const route = useRoute()
 const router = useRouter()
 const roles = rbacRoles
+const entityNames = useEntityNames()
 
 const slug = computed(() => route.params.slug as string)
 const saving = ref(false)
@@ -365,6 +367,15 @@ const { data, pending, refresh, error } = await useFetch<AdminOrganizationDetail
 const organization = computed(() => data.value?.organization)
 const provider = computed(() => data.value?.provider ?? null)
 const stats = computed(() => data.value?.stats ?? { memberCount: 0, activeMembers: 0, pendingInvites: 0 })
+
+// Cache organization name for breadcrumbs
+watch(() => organization.value, (org) => {
+  if (org?.id && org?.name) {
+    entityNames.setName('organization', org.id, org.name)
+    // Also cache by slug since URL uses slug
+    entityNames.setName('organization', org.slug, org.name)
+  }
+}, { immediate: true })
 const authSettings = computed(() => data.value?.authSettings ?? null)
 const deleteDisabled = computed(() => {
   if (!organization.value) return true

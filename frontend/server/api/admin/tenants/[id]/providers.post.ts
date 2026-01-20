@@ -127,7 +127,7 @@ export default defineEventHandler(async (event) => {
               passwordHash: null,
               fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
               status: 'active',
-              forcePasswordReset: 1
+              forcePasswordReset: true
             })
             .run()
         }
@@ -138,8 +138,8 @@ export default defineEventHandler(async (event) => {
             id: createId(),
             tenantId: providerId,
             userId: ownerUserId,
-            role: 'admin' as TenantRole,
-            includeChildren: true,
+        role: 'admin',
+        includeChildren: true,
             status: 'active'
           })
           .run()
@@ -168,7 +168,7 @@ export default defineEventHandler(async (event) => {
             passwordHash: null,
             fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
             status: 'active',
-            forcePasswordReset: 1
+            forcePasswordReset: true
           })
         }
 
@@ -176,7 +176,7 @@ export default defineEventHandler(async (event) => {
           id: createId(),
           tenantId: providerId,
           userId: ownerUserId,
-          role: 'admin' as TenantRole,
+          role: 'admin',
           includeChildren: true,
           status: 'active'
         })
@@ -219,11 +219,11 @@ export default defineEventHandler(async (event) => {
 
       const invitedByLabel = auth.user.email ?? auth.user.fullName ?? 'System'
 
-      const invitationValues = {
+      const invitationValues: typeof tenantInvitations.$inferInsert = {
         id: createId(),
         tenantId: provider.id,
         email: normalizedOwnerEmail,
-        role: 'admin' as TenantRole,
+      role: 'admin',
         includeChildren: true,
         token: inviteToken,
         status: 'pending',

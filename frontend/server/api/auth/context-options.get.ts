@@ -74,6 +74,12 @@ export default defineEventHandler(async (event) => {
       : []
 
   const userTenantIds = new Set(Object.keys(auth.tenantRoles))
+  
+  // For superadmins: also include current tenant if selected
+  if (auth.user.isSuperAdmin && auth.currentTenantId) {
+    userTenantIds.add(auth.currentTenantId)
+  }
+  
   const tenantOrganizations: Record<string, Array<typeof orgsData[number] & { accessType: 'direct' | 'msp' }>> =
     {}
 
@@ -160,6 +166,72 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // For superadmins: fetch ALL provider tenants and their organizations
+  // This ensures superadmins can see and switch to any organization in any provider
+  if (auth.user.isSuperAdmin) {
+    // Fetch all provider-type tenants
+    const allProviderTenants = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        slug: tenants.slug,
+        type: tenants.type,
+        parentTenantId: tenants.parentTenantId,
+        status: tenants.status
+      })
+      .from(tenants)
+      .where(eq(tenants.type, 'provider'))
+
+    // Collect all provider tenant IDs
+    const providerTenantIds = allProviderTenants.map(t => t.id)
+
+    // Fetch all organizations under any provider tenant
+    const superAdminAllOrgs = providerTenantIds.length > 0
+      ? await db
+          .select({
+            id: organizations.id,
+            name: organizations.name,
+            slug: organizations.slug,
+            tenantId: organizations.tenantId,
+            status: organizations.status
+          })
+          .from(organizations)
+          .where(inArray(organizations.tenantId, providerTenantIds))
+      : []
+
+    // Group organizations by tenant and add to tenantOrganizations
+    for (const org of superAdminAllOrgs) {
+      if (!org.tenantId) continue
+
+      // Ensure tenant is in userTenantIds so it shows up in the context switcher
+      userTenantIds.add(org.tenantId)
+
+      if (!tenantOrganizations[org.tenantId]) {
+        tenantOrganizations[org.tenantId] = []
+      }
+
+      const existingIndex = tenantOrganizations[org.tenantId].findIndex(
+        (existing) => existing.id === org.id
+      )
+      if (existingIndex < 0) {
+        // Add org with admin role for superadmins
+        tenantOrganizations[org.tenantId].push({
+          id: org.id,
+          name: org.name,
+          slug: org.slug,
+          role: 'admin' as RbacRole,
+          status: org.status,
+          isSuspended: org.status !== 'active',
+          logoUrl: null,
+          requireSso: false,
+          hasLocalLoginOverride: true,
+          tenantId: org.tenantId,
+          accessType: 'msp'
+        } as any)
+      }
+    }
+  }
+
   // Collect all organization IDs that are in tenantOrganizations
   const allOrgIdsInTenants = new Set<string>()
   for (const orgs of Object.values(tenantOrganizations)) {
@@ -199,8 +271,43 @@ export default defineEventHandler(async (event) => {
     mappedTenantOrganizations[tenantId] = orgs
   }
 
+  // For superadmins: include all provider and distributor tenants
+  let tenantsToReturn = auth.tenants
+  if (auth.user.isSuperAdmin) {
+    // Fetch all provider and distributor tenants
+    const allTenants = await db
+      .select({
+        id: tenants.id,
+        name: tenants.name,
+        slug: tenants.slug,
+        type: tenants.type,
+        parentTenantId: tenants.parentTenantId,
+        status: tenants.status
+      })
+      .from(tenants)
+
+    // Build a set of existing tenant IDs
+    const existingTenantIds = new Set(auth.tenants.map(t => t.id))
+
+    // Add missing tenants to the list
+    const additionalTenants = allTenants
+      .filter(t => !existingTenantIds.has(t.id))
+      .map(t => ({
+        id: t.id,
+        name: t.name,
+        slug: t.slug,
+        type: t.type as 'provider' | 'distributor' | 'organization',
+        parentTenantId: t.parentTenantId ?? null,
+        role: 'admin' as TenantRole,
+        includeChildren: true,
+        status: t.status
+      }))
+
+    tenantsToReturn = [...auth.tenants, ...additionalTenants]
+  }
+
   return {
-    tenants: auth.tenants,
+    tenants: tenantsToReturn,
     organizations: mappedOrgs,
     tenantOrganizations: mappedTenantOrganizations
   }

@@ -1,0 +1,254 @@
+{
+  "windowsDns": {
+      "redirects": {
+        "title": "Hantera omdirigeringar",
+      "description": "Hantera HTTP-omdirigeringar för dina domäner",
+
+      "zone_selection": {
+        "title": "Välj zon",
+        "description": "Välj en DNS-zon för att hantera dess omdirigeringar",
+        "search_placeholder": "Sök zoner...",
+        "no_zones": "Inga zoner tillgängliga",
+        "redirect_count": "{count} omdirigering | {count} omdirigeringar",
+        "mock_data_warning": "Använder utvecklingsdata",
+        "mock_data_description": "DNS Layer API är inte konfigurerad. Visar mock-data för utveckling.",
+        "connected_to_dns": "Ansluten till DNS Layer"
+      },
+
+      "zone_not_found": {
+        "title": "Zon hittades inte",
+        "description": "Zonen \"{zoneId}\" finns inte eller så har du inte åtkomst till den.",
+        "back": "Tillbaka till zonval"
+      },
+
+      "list": {
+        "title": "Omdirigeringar för {zoneName}",
+        "empty": "Inga omdirigeringar hittades",
+        "empty_description": "Skapa din första omdirigering för att komma igång.",
+        "create_first": "Skapa första omdirigeringen",
+        "columns": {
+          "host": "Värd",
+          "source": "Sökväg",
+          "destination": "Mål-URL",
+          "type": "Typ",
+          "status_code": "Status",
+          "hits": "Träffar",
+          "active": "Aktiv",
+          "created": "Skapad",
+          "last_hit": "Senaste träff",
+          "actions": "Åtgärder"
+        }
+      },
+
+      "types": {
+        "simple": "Enkel",
+        "wildcard": "Wildcard",
+        "regex": "Regex",
+        "simple_description": "Exakt sökvägsträff",
+        "wildcard_description": "Mönster med wildcards (*)",
+        "regex_description": "Reguljärt uttryck"
+      },
+
+      "status_codes": {
+        "301": "301 - Permanent omdirigering",
+        "302": "302 - Hittad (Temporär)",
+        "307": "307 - Temporär omdirigering",
+        "308": "308 - Permanent omdirigering"
+      },
+
+      "form": {
+        "create_title": "Skapa omdirigering",
+        "edit_title": "Redigera omdirigering",
+        "host": "Värd",
+        "host_placeholder": "{'@'} eller www",
+        "host_help": "Tomt eller {'@'} = apex ({zoneName}). Skriv 'www' för subdomän.",
+        "source_path": "Källsökväg",
+        "source_path_placeholder": "/ eller /gammal-sida",
+        "source_path_help": "Tomt eller '/' = roten. Annars ange sökväg som börjar med /",
+        "source_path_help_simple": "Exakt sökväg att matcha. Måste börja med /",
+        "source_path_help_wildcard": "Sökväg med wildcard. Använd * för att matcha valfritt innehåll. Exempel: /produkter/* matchar /produkter/allt",
+        "source_path_help_regex": "Reguljärt uttryck för sökväg. Måste börja med ^ och sluta med $. Använd grupper ( ) för capture. Exempel: ^/blog/(.+)$",
+        "destination_url": "Mål-URL",
+        "destination_url_placeholder": "https://example.com/ny-sida",
+        "destination_url_help": "Den fullständiga URL:en att omdirigera till",
+        "destination_url_help_simple": "Fullständig URL att omdirigera till. Måste vara en giltig URL.",
+        "destination_url_help_wildcard": "Mål-URL. Använd * för att behålla matchat innehåll. Exempel: https://example.com/shop/* där * ersätts med matchat värde.",
+        "destination_url_help_regex": "Mål-URL med referenser till regex-grupper. Använd $1, $2, etc. för att referera till grupper. Exempel: https://example.com/articles/$1",
+        "redirect_type": "Omdirigeringstyp",
+        "status_code": "Statuskod",
+        "status_code_help": "Välj HTTP-statuskod för omdirigeringen.",
+        "status_code_help_301": "Använd 301 för permanenta omdirigeringar (t.ex. domänflytt). Sökmotorer uppdaterar sina index.",
+        "status_code_help_302": "Använd 302 för tillfälliga omdirigeringar (t.ex. underhåll). Sökmotorer behåller ursprunglig URL.",
+        "status_code_help_307": "Använd 307 för tillfälliga omdirigeringar som behåller HTTP-metod (GET/POST). Användbart för formulär.",
+        "status_code_help_308": "Använd 308 för permanenta omdirigeringar som behåller HTTP-metod (GET/POST). Liknar 301 men striktare.",
+        "is_active": "Aktiv",
+        "cancel": "Avbryt",
+        "save": "Sparar",
+        "create": "Skapa",
+        "update": "Uppdatera",
+        "preset_label": "Snabbval",
+        "preset_none": "Anpassad",
+        "preset_domain_move": "Domänflytt (apex + www)",
+        "preset_domain_move_description": "Skapar två omdirigeringar: apex och www → ny domän"
+      },
+
+      "validation": {
+        "host_invalid": "Ogiltig värd. Ange {'@'} för apex, subdomain-label (t.ex. 'www'), eller fullständigt hostname inom zonen.",
+        "source_required": "Källsökväg krävs",
+        "source_format": "Sökvägar (utom roten) måste börja med /",
+        "destination_required": "Mål-URL krävs",
+        "destination_format": "Ogiltigt URL-format",
+        "invalid_regex": "Ogiltigt reguljärt uttryck"
+      },
+
+      "confirm": {
+        "delete_title": "Ta bort omdirigering",
+        "delete_message": "Är du säker på att du vill ta bort denna omdirigering? Denna åtgärd kan inte ångras.",
+        "delete_message_with_source": "Är du säker på att du vill ta bort omdirigeringen för \"{source}\"? Denna åtgärd kan inte ångras.",
+        "bulk_delete_title": "Ta bort {count} omdirigeringar",
+        "bulk_delete_message": "Är du säker på att du vill ta bort {count} omdirigeringar? Denna åtgärd kan inte ångras.",
+        "cancel": "Avbryt",
+        "confirm": "Ta bort",
+        "deleting": "Tar bort..."
+      },
+
+      "actions": {
+        "create": "Skapa omdirigering",
+        "edit": "Redigera",
+        "delete": "Ta bort",
+        "activate": "Aktivera",
+        "deactivate": "Inaktivera",
+        "import": "Importera",
+        "export": "Exportera",
+        "bulk_activate": "Aktivera valda",
+        "bulk_deactivate": "Inaktivera valda",
+        "bulk_delete": "Ta bort valda",
+        "clear_selection": "Rensa markering",
+        "open_dns_manager": "Öppna DNS-hanteraren"
+      },
+
+      "bulk": {
+        "selected": "valda"
+      },
+
+      "filters": {
+        "search": "Sök omdirigeringar...",
+        "all_types": "Alla typer",
+        "all_status_codes": "Alla statuskoder",
+        "all_statuses": "Alla statusar",
+        "active": "Aktiv",
+        "inactive": "Inaktiv",
+        "clear": "Rensa filter"
+      },
+
+      "pagination": {
+        "showing": "Visar {from} till {to} av {total}",
+        "page": "Sida {current} av {total}",
+        "previous": "Föregående",
+        "next": "Nästa"
+      },
+
+      "toast": {
+        "created": "Omdirigering för \"{source}\" skapades",
+        "updated": "Omdirigering för \"{source}\" uppdaterades",
+        "deleted": "Omdirigering för \"{source}\" togs bort",
+        "delete_failed": "Kunde inte ta bort omdirigering"
+      },
+
+      "import": {
+        "title": "Importera omdirigeringar",
+        "description": "Ladda upp en CSV- eller TXT-fil för att massimportera omdirigeringar.",
+        "format_title": "Filformat",
+        "format_csv": "Kolumner: sourcePath (källsökväg), destinationUrl (mål-URL), redirectType (simple/wildcard/regex), statusCode (301/302/307/308), isActive (true/false). Första raden kan vara rubriker.",
+        "format_txt": "Mellanslagsseparerad: källsökväg mål-URL typ statuskod (valfritt). Exempel: /old-page https://example.com/new-page simple 301",
+        "download_sample": "Ladda ner exempelfil",
+        "file_label": "Välj fil",
+        "drag_drop": "Klicka eller dra fil hit",
+        "file_help": "Stöder CSV- och TXT-format",
+        "preview_title": "Förhandsvisning",
+        "skip_duplicates": "Hoppa över befintliga omdirigeringar med samma källsökväg",
+        "choose_different": "Välj en annan fil",
+        "importing": "Importerar...",
+        "confirm": "Importera"
+      },
+
+      "export": {
+        "title": "Exportera omdirigeringar",
+        "description": "Ladda ner dina omdirigeringar i CSV- eller TXT-format.",
+        "downloading": "Laddar ner...",
+        "export_all": "Exportera alla",
+        "export_filtered": "Exportera filtrerade"
+      },
+
+      "stats": {
+        "title": "Statistik",
+        "export": "Exportera statistik",
+        "total_redirects": "Totalt antal omdirigeringar",
+        "active": "Aktiva",
+        "inactive": "Inaktiva",
+        "total_hits": "Totalt antal träffar",
+        "hits_over_time": "Träffar över tid",
+        "by_type": "Per typ",
+        "top_redirects": "Topp omdirigeringar",
+        "no_hits_yet": "Inga omdirigeringar med träffar ännu"
+      },
+
+      "errors": {
+        "network": {
+          "title": "Anslutningsfel",
+          "message": "Kan inte ansluta till servern. Kontrollera din internetanslutning.",
+          "retry": "Försök igen",
+          "save_failed": "Kunde inte spara. Försök igen.",
+          "load_failed": "Kunde inte ladda. Försök igen.",
+          "delete_failed": "Kunde inte ta bort. Försök igen."
+        },
+        "server": {
+          "title": "Serverfel",
+          "message": "Något gick fel på servern. Försök igen senare.",
+          "retry": "Försök igen"
+        },
+        "validation": {
+          "title": "Valideringsfel",
+          "message": "Kontrollera din inmatning och försök igen.",
+          "retry": "Åtgärda och försök igen"
+        },
+        "generic": {
+          "title": "Fel",
+          "message": "Ett oväntat fel uppstod. Försök igen.",
+          "retry": "Försök igen"
+        }
+      },
+
+      "traefik": {
+        "title": "Traefik-konfiguration",
+        "status": "Status",
+        "last_sync": "Senaste synkronisering",
+        "sync_now": "Synkronisera nu",
+        "syncing": "Synkroniserar...",
+        "synced": "Synkroniserad",
+        "pending": "Väntande",
+        "error": "Fel",
+        "rollback": "Återställ",
+        "dry_run": "Förhandsgranska ändringar"
+      },
+
+      "config": {
+        "title": "Konfiguration",
+        "traefik_path": "Traefik-konfigurationssökväg",
+        "traefik_path_help": "Sökväg till Traefiks dynamiska konfigurationskatalog"
+      },
+
+      "dns_conflict": {
+        "title": "DNS-konflikt upptäckt",
+        "description": "För att omdirigeringar ska fungera behöver DNS-posten \"{recordName}\" peka på redirects-tjänsten. Om du fortsätter kommer befintliga poster att ersättas.",
+        "warning": "Det här kan påverka trafik och andra tjänster som använder samma DNS-namn. Granska ändringarna noggrant innan du fortsätter.",
+        "before": "Före",
+        "after": "Efter",
+        "ack": "Jag förstår att befintliga DNS-poster kan ersättas och att detta kan påverka trafiken.",
+        "cancel": "Avbryt",
+        "continue": "Fortsätt och uppdatera DNS",
+        "applying": "Uppdaterar DNS..."
+      }
+    }
+  }
+}

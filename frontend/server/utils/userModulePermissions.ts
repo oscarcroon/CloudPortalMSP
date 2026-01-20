@@ -1,27 +1,88 @@
 import { createId } from '@paralleldrive/cuid2'
-import { eq, and } from 'drizzle-orm'
-import { getDb } from './db'
+import { and, eq } from 'drizzle-orm'
 import { userModulePermissions } from '../database/schema'
+import { getDb } from './db'
 import type { ModuleId } from '~/constants/modules'
 import type { RbacPermission } from '~/constants/rbac'
 
-/**
- * User module permission denials structure
- * Maps permission names to boolean values (true = denied)
- */
-export interface UserModuleDeniedPermissions {
-  [permission: string]: boolean
+type PermissionKey = RbacPermission | string
+
+export interface ModulePermissionOverrides {
+  grants: PermissionKey[]
+  denies: PermissionKey[]
 }
 
 /**
- * Get user-specific module permissions for a specific module
- * Returns null if no custom permissions exist (user follows role permissions)
+ * Normaliserar inkommande struktur (legacy map eller ny grants/denies) till ett
+ * konsekvent objekt.
+ */
+export const normalizePermissionOverrides = (
+  raw: unknown
+): ModulePermissionOverrides | null => {
+  if (!raw) return null
+
+  // Ny form: { grants: [], denies: [] }
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const obj = raw as Record<string, unknown>
+    const grants = Array.isArray(obj.grants) ? obj.grants : []
+    const denies = Array.isArray(obj.denies) ? obj.denies : []
+
+    const fromEntries = (items: unknown[]) =>
+      Array.from(
+        new Set(
+          items
+            .filter((key): key is PermissionKey => typeof key === 'string' && key.trim().length > 0)
+            .map((key) => key.trim())
+        )
+      )
+
+    if (grants.length || denies.length) {
+      return {
+        grants: fromEntries(grants),
+        denies: fromEntries(denies)
+      }
+    }
+
+    // Legacy map med boolean
+    const legacyKeys = Object.entries(obj)
+      .filter(([, value]) => typeof value === 'boolean' && value === true)
+      .map(([key]) => key)
+
+    if (legacyKeys.length) {
+      return { grants: [], denies: Array.from(new Set(legacyKeys)) }
+    }
+  }
+
+  return null
+}
+
+const serializeOverrides = (overrides: ModulePermissionOverrides) =>
+  JSON.stringify({
+    grants: Array.from(new Set(overrides.grants)),
+    denies: Array.from(new Set(overrides.denies))
+  })
+
+const filterAllowed = (
+  overrides: ModulePermissionOverrides,
+  allowedPermissions?: Set<PermissionKey>
+): ModulePermissionOverrides => {
+  if (!allowedPermissions || allowedPermissions.size === 0) return overrides
+  const filter = (keys: PermissionKey[]) =>
+    Array.from(new Set(keys.filter((key) => allowedPermissions.has(key))))
+  return {
+    grants: filter(overrides.grants),
+    denies: filter(overrides.denies)
+  }
+}
+
+/**
+ * Get user-specific module permission overrides (grants/denies)
  */
 export const getUserModulePermissions = async (
   organizationId: string,
   userId: string,
   moduleId: ModuleId
-): Promise<UserModuleDeniedPermissions | null> => {
+): Promise<ModulePermissionOverrides | null> => {
   const db = getDb()
   const [permission] = await db
     .select()
@@ -38,41 +99,34 @@ export const getUserModulePermissions = async (
     return null
   }
 
-  return JSON.parse(permission.deniedPermissions) as UserModuleDeniedPermissions
+  try {
+    const parsed = JSON.parse(permission.deniedPermissions) as unknown
+    return normalizePermissionOverrides(parsed)
+  } catch {
+    return null
+  }
 }
 
 /**
- * Get all denied permissions for a user in an organization
- * Returns a map of moduleId -> Set of denied permissions
+ * Get denied permissions (override) as Set
  */
 export const getUserModuleDeniedPermissions = async (
   organizationId: string,
   userId: string,
   moduleId: ModuleId
-): Promise<Set<RbacPermission> | null> => {
-  const denied = await getUserModulePermissions(organizationId, userId, moduleId)
-  if (!denied) {
-    return null
-  }
-
-  const deniedSet = new Set<RbacPermission>()
-  for (const [permission, isDenied] of Object.entries(denied)) {
-    if (isDenied) {
-      deniedSet.add(permission as RbacPermission)
-    }
-  }
-
-  return deniedSet.size > 0 ? deniedSet : null
+): Promise<Set<PermissionKey> | null> => {
+  const overrides = await getUserModulePermissions(organizationId, userId, moduleId)
+  if (!overrides || overrides.denies.length === 0) return null
+  return new Set(overrides.denies)
 }
 
 /**
- * Get all user module permissions for an organization
- * Returns a map of moduleId -> denied permissions
+ * Get all user module permission overrides for an organization
  */
 export const getUserModulePermissionsForOrg = async (
   organizationId: string,
   userId: string
-): Promise<Map<ModuleId, Set<RbacPermission>>> => {
+): Promise<Map<ModuleId, ModulePermissionOverrides>> => {
   const db = getDb()
   const permissions = await db
     .select()
@@ -84,24 +138,18 @@ export const getUserModulePermissionsForOrg = async (
       )
     )
 
-  const result = new Map<ModuleId, Set<RbacPermission>>()
+  const result = new Map<ModuleId, ModulePermissionOverrides>()
 
   for (const perm of permissions) {
-    if (!perm.deniedPermissions) {
-      continue
-    }
-
-    const denied = JSON.parse(perm.deniedPermissions) as UserModuleDeniedPermissions
-    const deniedSet = new Set<RbacPermission>()
-
-    for (const [permission, isDenied] of Object.entries(denied)) {
-      if (isDenied) {
-        deniedSet.add(permission as RbacPermission)
+    if (!perm.deniedPermissions) continue
+    try {
+      const parsed = JSON.parse(perm.deniedPermissions)
+      const normalized = normalizePermissionOverrides(parsed)
+      if (normalized) {
+        result.set(perm.moduleId as ModuleId, normalized)
       }
-    }
-
-    if (deniedSet.size > 0) {
-      result.set(perm.moduleId as ModuleId, deniedSet)
+    } catch {
+      continue
     }
   }
 
@@ -109,16 +157,18 @@ export const getUserModulePermissionsForOrg = async (
 }
 
 /**
- * Set or update user-specific module permissions
- * If deniedPermissions is empty {}, remove the record (user follows role permissions)
+ * Set or update user-specific module permission overrides.
+ * If both grants/denies are tomma, posten tas bort (fallback till roll-policy).
  */
 export const setUserModulePermissions = async (
   organizationId: string,
   userId: string,
   moduleId: ModuleId,
-  deniedPermissions: UserModuleDeniedPermissions
+  overrides: ModulePermissionOverrides,
+  allowedPermissions?: Set<PermissionKey>
 ): Promise<void> => {
   const db = getDb()
+  const filtered = filterAllowed(overrides, allowedPermissions)
 
   // Try to find existing permission
   const [existing] = await db
@@ -135,13 +185,11 @@ export const setUserModulePermissions = async (
   const isSqlite =
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
-  // If deniedPermissions is empty, remove the record
-  if (Object.keys(deniedPermissions).length === 0) {
+  // If overrides are empty, remove record
+  if (filtered.grants.length === 0 && filtered.denies.length === 0) {
     if (existing) {
       if (isSqlite) {
-        db.delete(userModulePermissions)
-          .where(eq(userModulePermissions.id, existing.id))
-          .run()
+        db.delete(userModulePermissions).where(eq(userModulePermissions.id, existing.id)).run()
       } else {
         await db.delete(userModulePermissions).where(eq(userModulePermissions.id, existing.id))
       }
@@ -149,46 +197,30 @@ export const setUserModulePermissions = async (
     return
   }
 
-  // Convert to JSON
-  const deniedJson = JSON.stringify(deniedPermissions)
+  const payloadJson = serializeOverrides(filtered)
 
   if (existing) {
-    // Update existing
+    const updateData = {
+      deniedPermissions: payloadJson,
+      updatedAt: new Date()
+    }
     if (isSqlite) {
-      db.update(userModulePermissions)
-        .set({
-          deniedPermissions: deniedJson,
-          updatedAt: new Date()
-        })
-        .where(eq(userModulePermissions.id, existing.id))
-        .run()
+      db.update(userModulePermissions).set(updateData).where(eq(userModulePermissions.id, existing.id)).run()
     } else {
-      await db
-        .update(userModulePermissions)
-        .set({
-          deniedPermissions: deniedJson,
-          updatedAt: new Date()
-        })
-        .where(eq(userModulePermissions.id, existing.id))
+      await db.update(userModulePermissions).set(updateData).where(eq(userModulePermissions.id, existing.id))
     }
   } else {
-    // Create new
+    const insertData = {
+      id: createId(),
+      organizationId,
+      userId,
+      moduleId,
+      deniedPermissions: payloadJson
+    }
     if (isSqlite) {
-      db.insert(userModulePermissions).values({
-        id: createId(),
-        organizationId,
-        userId,
-        moduleId,
-        deniedPermissions: deniedJson
-      }).run()
+      db.insert(userModulePermissions).values(insertData).run()
     } else {
-      await db.insert(userModulePermissions).values({
-        id: createId(),
-        organizationId,
-        userId,
-        moduleId,
-        deniedPermissions: deniedJson
-      })
+      await db.insert(userModulePermissions).values(insertData)
     }
   }
 }

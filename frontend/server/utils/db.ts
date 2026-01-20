@@ -12,17 +12,23 @@ const require = createRequire(import.meta.url)
 
 type SqliteDb = BetterSQLite3Database<typeof schema>
 type MysqlDb = MySql2Database<typeof schema>
-export type DrizzleDb = SqliteDb | MysqlDb
+type DrizzleDbInstance = SqliteDb | MysqlDb
+export type DrizzleDb = SqliteDb
 
-let dbInstance: DrizzleDb | null = null
+let dbInstance: DrizzleDbInstance | null = null
 
 const resolveSqlitePath = () => {
+  // Standard: lokal frontend-DB under .data
   const rawUrl = process.env.DATABASE_URL ?? 'file:./.data/dev.db'
   const cleaned = rawUrl.startsWith('file:') ? rawUrl.replace('file:', '') : rawUrl
   const absolute = path.isAbsolute(cleaned)
     ? cleaned
     : path.resolve(process.cwd(), cleaned)
   fs.mkdirSync(path.dirname(absolute), { recursive: true })
+  if (process.env.NODE_ENV === 'development' || process.env.DEBUG_DB) {
+    console.log('[db] Using database:', absolute)
+    console.log('[db] Database exists:', fs.existsSync(absolute))
+  }
   return absolute
 }
 
@@ -47,7 +53,7 @@ const createMysqlDb = (): MysqlDb => {
   }
 
   const pool = mysql.createPool(url)
-  return drizzleMysql(pool, { schema })
+  return drizzleMysql(pool, { schema } as any)
 }
 
 const determineDialect = () =>
@@ -55,12 +61,12 @@ const determineDialect = () =>
 
 export const getDb = (): DrizzleDb => {
   if (dbInstance) {
-    return dbInstance
+    return dbInstance as DrizzleDb
   }
 
   const dialect = determineDialect()
   dbInstance = dialect === 'mysql' ? createMysqlDb() : createSqliteDb()
-  return dbInstance
+  return dbInstance as DrizzleDb
 }
 
 export const resetDbInstance = () => {

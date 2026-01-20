@@ -7,7 +7,8 @@ import {
   organizations
 } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
-import { requireSuperAdmin } from '../../../../utils/rbac'
+import { canAccessOrganization, requireTenantPermission } from '../../../../utils/rbac'
+import { ensureAuthState } from '../../../../utils/session'
 import {
   buildOrganizationDetailPayload,
   ensureOrganizationAuthSettings,
@@ -45,13 +46,48 @@ const updateSchema = z
   )
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const payload = updateSchema.parse(await readBody(event))
   const db = getDb()
+  const auth = await ensureAuthState(event)
+  
+  if (!auth) {
+    throw createError({ statusCode: 401, message: 'Not authenticated' })
+  }
+
   const isSqlite =
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+
+  // Super admins can always update
+  if (!auth.user.isSuperAdmin) {
+    // Check if user has access to the organization
+    const hasAccess = await canAccessOrganization(auth, organization.id)
+    if (!hasAccess) {
+      throw createError({
+        statusCode: 403,
+        message: 'Du har inte behörighet att uppdatera denna organisation.'
+      })
+    }
+
+    // If organization belongs to a provider tenant, user must have manage permission for that tenant
+    if (organization.tenantId) {
+      try {
+        await requireTenantPermission(event, 'tenants:manage', organization.tenantId)
+      } catch {
+        throw createError({
+          statusCode: 403,
+          message: 'Du måste vara admin för leverantören som organisationen tillhör för att uppdatera den.'
+        })
+      }
+    } else {
+      // Organization without tenant - only super admins can update
+      throw createError({
+        statusCode: 403,
+        message: 'Endast superadmins kan uppdatera organisationer utan leverantör.'
+      })
+    }
+  }
 
   // Store old values for audit log
   const oldValues = {

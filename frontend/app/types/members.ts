@@ -1,5 +1,6 @@
 import type { RbacRole } from '~/constants/rbac'
 import type { ModuleRoleDefinition, ModuleRoleKey } from '~/constants/modules'
+import type { PolicyMode } from '~/types/modules'
 
 export type OrganizationMemberRole = RbacRole
 
@@ -97,6 +98,7 @@ export interface MemberModuleRoleEntry {
   effectiveRoles: ModuleRoleKey[]
   editable: boolean
   roleSource: 'custom' | 'rbac' | 'none'
+  policyMode: PolicyMode
 }
 
 export interface MemberModuleRolesResponse {
@@ -111,6 +113,35 @@ export interface UpdateMemberModuleRolesPayload {
     moduleId: string
     roleKeys: ModuleRoleKey[]
   }>
+}
+
+export interface MemberModulePermissionItem {
+  key: string
+  description?: string | null
+  allowed: boolean
+  inherited: boolean
+  effective: boolean
+  state: 'inherit' | 'grant' | 'deny'
+}
+
+export interface MemberModulePermissionsResponse {
+  organizationId: string
+  moduleId: string
+  userId: string
+  role: RbacRole | string
+  allowedPermissions: string[]
+  policyMode: PolicyMode
+  rolePermissions: string[]
+  grants: string[]
+  denies: string[]
+  permissions: MemberModulePermissionItem[]
+}
+
+export interface UpdateMemberModulePermissionsPayload {
+  permissionOverrides: {
+    grants?: string[]
+    denies?: string[]
+  }
 }
 
 

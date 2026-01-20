@@ -135,17 +135,22 @@ const syncRoleMappings = async () => {
     existing.map((row) => `${row.rbacRole}:${row.moduleId}:${row.moduleRoleKey}`)
   )
 
-  const rowsToInsert = Array.from(desiredKeys)
+  const rowsToInsert: typeof roleModuleRoleMappings.$inferInsert[] = Array.from(desiredKeys)
     .filter((key) => !existingKeys.has(key))
-    .map((key) => {
-      const [rbacRole, moduleId, moduleRoleKey] = key.split(':')
-      return {
-        id: createId(),
-        rbacRole,
-        moduleId,
-        moduleRoleKey
-      }
-    })
+    .map((key) => key.split(':'))
+    .filter(
+      (parts): parts is [string, string, string] =>
+        parts.length === 3 &&
+        typeof parts[0] === 'string' &&
+        typeof parts[1] === 'string' &&
+        typeof parts[2] === 'string'
+    )
+    .map(([rbacRole, moduleId, moduleRoleKey]) => ({
+      id: createId(),
+      rbacRole,
+      moduleId,
+      moduleRoleKey
+    }))
 
   if (rowsToInsert.length === 0) {
     return

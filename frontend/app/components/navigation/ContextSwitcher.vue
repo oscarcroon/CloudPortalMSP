@@ -79,8 +79,27 @@
               @click.stop="selectContext({ tenantId: tenant.id, organizationId: org.id })"
             >
               <div class="min-w-0 flex-1">
-                <p class="truncate font-medium">{{ org.name }}</p>
-                <p class="text-xs text-slate-500">{{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}</p>
+                <div class="flex items-center gap-1.5">
+                  <p class="truncate font-medium">{{ org.name }}</p>
+                  <Icon
+                    v-if="org.accessType === 'msp' || org.accessType === 'superadmin'"
+                    icon="mdi:account-hard-hat"
+                    class="h-3.5 w-3.5 shrink-0 text-brand"
+                    :title="t('contextSwitcher.mspAccess')"
+                  />
+                  <Icon
+                    v-if="org.accessType === 'delegation'"
+                    icon="mdi:account-key"
+                    class="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                    :title="t('contextSwitcher.delegation')"
+                  />
+                </div>
+                <p class="text-xs text-slate-500">
+                  {{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}
+                  <span v-if="org.accessType === 'delegation' && org.expiresAt" class="ml-1 text-[11px] text-emerald-600 dark:text-emerald-300">
+                    ({{ formatExpiry(org.expiresAt) }})
+                  </span>
+                </p>
               </div>
               <Icon
                 v-if="auth.state.value.data?.currentOrgId === org.id"
@@ -105,7 +124,21 @@
           @click="trySelectOrg(org)"
         >
           <div class="min-w-0 flex-1">
-            <p class="truncate font-semibold">{{ org.name }}</p>
+            <div class="flex items-center gap-1.5">
+              <p class="truncate font-semibold">{{ org.name }}</p>
+              <Icon
+                v-if="org.accessType === 'msp' || org.accessType === 'superadmin'"
+                icon="mdi:account-hard-hat"
+                class="h-4 w-4 shrink-0 text-brand"
+                :title="t('contextSwitcher.mspAccess')"
+              />
+              <Icon
+                v-if="org.accessType === 'delegation'"
+                icon="mdi:account-key"
+                class="h-4 w-4 shrink-0 text-emerald-400"
+                :title="t('contextSwitcher.delegation')"
+              />
+            </div>
             <p class="text-xs text-slate-400">{{ getRoleLabel(org.role) }} • {{ getStatusLabel(org.status) }}</p>
           </div>
           <div class="flex items-center gap-1">
@@ -159,7 +192,7 @@ const searchInput = ref('')
 const tenants = computed(() => contextTenants.value ?? auth.tenants.value)
 const organizations = computed(() => contextOrganizations.value ?? auth.organizations.value)
 const navBackgroundColor = computed(
-  () => auth.branding.value?.activeTheme.navBackgroundColor ?? DEFAULT_NAV_BACKGROUND
+  () => auth.branding.value?.activeTheme.navigationBackgroundColor ?? DEFAULT_NAV_BACKGROUND
 )
 const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobileDropdown = breakpoints.smaller('md')
@@ -275,16 +308,17 @@ const isOrgLocked = (org: AuthOrganization) =>
 
 async function navigateAfterContextChange(payload: { tenantId?: string | null; organizationId?: string | null }) {
   const isSuperAdminUser = isSuperAdmin.value
+  const currentPath = router.currentRoute.value.path
 
-  // If only tenant is selected (no organization), navigate to tenant page for all users
+  // If only tenant is selected (no organization), navigate to tenant-admin dashboard
   // This should work even when on settings page
   if (payload.tenantId && !payload.organizationId) {
-    await router.push(`/admin/tenants/${payload.tenantId}`)
+    await router.push('/tenant-admin')
     return
   }
 
   // If user is on settings page and switching organization, just reload to ensure fresh state/view
-  if (router.currentRoute.value.path.startsWith('/settings')) {
+  if (currentPath.startsWith('/settings')) {
     // Since the state is reactive, we often don't need to do anything, but user requested "refresh feel".
     // We can do a simple router replacement to current route to trigger any watchers if needed,
     // or rely on the fact that auth state changed.
@@ -292,29 +326,46 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
     return
   }
 
+  // Check if user is on a "core" route that doesn't need refresh on context switch
+  // Core routes handle context changes reactively or don't depend on organization context
+  // Everything else (module/layer pages) will trigger a full page reload
+  const coreRoutes = [
+    '/admin/',           // Admin pages handle context via their own logic
+    '/tenant-admin',     // Tenant admin pages
+    '/settings/',        // Settings pages are reactive
+    '/profile',          // Profile is user-specific, not org-specific
+    '/login',            // Auth pages
+    '/forgot-password',
+    '/reset-password',
+    '/invite/',          // Invite flow
+    '/docs/',            // Documentation is static
+    '/docs',
+    '/support/'          // Support pages
+  ]
+  
+  const isOnCorePage = currentPath === '/' || coreRoutes.some(route => currentPath.startsWith(route))
+  
+  if (!isOnCorePage) {
+    // User is on a module/layer page - force a hard browser reload
+    // This ensures all organization-specific data is refreshed for the new context
+    // New modules automatically get this behavior without code changes
+    window.location.reload()
+    return
+  }
+
   if (payload.organizationId) {
     if (isSuperAdminUser) {
       const org = auth.organizations.value.find(o => o.id === payload.organizationId)
       if (org) {
-        // Only redirect if we are NOT already on an organization-specific page
-        // or if we want to force view the new org.
-        // User requested "stay on same page" but updated context.
-        // However, if we are on Org A overview and switch to Org B, we MUST redirect or reload, 
-        // otherwise we see Org A data with Org B context (or error).
-        if (router.currentRoute.value.path.includes('/admin/organizations/')) {
-           await router.push(`/admin/organizations/${org.slug}/overview`)
-           return
+        // Only redirect if we are on an org-specific admin route so view matches context
+        if (currentPath.includes('/admin/organizations/')) {
+          await router.push(`/admin/organizations/${org.slug}/overview`)
         }
-        // If we are on a generic page, stay there.
+        // Otherwise stay on current route; reactive data will follow context
         return
       }
     } else {
-      // For regular users, if they are not on settings, maybe send them to settings?
-      // Or just let them stay.
-      // If they are on a page that requires auth, middleware handles it.
-      if (!router.currentRoute.value.path.startsWith('/settings')) {
-        await router.push('/settings')
-      }
+      // For regular users, stay on current route and rely on middleware/auth to handle access
       return
     }
   }
@@ -410,6 +461,15 @@ function getRoleLabel(role: string) {
 
 function getStatusLabel(status: string) {
   return t(`settings.members.status.${status}`) || status
+}
+
+function formatExpiry(ts: number) {
+  try {
+    const date = new Date(ts)
+    return date.toLocaleDateString('sv-SE')
+  } catch {
+    return ''
+  }
 }
 
 function getTenantTypeColor(type: string) {

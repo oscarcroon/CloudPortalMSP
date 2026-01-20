@@ -40,7 +40,7 @@ export const assertAnotherSuperAdminWillRemain = async (userId: string) => {
       value: sql<number>`count(*)`
     })
     .from(users)
-    .where(eq(users.isSuperAdmin, 1))
+    .where(eq(users.isSuperAdmin, true))
 
   if ((countRow?.value ?? 0) <= 1) {
     throw createError({

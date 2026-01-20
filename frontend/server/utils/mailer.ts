@@ -42,6 +42,12 @@ const htmlEscapeMap: Record<string, string> = {
 
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => htmlEscapeMap[char] ?? char)
 
+type EmailLocale = 'sv' | 'en'
+
+const normalizeEmailLocale = (value?: string | null): EmailLocale => (value === 'en' ? 'en' : 'sv')
+const localeToDateString = (timestamp: number, locale: EmailLocale) =>
+  new Date(timestamp).toLocaleString(locale === 'en' ? 'en-US' : 'sv-SE')
+
 interface FooterOptions {
   disclaimerMarkdown?: string | null
   supportContact?: string | null
@@ -187,18 +193,21 @@ async function convertLogoToDataUri(
     // Hantera olika URL-format
     if (logoUrl.includes('/api/uploads/logos/')) {
       const parts = logoUrl.split('/api/uploads/logos/')
-      if (parts.length > 1) {
-        filename = path.basename(parts[1].split('?')[0])
+      if (parts.length > 1 && parts[1]) {
+        const segment = parts[1].split('?')[0] ?? parts[1]
+        filename = path.basename(segment)
       }
     } else if (logoUrl.includes('uploads/logos/')) {
       const parts = logoUrl.split('uploads/logos/')
-      if (parts.length > 1) {
-        filename = path.basename(parts[1].split('?')[0])
+      if (parts.length > 1 && parts[1]) {
+        const segment = parts[1].split('?')[0] ?? parts[1]
+        filename = path.basename(segment)
       }
     } else if (logoUrl.includes('/uploads/logos/')) {
       const parts = logoUrl.split('/uploads/logos/')
-      if (parts.length > 1) {
-        filename = path.basename(parts[1].split('?')[0])
+      if (parts.length > 1 && parts[1]) {
+        const segment = parts[1].split('?')[0] ?? parts[1]
+        filename = path.basename(segment)
       }
     } else {
       // Försök extrahera från URL pathname
@@ -206,7 +215,8 @@ async function convertLogoToDataUri(
         const urlObj = new URL(logoUrl)
         const urlPath = urlObj.pathname
         if (urlPath.includes('logos/')) {
-          filename = path.basename(urlPath.split('logos/')[1])
+          const part = urlPath.split('logos/')[1]
+          filename = part ? path.basename(part) : null
         } else {
           filename = path.basename(urlPath)
         }
@@ -287,6 +297,16 @@ interface EmailBrandingOptions {
   isDarkMode?: boolean
 }
 
+interface EmailBranding {
+  logoUrl?: string
+  accentColor?: string
+  backgroundColor?: string
+  logoBackgroundColor?: string
+  isDarkMode: boolean
+  footerText?: string
+  footerTextPlain?: string
+}
+
 export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
   const resolution = options.organizationId
     ? await resolveBrandingChain({ organizationId: options.organizationId })
@@ -303,11 +323,11 @@ export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
     null
   const logoDataUri = await convertLogoToDataUri(logoSource, options.organizationId)
 
-  const branding = {
+  const branding: EmailBranding = {
     logoUrl: logoDataUri ?? logoSource ?? undefined,
     accentColor: theme.accentColor ?? undefined,
     backgroundColor: undefined, // Bakgrunden på e-postet ändras baserat på dark mode
-    logoBackgroundColor: theme.navBackgroundColor ?? undefined, // Bakgrunden bakom loggan använder NavBar-färgen
+    logoBackgroundColor: theme.navigationBackgroundColor ?? undefined, // Bakgrunden bakom loggan använder NavBar-färgen
     isDarkMode: options.isDarkMode === true
   }
   const footer = buildFooterContent({
@@ -317,7 +337,6 @@ export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
   if (footer.html) {
     branding.footerText = footer.html
     if (footer.text) {
-      // @ts-expect-error internal field for plain-text footer
       branding.footerTextPlain = footer.text
     }
   }
@@ -335,8 +354,9 @@ export const sendPasswordResetEmail = async (input: {
   expiresAt: number
 }) => {
   const resetUrl = `${buildPortalUrl('/reset-password')}?token=${encodeURIComponent(input.token)}`
-  const expiresLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
   const senderContext = await getEffectiveEmailSenderContext()
+  const locale = normalizeEmailLocale(senderContext.emailLanguage)
+  const expiresLabel = localeToDateString(input.expiresAt, locale)
   const provider = senderContext.profile
   const branding = await resolveEmailBranding({
     supportContact: senderContext.supportContact,
@@ -346,6 +366,7 @@ export const sendPasswordResetEmail = async (input: {
   const content = buildPasswordResetEmail({
     resetUrl,
     expiresAt: expiresLabel,
+    locale,
     branding
   })
   const finalContent = {
@@ -388,8 +409,9 @@ export const sendInvitationEmail = async (input: {
   organisationLogo?: string | null
 }) => {
   const acceptUrl = buildInviteAcceptUrl(input.token)
-  const expiresLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
   const senderContext = await getEffectiveEmailSenderContext(input.organisationId)
+  const locale = normalizeEmailLocale(senderContext.emailLanguage)
+  const expiresLabel = localeToDateString(input.expiresAt, locale)
   const provider = senderContext.profile
   const disclaimerMarkdown = await fetchOrganizationDisclaimer(input.organisationId)
   const branding = await resolveEmailBranding({
@@ -405,6 +427,7 @@ export const sendInvitationEmail = async (input: {
     role: input.role,
     expiresAt: expiresLabel,
     acceptUrl,
+    locale,
     branding
   })
   const finalContent = {
@@ -448,6 +471,7 @@ export const sendInviteAcceptedNotification = async (input: {
   role: string
 }) => {
   const senderContext = await getEffectiveEmailSenderContext(input.organisationId)
+  const locale = normalizeEmailLocale(senderContext.emailLanguage)
   const provider = senderContext.profile
   const disclaimerMarkdown = await fetchOrganizationDisclaimer(input.organisationId)
   const branding = await resolveEmailBranding({
@@ -457,17 +481,50 @@ export const sendInviteAcceptedNotification = async (input: {
     isDarkMode: senderContext.emailDarkMode
   })
 
+  const copy: Record<EmailLocale, {
+    subject: string
+    pretitle: string
+    intro: string
+    accepted: (name: string) => string
+    emailLabel: string
+    roleLabel: string
+    outro: string
+  }> = {
+    sv: {
+      subject: 'Inbjudan accepterad',
+      pretitle: 'Inbjudan accepterad',
+      intro: 'Hej!',
+      accepted: (name) => `${name} har accepterat din inbjudan.`,
+      emailLabel: 'E-post',
+      roleLabel: 'Roll',
+      outro: 'Du kan nu hantera personen under Inställningar → Medlemmar.'
+    },
+    en: {
+      subject: 'Invitation accepted',
+      pretitle: 'Invitation accepted',
+      intro: 'Hi!',
+      accepted: (name) => `${name} has accepted your invitation.`,
+      emailLabel: 'Email',
+      roleLabel: 'Role',
+      outro: 'You can now manage the person under Settings → Members.'
+    }
+  }
+
+  const copyForLocale = copy[locale]
+  const memberDisplay = input.memberName ?? input.memberEmail
   const content = renderBrandedTemplate(
     {
-      pretitle: 'Inbjudan accepterad',
+      locale,
+      subject: copyForLocale.subject,
+      pretitle: copyForLocale.pretitle,
       title: input.organisationName,
-      intro: 'Hej!',
+      intro: copyForLocale.intro,
       body: [
-        `${input.memberName ?? input.memberEmail} har accepterat din inbjudan.`,
-        `E-post: ${input.memberEmail}`,
-        `Roll: ${input.role}`
+        copyForLocale.accepted(memberDisplay),
+        `${copyForLocale.emailLabel}: ${input.memberEmail}`,
+        `${copyForLocale.roleLabel}: ${input.role}`
       ],
-      outro: ['Du kan nu hantera personen under Inställningar → Medlemmar.']
+      outro: [copyForLocale.outro]
     },
     branding
   )
@@ -515,8 +572,9 @@ export const sendDistributorInvitationEmail = async (input: {
   invitedBy?: string
 }) => {
   const acceptUrl = buildInviteAcceptUrl(input.token)
-  const expiresLabel = new Date(input.expiresAt).toLocaleString('sv-SE')
   const senderContext = await getEffectiveEmailSenderContext({ tenantId: input.tenantId })
+  const locale = normalizeEmailLocale(senderContext.emailLanguage)
+  const expiresLabel = localeToDateString(input.expiresAt, locale)
   const provider = senderContext.profile
   const branding = await resolveEmailBranding({
     tenantId: input.tenantId,
@@ -524,40 +582,79 @@ export const sendDistributorInvitationEmail = async (input: {
     isDarkMode: senderContext.emailDarkMode
   })
 
-  const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
-  const bodyLines = [
-    `Grattis! Du har blivit utsedd till ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}!`,
-    `Detta är ett stort ansvar och vi är glada att ha dig med oss.`,
-    `Inbjudan är giltig till ${expiresLabel}.`
-  ]
-  
-  if (input.willCreateOrganization && input.organizationName) {
-    bodyLines.push(
-      '',
-      `När du slutför registreringen kommer organisationen "${input.organizationName}" att skapas åt dig automatiskt.`
-    )
+  const tenantTypeLabel = input.tenantType === 'provider' ? 'provider' : 'distributor'
+  const tenantLabelByLocale: Record<EmailLocale, Record<typeof input.tenantType, string>> = {
+    sv: { provider: 'Leverantör', distributor: 'Distributör' },
+    en: { provider: 'Provider', distributor: 'Distributor' }
   }
-  
-  const content = renderBrandedTemplate(
-    {
-      pretitle: `Grattis! Du är nu ${tenantTypeLabel}! 🎉`,
-      title: input.tenantName,
+  const tenantLabel = tenantLabelByLocale[locale][input.tenantType]
+  const copy = {
+    sv: {
+      pretitle: `Grattis! Du är nu ${tenantLabel}! 🎉`,
       intro: 'Hej!',
-      body: bodyLines,
-      action: { label: 'Acceptera inbjudan', url: acceptUrl },
+      baseBody: [
+        `Grattis! Du har blivit utsedd till ${tenantLabel.toLowerCase()} för ${input.tenantName}!`,
+        'Detta är ett stort ansvar och vi är glada att ha dig med oss.',
+        `Inbjudan är giltig till ${expiresLabel}.`
+      ],
+      autoCreate: input.willCreateOrganization && input.organizationName
+        ? [
+            '',
+            `När du slutför registreringen kommer organisationen "${input.organizationName}" att skapas åt dig automatiskt.`
+          ]
+        : [],
       outro: [
         'Med denna roll får du hantera och administrera alla organisationer under din distributör.',
         'Om du inte förväntade dig mejlet kan du ignorera det.'
-      ]
+      ],
+      action: 'Acceptera inbjudan',
+      subject: `Grattis! Du är nu ${tenantLabel} för ${input.tenantName}!`
+    },
+    en: {
+      pretitle: `Congratulations! You are now ${tenantLabel}! 🎉`,
+      intro: 'Hi!',
+      baseBody: [
+        `Congratulations! You have been selected as ${tenantLabel.toLowerCase()} for ${input.tenantName}!`,
+        'This is a big responsibility and we are happy to have you with us.',
+        `The invitation is valid until ${expiresLabel}.`
+      ],
+      autoCreate: input.willCreateOrganization && input.organizationName
+        ? [
+            '',
+            `When you complete the registration, the organization "${input.organizationName}" will be created for you automatically.`
+          ]
+        : [],
+      outro: [
+        `With this role you can manage and administer all organizations under your ${tenantLabel.toLowerCase()}.`,
+        'If you were not expecting this email, you can ignore it.'
+      ],
+      action: 'Accept invitation',
+      subject: `Congratulations! You are now ${tenantLabel} for ${input.tenantName}!`
+    }
+  } as const
+
+  const copyForLocale = copy[locale]
+  const bodyLines = [
+    ...copyForLocale.baseBody,
+    ...copyForLocale.autoCreate
+  ]
+  
+  const content = renderBrandedTemplate(
+    {
+      locale,
+      subject: copyForLocale.subject,
+      pretitle: copyForLocale.pretitle,
+      title: input.tenantName,
+      intro: copyForLocale.intro,
+      body: bodyLines,
+      action: { label: copyForLocale.action, url: acceptUrl },
+      outro: copyForLocale.outro
     },
     branding
   )
   const finalContent = {
     ...content,
-    subject: formatSubject(
-      `Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}!`,
-      senderContext.subjectPrefix
-    )
+    subject: formatSubject(copyForLocale.subject, senderContext.subjectPrefix)
   }
 
   if (provider) {
@@ -597,6 +694,7 @@ export const sendDistributorConfirmationEmail = async (input: {
 }) => {
   const portalUrl = buildPortalUrl('/admin/tenants')
   const senderContext = await getEffectiveEmailSenderContext({ tenantId: input.tenantId })
+  const locale = normalizeEmailLocale(senderContext.emailLanguage)
   const provider = senderContext.profile
   const branding = await resolveEmailBranding({
     tenantId: input.tenantId,
@@ -604,31 +702,61 @@ export const sendDistributorConfirmationEmail = async (input: {
     isDarkMode: senderContext.emailDarkMode
   })
 
-  const tenantTypeLabel = input.tenantType === 'provider' ? 'Leverantör' : 'Distributör'
-  const content = renderBrandedTemplate(
-    {
-      pretitle: `Grattis! Du är nu ${tenantTypeLabel}!`,
-      title: input.tenantName,
+  const tenantLabelByLocale: Record<EmailLocale, Record<typeof input.tenantType, string>> = {
+    sv: { provider: 'Leverantör', distributor: 'Distributör' },
+    en: { provider: 'Provider', distributor: 'Distributor' }
+  }
+  const tenantLabel = tenantLabelByLocale[locale][input.tenantType]
+  const copy = {
+    sv: {
+      subject: `Grattis! Du är nu ${tenantLabel} för ${input.tenantName}!`,
+      pretitle: `Grattis! Du är nu ${tenantLabel}!`,
       intro: 'Hej!',
       body: [
-        `Grattis! Du har nu fått rollen som ${tenantTypeLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
-        `Detta är ett stort ansvar och vi är glada att ha dig med oss.`,
-        `Med denna roll får du hantera och administrera alla organisationer under din ${tenantTypeLabel.toLowerCase()}.`
+        `Grattis! Du har nu fått rollen som ${tenantLabel.toLowerCase()} för ${input.tenantName}! 🎊`,
+        'Detta är ett stort ansvar och vi är glada att ha dig med oss.',
+        `Med denna roll får du hantera och administrera alla organisationer under din ${tenantLabel.toLowerCase()}.`
       ],
-      action: { label: 'Öppna portalen', url: portalUrl },
+      action: 'Öppna portalen',
       outro: [
         'Du kan nu logga in och börja hantera din distributör.',
         'Om du inte förväntade dig mejlet kan du ignorera det.'
       ]
     },
+    en: {
+      subject: `Congratulations! You are now ${tenantLabel} for ${input.tenantName}!`,
+      pretitle: `Congratulations! You are now ${tenantLabel}!`,
+      intro: 'Hi!',
+      body: [
+        `Congratulations! You now have the role of ${tenantLabel.toLowerCase()} for ${input.tenantName}! 🎊`,
+        'This is a big responsibility and we are happy to have you with us.',
+        `With this role you can manage and administer all organizations under your ${tenantLabel.toLowerCase()}.`
+      ],
+      action: 'Open the portal',
+      outro: [
+        'You can now sign in and start managing your distributor.',
+        'If you were not expecting this email, you can ignore it.'
+      ]
+    }
+  } as const
+  const copyForLocale = copy[locale]
+
+  const content = renderBrandedTemplate(
+    {
+      locale,
+      subject: copyForLocale.subject,
+      pretitle: copyForLocale.pretitle,
+      title: input.tenantName,
+      intro: copyForLocale.intro,
+      body: copyForLocale.body,
+      action: { label: copyForLocale.action, url: portalUrl },
+      outro: copyForLocale.outro
+    },
     branding
   )
   const finalContent = {
     ...content,
-    subject: formatSubject(
-      `Grattis! Du är nu ${tenantTypeLabel} för ${input.tenantName}!`,
-      senderContext.subjectPrefix
-    )
+    subject: formatSubject(copyForLocale.subject, senderContext.subjectPrefix)
   }
 
   if (provider) {

@@ -1,0 +1,1203 @@
+<template>
+  <section class="mod-windows-dns-panel space-y-4">
+    <header class="flex flex-col gap-3">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ $t('windowsDns.records.label') }}
+          </p>
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            {{ $t('windowsDns.records.title', { zoneName }) }}
+          </h3>
+        </div>
+        <div class="relative w-full max-w-xs">
+          <Icon icon="mdi:magnify" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            v-model="searchTerm"
+            type="search"
+            :placeholder="$t('windowsDns.records.searchPlaceholder')"
+            class="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
+          />
+        </div>
+      </div>
+
+      <!-- Type filter pills -->
+      <div v-if="availableTypes.length > 1" class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ $t('windowsDns.records.filterByType') }}</span>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition"
+          :class="selectedType === null
+            ? 'bg-brand text-white shadow-sm'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'"
+          @click="selectedType = null"
+        >
+          {{ $t('windowsDns.records.allTypes') }}
+          <span class="ml-0.5 rounded-full bg-white/20 px-1.5 text-[10px]">{{ props.records.length }}</span>
+        </button>
+        <button
+          v-for="typeInfo in availableTypes"
+          :key="typeInfo.type"
+          type="button"
+          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition"
+          :class="selectedType === typeInfo.type
+            ? 'bg-brand text-white shadow-sm'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'"
+          @click="selectedType = selectedType === typeInfo.type ? null : typeInfo.type"
+        >
+          {{ typeInfo.type }}
+          <span 
+            class="ml-0.5 rounded-full px-1.5 text-[10px]"
+            :class="selectedType === typeInfo.type ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-700'"
+          >{{ typeInfo.count }}</span>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          {{ $t('windowsDns.records.showing', { shown: pagedRecords.length, total: filteredRecords.length }) }}
+        </p>
+        <div v-if="canEdit" class="flex justify-end">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60"
+            @click="showCreateForm = !showCreateForm"
+          >
+            <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
+            {{ showCreateForm ? $t('windowsDns.records.cancel') : $t('windowsDns.records.addRecord') }}
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Create form -->
+    <form
+      v-if="canEdit && showCreateForm"
+      class="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+      @submit.prevent="createRecord"
+    >
+      <!-- Preview -->
+      <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800/60">
+        <p class="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.preview') }}</p>
+        <div class="flex items-center gap-3 font-mono text-xs">
+          <span class="inline-flex items-center rounded bg-slate-200 px-2 py-0.5 font-medium dark:bg-slate-700">
+            {{ recordPreview.type }}
+          </span>
+          <span class="text-slate-900 dark:text-slate-50">{{ recordPreview.name }}</span>
+          <span v-if="recordPreview.content" class="text-slate-500">→</span>
+          <span v-if="recordPreview.content" class="break-all text-slate-700 dark:text-slate-300" v-html="recordPreview.content"></span>
+          <span class="ml-auto text-slate-500 dark:text-slate-400">TTL: {{ recordPreview.ttl }}</span>
+        </div>
+      </div>
+
+      <div class="grid gap-3 md:grid-cols-4">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.type') }}</label>
+          <select v-model="newRecord.type" class="input" required @change="onTypeChange('create')">
+            <option v-for="t in recordTypes" :key="t" :value="t">{{ t }}</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1 md:col-span-2">
+          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.name') }}</label>
+          <input v-model="newRecord.name" class="input" required placeholder="@" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.ttl') }}</label>
+          <select v-model.number="newRecord.ttl" class="input">
+            <option v-for="opt in ttlOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Type-specific fields for CREATE -->
+      <template v-if="isSimpleType(newRecord.type)">
+        <div class="grid gap-3 md:grid-cols-4">
+          <div class="flex flex-col gap-1 md:col-span-4">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ getContentLabel(newRecord.type) }}</label>
+            <input v-model="newRecord.content" class="input" required :placeholder="getContentPlaceholder(newRecord.type)" />
+          </div>
+        </div>
+      </template>
+
+      <!-- MX fields -->
+      <template v-else-if="newRecord.type === 'MX'">
+        <div class="grid gap-3 md:grid-cols-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.priority') }}</label>
+            <input v-model.number="newRecord.mxPriority" type="number" min="0" max="65535" class="input" required placeholder="10" />
+          </div>
+          <div class="flex flex-col gap-1 md:col-span-3">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.mailServer') }}</label>
+            <input v-model="newRecord.mxExchange" class="input" required placeholder="mail.example.com" />
+          </div>
+        </div>
+      </template>
+
+      <!-- SRV fields -->
+      <template v-else-if="newRecord.type === 'SRV'">
+        <div class="grid gap-3 md:grid-cols-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.priority') }}</label>
+            <input v-model.number="newRecord.srvPriority" type="number" min="0" max="65535" class="input" required placeholder="10" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.weight') }}</label>
+            <input v-model.number="newRecord.srvWeight" type="number" min="0" max="65535" class="input" required placeholder="5" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.port') }}</label>
+            <input v-model.number="newRecord.srvPort" type="number" min="0" max="65535" class="input" required placeholder="443" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.target') }}</label>
+            <input v-model="newRecord.srvTarget" class="input" required placeholder="server.example.com" />
+          </div>
+        </div>
+      </template>
+
+      <!-- CAA fields -->
+      <template v-else-if="newRecord.type === 'CAA'">
+        <div class="grid gap-3 md:grid-cols-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.flags') }}</label>
+            <input v-model.number="newRecord.caaFlags" type="number" min="0" max="255" class="input" required placeholder="0" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.tag') }}</label>
+            <select v-model="newRecord.caaTag" class="input" required>
+              <option value="issue">issue</option>
+              <option value="issuewild">issuewild</option>
+              <option value="iodef">iodef</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1 md:col-span-2">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.value') }}</label>
+            <input v-model="newRecord.caaValue" class="input" required placeholder="letsencrypt.org" />
+          </div>
+        </div>
+      </template>
+
+      <!-- TLSA fields -->
+      <template v-else-if="newRecord.type === 'TLSA'">
+        <div class="grid gap-3 md:grid-cols-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.usage') }}</label>
+            <select v-model.number="newRecord.tlsaUsage" class="input" required>
+              <option :value="0">0 - PKIX-TA</option>
+              <option :value="1">1 - PKIX-EE</option>
+              <option :value="2">2 - DANE-TA</option>
+              <option :value="3">3 - DANE-EE</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.selector') }}</label>
+            <select v-model.number="newRecord.tlsaSelector" class="input" required>
+              <option :value="0">0 - Full cert</option>
+              <option :value="1">1 - SubjectPublicKeyInfo</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.matchingType') }}</label>
+            <select v-model.number="newRecord.tlsaMatchingType" class="input" required>
+              <option :value="0">0 - Full</option>
+              <option :value="1">1 - SHA-256</option>
+              <option :value="2">2 - SHA-512</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.certificateData') }}</label>
+            <input v-model="newRecord.tlsaCertData" class="input font-mono text-xs" required placeholder="abc123..." />
+          </div>
+        </div>
+      </template>
+
+      <div class="grid gap-3 md:grid-cols-4">
+        <div class="flex flex-col gap-1 md:col-span-4">
+          <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.comment') }}</label>
+          <textarea
+            v-model="newRecord.comment"
+            rows="2"
+            class="input min-h-[64px]"
+            :placeholder="$t('windowsDns.records.fields.commentPlaceholder')"
+          />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button
+          type="button"
+          class="btn-secondary"
+          @click="showCreateForm = false"
+        >
+          {{ $t('windowsDns.records.cancel') }}
+        </button>
+        <button
+          type="submit"
+          :disabled="creating"
+          class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:opacity-60"
+        >
+          <Icon icon="mdi:plus-circle-outline" class="h-4 w-4" />
+          {{ $t('windowsDns.records.addRecord') }}
+        </button>
+      </div>
+      <p v-if="createError" class="text-xs text-red-600 dark:text-red-400">{{ createError }}</p>
+    </form>
+
+    <!-- Records table -->
+    <div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm dark:border-slate-700">
+      <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/40">
+          <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
+            <th class="px-4 py-2">{{ $t('windowsDns.records.table.type') }}</th>
+            <th class="px-4 py-2">{{ $t('windowsDns.records.table.name') }}</th>
+            <th class="px-4 py-2">{{ $t('windowsDns.records.table.content') }}</th>
+            <th class="px-4 py-2">{{ $t('windowsDns.records.table.ttl') }}</th>
+            <th v-if="canEdit" class="px-4 py-2 text-right">{{ $t('windowsDns.records.table.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
+          <tr v-if="pagedRecords.length === 0">
+            <td :colspan="canEdit ? 5 : 4" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              {{ searchTerm ? $t('windowsDns.records.noRecordsFoundWithSearch', { searchTerm }) : $t('windowsDns.records.noRecordsFound') }}
+            </td>
+          </tr>
+          <template v-for="record in pagedRecords" :key="record.id || record.name + record.type">
+            <tr class="text-sm text-slate-700 dark:text-slate-200">
+              <td class="px-4 py-3 align-top">
+                <span class="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-xs font-medium dark:bg-slate-800">
+                  {{ record.type }}
+                </span>
+              </td>
+              <td class="px-4 py-3 align-top font-mono text-sm">
+                <div class="flex items-center gap-1 flex-wrap">
+                  <span>{{ record.name || '@' }}</span>
+                  <!-- Redirect badge for managed records -->
+                  <span
+                    v-if="isRedirectManagedRecord(record)"
+                    class="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                    :title="$t('windowsDns.records.redirectManaged.tooltip')"
+                  >
+                    <Icon icon="mdi:arrow-right" class="h-3 w-3" />
+                    {{ $t('windowsDns.records.redirectManaged.badge') }}
+                  </span>
+                  <!-- Comment badge (only show if not redirect-managed) -->
+                  <span
+                    v-else-if="record.comment"
+                    class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-200"
+                    :title="record.comment"
+                  >
+                    <Icon icon="mdi:comment-text-outline" class="h-3 w-3 text-brand" />
+                  </span>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top break-all">
+                <!-- Mask content for redirect-managed records -->
+                <span v-if="isRedirectManagedRecord(record)" class="text-slate-500 dark:text-slate-400 italic">
+                  {{ $t('windowsDns.records.redirectManaged.content') }}
+                </span>
+                <span v-else v-html="formatRecordContent(record)"></span>
+              </td>
+              <td class="px-4 py-3 align-top">{{ displayTtl(record.ttl) }}</td>
+              <td v-if="canEdit" class="px-4 py-3 text-right">
+                <div class="flex justify-end gap-2">
+                  <!-- Redirect-managed: show link to redirects instead of edit/delete -->
+                  <template v-if="isRedirectManagedRecord(record)">
+                    <NuxtLink
+                      :to="`/dns/redirects/${props.zoneId}`"
+                      class="inline-flex h-8 items-center gap-1 rounded-lg border border-purple-200 px-2 text-sm text-purple-600 transition hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                      :title="$t('windowsDns.records.redirectManaged.openRedirects')"
+                    >
+                      <Icon icon="mdi:arrow-right" class="h-4 w-4" />
+                      <span class="hidden sm:inline">{{ $t('windowsDns.records.redirectManaged.openRedirects') }}</span>
+                    </NuxtLink>
+                  </template>
+                  <!-- Normal records: edit/delete buttons -->
+                  <template v-else>
+                    <button
+                      class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+                      type="button"
+                      :title="$t('windowsDns.records.edit')"
+                      @click="startEdit(record)"
+                    >
+                      <Icon icon="mdi:pencil" class="h-4 w-4" />
+                    </button>
+                    <button
+                      class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:border-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500/60 dark:border-red-700 dark:text-red-400"
+                      type="button"
+                      :title="$t('windowsDns.records.delete')"
+                      @click="deleteRecord(record)"
+                    >
+                      <Icon icon="mdi:trash-can-outline" class="h-4 w-4" />
+                    </button>
+                  </template>
+                </div>
+              </td>
+            </tr>
+            <!-- Edit row -->
+            <tr v-if="editingId === (record.id || record.name + record.type)" class="bg-slate-50/70 dark:bg-slate-800/50">
+              <td :colspan="canEdit ? 5 : 4" class="px-4 py-3">
+                <form class="grid gap-3" @submit.prevent="updateRecord">
+                  <!-- Preview -->
+                  <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800/60">
+                    <p class="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.preview') }}</p>
+                    <div class="flex items-center gap-3 font-mono text-xs">
+                      <span class="inline-flex items-center rounded bg-slate-200 px-2 py-0.5 font-medium dark:bg-slate-700">
+                        {{ editRecordPreview.type }}
+                      </span>
+                      <span class="text-slate-900 dark:text-slate-50">{{ editRecordPreview.name }}</span>
+                      <span v-if="editRecordPreview.content" class="text-slate-500">→</span>
+                      <span v-if="editRecordPreview.content" class="break-all text-slate-700 dark:text-slate-300" v-html="editRecordPreview.content"></span>
+                      <span class="ml-auto text-slate-500 dark:text-slate-400">TTL: {{ editRecordPreview.ttl }}</span>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 md:grid-cols-4">
+                    <div class="flex flex-col gap-1">
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.type') }}</label>
+                      <select v-model="editForm.type" class="input" required @change="onTypeChange('edit')">
+                        <option v-for="t in recordTypes" :key="t" :value="t">{{ t }}</option>
+                      </select>
+                    </div>
+                    <div class="flex flex-col gap-1 md:col-span-2">
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.name') }}</label>
+                      <input v-model="editForm.name" class="input" required />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.ttl') }}</label>
+                      <select v-model.number="editForm.ttl" class="input">
+                        <option v-for="opt in ttlOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Type-specific fields for EDIT -->
+                  <template v-if="isSimpleType(editForm.type)">
+                    <div class="grid gap-3 md:grid-cols-4">
+                      <div class="flex flex-col gap-1 md:col-span-4">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ getContentLabel(editForm.type) }}</label>
+                        <input v-model="editForm.content" class="input" required :placeholder="getContentPlaceholder(editForm.type)" />
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- MX fields -->
+                  <template v-else-if="editForm.type === 'MX'">
+                    <div class="grid gap-3 md:grid-cols-4">
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.priority') }}</label>
+                        <input v-model.number="editForm.mxPriority" type="number" min="0" max="65535" class="input" required placeholder="10" />
+                      </div>
+                      <div class="flex flex-col gap-1 md:col-span-3">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.mailServer') }}</label>
+                        <input v-model="editForm.mxExchange" class="input" required placeholder="mail.example.com" />
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- SRV fields -->
+                  <template v-else-if="editForm.type === 'SRV'">
+                    <div class="grid gap-3 md:grid-cols-4">
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.priority') }}</label>
+                        <input v-model.number="editForm.srvPriority" type="number" min="0" max="65535" class="input" required placeholder="10" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.weight') }}</label>
+                        <input v-model.number="editForm.srvWeight" type="number" min="0" max="65535" class="input" required placeholder="5" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.port') }}</label>
+                        <input v-model.number="editForm.srvPort" type="number" min="0" max="65535" class="input" required placeholder="443" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.target') }}</label>
+                        <input v-model="editForm.srvTarget" class="input" required placeholder="server.example.com" />
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- CAA fields -->
+                  <template v-else-if="editForm.type === 'CAA'">
+                    <div class="grid gap-3 md:grid-cols-4">
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.flags') }}</label>
+                        <input v-model.number="editForm.caaFlags" type="number" min="0" max="255" class="input" required placeholder="0" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.tag') }}</label>
+                        <select v-model="editForm.caaTag" class="input" required>
+                          <option value="issue">issue</option>
+                          <option value="issuewild">issuewild</option>
+                          <option value="iodef">iodef</option>
+                        </select>
+                      </div>
+                      <div class="flex flex-col gap-1 md:col-span-2">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.value') }}</label>
+                        <input v-model="editForm.caaValue" class="input" required placeholder="letsencrypt.org" />
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- TLSA fields -->
+                  <template v-else-if="editForm.type === 'TLSA'">
+                    <div class="grid gap-3 md:grid-cols-4">
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.usage') }}</label>
+                        <select v-model.number="editForm.tlsaUsage" class="input" required>
+                          <option :value="0">0 - PKIX-TA</option>
+                          <option :value="1">1 - PKIX-EE</option>
+                          <option :value="2">2 - DANE-TA</option>
+                          <option :value="3">3 - DANE-EE</option>
+                        </select>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.selector') }}</label>
+                        <select v-model.number="editForm.tlsaSelector" class="input" required>
+                          <option :value="0">0 - Full cert</option>
+                          <option :value="1">1 - SubjectPublicKeyInfo</option>
+                        </select>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.matchingType') }}</label>
+                        <select v-model.number="editForm.tlsaMatchingType" class="input" required>
+                          <option :value="0">0 - Full</option>
+                          <option :value="1">1 - SHA-256</option>
+                          <option :value="2">2 - SHA-512</option>
+                        </select>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.certificateData') }}</label>
+                        <input v-model="editForm.tlsaCertData" class="input font-mono text-xs" required placeholder="abc123..." />
+                      </div>
+                    </div>
+                  </template>
+
+                  <div class="grid gap-3 md:grid-cols-4">
+                    <div class="flex flex-col gap-1 md:col-span-4">
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">{{ $t('windowsDns.records.fields.comment') }}</label>
+                      <textarea
+                        v-model="editForm.comment"
+                        rows="2"
+                        class="input min-h-[64px]"
+                        :placeholder="$t('windowsDns.records.fields.commentPlaceholder')"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex justify-end gap-2">
+                    <button type="button" class="btn-secondary" @click="cancelEdit">
+                      {{ $t('windowsDns.records.cancel') }}
+                    </button>
+                    <button
+                      type="submit"
+                      :disabled="updating"
+                      class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 disabled:opacity-60"
+                    >
+                      <Icon icon="mdi:content-save-outline" class="h-4 w-4" />
+                      {{ $t('windowsDns.records.save') }}
+                    </button>
+                  </div>
+                  <p v-if="updateError" class="text-xs text-red-600 dark:text-red-400">{{ updateError }}</p>
+                </form>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div
+      v-if="recordPageCount > 1"
+      class="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+    >
+      <span>
+        {{ $t('windowsDns.records.pagination', { page: currentRecordPage, pages: recordPageCount }) }}
+      </span>
+      <div class="flex items-center gap-2">
+        <button
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-100"
+          :disabled="currentRecordPage === 1"
+          @click="currentRecordPage = Math.max(1, currentRecordPage - 1)"
+        >
+          <Icon icon="mdi:chevron-left" class="h-4 w-4" />
+        </button>
+        <button
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-100"
+          :disabled="currentRecordPage === recordPageCount"
+          @click="currentRecordPage = Math.min(recordPageCount, currentRecordPage + 1)"
+        >
+          <Icon icon="mdi:chevron-right" class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { Icon } from '@iconify/vue'
+import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
+
+const props = defineProps<{
+  zoneId: string
+  zoneName?: string
+  records: any[]
+  canEdit: boolean
+}>()
+
+const emit = defineEmits<{ refresh: [] }>()
+
+const searchTerm = ref('')
+const selectedType = ref<string | null>(null)
+const recordPageSize = 50
+const currentRecordPage = ref(1)
+
+// Get unique record types with counts, sorted by count (descending)
+const availableTypes = computed(() => {
+  const typeCounts = new Map<string, number>()
+  for (const r of props.records) {
+    const t = r.type?.toUpperCase() ?? 'UNKNOWN'
+    typeCounts.set(t, (typeCounts.get(t) ?? 0) + 1)
+  }
+  return Array.from(typeCounts.entries())
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count)
+})
+
+const filteredRecords = computed(() => {
+  let records = props.records
+
+  // Filter by type first
+  if (selectedType.value) {
+    records = records.filter((r) => r.type?.toUpperCase() === selectedType.value)
+  }
+
+  // Then filter by search term
+  const term = searchTerm.value.trim().toLowerCase()
+  if (!term) return records
+  return records.filter((r) => {
+    const hay = `${r.type ?? ''} ${r.name ?? ''} ${r.content ?? ''} ${r.value ?? ''} ${r.data ?? ''} ${r.comment ?? ''}`.toLowerCase()
+    return hay.includes(term)
+  })
+})
+
+const recordPageCount = computed(() =>
+  Math.max(1, Math.ceil(filteredRecords.value.length / recordPageSize))
+)
+
+const pagedRecords = computed(() => {
+  const start = (currentRecordPage.value - 1) * recordPageSize
+  return filteredRecords.value.slice(start, start + recordPageSize)
+})
+
+watch(
+  [() => searchTerm.value, () => selectedType.value],
+  () => {
+    currentRecordPage.value = 1
+  }
+)
+
+const recordTypes = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'SRV', 'NS', 'PTR', 'CAA', 'TLSA']
+
+const ttlOptions = [
+  { value: 300, label: '5 min' },
+  { value: 600, label: '10 min' },
+  { value: 900, label: '15 min' },
+  { value: 1800, label: '30 min' },
+  { value: 3600, label: '1 hour' },
+  { value: 7200, label: '2 hours' },
+  { value: 14400, label: '4 hours' },
+  { value: 28800, label: '8 hours' },
+  { value: 86400, label: '1 day' }
+]
+
+const displayTtl = (ttl?: number | null) => {
+  if (ttl === null || ttl === undefined) return '-'
+  if (ttl < 60) return `${ttl}s`
+  if (ttl < 3600) return `${Math.round(ttl / 60)}m`
+  if (ttl < 86400) return `${Math.round(ttl / 3600)}h`
+  return `${Math.round(ttl / 86400)}d`
+}
+
+// Redirect-managed record detection
+// Records managed by redirects have a comment starting with "[redirects]"
+const REDIRECT_MANAGED_PREFIX = '[redirects]'
+
+const isRedirectManagedRecord = (record: any): boolean => {
+  const comment = record?.comment?.trim() || ''
+  return comment.toLowerCase().startsWith(REDIRECT_MANAGED_PREFIX.toLowerCase())
+}
+
+// Helper functions for type-specific handling
+const isSimpleType = (type: string) => ['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'PTR'].includes(type)
+
+const getContentLabel = (type: string) => {
+  const { $i18n } = useNuxtApp()
+  const key = `windowsDns.records.contentLabels.${type.toLowerCase()}`
+  return $i18n.te(key) ? $i18n.t(key) : $i18n.t('windowsDns.records.fields.content')
+}
+
+const getContentPlaceholder = (type: string) => {
+  const { $i18n } = useNuxtApp()
+  const key = `windowsDns.records.contentPlaceholders.${type.toLowerCase()}`
+  return $i18n.te(key) ? $i18n.t(key) : ''
+}
+
+// Format record content for display
+const formatRecordContent = (record: any) => {
+  const content = record.content || record.value || record.data || ''
+  const type = record.type?.toUpperCase()
+
+  switch (type) {
+    case 'MX': {
+      // Handle both formats:
+      // 1. New format: priority as separate field, content = "mail.example.com"
+      // 2. Old format: priority embedded in content = "10 mail.example.com"
+      const parts = content.split(/\s+/)
+      const firstPartIsNumber = parts.length > 0 && /^\d+$/.test(parts[0])
+
+      if (record.priority !== undefined && record.priority !== null && !firstPartIsNumber) {
+        // New format: priority is separate, content is just the exchange
+        return `<span class="text-slate-500">${record.priority}</span> ${content}`
+      } else if (firstPartIsNumber && parts.length >= 2) {
+        // Old format: priority embedded in content
+        return `<span class="text-slate-500">${parts[0]}</span> ${parts.slice(1).join(' ')}`
+      }
+      // Fallback: just show content with default priority indication
+      if (record.priority !== undefined && record.priority !== null) {
+        return `<span class="text-slate-500">${record.priority}</span> ${content}`
+      }
+      return content
+    }
+    case 'SRV': {
+      const parts = content.split(/\s+/)
+      if (parts.length >= 4) {
+        return `<span class="text-slate-500">${parts[0]} ${parts[1]} ${parts[2]}</span> ${parts.slice(3).join(' ')}`
+      }
+      return content
+    }
+    case 'CAA': {
+      const parts = content.split(/\s+/)
+      if (parts.length >= 3) {
+        return `<span class="text-slate-500">${parts[0]}</span> <span class="font-medium">${parts[1]}</span> ${parts.slice(2).join(' ')}`
+      }
+      return content
+    }
+    case 'TLSA': {
+      const parts = content.split(/\s+/)
+      if (parts.length >= 4) {
+        const certData = parts.slice(3).join('')
+        const truncated = certData.length > 20 ? certData.slice(0, 20) + '...' : certData
+        return `<span class="text-slate-500">${parts[0]}/${parts[1]}/${parts[2]}</span> <span class="font-mono text-xs">${truncated}</span>`
+      }
+      return content
+    }
+    default:
+      return content
+  }
+}
+
+// Build content string from type-specific fields
+// Note: For MX, priority is sent separately - content should only contain the exchange
+const buildContent = (form: any) => {
+  switch (form.type) {
+    case 'MX':
+      // Only return the exchange - priority is sent as a separate field
+      return form.mxExchange ?? ''
+    case 'SRV':
+      return `${form.srvPriority ?? 0} ${form.srvWeight ?? 0} ${form.srvPort ?? 0} ${form.srvTarget ?? ''}`
+    case 'CAA':
+      return `${form.caaFlags ?? 0} ${form.caaTag ?? 'issue'} ${form.caaValue ?? ''}`
+    case 'TLSA':
+      return `${form.tlsaUsage ?? 3} ${form.tlsaSelector ?? 1} ${form.tlsaMatchingType ?? 1} ${form.tlsaCertData ?? ''}`
+    default:
+      return form.content ?? ''
+  }
+}
+
+// Parse content string into type-specific fields
+const parseContent = (type: string, content: string, record?: any) => {
+  const parts = content.split(/\s+/)
+  switch (type) {
+    case 'MX': {
+      // Priority may be stored separately (record.priority) or embedded in content (legacy)
+      // Check if first part looks like a priority number
+      const firstPartIsNumber = parts.length > 0 && /^\d+$/.test(parts[0])
+      if (record?.priority !== undefined && record.priority !== null) {
+        // Priority is stored separately - content is just the exchange
+        return {
+          mxPriority: Number(record.priority) || 10,
+          mxExchange: content.trim()
+        }
+      } else if (firstPartIsNumber && parts.length > 1) {
+        // Legacy: priority embedded in content (e.g., "10 mail.example.com")
+        return {
+          mxPriority: parseInt(parts[0], 10) || 10,
+          mxExchange: parts.slice(1).join(' ') || ''
+        }
+      } else {
+        // Content is just the exchange, use default priority
+        return {
+          mxPriority: 10,
+          mxExchange: content.trim()
+        }
+      }
+    }
+    case 'SRV':
+      return {
+        srvPriority: parseInt(parts[0], 10) || 0,
+        srvWeight: parseInt(parts[1], 10) || 0,
+        srvPort: parseInt(parts[2], 10) || 0,
+        srvTarget: parts.slice(3).join(' ') || ''
+      }
+    case 'CAA':
+      return {
+        caaFlags: parseInt(parts[0], 10) || 0,
+        caaTag: parts[1] || 'issue',
+        caaValue: parts.slice(2).join(' ').replace(/^"|"$/g, '') || ''
+      }
+    case 'TLSA':
+      return {
+        tlsaUsage: parseInt(parts[0], 10) || 3,
+        tlsaSelector: parseInt(parts[1], 10) || 1,
+        tlsaMatchingType: parseInt(parts[2], 10) || 1,
+        tlsaCertData: parts.slice(3).join('') || ''
+      }
+    default:
+      return {}
+  }
+}
+
+// Preview for create form
+const recordPreview = computed(() => {
+  const name = newRecord.name || '@'
+  const fullName = props.zoneName && name !== '@' && !name.endsWith(props.zoneName)
+    ? `${name}.${props.zoneName}`
+    : name === '@' ? props.zoneName || '@' : name
+  
+  let content = ''
+  if (isSimpleType(newRecord.type)) {
+    content = newRecord.content || ''
+  } else {
+    content = buildContent(newRecord) || ''
+  }
+  
+  // Format content for display (similar to formatRecordContent but for preview)
+  // Check if content is empty or just whitespace
+  const hasContent = content.trim().length > 0
+  // For MX, pass priority so it displays correctly in preview
+  const previewRecord = newRecord.type === 'MX'
+    ? { type: newRecord.type, content, priority: newRecord.mxPriority }
+    : { type: newRecord.type, content }
+  const formattedContent = hasContent 
+    ? formatRecordContent(previewRecord) 
+    : ''
+  
+  const ttl = displayTtl(newRecord.ttl)
+  
+  return {
+    type: newRecord.type || 'A',
+    name: fullName,
+    content: formattedContent,
+    ttl
+  }
+})
+
+// Create form
+const showCreateForm = ref(false)
+const creating = ref(false)
+const createError = ref<string | null>(null)
+const newRecord = reactive({
+  type: 'A',
+  name: '@',
+  content: '',
+  ttl: 3600,
+  comment: '',
+  // MX fields
+  mxPriority: 10,
+  mxExchange: '',
+  // SRV fields
+  srvPriority: 0,
+  srvWeight: 0,
+  srvPort: 443,
+  srvTarget: '',
+  // CAA fields
+  caaFlags: 0,
+  caaTag: 'issue',
+  caaValue: '',
+  // TLSA fields
+  tlsaUsage: 3,
+  tlsaSelector: 1,
+  tlsaMatchingType: 1,
+  tlsaCertData: ''
+})
+
+const onTypeChange = (mode: 'create' | 'edit') => {
+  // Reset type-specific fields when type changes
+  if (mode === 'create') {
+    newRecord.content = ''
+    newRecord.mxPriority = 10
+    newRecord.mxExchange = ''
+    newRecord.srvPriority = 0
+    newRecord.srvWeight = 0
+    newRecord.srvPort = 443
+    newRecord.srvTarget = ''
+    newRecord.caaFlags = 0
+    newRecord.caaTag = 'issue'
+    newRecord.caaValue = ''
+    newRecord.tlsaUsage = 3
+    newRecord.tlsaSelector = 1
+    newRecord.tlsaMatchingType = 1
+    newRecord.tlsaCertData = ''
+  } else if (mode === 'edit') {
+    // Reset content fields when type changes during edit
+    // Old content from previous type is likely not valid for the new type
+    editForm.content = ''
+    editForm.mxPriority = 10
+    editForm.mxExchange = ''
+    editForm.srvPriority = 0
+    editForm.srvWeight = 0
+    editForm.srvPort = 443
+    editForm.srvTarget = ''
+    editForm.caaFlags = 0
+    editForm.caaTag = 'issue'
+    editForm.caaValue = ''
+    editForm.tlsaUsage = 3
+    editForm.tlsaSelector = 1
+    editForm.tlsaMatchingType = 1
+    editForm.tlsaCertData = ''
+  }
+}
+
+const createRecord = async () => {
+  creating.value = true
+  createError.value = null
+  try {
+    let content = isSimpleType(newRecord.type) ? newRecord.content : buildContent(newRecord)
+
+    // Normalize TXT content: remove surrounding double quotes
+    if (newRecord.type === 'TXT') {
+      content = normalizeTxtContent(content)
+      if (!content) {
+        const { $i18n } = useNuxtApp()
+        createError.value = $i18n.t('windowsDns.records.txtEmptyError') || 'TXT-värdet får inte vara tomt.'
+        creating.value = false
+        return
+      }
+    }
+
+    const payload: any = {
+      type: newRecord.type,
+      name: newRecord.name,
+      content,
+      ttl: newRecord.ttl
+    }
+    // For MX, also send priority separately (backend may use it)
+    if (newRecord.type === 'MX') {
+      payload.priority = newRecord.mxPriority
+    }
+    // Only include comment if it has a value
+    if (newRecord.comment && newRecord.comment.trim()) {
+      payload.comment = newRecord.comment.trim()
+    }
+
+    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+      method: 'POST',
+      body: payload
+    })
+    // Reset form
+    Object.assign(newRecord, {
+      type: 'A',
+      name: '@',
+      content: '',
+      ttl: 3600,
+      comment: '',
+      mxPriority: 10,
+      mxExchange: '',
+      srvPriority: 0,
+      srvWeight: 0,
+      srvPort: 443,
+      srvTarget: '',
+      caaFlags: 0,
+      caaTag: 'issue',
+      caaValue: '',
+      tlsaUsage: 3,
+      tlsaSelector: 1,
+      tlsaMatchingType: 1,
+      tlsaCertData: ''
+    })
+    showCreateForm.value = false
+    emit('refresh')
+  } catch (err: any) {
+    const { $i18n } = useNuxtApp()
+    createError.value = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.records.createError')
+  } finally {
+    creating.value = false
+  }
+}
+
+// Preview for edit form
+const editRecordPreview = computed(() => {
+  const name = editForm.name || '@'
+  const fullName = props.zoneName && name !== '@' && !name.endsWith(props.zoneName)
+    ? `${name}.${props.zoneName}`
+    : name === '@' ? props.zoneName || '@' : name
+  
+  let content = ''
+  if (isSimpleType(editForm.type)) {
+    content = editForm.content || ''
+  } else {
+    content = buildContent(editForm) || ''
+  }
+  
+  // Format content for display (similar to formatRecordContent but for preview)
+  // Check if content is empty or just whitespace
+  const hasContent = content.trim().length > 0
+  // For MX, pass priority so it displays correctly in preview
+  const previewRecord = editForm.type === 'MX'
+    ? { type: editForm.type, content, priority: editForm.mxPriority }
+    : { type: editForm.type, content }
+  const formattedContent = hasContent 
+    ? formatRecordContent(previewRecord) 
+    : ''
+  
+  const ttl = displayTtl(editForm.ttl)
+  
+  return {
+    type: editForm.type || 'A',
+    name: fullName,
+    content: formattedContent,
+    ttl
+  }
+})
+
+// Edit form
+const editingId = ref<string | null>(null)
+const updating = ref(false)
+const updateError = ref<string | null>(null)
+const editForm = reactive({
+  type: '',
+  name: '',
+  content: '',
+  ttl: 3600,
+  comment: '',
+  originalRecord: null as any,
+  // MX fields
+  mxPriority: 10,
+  mxExchange: '',
+  // SRV fields
+  srvPriority: 0,
+  srvWeight: 0,
+  srvPort: 443,
+  srvTarget: '',
+  // CAA fields
+  caaFlags: 0,
+  caaTag: 'issue',
+  caaValue: '',
+  // TLSA fields
+  tlsaUsage: 3,
+  tlsaSelector: 1,
+  tlsaMatchingType: 1,
+  tlsaCertData: ''
+})
+
+const startEdit = (record: any) => {
+  editingId.value = record.id || record.name + record.type
+  const content = record.content || record.value || record.data || ''
+  const parsed = parseContent(record.type, content, record)
+
+  Object.assign(editForm, {
+    type: record.type,
+    name: record.name || '@',
+    content: isSimpleType(record.type) ? content : '',
+    ttl: record.ttl ?? 3600,
+    comment: record.comment ?? '',
+    originalRecord: record,
+    // Reset all type-specific fields first
+    mxPriority: 10,
+    mxExchange: '',
+    srvPriority: 0,
+    srvWeight: 0,
+    srvPort: 443,
+    srvTarget: '',
+    caaFlags: 0,
+    caaTag: 'issue',
+    caaValue: '',
+    tlsaUsage: 3,
+    tlsaSelector: 1,
+    tlsaMatchingType: 1,
+    tlsaCertData: '',
+    // Then apply parsed values
+    ...parsed
+  })
+}
+
+const cancelEdit = () => {
+  editingId.value = null
+  updateError.value = null
+}
+
+const updateRecord = async () => {
+  updating.value = true
+  updateError.value = null
+
+  try {
+    const original = editForm.originalRecord
+    const recordId = original?.id
+    if (!recordId) {
+      const { $i18n } = useNuxtApp()
+      updateError.value = $i18n.t('windowsDns.records.missingRecordId')
+      return
+    }
+
+    let newContent = isSimpleType(editForm.type) ? editForm.content : buildContent(editForm)
+    const origContent = original?.content || original?.value || original?.data || ''
+
+    // Normalize TXT content: remove surrounding double quotes
+    if (editForm.type === 'TXT') {
+      newContent = normalizeTxtContent(newContent)
+      if (!newContent) {
+        const { $i18n } = useNuxtApp()
+        updateError.value = $i18n.t('windowsDns.records.txtEmptyError') || 'TXT-värdet får inte vara tomt.'
+        updating.value = false
+        return
+      }
+    }
+
+    const typeChanged = editForm.type !== original?.type
+
+    // If type changes, treat as "replace": create new record, then delete old record
+    // Many DNS backends don't support changing the type of an existing record
+    if (typeChanged) {
+      const createPayload: any = {
+        type: editForm.type,
+        name: editForm.name,
+        content: newContent,
+        ttl: editForm.ttl
+      }
+
+      // Keep comment if provided
+      if (editForm.comment?.trim()) {
+        createPayload.comment = editForm.comment.trim()
+      }
+
+      // MX: backend may also use priority separately
+      if (editForm.type === 'MX') {
+        createPayload.priority = editForm.mxPriority
+      }
+
+      console.log('[windows-dns] Type changed, replacing record with payload:', createPayload)
+      console.log('[windows-dns] Original record:', { type: original.type, name: original.name, content: origContent })
+
+      // Validate that we have content before attempting to create
+      if (!newContent || !newContent.trim()) {
+        const { $i18n } = useNuxtApp()
+        updateError.value = $i18n.t('windowsDns.records.contentRequired') || 'Content krävs för denna record-typ.'
+        updating.value = false
+        return
+      }
+
+      // IMPORTANT: Delete old record FIRST, then create new
+      // This is required because CNAME records cannot coexist with other record types at the same name
+      // If we try to create first, it will fail with "record already exists" or similar
+
+      // 1) Delete old record first
+      try {
+        await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+          method: 'DELETE',
+          body: {
+            name: original.name,
+            type: original.type,
+            content: origContent
+          }
+        })
+        console.log('[windows-dns] Old record deleted successfully')
+      } catch (e: any) {
+        // Ignore 404 / "not found" errors - the old record may already be gone
+        const msg = e?.data?.message ?? e?.message ?? ''
+        if (!(e?.statusCode === 404 || String(msg).includes('hittades inte'))) {
+          console.error('[windows-dns] Failed to delete old record:', msg)
+          throw e
+        }
+        console.log('[windows-dns] Old record not found (already deleted)')
+      }
+
+      // 2) Create new record
+      await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+        method: 'POST',
+        body: createPayload
+      })
+      console.log('[windows-dns] New record created successfully')
+
+      cancelEdit()
+      emit('refresh')
+      return
+    }
+
+    // Default: normal PATCH for same-type edits
+    // Always include type so server can apply type-specific normalization
+    const payload: Record<string, unknown> = { type: editForm.type }
+    if (editForm.name !== (original?.name || '@')) payload.name = editForm.name
+    if (editForm.ttl !== (original?.ttl ?? 3600)) payload.ttl = editForm.ttl
+
+    // For MX: always send content (exchange only) and priority separately
+    // This handles the case where old content might have had priority embedded
+    if (editForm.type === 'MX') {
+      payload.content = newContent // Just the exchange
+      payload.priority = editForm.mxPriority
+    } else if (newContent !== origContent) {
+      payload.content = newContent
+    }
+
+    const origComment = original?.comment ?? ''
+    if (editForm.comment !== origComment) {
+      // Send null if empty (to delete), otherwise send the trimmed value
+      payload.comment = editForm.comment?.trim() || null
+    }
+
+    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records/${recordId}`, {
+      method: 'PATCH',
+      body: payload
+    })
+
+    cancelEdit()
+    emit('refresh')
+  } catch (err: any) {
+    const { $i18n } = useNuxtApp()
+    updateError.value = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.records.updateError')
+  } finally {
+    updating.value = false
+  }
+}
+
+const deleteRecord = async (record: any) => {
+  const { $i18n } = useNuxtApp()
+  const confirmMessage = $i18n.t('windowsDns.records.deleteConfirm', { type: record.type, name: record.name || '@' })
+  if (!confirm(confirmMessage)) return
+  try {
+    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+      method: 'DELETE',
+      body: {
+        name: record.name,
+        type: record.type,
+        content: record.content || record.value || record.data
+      }
+    })
+    emit('refresh')
+  } catch (err: any) {
+    console.error('Failed to delete record:', err)
+    const errorMessage = err?.data?.message ?? err?.message ?? $i18n.t('windowsDns.records.deleteError')
+    alert(errorMessage)
+  }
+}
+</script>
+
+<style scoped>
+.input {
+  @apply rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50;
+}
+.btn-secondary {
+  @apply inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100;
+}
+.mod-windows-dns-panel {
+  @apply rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80;
+}
+</style>

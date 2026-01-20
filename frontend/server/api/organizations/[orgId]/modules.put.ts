@@ -1,21 +1,24 @@
 ﻿import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
-import { eq } from 'drizzle-orm'
 import { requirePermission } from '~~/server/utils/rbac'
-import { setOrganizationModulePolicy, getEffectiveModulePolicyForOrg } from '~~/server/utils/modulePolicy'
-import { getAllModules } from '~/lib/modules'
-import { getDb } from '~~/server/utils/db'
-import { organizations } from '~~/server/database/schema'
+import {
+  getOrganizationModulePolicy,
+  getOrganizationModulesStatus,
+  setOrganizationModulePolicy
+} from '~~/server/utils/modulePolicy'
+import { getModuleById } from '~/lib/modules'
 import type { ModuleId } from '~/constants/modules'
-import type { ModulePermissionOverrides } from '~~/server/utils/modulePolicy'
+import type { ModulePolicy } from '~/types/modules'
 import { logOrganizationAction } from '~~/server/utils/audit'
 
 const bodySchema = z.object({
-  moduleId: z.string(),
+  moduleKey: z.string(),
+  mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']),
+  allowedRoles: z.array(z.string()).optional(),
+  allowedPermissions: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
   disabled: z.boolean().optional(),
-  permissionOverrides: z.record(z.boolean()).optional(),
-  allowedRoles: z.array(z.string()).nullable().optional()
+  comingSoonMessage: z.string().nullable().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -25,138 +28,115 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleId, enabled, disabled, permissionOverrides, allowedRoles } = body
+  const { moduleKey, mode, allowedRoles, allowedPermissions, enabled, disabled, comingSoonMessage } = body
 
-  // Require org:manage permission to update module policies
+  // enabled and disabled can be explicitly false, so we need to check for undefined, not falsy
+  const enabledValue = enabled !== undefined ? enabled : true
+  const disabledValue = disabled !== undefined ? disabled : false
+
   await requirePermission(event, 'org:manage', orgId)
 
-  // Validate module ID
-  const modules = getAllModules()
-  const module = modules.find((m) => m.id === moduleId)
+  const module = getModuleById(moduleKey as ModuleId)
   if (!module) {
-  if (allowedRoles !== undefined) {
-    if (!module.roles || module.roles.length === 0) {
-      if (allowedRoles && allowedRoles.length > 0) {
-        throw createError({
-          statusCode: 400,
-          message: `Module ${moduleId} does not define module-specific roles`
-        })
-      }
-    } else if (allowedRoles) {
-      const validRoleKeys = new Set(module.roles.map((role) => role.key))
-      const invalidRoles = allowedRoles.filter((role) => !validRoleKeys.has(role))
-      if (invalidRoles.length > 0) {
-        throw createError({
-          statusCode: 400,
-          message: `Invalid module roles for ${moduleId}: ${invalidRoles.join(', ')}`
-        })
-      }
-    }
+    throw createError({ statusCode: 400, message: `Invalid module key: ${moduleKey}` })
   }
 
-    throw createError({
-      statusCode: 400,
-      message: `Invalid module ID: ${moduleId}`
-    })
-  }
-
-  // Get current effective policy to ensure we're not expanding permissions
-  const currentPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)
-  
-  // Get organization and its tenant to check tenant-level policy
-  const db = getDb()
-  const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId))
-  
-  let tenantLevelEnabled = true // Default to enabled if no tenant
-  if (org?.tenantId) {
-    const { getTenantModulePolicy } = await import('~~/server/utils/modulePolicy')
-    const tenantPolicy = await getTenantModulePolicy(org.tenantId, moduleId as ModuleId)
-    tenantLevelEnabled = tenantPolicy === null ? true : tenantPolicy.enabled
-  }
-
-  // If setting enabled, ensure we're not enabling something that's disabled at tenant level
-  if (enabled !== undefined) {
-    if (enabled && !tenantLevelEnabled) {
+  const roleDefinitions = module.moduleRoles ?? module.roles ?? []
+  if (allowedRoles && allowedRoles.length > 0) {
+    const validRoleKeys = new Set(roleDefinitions.map((role) => role.key))
+    const invalid = allowedRoles.filter((role) => !validRoleKeys.has(role))
+    if (invalid.length) {
       throw createError({
-        statusCode: 403,
-        message: 'Cannot enable module that is disabled at tenant level'
+        statusCode: 400,
+        message: `Invalid module roles for ${moduleKey}: ${invalid.join(', ')}`
       })
     }
   }
 
-  // If setting permission overrides, ensure we're only restricting (not expanding)
-  if (permissionOverrides) {
-    for (const [permission, value] of Object.entries(permissionOverrides)) {
-      if (value === true && currentPolicy.permissionOverrides[permission] === false) {
-        throw createError({
-          statusCode: 403,
-          message: `Cannot enable permission ${permission} that is disabled at tenant level`
-        })
-      }
-    }
+  const currentModules = await getOrganizationModulesStatus(orgId)
+  const current = currentModules.find((m) => m.key === moduleKey)
+  if (current?.tenantPolicy?.mode === 'blocked' && mode !== 'blocked') {
+    throw createError({
+      statusCode: 403,
+      message: 'Module is blocked at tenant level'
+    })
   }
 
-  // Update policy
-  // If enabled is explicitly set, use it
-  // Otherwise, if we're only updating disabled/permissionOverrides, we need to check
-  // what the organization's own policy is (not the effective policy which includes tenant)
-  const { getOrganizationModulePolicy } = await import('~~/server/utils/modulePolicy')
-  const orgOwnPolicy = await getOrganizationModulePolicy(orgId, moduleId as ModuleId)
-  
-  // If enabled is explicitly provided, use it
-  // Otherwise, if there's an existing org policy, keep its enabled value
-  // If no org policy exists and enabled is not provided, inherit from tenant (which means enabled=true by default)
-  let finalEnabled: boolean
-  if (enabled !== undefined) {
-    finalEnabled = enabled
-  } else if (orgOwnPolicy) {
-    // Keep existing org policy enabled value
-    finalEnabled = orgOwnPolicy.enabled
-  } else {
-    // No org policy exists, so we inherit from tenant (default enabled=true)
-    finalEnabled = tenantLevelEnabled
+  const allRoleKeys = roleDefinitions.map((role) => role.key)
+  const allPermissionKeys = module.requiredPermissions ?? []
+
+  const normalizedRoles =
+    mode === 'allowlist'
+      ? Array.from(
+          new Set((allowedRoles && allowedRoles.length ? allowedRoles : allRoleKeys).filter(Boolean))
+        )
+      : []
+
+  const previousPolicy = await getOrganizationModulePolicy(orgId, moduleKey as ModuleId)
+
+  const normalizedAllowedPermissions =
+    mode === 'allowlist'
+      ? Array.from(
+          new Set(
+            (allowedPermissions && allowedPermissions.length ? allowedPermissions : allPermissionKeys).filter(Boolean)
+          )
+        )
+      : []
+
+  const policy: ModulePolicy = {
+    moduleKey,
+    mode,
+    allowedRoles: normalizedRoles,
+    allowedPermissions: normalizedAllowedPermissions,
+    enabled: enabledValue,
+    disabled: disabledValue,
+    comingSoonMessage: comingSoonMessage ?? null,
+    permissionOverrides:
+      mode === 'allowlist'
+        ? Object.fromEntries(normalizedAllowedPermissions.map((key) => [key, true]))
+        : undefined
+  } as any
+
+  await setOrganizationModulePolicy(orgId, moduleKey as ModuleId, policy)
+
+  const updatedModules = await getOrganizationModulesStatus(orgId)
+  const updated = updatedModules.find((item) => item.key === moduleKey)
+
+  if (previousPolicy?.mode !== policy.mode || previousPolicy?.allowedRoles !== policy.allowedRoles) {
+    await logOrganizationAction(
+      event,
+      policy.mode === 'blocked' ? 'MODULE_DISABLED' : 'MODULE_ENABLED',
+      {
+        moduleKey,
+        previousMode: previousPolicy?.mode ?? 'inherit',
+        newMode: policy.mode,
+        previousAllowedRoles: previousPolicy?.allowedRoles ?? [],
+        newAllowedRoles: policy.allowedRoles
+      },
+      orgId
+    )
   }
-  
-  const finalDisabled = disabled !== undefined ? disabled : (orgOwnPolicy?.disabled ?? false)
-  const finalOverrides: ModulePermissionOverrides = {
-    ...currentPolicy.permissionOverrides,
-    ...(permissionOverrides || {})
-  }
 
-  // Get old policy for audit log
-  const oldPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)
-  const oldEnabled = oldPolicy.enabled
-  const oldDisabled = oldPolicy.disabled
-
-  await setOrganizationModulePolicy(
-    orgId,
-    moduleId as ModuleId,
-    finalEnabled,
-    finalOverrides,
-    finalDisabled,
-    allowedRoles === undefined ? undefined : allowedRoles
-  )
-
-  // Log audit event
-  if (finalEnabled !== oldEnabled || finalDisabled !== oldDisabled) {
-    await logOrganizationAction(event, finalEnabled ? 'MODULE_ENABLED' : 'MODULE_DISABLED', {
-      moduleId,
-      oldEnabled,
-      newEnabled: finalEnabled,
-      oldDisabled,
-      newDisabled: finalDisabled
-    }, orgId)
-  }
-
-  // Return updated policy
-  const updatedPolicy = await getEffectiveModulePolicyForOrg(orgId, moduleId as ModuleId)
-  return {
-    organizationId: orgId,
-    moduleId,
-    enabled: updatedPolicy.enabled,
-    disabled: updatedPolicy.disabled,
-    permissionOverrides: updatedPolicy.permissionOverrides,
-    allowedRoles: updatedPolicy.allowedRoles
+  return updated ?? {
+    key: module.id,
+    name: module.name,
+    description: module.description,
+    category: module.category,
+    layerKey: module.layerKey,
+    rootRoute: module.routePath,
+    status: module.status ?? 'active',
+    scopes: module.scopes,
+    featureFlag: module.featureFlag,
+    requiredPermissions: module.permissions,
+    moduleRoles: roleDefinitions,
+    orgPolicy: policy,
+    effectivePolicy: policy,
+    tenantEnabled: true,
+    tenantDisabled: false,
+    orgEnabled: policy.enabled ?? (policy.mode !== 'blocked'),
+    orgDisabled: policy.disabled ?? false,
+    effectiveEnabled: policy.enabled ?? (policy.mode !== 'blocked'),
+    effectiveDisabled: policy.disabled ?? false
   }
 })
 

@@ -3,11 +3,40 @@ import type { RbacPermission, RbacRole, TenantRole } from '~/constants/rbac'
 import { rolePermissionMap, tenantRolePermissionMap } from '~/constants/rbac'
 import { ensureAuthState } from './session'
 import { getDb } from './db'
-import { eq, or, and } from 'drizzle-orm'
-import { organizations, tenants, distributorProviders } from '../database/schema'
+import { eq, or, and, isNull, gt } from 'drizzle-orm'
+import { organizations, tenants, distributorProviders, mspOrgDelegations } from '../database/schema'
 import { getModuleIdFromPermission } from '~/constants/modules'
 import { isModulePermissionAllowed as checkModulePolicy } from './modulePolicy'
 import { logPermissionDenied } from './audit'
+import { resolveEffectiveModulePermissions } from './modulePermissions'
+
+/**
+ * Check if user has an active ad-hoc delegation for the specified organization.
+ * This is used to grant org:read permission via delegation.
+ */
+const checkActiveDelegation = async (userId: string, orgId: string): Promise<boolean> => {
+  const db = getDb()
+  const now = new Date()
+
+  const [delegation] = await db
+    .select({ id: mspOrgDelegations.id })
+    .from(mspOrgDelegations)
+    .where(
+      and(
+        eq(mspOrgDelegations.orgId, orgId),
+        eq(mspOrgDelegations.subjectType, 'user'),
+        eq(mspOrgDelegations.subjectId, userId),
+        isNull(mspOrgDelegations.revokedAt),
+        or(
+          isNull(mspOrgDelegations.expiresAt),
+          gt(mspOrgDelegations.expiresAt, now)
+        )
+      )
+    )
+    .limit(1)
+
+  return Boolean(delegation)
+}
 
 export const hasPermission = (role: RbacRole, permission: RbacPermission) =>
   rolePermissionMap[role]?.includes(permission) ?? false
@@ -65,10 +94,11 @@ export const requirePermission = async (
     effectiveRole = directRole
   }
 
-  let canReachOrganization = Boolean(directRole)
-  if (!canReachOrganization) {
-    canReachOrganization = await canAccessOrganization(auth, orgId)
-  }
+  // Use centralized reach function (includes delegation checks)
+  const { canReachOrganization: canReachOrg } = await import('./canReachOrganization')
+  const canReachOrganization = Boolean(directRole) || await canReachOrg(auth, orgId)
+
+  const moduleId = getModuleIdFromPermission(permission)
 
   if (!hasRbacPermission) {
     if (!canReachOrganization) {
@@ -77,6 +107,15 @@ export const requirePermission = async (
         statusCode: 403,
         message: `Missing permission ${permission} for organization ${orgId}`
       })
+    }
+
+    // Delegation can grant org:read permission
+    // Check if user has an active delegation for this organization
+    if (permission === 'org:read') {
+      const hasActiveDelegation = await checkActiveDelegation(auth.user.id, orgId)
+      if (hasActiveDelegation) {
+        hasRbacPermission = true
+      }
     }
 
     if (orgRecord.tenantId) {
@@ -98,6 +137,23 @@ export const requirePermission = async (
         }
       }
     }
+
+    // Modul-permission via effective module permissions (inkl delegation)
+    if (moduleId && !hasRbacPermission) {
+      const perms = await resolveEffectiveModulePermissions({
+        orgId,
+        moduleKey: moduleId,
+        userId: auth.user.id
+      })
+
+      const hasPerm = perms.effectivePermissions.has(permission)
+      const isDelegatedOnly = !directRole && perms.delegatedGrants?.has(permission)
+
+      if (hasPerm && (directRole || isDelegatedOnly)) {
+        hasRbacPermission = true
+        effectiveRole = directRole ?? 'viewer'
+      }
+    }
   }
 
   if (!hasRbacPermission) {
@@ -109,7 +165,6 @@ export const requirePermission = async (
   }
 
   // 4. Check module policy (if permission belongs to a module)
-  const moduleId = getModuleIdFromPermission(permission)
   const skipModulePolicy =
     permission === 'org:read' ||
     permission === 'org:manage'
@@ -136,7 +191,9 @@ export const requirePermission = async (
     }
   }
 
-  return { auth, role: effectiveRole!, orgId }
+  const resolvedRole = effectiveRole ?? directRole ?? ('viewer' as RbacRole)
+
+  return { auth, role: resolvedRole, orgId }
 }
 
 export const requireSuperAdmin = async (event: H3Event) => {
@@ -288,57 +345,8 @@ export const canAccessOrganization = async (
   auth: Awaited<ReturnType<typeof ensureAuthState>>,
   organizationId: string
 ): Promise<boolean> => {
-  if (!auth) {
-    return false
-  }
-
-  // Check if user can access organization via tenant hierarchy
-  const db = getDb()
-  const [org] = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.id, organizationId))
-
-  if (!org) {
-    return false
-  }
-
-  // Check if organization is active (super admins can always access)
-  if (org.status !== 'active' && !auth.user.isSuperAdmin) {
-    return false
-  }
-
-  // Super admins can always access active organizations
-  if (auth.user.isSuperAdmin) {
-    return true
-  }
-
-  // Check if user has direct organization membership
-  if (auth.orgRoles[organizationId]) {
-    return true
-  }
-
-  if (!org.tenantId) {
-    return false
-  }
-
-  // Check if user has access to the organization's tenant
-  for (const tenantId of Object.keys(auth.tenantRoles)) {
-    const includeChildren = auth.tenantIncludeChildren?.[tenantId] ?? false
-    if (!includeChildren) {
-      // Without includeChildren, can only access direct tenant
-      if (tenantId === org.tenantId) {
-        return true
-      }
-      continue
-    }
-
-    // With includeChildren, check hierarchy
-    if (await canAccessTenant(auth, tenantId, org.tenantId)) {
-      return true
-    }
-  }
-
-  return false
+  // Use centralized reach function
+  const { canReachOrganization } = await import('./canReachOrganization')
+  return canReachOrganization(auth, organizationId)
 }
 

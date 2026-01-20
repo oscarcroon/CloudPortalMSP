@@ -1,4 +1,4 @@
-﻿import { createError, defineEventHandler, readBody } from 'h3'
+import { createError, defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
 import { getGlobalEmailProviderProfile, saveGlobalEmailProvider } from '~~/server/utils/emailProvider'
 import {
@@ -18,8 +18,10 @@ export default defineEventHandler(async (event) => {
       fromEmail: payload.fromEmail,
       fromName: payload.fromName,
       replyToEmail: payload.replyToEmail,
+      emailLanguage: payload.emailLanguage,
       subjectPrefix: payload.subjectPrefix?.trim() || null,
       supportContact: payload.supportContact?.trim() || null,
+      emailDarkMode: payload.emailDarkMode,
       isActive: payload.isActive ?? true,
       provider: buildSecretsFromPayload(payload.provider, payload.fromEmail, existing)
     })

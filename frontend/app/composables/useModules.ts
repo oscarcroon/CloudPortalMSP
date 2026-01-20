@@ -7,6 +7,9 @@ import type { ModuleDefinition } from '~/constants/modules'
  */
 export interface VisibleModule extends ModuleDefinition {
   disabled?: boolean
+  effectiveEnabled?: boolean
+  effectiveDisabled?: boolean
+  comingSoonMessage?: string | null
 }
 
 /**
@@ -17,9 +20,13 @@ export const useModules = () => {
   const currentOrgId = computed(() => auth.currentOrg.value?.id)
 
   const headers = useRequestHeaders(['cookie'])
-  
-  const { data: visibleModules, pending: loading, refresh: fetchVisibleModules } = useAsyncData<VisibleModule[]>(
-    () => `visible-modules-${currentOrgId.value || 'none'}`,
+
+  const {
+    data: visibleModules,
+    pending: loading,
+    refresh: fetchVisibleModules
+  } = useAsyncData<VisibleModule[]>(
+    () => `available-modules-${currentOrgId.value || 'none'}`,
     async () => {
       const orgId = currentOrgId.value
       if (!orgId) {
@@ -27,16 +34,33 @@ export const useModules = () => {
       }
 
       try {
-        const response = await $fetch<{ modules: VisibleModule[] }>(
-          `/api/organizations/${orgId}/modules/visible`,
-          {
-            credentials: 'include',
-            headers: import.meta.server ? headers : undefined
+        const response = await $fetch<{ modules: VisibleModule[] }>(`/api/organizations/${orgId}/modules`, {
+          credentials: 'include',
+          headers: import.meta.server ? headers : undefined
+        })
+        const modules = response.modules || []
+        // Mappa API (ModuleStatusDto) till VisibleModule shape
+        return modules.map((m) => {
+          // Beräkna om modulen är disabled (avaktiverad eller coming-soon)
+          // disabled = true betyder modulen är synlig men utgråad och icke-klickbar
+          // effectiveDisabled propageras nu korrekt från global -> tenant -> org nivå
+          const isDisabled = m.effectiveDisabled === true
+          // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
+          const comingSoonMsg = m.comingSoonMessage || m.effectivePolicy?.comingSoonMessage || null
+          const isComingSoon = isDisabled && comingSoonMsg
+          
+          return {
+            ...m,
+            id: m.key,
+            routePath: m.rootRoute,
+            badge: m.category,
+            icon: m.icon,
+            disabled: isDisabled,
+            comingSoonMessage: isComingSoon ? comingSoonMsg : null
           }
-        )
-        return response.modules || []
+        })
       } catch (error) {
-        console.error('Failed to fetch visible modules:', error)
+        console.error('Failed to fetch modules:', error)
         return []
       }
     },
@@ -47,27 +71,45 @@ export const useModules = () => {
   )
 
   /**
-   * Get visible modules (computed for reactivity)
+   * All modules (synliga enl. API, kan inkludera utgråade)
+   * Sorterade alfabetiskt efter namn som standard
    */
-  const modules = computed(() => visibleModules.value || [])
+  const modules = computed(() => {
+    const allModules = visibleModules.value || []
+    return [...allModules].sort((a, b) => {
+      const nameA = a.name?.toLowerCase() || ''
+      const nameB = b.name?.toLowerCase() || ''
+      return nameA.localeCompare(nameB, 'sv')
+    })
+  })
 
   /**
-   * Check if a module is visible (enabled, even if disabled/deactivated)
+   * Only modules that are effectively enabled and not disabled (for filtering)
+   */
+  const availableModules = computed(() =>
+    modules.value.filter(
+      (module: VisibleModule) => module.effectiveEnabled && !module.disabled
+    )
+  )
+
+  /**
+   * Check if a module is visible (enabled)
    */
   const isModuleVisible = (moduleId: string) => {
-    return (visibleModules.value || []).some((m) => m.id === moduleId)
+    return (visibleModules.value || []).some((m: any) => m.id === moduleId)
   }
 
   /**
    * Check if a module is disabled (deactivated)
    */
   const isModuleDisabled = (moduleId: string) => {
-    const module = (visibleModules.value || []).find((m) => m.id === moduleId)
+    const module = (visibleModules.value || []).find((m: any) => m.id === moduleId)
     return module?.disabled === true
   }
 
   return {
     modules,
+    availableModules,
     visibleModules,
     loading,
     fetchVisibleModules,

@@ -1,20 +1,29 @@
 ﻿import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
-import { requirePermission } from '~~/server/utils/rbac'
+import { and, eq } from 'drizzle-orm'
 import { getDb } from '~~/server/utils/db'
-import { organizationMemberships, users } from '~~/server/database/schema'
-import { eq, and } from 'drizzle-orm'
-import { setUserModulePermissions, getUserModulePermissions } from '~~/server/utils/userModulePermissions'
-import { getModulePermissions } from '~/constants/modules'
-import { hasPermission } from '~~/server/utils/rbac'
-import type { ModuleId } from '~/constants/modules'
+import { organizationMemberships } from '~~/server/database/schema'
+import { getModulePermissions, type ModuleId } from '~/constants/modules'
 import type { RbacPermission, RbacRole } from '~/constants/rbac'
 import { getModuleById } from '~/lib/modules'
-import { setModuleRoleOverridesForModule } from '~~/server/utils/userModuleRoles'
-import { getModuleRoleDefaultsMap } from '~~/server/utils/moduleRoleDefaults'
 import { getEffectiveModulePolicyForOrg } from '~~/server/utils/modulePolicy'
+import { getModuleRoleDefaultsMap } from '~~/server/utils/moduleRoleDefaults'
+import { setModuleRoleOverridesForModule } from '~~/server/utils/userModuleRoles'
+import {
+  getUserModulePermissions,
+  normalizePermissionOverrides,
+  setUserModulePermissions
+} from '~~/server/utils/userModulePermissions'
+import { requirePermission } from '~~/server/utils/rbac'
+
+interface PermissionOverrideBody {
+  grants?: string[]
+  denies?: string[]
+  [key: string]: unknown
+}
 
 interface RequestBody {
-  deniedPermissions: Record<string, boolean>
+  permissionOverrides?: PermissionOverrideBody | Record<string, boolean>
+  deniedPermissions?: Record<string, boolean> // legacy fallback
   moduleRoles?: string[]
 }
 
@@ -39,8 +48,7 @@ export default defineEventHandler(async (event) => {
   await requirePermission(event, 'org:manage', orgId)
 
   const body = await readBody<RequestBody>(event)
-
-  if (!body || typeof body.deniedPermissions !== 'object') {
+  if (!body) {
     throw createError({ statusCode: 400, message: 'Invalid request body' })
   }
   const moduleRoles = body.moduleRoles
@@ -71,9 +79,27 @@ export default defineEventHandler(async (event) => {
 
   // Get module permissions to validate
   const modulePermissions = getModulePermissions(moduleId)
+  const allowedPermissions = new Set<RbacPermission | string>(
+    modulePolicy.mode === 'blocked'
+      ? []
+      : modulePolicy.allowedPermissions && modulePolicy.allowedPermissions.length > 0
+        ? modulePolicy.allowedPermissions
+        : modulePermissions
+  )
 
-  // Validate that all denied permissions belong to this module
-  const invalidPermissions = Object.keys(body.deniedPermissions).filter(
+  if (modulePolicy.mode === 'blocked') {
+    throw createError({
+      statusCode: 403,
+      message: 'Module is blocked by policy on this organization.'
+    })
+  }
+
+  const overrides = normalizePermissionOverrides(
+    body.permissionOverrides ?? body.deniedPermissions ?? {}
+  ) ?? { grants: [], denies: [] }
+
+  const allOverrideKeys = [...overrides.grants, ...overrides.denies]
+  const invalidPermissions = allOverrideKeys.filter(
     (perm) => !modulePermissions.includes(perm as RbacPermission)
   )
 
@@ -84,23 +110,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Validate that we can only deny permissions the user's role has
-  // (we can't expand permissions, only restrict)
-  const userRole = membership.role
-  const rolePermissions = modulePermissions.filter((perm) => hasPermission(userRole, perm))
-
-  const deniedPermissions = Object.keys(body.deniedPermissions).filter(
-    (perm) => body.deniedPermissions[perm] === true
-  )
-
-  const invalidDenials = deniedPermissions.filter(
-    (perm) => !rolePermissions.includes(perm as RbacPermission)
-  )
-
-  if (invalidDenials.length > 0) {
+  const notAllowed = allOverrideKeys.filter((perm) => !allowedPermissions.has(perm))
+  if (notAllowed.length > 0) {
     throw createError({
-      statusCode: 400,
-      message: `Cannot deny permissions that user's role doesn't have: ${invalidDenials.join(', ')}`
+      statusCode: 403,
+      message: `Module policy restricts permissions: ${notAllowed.join(', ')}`
     })
   }
 
@@ -142,14 +156,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Build the denied permissions object (only include permissions that are explicitly denied)
-  const deniedPermissionsObj: Record<string, boolean> = {}
-  for (const perm of deniedPermissions) {
-    deniedPermissionsObj[perm] = true
-  }
-
-  // Update user module permissions
-  await setUserModulePermissions(orgId, userId, moduleId, deniedPermissionsObj)
+  // Update user module permissions (grants/denies)
+  await setUserModulePermissions(orgId, userId, moduleId, overrides, allowedPermissions)
 
   if (moduleRoles !== undefined) {
     const moduleRoleDefaults = await getModuleRoleDefaultsMap(moduleId)
@@ -169,11 +177,18 @@ export default defineEventHandler(async (event) => {
 
   // Return updated permissions
   const updated = await getUserModulePermissions(orgId, userId, moduleId)
+  const normalized = updated ?? { grants: [], denies: [] }
+  const legacyDenied: Record<string, boolean> = {}
+  for (const perm of normalized.denies) {
+    legacyDenied[perm] = true
+  }
+
   return {
     organizationId: orgId,
     moduleId,
     userId,
-    deniedPermissions: updated || {},
+    permissionOverrides: normalized,
+    deniedPermissions: legacyDenied,
     moduleRoles: moduleRoles ?? []
   }
 })

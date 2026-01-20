@@ -1,42 +1,44 @@
 import { marked } from 'marked'
-import sanitizeHtml from 'sanitize-html'
+import DOMPurify from 'isomorphic-dompurify'
 
-const allowedTags = [
-  'a',
-  'b',
-  'blockquote',
-  'br',
-  'code',
-  'em',
-  'i',
-  'li',
-  'ol',
-  'p',
-  'strong',
-  'ul'
-]
-
-const allowedAttributes: sanitizeHtml.IOptions['allowedAttributes'] = {
-  a: ['href', 'title', 'target', 'rel']
-}
-
-const allowedSchemes = ['http', 'https', 'mailto']
-
+// Configure marked options
 marked.setOptions({
   breaks: true,
-  mangle: false,
-  headerIds: false
+  gfm: true
 })
+
+// Configure DOMPurify
+const purifyConfig = {
+  ALLOWED_TAGS: [
+    'a',
+    'b',
+    'blockquote',
+    'br',
+    'code',
+    'em',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'hr',
+    'i',
+    'li',
+    'ol',
+    'p',
+    'pre',
+    'span',
+    'strong',
+    'ul'
+  ],
+  ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class'],
+  ALLOW_DATA_ATTR: false
+}
 
 export interface RenderedMarkdown {
   html: string
   text: string
-}
-
-const sanitizeOptions: sanitizeHtml.IOptions = {
-  allowedTags,
-  allowedAttributes,
-  allowedSchemes
 }
 
 export const renderMarkdown = (value?: string | null): RenderedMarkdown => {
@@ -49,13 +51,15 @@ export const renderMarkdown = (value?: string | null): RenderedMarkdown => {
     return { html: '', text: '' }
   }
 
-  const rawHtml = marked.parse(trimmed)
-  const safeHtml = sanitizeHtml(rawHtml, sanitizeOptions)
-  const plainText = sanitizeHtml(safeHtml, { allowedTags: [], allowedAttributes: {} })
+  // marked.parse returns string synchronously in this setup
+  const rawHtml = marked.parse(trimmed) as string
+  const safeHtml = DOMPurify.sanitize(rawHtml, purifyConfig)
+
+  // Extract plain text by stripping HTML tags
+  const plainText = safeHtml
+    .replace(/<[^>]*>/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 
   return { html: safeHtml, text: plainText }
 }
-
-

@@ -14,9 +14,10 @@ export default defineNuxtPlugin(() => {
     }
 
     const prefersDark = event?.matches ?? mediaQuery.matches
-    const targetValue = prefersDark ? 'dark' : 'light'
+    const targetValue: 'dark' | 'light' = prefersDark ? 'dark' : 'light'
 
     if (colorMode.value !== targetValue) {
+      // Update only the active value; keep preference as 'system' so future changes propagate
       colorMode.value = targetValue
     }
   }

@@ -28,6 +28,8 @@ const inviteSchema = z.object({
 
 const INVITE_VALIDITY_MS = 1000 * 60 * 60 * 24 * 14
 
+type OrgMemberRole = NonNullable<typeof organizationMemberships.$inferInsert['role']>
+
 type InviteTransactionResult =
   | {
       type: 'member'
@@ -39,7 +41,7 @@ type InviteTransactionResult =
       token: string
       expiresAt: number
       email: string
-      role: string
+      role: OrgMemberRole
     }
 
 export default defineEventHandler(async (event) => {
@@ -64,7 +66,8 @@ export default defineEventHandler(async (event) => {
     ? db.transaction<InviteTransactionResult>((tx) => {
         const existingUser =
           tx.select().from(users).where(eq(users.email, normalizedEmail)).get() ?? null
-        const targetRole = payload.role ?? organization.defaultRole
+        const targetRole: OrgMemberRole =
+          (payload.role ?? organization.defaultRole ?? 'member') as OrgMemberRole
         const shouldDirectAdd = Boolean(payload.directAdd && allowDirectAdd)
 
 
@@ -169,9 +172,10 @@ export default defineEventHandler(async (event) => {
           role: targetRole
         }
       })
-    : await db.transaction<InviteTransactionResult>(async (tx) => {
+    : await db.transaction(async (tx) => {
         const [existingUser] = await tx.select().from(users).where(eq(users.email, normalizedEmail))
-        const targetRole = payload.role ?? organization.defaultRole
+        const targetRole: OrgMemberRole =
+          (payload.role ?? organization.defaultRole ?? 'member') as OrgMemberRole
         const shouldDirectAdd = Boolean(payload.directAdd && allowDirectAdd)
 
         if (existingUser) {
@@ -211,7 +215,7 @@ export default defineEventHandler(async (event) => {
             userId: existingUser.id,
             role: targetRole,
             status: 'active'
-          })
+          } satisfies typeof organizationMemberships.$inferInsert)
           return { type: 'member', membershipId }
         }
 
@@ -233,7 +237,7 @@ export default defineEventHandler(async (event) => {
             userId,
             role: targetRole,
             status: 'active'
-          })
+          } satisfies typeof organizationMemberships.$inferInsert)
           return { type: 'member', membershipId }
         }
 
@@ -250,7 +254,7 @@ export default defineEventHandler(async (event) => {
           status: 'pending',
           invitedByUserId: auth.user.id,
           expiresAt
-        })
+        } satisfies typeof organizationInvitations.$inferInsert)
 
         console.info(
           `[invite] pending invite for ${normalizedEmail} to ${organization.slug} token=${token}`

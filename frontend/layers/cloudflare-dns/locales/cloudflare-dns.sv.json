@@ -1,0 +1,198 @@
+{
+  "cloudflareDns": {
+    "title": "Cloudflare DNS",
+    "description": "Hantera Cloudflare DNS-zoner, poster och åtkomst.",
+    "cta": "Skapa zon",
+    "empty": "Inga zoner ännu.",
+
+    "statusCard": {
+      "label": "Status",
+      "title": "Cloudflare DNS",
+      "zoneCount": "{count} zoner",
+      "lastSyncTitle": "Senaste synk",
+      "noSync": "Ingen synk ännu",
+      "statusLabel": "Status: {status}",
+      "lastValidatedTitle": "Token validerad",
+      "notValidated": "Ej verifierad"
+    },
+
+    "acl": {
+      "label": "Åtkomst",
+      "title": "Zon-ACL",
+      "readOnly": "Read-only",
+      "principal": "Principal",
+      "principalPlaceholder": "user-id eller org-roll",
+      "type": "Typ",
+      "role": "Roll",
+      "actions": "Åtgärder",
+      "principalType": {
+        "user": "Användare",
+        "orgRole": "Org-roll"
+      },
+      "roleOptions": {
+        "viewer": "Viewer",
+        "recordsOnly": "Records only",
+        "editor": "Editor",
+        "admin": "Admin"
+      },
+      "addRow": "Lägg till rad",
+      "save": "Spara ACL",
+      "remove": "Ta bort"
+    },
+
+    "zoneList": {
+      "label": "Zoner",
+      "title": "Cloudflare-zoner",
+      "create": "Skapa DNS-zon",
+      "loading": "Laddar zoner...",
+      "planUnknown": "Plan okänd",
+      "statusUnknown": "status okänd",
+      "recordCount": "{count} records",
+      "view": "Visa",
+      "onboard": {
+        "label": "Onboarding",
+        "title": "Skapa DNS-zon",
+        "subtitle": "Vi guidar dig genom att lägga till domänen. Peka namnservrar hos din registrar, propagation kan ta upp till 24 timmar.",
+        "domainLabel": "Domän",
+        "domainPlaceholder": "example.com",
+        "bullet1": "Ändra namnservrar hos din domänregistrar till de Cloudflare ger (visas efter skapandet).",
+        "bullet2": "Propagation kan ta upp till 24 timmar efter namnbyte.",
+        "bullet3": {
+          "prefix": "Du ser status som",
+          "pending": "pending",
+          "suffix": "på översikten tills DNS är aktivt."
+        },
+        "createdTitle": "Zon skapad",
+        "createdHint": "Använd dessa namnservrar hos din registrar:",
+        "createAndShow": "Skapa och visa namnservrar",
+        "openZone": "Öppna zonen"
+      }
+    },
+
+    "index": {
+      "label": "Cloudflare",
+      "title": "DNS-zoner",
+      "subtitle": "Förenklat gränssnitt för zoner och DNS records. Behörigheter styrs av modulroller och zon-ACL.",
+      "searchPlaceholder": "Sök zoner (domän, plan, status)…",
+      "showing": "Visar {visible} av {filtered} zoner (totalt {total})",
+      "forceRefreshTitle": "Tvinga uppdatering",
+      "adminLink": "Admin",
+      "loading": "Laddar zoner...",
+      "errorTitle": "Kunde inte hämta zoner",
+      "retry": "Försök igen",
+      "forceRefresh": "Tvinga uppdatering",
+      "pagination": "Sida {page} / {pages}",
+      "cached": "Visar cachelagrade zoner. För att hämta färska data, klicka 'Tvinga uppdatering'."
+    },
+
+    "admin": {
+      "label": "Cloudflare DNS",
+      "title": "Organisationens konfiguration",
+      "subtitle": "Lägg in API-token per organisation och verifiera anslutningen. Token visas inte efter sparad lagring.",
+      "token": {
+        "label": "API-token",
+        "title": "Cloudflare credentials",
+        "helper": "Token lagras krypterat. Vi visar aldrig hela token."
+      },
+      "form": {
+        "apiToken": "API token",
+        "apiTokenPlaceholder": "Cloudflare API token",
+        "lastSaved": "Senast sparad: {value}",
+        "none": "ingen",
+        "accountId": "Account ID (valfritt)",
+        "accountIdPlaceholder": "Account ID",
+        "accountIdHelper": "Används vid skapande av zoner. Lämna tomt om token redan är scoperad."
+      },
+      "actions": {
+        "saveVerify": "Spara och verifiera",
+        "test": "Testa anslutning",
+        "delete": "Ta bort token"
+      },
+      "messages": {
+        "saved": "Token sparad och verifierad.",
+        "saveError": "Kunde inte spara token.",
+        "testOk": "Anslutningen verifierades.",
+        "testError": "Test misslyckades.",
+        "deleteConfirm": "Är du säker på att du vill ta bort token? Detta kommer även att rensa alla cachade zoner.",
+        "deleted": "Token och cachade zoner har tagits bort.",
+        "deleteError": "Kunde inte ta bort token."
+      }
+    },
+
+    "zone": {
+      "label": "Cloudflare",
+      "loadingZone": "Laddar zon...",
+      "back": "Tillbaka",
+      "loadingStatus": "Hämtar status...",
+      "unknown": "okänd",
+      "statusLine": "Status: {status} · Plan: {plan}",
+      "pending": {
+        "title": "Zonen är pending",
+        "description": "Domänen är inte aktiv ännu. Peka namnservrar hos din registrar till Cloudflare.",
+        "propagation": "DNS-ändringar kan ta upp till 24 timmar att propagera, ofta snabbare.",
+        "pointTo": "Peka domänen till:"
+      },
+      "danger": {
+        "label": "Danger zone",
+        "title": "Ta bort DNS-zon",
+        "description": "Detta tar bort zonen i Cloudflare och alla DNS-records. Kan inte ångras.",
+        "deleteAction": "Ta bort zon"
+      },
+      "delete": {
+        "confirmLabel": "Bekräfta borttagning",
+        "confirmTitle": "Ta bort DNS-zon",
+        "confirmDescription": "Detta tar bort zonen och alla records i Cloudflare. Kan inte ångras.",
+        "enterName": "Skriv zonens namn för att bekräfta:",
+        "ack": "Jag förstår att borttagningen inte går att ångra."
+      }
+    },
+
+    "records": {
+      "label": "DNS records",
+      "title": "Records",
+      "searchPlaceholder": "Sök records (typ, namn, content)…",
+      "filter": {
+        "all": "Alla"
+      },
+      "hideForm": "Dölj formulär",
+      "addRecord": "Lägg till record",
+      "preview": "Preview",
+      "fields": {
+        "type": "Typ",
+        "name": "Namn",
+        "ttl": "TTL",
+        "content": "Content",
+        "mxPriority": "MX priority",
+        "mxHost": "MX host (content)",
+        "caaFlag": "Flag",
+        "caaTag": "Tag",
+        "caaValue": "Value",
+        "srvService": "Service (_sip)",
+        "srvProto": "Proto (_tcp/_udp)",
+        "priority": "Priority",
+        "weight": "Weight",
+        "port": "Port",
+        "target": "Target",
+        "params": "Params (t.ex. alpn=h2,h3)",
+        "proxied": "Proxied",
+        "comment": "Kommentar (valfri)"
+      },
+      "proxiedTitle": "Proxied via Cloudflare",
+      "proxied": "Proxied",
+      "dnsOnlyTitle": "DNS only = ingen proxning genom Cloudflare",
+      "dnsOnly": "DNS only",
+      "actions": {
+        "save": "Spara"
+      },
+      "table": {
+        "type": "Typ",
+        "name": "Namn",
+        "content": "Content",
+        "ttl": "TTL",
+        "proxied": "Proxied",
+        "actions": "Åtgärder"
+      },
+      "pagination": "Sida {page} / {pages} · visar {shown} av {total} records"
+    }
+  }
+}

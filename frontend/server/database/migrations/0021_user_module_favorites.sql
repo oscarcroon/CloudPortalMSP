@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `user_module_favorites`;
+--> statement-breakpoint
 CREATE TABLE `user_module_favorites` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,

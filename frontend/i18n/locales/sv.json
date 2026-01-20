@@ -1,11 +1,83 @@
 {
+  "operations": {
+    "from": "Från",
+    "showDetails": "Visa detaljer",
+    "hide": "Göm",
+    "hideForMe": "Göm för mig",
+    "hideForOrg": "Göm för organisationen",
+    "hideForTenant": "Göm för tenant",
+    "showForMe": "Visa igen",
+    "showForOrg": "Visa för organisationen",
+    "showForTenant": "Visa för tenant",
+    "viewAll": "Visa alla",
+    "incidentDetails": "Driftmeddelande",
+    "startsAt": "Startar",
+    "endsAt": "Slutar",
+    "createdAt": "Skapad",
+    "planned": "Planerad",
+    "multipleIncidents": "{count} aktiva driftmeddelanden",
+    "collapse": "Dölj",
+    "expand": "Visa alla",
+    "hiddenForMe": "Gömd för mig",
+    "hiddenForOrg": "Gömd för organisationen",
+    "hiddenForTenant": "Gömd för tenant",
+    "noHiddenIncidents": "Inga gömda driftmeddelanden",
+    "allIncidentsVisible": "Alla driftmeddelanden är synliga",
+    "severity": {
+      "critical": "Kritisk",
+      "outage": "Driftstörning",
+      "maintenance": "Underhåll",
+      "notice": "Information",
+      "planned": "Planerad"
+    }
+  },
+  "incident": {
+    "title": "Driftmeddelande",
+    "backToDashboard": "Tillbaka till startsidan",
+    "notFound": "Driftmeddelandet kunde inte hittas eller så har du inte behörighet att se det.",
+    "distributor": "Distributör",
+    "provider": "Leverantör",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "status": {
+      "active": "Aktiv",
+      "resolved": "Löst",
+      "closed": "Stängd",
+      "archived": "Arkiverad"
+    },
+    "resolvedAt": "Löst"
+  },
+  "news": {
+    "title": "Nyhet",
+    "allNews": "Alla nyheter",
+    "allNewsDescription": "Senaste nyheterna från dina leverantörer och distributörer.",
+    "backToDashboard": "Tillbaka till startsidan",
+    "notFound": "Nyheten kunde inte hittas eller så har du inte behörighet att se den.",
+    "noNewsYet": "Inga nyheter att visa just nu.",
+    "moreNews": "Fler nyheter",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "viewAll": "Visa alla",
+    "filterAll": "Alla",
+    "distributor": "Distributör",
+    "provider": "Leverantör"
+  },
   "common": {
     "save": "Spara",
+    "loadMore": "Ladda fler",
+    "loading": "Laddar...",
     "saving": "Sparar...",
     "update": "Uppdatera",
     "updating": "Uppdaterar...",
+    "load": "Ladda",
     "cancel": "Avbryt",
-    "unknown": "Okänd"
+    "close": "Stäng",
+    "delete": "Ta bort",
+    "unknown": "Okänd",
+    "refresh": "Uppdatera",
+    "redirecting": "Omdirigerar...",
+    "all": "Alla",
+    "edit": "Redigera"
   },
   "auth": {
     "logout": "Logga ut",
@@ -33,6 +105,25 @@
       "invalidCredentials": "Fel e-post eller lösenord. Försök igen.",
       "ssoRequired": "Organisationen kräver SSO. Använd SSO-inloggning.",
       "loginFailed": "Kunde inte logga in just nu."
+    },
+    "groups": {
+      "title": "Grupper",
+      "description": "Hantera organisationsgrupper för plugin-ACL.",
+      "open": "Öppna grupper",
+      "createTitle": "Skapa grupp",
+      "createHint": "Lägg till en ny grupp för att kunna tilldela behörigheter per plugin.",
+      "name": "Namn",
+      "namePlaceholder": "Ex. Operations",
+      "descriptionLabel": "Beskrivning",
+      "descriptionPlaceholder": "Valfri beskrivning",
+      "create": "Skapa grupp",
+      "listTitle": "Befintliga grupper",
+      "listHint": "Grupper kan användas när du sätter ACL för plugins.",
+      "loading": "Laddar grupper...",
+      "empty": "Inga grupper ännu.",
+      "delete": "Ta bort",
+      "membersCount": "{count} medlemmar",
+      "noOrg": "Välj en organisation för att hantera grupper."
     },
     "providers": {
       "entra": "Microsoft Entra ID",
@@ -157,7 +248,11 @@
     "showMore": "Visa fler moduler",
     "adminSection": "Inställningar",
     "tenants": "Tenants",
-    "superadmin": "Superadmin"
+    "tenantAdmin": "Tenant-admin",
+    "superadmin": "Superadmin",
+    "admin": "Administration",
+    "platformAdmin": "Plattformsadmin",
+    "home": "Hem"
   },
   "topBar": {
     "searchLabel": "Sök",
@@ -186,6 +281,8 @@
     "organizations": "Organisationer",
     "noContexts": "Inga kontexter tillgängliga.",
     "selectContext": "Välj kontext",
+    "delegation": "Delegation",
+    "mspAccess": "Åtkomst via MSP-roll",
     "errors": {
       "switchTenantFailed": "Kunde inte byta till denna tenant.",
       "switchContextFailed": "Kunde inte byta kontext.",
@@ -200,7 +297,15 @@
     "sections": {
       "account": "Konto",
       "organizations": "Organisationer",
-      "password": "Byt lösenord"
+      "password": "Byt lösenord",
+      "operations": "Driftmeddelanden"
+    },
+    "operations": {
+      "title": "Gömda driftmeddelanden",
+      "subtitle": "Driftmeddelanden du har gömt för dig själv",
+      "noHiddenIncidents": "Du har inga gömda driftmeddelanden",
+      "showAgain": "Visa igen",
+      "loading": "Laddar..."
     },
     "fields": {
       "email": "E-post",
@@ -258,31 +363,142 @@
     "allSystemsOperational": "All systems operational",
     "organizations": "Organisationer",
     "noModules": "Inga moduler är tillgängliga för din organisation.",
+    "noModulesTenantContext": "Du är i leverantörsläge utan vald organisation. Välj en organisation i kontextväljaren för att se moduler.",
+    "noModulesNoContext": "Välj en organisation i kontextväljaren för att se moduler.",
+    "goToTenantAdmin": "Gå till tenant-admin",
     "status": "Status",
     "news": "Nyheter",
+    "noNews": "Inga nyheter just nu.",
     "module": "Modul",
     "statusLabels": {
       "ok": "OK",
       "degraded": "Degraded",
       "maintenance": "Maintenance"
     },
-    "newsItems": {
-      "firstSite": {
-        "title": "Din första webbplats? Kom igång smidigt",
-        "summary": "Följ våra fem steg för en snabb och säker lansering.",
-        "date": "28 okt"
-      },
-      "dnsEmail": {
-        "title": "Hur hänger DNS och e-post ihop?",
-        "summary": "Kort guide för SPF, DKIM och MX.",
-        "date": "14 okt"
-      }
+    "newsFilter": {
+      "all": "Alla",
+      "distributor": "Distributör",
+      "provider": "Leverantör"
     }
   },
   "settings": {
     "title": "Inställningar",
     "administration": "Administration",
     "open": "Öppna",
+    "modules": {
+      "routeLabel": "Route",
+      "title": "Moduler",
+      "description": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för organisationen.",
+      "cta": "Hantera modulåtkomst",
+      "empty": "Inga moduler tillgängliga just nu.",
+      "pageDescription": "Hantera modulpolicy (inherit/default-closed/allowlist/blocked) och vilka permissions som får användas.",
+      "searchPlaceholder": "Sök modul",
+      "results": "{count} moduler",
+      "filters": {
+        "allCategories": "Alla kategorier"
+      },
+      "loading": "Laddar moduler...",
+      "noModules": "Inga moduler är tillgängliga för organisationen. Kontakta tenant-admin om något saknas.",
+      "policyTitle": "Policy",
+      "tenantBlocked": "Blockerad av tenant",
+      "lockedByTenant": "Låst av tenant-policy",
+      "modes": {
+        "inherit": "Ärv",
+        "default-closed": "Default stängd",
+        "allowlist": "Allowlist",
+        "blocked": "Blockerad"
+      },
+      "loadingPermissions": "Laddar permissions...",
+      "noPermissions": "Inga permissions deklarerade",
+      "updateFailed": "Kunde inte uppdatera modulpolicy",
+      "manageAcl": "Hantera ACL",
+      "aclTitle": "Plugin-ACL",
+      "aclDescription": "Koppla CRUD-operationer till åtkomstgrupper för pluginet.",
+      "aclOperationHint": "Välj grupper som får utföra operationen.",
+      "saveAcl": "Spara ACL",
+      "showAll": "Visa alla rättigheter",
+      "hideAll": "Dölj alla rättigheter",
+      "noSearchResults": "Inga moduler matchade sökningen",
+      "disabled": "Inaktiverad",
+      "deactivated": "Avaktiverad",
+      "features": {
+        "enable": "Aktivera eller inaktivera moduler för organisationen",
+        "permissions": "Hantera rättigheter per modul (read/write)",
+        "granular": "Sätt granulära rättigheter per användare"
+      },
+      "groups": {
+        "title": "Grupper",
+        "description": "Hantera grupper för ACL.",
+        "loading": "Laddar grupper...",
+        "empty": "Inga grupper",
+        "open": "Öppna grupper"
+      },
+      "delegations": {
+        "open": "Delegationer"
+      },
+      "manageStatus": "Hantera status",
+      "cannotManageStatusReason": "Modulen måste vara aktiverad på högre nivå för att kunna hantera status här.",
+      "statusModal": {
+        "title": "Modulstatus",
+        "description": "Välj hur modulen ska visas och fungera.",
+        "options": {
+          "active": {
+            "title": "Aktiv",
+            "description": "Modulen är aktiv och synlig. Användare kan öppna och använda modulen."
+          },
+          "disabled": {
+            "title": "Avaktiverad",
+            "description": "Modulen syns men är utgråad och går inte att öppna. Användbart för att visa att modulen finns men inte är tillgänglig ännu."
+          },
+          "hidden": {
+            "title": "Inaktiverad",
+            "description": "Modulen syns inte alls och ärvs neråt i hierarkin. Användare kommer inte se modulen."
+          },
+          "comingSoon": {
+            "title": "Kommer snart",
+            "description": "Modulen syns utgråad med ett anpassat meddelande. Perfekt för marknadsföring och merförsäljning."
+          }
+        },
+        "comingSoonMessage": {
+          "label": "Meddelande",
+          "placeholder": "Ex. Kommer snart! Kontakta oss för mer information.",
+          "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen.",
+          "defaultMessage": "Kommer snart! Kontakta oss för mer information."
+        }
+      }
+    },
+    "groups": {
+      "title": "Grupper",
+      "description": "Hantera organisationsgrupper för plugin-ACL och roller.",
+      "open": "Öppna grupper",
+      "confirmDelete": "Är du säker på att du vill ta bort gruppen?",
+      "confirmDeleteNamed": "Är du säker på att du vill ta bort gruppen “{name}”?",
+      "createTitle": "Skapa grupp",
+      "createHint": "Lägg till en ny grupp för att kunna tilldela behörigheter per plugin.",
+      "name": "Namn",
+      "namePlaceholder": "Ex. Operations",
+      "descriptionLabel": "Beskrivning",
+      "descriptionPlaceholder": "Valfri beskrivning",
+      "create": "Skapa grupp",
+      "listTitle": "Befintliga grupper",
+      "listHint": "Grupper kan användas när du sätter ACL för plugins.",
+      "loading": "Laddar grupper...",
+      "empty": "Inga grupper ännu.",
+      "delete": "Ta bort",
+      "membersCount": "{count} medlemmar",
+      "noOrg": "Välj en organisation för att hantera grupper.",
+      "membersInputLabel": "Medlems-ID:n (kommaseparerade, använd userId)",
+      "membersHelpInline": "Ange userId för medlemmar i organisationen, separerade med kommatecken eller radbrytning.",
+      "saveMembers": "Spara medlemmar",
+      "manageMembers": "Hantera medlemmar",
+      "availableMembers": "Tillgängliga medlemmar",
+      "noMembers": "Inga medlemmar i organisationen.",
+      "searchPlaceholder": "Sök på namn, e-post eller userId",
+      "searchHint": "Börja skriva för att filtrera medlemmar och lägg till via checkbox.",
+      "searchStartTyping": "Börja skriva för att söka bland medlemmar.",
+      "noMembersFound": "Inga medlemmar matchar sökningen.",
+      "searchLimit": "Visar de första {count} träffarna."
+    },
     "organizations": {
       "title": "Organisationer",
       "titleForTenant": "Organisationer för {tenant}",
@@ -302,10 +518,50 @@
       "viaTenant": "Via tenant",
       "adminViaTenant": "Admin via tenant",
       "viewerViaTenant": "Viewer via tenant",
+      "viaDelegation": "Via delegation",
       "previous": "Föregående",
       "next": "Nästa",
       "page": "Sida {current} av {total}",
       "noOrganizations": "Inga organisationer är kopplade till den aktuella leverantören. Lägg till en organisation eller byt leverantör i context switchern."
+    },
+    "delegations": {
+      "open": "Delegationer"
+    },
+    "operations": {
+      "title": "Driftmeddelanden",
+      "description": "Se alla driftmeddelanden och hantera vilka som visas.",
+      "subtitle": "Se och hantera driftmeddelanden för din organisation",
+      "loading": "Laddar driftmeddelanden...",
+      "upstreamTab": "Inkommande",
+      "internalTab": "Organisationens egna",
+      "activeIncidents": "Aktiva driftmeddelanden",
+      "hiddenIncidents": "Gömda driftmeddelanden",
+      "hiddenForMe": "Gömda för mig",
+      "hiddenForOrg": "Gömda för organisationen",
+      "noActiveIncidents": "Inga aktiva driftmeddelanden",
+      "noHiddenIncidents": "Inga gömda driftmeddelanden",
+      "hideForMe": "Göm för mig",
+      "showForMe": "Visa igen",
+      "hideForOrg": "Göm för organisationen",
+      "showForOrg": "Visa för organisationen",
+      "hiddenBadge": "Gömd",
+      "actions": "Åtgärder",
+      "features": {
+        "viewAll": "Se alla aktiva och planerade driftmeddelanden",
+        "manage": "Göm eller visa meddelanden du valt att dölja",
+        "unmute": "Visa igen tidigare gömda meddelanden"
+      }
+    },
+    "incidents": {
+      "title": "Organisationens driftmeddelanden",
+      "subtitle": "Skapa och hantera interna driftmeddelanden som bara syns för organisationen",
+      "create": "Skapa driftmeddelande",
+      "createFirst": "Skapa första driftmeddelandet",
+      "edit": "Redigera driftmeddelande",
+      "backToList": "Tillbaka till listan",
+      "noIncidents": "Inga driftmeddelanden",
+      "noIncidentsDesc": "Skapa ett internt driftmeddelande för att informera organisationens medlemmar.",
+      "loading": "Laddar..."
     },
     "members": {
       "title": "Medlemmar",
@@ -563,10 +819,16 @@
           "fromName": "Avsändarnamn",
           "fromEmail": "Avsändaradress",
           "subjectPrefix": "Ämnesprefix (valfritt)",
+          "emailLanguage": "E-postspråk",
           "supportContact": "Supportkontakt (valfritt)",
           "replyToEmail": "Svar-adress",
           "active": "Aktiv",
           "emailTheme": "E-posttema"
+        },
+        "languages": {
+          "swedish": "Svenska",
+          "english": "Engelska",
+          "helper": "Välj språk för utskick (ämne och brödtext)."
         },
         "active": {
           "enabled": "Utskick aktiverat",
@@ -765,23 +1027,6 @@
         "login": "Hantera login-branding och custom domains (CNAME)"
       }
     },
-    "modules": {
-      "title": "Modulrättigheter",
-      "description": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation.",
-      "pageDescription": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för din organisation. Du kan också sätta granulära rättigheter per användare för varje modul.",
-      "searchPlaceholder": "Sök efter moduler...",
-      "showAll": "Visa alla rättigheter",
-      "hideAll": "Dölj alla rättigheter",
-      "noModules": "Inga moduler hittades för din organisation.",
-      "noSearchResults": "Inga moduler matchade sökningen",
-      "disabled": "Inaktiverad",
-      "deactivated": "Avaktiverad",
-      "features": {
-        "enable": "Aktivera eller inaktivera moduler för organisationen",
-        "permissions": "Hantera rättigheter per modul (read/write)",
-        "granular": "Sätt granulära rättigheter per användare"
-      }
-    },
     "audit": {
       "title": "Audit Loggar",
       "description": "Visa säkerhetshändelser och administrativa aktiviteter för organisationen.",
@@ -810,9 +1055,14 @@
       }
     },
     "apiTokens": {
-      "title": "API tokens",
-      "description": "Hantera autentisering mot externa leverantörer.",
-      "configure": "Konfigurera"
+      "title": "API-nycklar",
+      "description": "Hantera API-nycklar för programmatisk åtkomst till organisationens data.",
+      "configure": "Konfigurera",
+      "features": {
+        "create": "Skapa nya API-nycklar med anpassade behörigheter",
+        "scopes": "Begränsa åtkomst med scopes (t.ex. dns:read, org:write)",
+        "revoke": "Återkalla nycklar vid behov"
+      }
     }
   },
   "admin": {
@@ -821,6 +1071,191 @@
     "open": "Öppna",
     "quickTip": "Snabbtips",
     "quickTipText": "Bokmärk den här sidan – nya superadminverktyg läggs alltid till här först.",
+    "tenantAdmin": {
+      "label": "Tenant-administration",
+      "title": "Administration",
+      "subtitle": "Hantera tenant-inställningar, drift och övervakning",
+      "noTenantSelected": "Ingen tenant vald",
+      "openSettings": "Öppna inställningar",
+      "platformAdmin": "Plattformsadmin",
+      "comingSoon": "Kommer snart",
+      "overview": {
+        "title": "Tenant-översikt",
+        "organizations": "Organisationer",
+        "members": "Medlemmar",
+        "modules": "Aktiva moduler",
+        "viewDetails": "Visa detaljer",
+        "viewTenantTree": "Visa tenant-träd"
+      },
+      "emptyState": {
+        "title": "Ingen tenant vald",
+        "description": "Välj en tenant för att administrera inställningar, drift och övervakning.",
+        "goToSettings": "Gå till inställningar"
+      },
+      "quickLinks": {
+        "title": "Snabblänkar",
+        "members": "Medlemmar",
+        "membersDesc": "Hantera användare och inbjudningar",
+        "groups": "Grupper & roller",
+        "groupsDesc": "Skapa och hantera grupper",
+        "branding": "Branding",
+        "brandingDesc": "Anpassa logotyp och färger",
+        "email": "E-post",
+        "emailDesc": "Konfigurera e-postmallar",
+        "audit": "Revision",
+        "auditDesc": "Granska aktivitetsloggar",
+        "delegations": "Delegeringar",
+        "delegationsDesc": "Hantera åtkomstdelegeringar"
+      },
+      "operations": {
+        "title": "Drift & nyheter",
+        "incidents": "Driftmeddelanden",
+        "news": "Nyheter",
+        "noIncidents": "Inga aktiva driftmeddelanden",
+        "noNews": "Inga nyheter publicerade",
+        "createIncident": "Skapa driftmeddelande",
+        "createNews": "Skapa nyhet",
+        "viewHistory": "Visa historik",
+        "visibility": "Synlighet",
+        "visibilityTitle": "Driftmeddelanden – Synlighet",
+        "visibilitySubtitle": "Se och hantera vilka driftmeddelanden som är synliga för nedströms organisationer",
+        "hideForTenant": "Göm för tenant",
+        "showForTenant": "Visa för tenant",
+        "hiddenForTenant": "Gömd för tenant",
+        "hiddenForOrg": "Gömd för org",
+        "hiddenForUser": "Gömd för dig",
+        "noHiddenForTenant": "Inga gömda driftmeddelanden på tenantnivå",
+        "manageAll": "Hantera alla",
+        "edit": "Redigera",
+        "resolved": "Löst",
+        "incidentsTitle": "Driftmeddelanden",
+        "incidentsSubtitle": "Hantera och skapa driftmeddelanden för nedströms användare",
+        "newsTitle": "Nyheter",
+        "newsSubtitle": "Skapa och publicera nyheter till nedströms användare",
+        "activeIncidents": "Aktiva",
+        "allIncidents": "Alla",
+        "noActiveIncidents": "Inga aktiva driftmeddelanden",
+        "noIncidentsDesc": "Skapa ett driftmeddelande för att informera nedströms användare om planerat underhåll eller driftstörningar.",
+        "allNews": "Alla",
+        "noNewsDesc": "Skapa en nyhet för att informera nedströms användare om uppdateringar och förbättringar.",
+        "backToIncidents": "Tillbaka till driftmeddelanden",
+        "backToNews": "Tillbaka till nyheter",
+        "createIncidentDesc": "Skapa ett nytt driftmeddelande som visas för alla nedströms tenants och organisationer.",
+        "createNewsDesc": "Skapa en nyhet som kan publiceras till nedströms användare.",
+        "incidentTitle": "Titel",
+        "incidentTitlePlaceholder": "T.ex. Planerat underhåll av DNS-tjänster",
+        "severity": "Allvarlighetsgrad",
+        "startsAt": "Startar",
+        "endsAt": "Slutar",
+        "description": "Beskrivning",
+        "descriptionPlaceholder": "Beskriv driftmeddelandet i detalj...",
+        "markdownSupported": "Markdown stöds för formatering.",
+        "markdownHelp": "Markdown-hjälp",
+        "markdownCheatsheet": "Markdown-snabbguide",
+        "keyboardShortcuts": "Tangentbordsgenvägar: Ctrl+B fetstil, Ctrl+I kursiv, Ctrl+K länk",
+        "toolbar": {
+          "bold": "Fetstil (Ctrl+B)",
+          "italic": "Kursiv (Ctrl+I)",
+          "heading1": "Rubrik 1",
+          "heading2": "Rubrik 2",
+          "heading3": "Rubrik 3",
+          "link": "Länk (Ctrl+K)",
+          "bulletList": "Punktlista",
+          "numberedList": "Numrerad lista",
+          "quote": "Citat",
+          "code": "Kod"
+        },
+        "publish": "Publicera",
+        "editIncident": "Redigera driftmeddelande",
+        "incidentNotFound": "Driftmeddelandet kunde inte hittas.",
+        "status": {
+          "active": "Pågående",
+          "resolved": "Löst",
+          "archived": "Arkiverad"
+        },
+        "markResolved": "Markera som löst",
+        "reactivate": "Återaktivera",
+        "archive": "Arkivera",
+        "unarchive": "Återställ",
+        "archivedIncidents": "Arkiverade",
+        "noArchivedIncidents": "Inga arkiverade driftmeddelanden",
+        "deleteIncidentTitle": "Ta bort driftmeddelande",
+        "deleteConfirmation": "Är du säker på att du vill ta bort detta driftmeddelande? Denna åtgärd kan inte ångras.",
+        "confirmDelete": "Ja, ta bort",
+        "filters": {
+          "all": "Alla",
+          "ongoing": "Pågående",
+          "scheduled": "Planerade",
+          "resolved": "Lösta"
+        },
+        "showMore": "Visa fler",
+        "showLess": "Visa färre",
+        "showing": "Visar {count} av {total}",
+        "scheduledFor": "Planerad: {date}",
+        "noScheduled": "Inga planerade incidenter",
+        "noOngoing": "Inga pågående incidenter",
+        "newsStatus": {
+          "draft": "Utkast",
+          "published": "Publicerad",
+          "archived": "Arkiverad"
+        },
+        "newsPostTitle": "Titel",
+        "newsPostTitlePlaceholder": "T.ex. Nya funktioner i portalen",
+        "summary": "Sammanfattning",
+        "summaryPlaceholder": "En kort sammanfattning som visas i listvy...",
+        "content": "Innehåll",
+        "contentPlaceholder": "Skriv nyhetens innehåll här med Markdown...",
+        "heroImage": "Omslagsbild",
+        "uploadImage": "Ladda upp bild",
+        "changeImage": "Byt bild",
+        "slug": "URL-slug",
+        "slugPlaceholder": "t-ex-nya-funktioner",
+        "slugHint": "Lämna tomt för att generera automatiskt från titeln.",
+        "saveDraft": "Spara utkast",
+        "editNews": "Redigera nyhet",
+        "newsNotFound": "Nyheten kunde inte hittas.",
+        "archive": "Arkivera",
+        "write": "Skriv",
+        "preview": "Förhandsgranska"
+      },
+      "health": {
+        "title": "Systemhälsa",
+        "lastSync": "Senast synkad"
+      },
+      "activity": {
+        "title": "Senaste aktivitet",
+        "noActivity": "Ingen aktivitet registrerad",
+        "viewAuditLog": "Visa revisionslogg"
+      },
+      "support": {
+        "title": "Support & hjälp",
+        "documentation": "Dokumentation",
+        "contact": "Kontakta support",
+        "statusPage": "Statussida"
+      },
+      "tenantActions": {
+        "title": "Tenant-hantering",
+        "description": "Snabblänkar för att hantera {tenant}",
+        "createProvider": "Skapa leverantör",
+        "createProviderDesc": "Skapa ny leverantör under denna distributör",
+        "createOrg": "Skapa organisation",
+        "createOrgDesc": "Skapa ny organisation under denna tenant",
+        "members": "Medlemmar",
+        "membersDesc": "Hantera tenant-medlemmar och inbjudningar",
+        "email": "E-postinställningar",
+        "emailDesc": "Konfigurera e-post för tenanten",
+        "modules": "Moduler",
+        "modulesDesc": "Hantera vilka moduler som är aktiverade",
+        "mspRoles": "MSP-roller",
+        "mspRolesDesc": "Hantera roller för MSP-användare",
+        "roleTemplates": "MSP-rollmallar",
+        "roleTemplatesDesc": "Hantera MSP-rollmallar för leverantörer",
+        "branding": "Branding",
+        "brandingDesc": "Anpassa tenant-branding",
+        "auditLogs": "Audit loggar",
+        "auditLogsDesc": "Granska tenant-aktivitet"
+      }
+    },
     "sections": {
       "tenants": {
         "title": "Tenants",
@@ -858,6 +1293,12 @@
         "badge": "Kommunikation",
         "category": "E-post"
       },
+      "modules": {
+        "title": "Moduler",
+        "description": "Globalt register över alla Nuxt-lager/moduler och startpunkt för aktivering på tenant/organisation.",
+        "badge": "Moduler",
+        "category": "Extensioner"
+      },
       "users": {
         "title": "Användare (globalt)",
         "description": "Granska hela användarregistret, hantera status, roller och tvinga lösenordsbyten.",
@@ -872,6 +1313,36 @@
       }
     }
   },
+  "modules": {
+    "statusModal": {
+      "title": "Modulstatus",
+      "description": "Välj hur modulen ska visas och fungera.",
+      "options": {
+        "active": {
+          "title": "Aktiv",
+          "description": "Modulen är aktiv och synlig. Användare kan öppna och använda modulen."
+        },
+        "disabled": {
+          "title": "Avaktiverad",
+          "description": "Modulen syns men är utgråad och går inte att öppna. Användbart för att visa att modulen finns men inte är tillgänglig ännu."
+        },
+        "hidden": {
+          "title": "Inaktiverad",
+          "description": "Modulen syns inte alls och ärvs neråt i hierarkin. Användare kommer inte se modulen."
+        },
+        "comingSoon": {
+          "title": "Kommer snart",
+          "description": "Modulen syns utgråad med ett anpassat meddelande. Perfekt för marknadsföring och merförsäljning."
+        }
+      },
+      "comingSoonMessage": {
+        "label": "Meddelande",
+        "placeholder": "Ex. Kommer snart! Kontakta oss för mer information.",
+        "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen.",
+        "defaultMessage": "Kommer snart! Kontakta oss för mer information."
+      }
+    }
+  },
   "rbac": {
     "roles": {
       "owner": "Ägare",
@@ -881,6 +1352,71 @@
       "viewer": "Visare",
       "support": "Support"
     }
+  },
+  "adminModules": {
+    "title": "Moduler",
+    "description": "Globalt register över alla Nuxt-lager/moduler i portalen.",
+    "info": "Varje modul motsvarar ett Nuxt-lager. Tenant-admins aktiverar moduler per tenant och org-admins väljer vilka moduler som används i organisationen.",
+    "searchPlaceholder": "Sök moduler...",
+    "clearSearch": "Rensa sök",
+    "filters": {
+      "allCategories": "Alla kategorier",
+      "allScopes": "Alla nivåer"
+    },
+    "scopes": {
+      "tenant": "Tenant",
+      "org": "Organisation",
+      "user": "Användare"
+    },
+    "status": {
+      "active": "Aktiv",
+      "beta": "Beta",
+      "deprecated": "Utfasas",
+      "coming-soon": "Kommer snart"
+    },
+    "statusModal": {
+      "title": "Modulstatus",
+      "description": "Välj hur modulen ska visas och fungera.",
+      "options": {
+        "active": {
+          "title": "Aktiv",
+          "description": "Modulen är aktiv och synlig. Användare kan öppna och använda modulen."
+        },
+        "disabled": {
+          "title": "Avaktiverad",
+          "description": "Modulen syns men är utgråad och går inte att öppna. Användbart för att visa att modulen finns men inte är tillgänglig ännu."
+        },
+        "hidden": {
+          "title": "Inaktiverad",
+          "description": "Modulen syns inte alls och ärvs neråt i hierarkin. Användare kommer inte se modulen."
+        },
+        "comingSoon": {
+          "title": "Kommer snart",
+          "description": "Modulen syns utgråad med ett anpassat meddelande. Perfekt för marknadsföring och merförsäljning."
+        }
+      },
+      "comingSoonMessage": {
+        "label": "Meddelande",
+        "placeholder": "Ex. Kommer snart! Kontakta oss för mer information.",
+        "hint": "Detta meddelande visas när användare hovrar över eller klickar på modulen."
+      }
+    },
+    "layerLabel": "Lager:",
+    "moduleRoles": "Modulroller",
+    "openModule": "Öppna modul",
+    "routeLabel": "Route:",
+    "results": "{count} moduler",
+    "empty": "Inga moduler registrerade ännu.",
+    "loading": "Laddar moduler...",
+    "enabledStatus": "Aktiveringsstatus",
+    "enabled": "Aktiverad",
+    "disabled": "Ej aktiverad",
+    "enabledState": {
+      "enabled": "Aktiverad",
+      "disabled": "Ej aktiverad"
+    },
+    "disabledNote": "Modulen måste aktiveras innan den syns för distributörer, leverantörer och organisationer.",
+    "manageStatus": "Hantera status"
   },
   "adminTenants": {
     "title": "Tenants",
@@ -902,11 +1438,46 @@
       "provider": "Leverantör",
       "organization": "Organisation"
     },
-    "members": "{count} medlemmar",
+    "statuses": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "suspended": "Avstängd"
+    },
+    "membersCount": "{count} medlemmar",
     "organizations": "{count} organisationer",
     "toggleOrgs": {
       "show": "Visa organisationer",
       "hide": "Dölj organisationer"
+    },
+    "modules": {
+      "back": "Tillbaka till tenant",
+      "title": "Moduler för {name}",
+      "description": "Aktivera eller avaktivera moduler för denna tenant. Organisationer under tenant:en kan bara använda moduler som är aktiverade här.",
+      "resync": "Resync moduler",
+      "resyncing": "Synkar...",
+      "resyncSuccess": "Resync klar: {modules} moduler uppdaterade, {added} permissions tillagda, {removed} permissions borttagna, {reactivated} permissions återaktiverade.",
+      "resyncError": "Kunde inte synka moduler.",
+      "searchPlaceholder": "Sök moduler...",
+      "filters": {
+        "allCategories": "Alla kategorier"
+      },
+      "results": "{count} moduler",
+      "loading": "Laddar moduler...",
+      "empty": "Inga moduler tillgängliga ännu.",
+      "routeLabel": "Route:",
+      "policyTitle": "Modulpolicy",
+      "modes": {
+        "inherit": "Ärver uppströms",
+        "default-closed": "Default av (endast användaröverskrivningar)",
+        "allowlist": "Tillåt specifika rättigheter",
+        "blocked": "Blockerad"
+      },
+      "allowedRolesLabel": "Tillåtna roller",
+      "loadingPermissions": "Laddar permissions...",
+      "noPermissions": "Inga permissions deklarerade",
+      "updateFailed": "Kunde inte uppdatera modulpolicy.",
+      "manageStatus": "Hantera status",
+      "cannotManageStatusReason": "Modulen måste vara aktiverad globalt för att kunna hantera status här."
     },
     "emailOverride": {
       "active": "E-post override aktiv",
@@ -992,6 +1563,7 @@
         "role": "Roll",
         "mspRoles": "MSP-roller",
         "allOrgs": "Alla orgar",
+        "orgScope": "Org Scope",
         "status": "Status",
         "added": "Tillagd",
         "actions": "Åtgärder"
@@ -1001,12 +1573,53 @@
         "addMspRole": "Lägg till en MSP-roll i listan ovan för att kunna aktivera åtkomst till alla organisationer."
       },
       "mspRoles": {
-        "none": "Inga MSP-roller tillgängliga"
+        "none": "Inga MSP-roller tillgängliga",
+        "createLink": "Skapa MSP-roller →",
+        "showPermissions": "Visa vad detta ger",
+        "descriptions": {
+          "globalAdmin": "Fullständig admin-åtkomst till alla moduler",
+          "globalReader": "Skrivskyddad åtkomst till alla moduler",
+          "cloudflareAdmin": "Fullständig admin-åtkomst till Cloudflare DNS-modulen",
+          "containersAdmin": "Fullständig admin-åtkomst till Containers-modulen",
+          "vmsAdmin": "Fullständig admin-åtkomst till VMs-modulen",
+          "wordpressAdmin": "Fullständig admin-åtkomst till WordPress-modulen",
+          "ncentralAdmin": "Fullständig admin-åtkomst till nCentral-modulen",
+          "monitoringAdmin": "Fullständig admin-åtkomst till Monitoring-modulen",
+          "managedServerAdmin": "Fullständig admin-åtkomst till Managed Server-modulen",
+          "dnsContainersAdmin": "Fullständig admin-åtkomst till Cloudflare DNS och Containers-moduler",
+          "infrastructureAdmin": "Fullständig admin-åtkomst till infrastrukturmoduler",
+          "fullAdmin": "Fullständig admin-åtkomst till alla moduler",
+          "default": "MSP-roll med specifika behörigheter"
+        }
       },
       "includeChildren": {
         "updating": "Uppdaterar...",
         "enabled": "Aktiverad",
         "notEnabled": "Inte aktiv"
+      },
+      "orgScope": {
+        "select": "Välj organisationer...",
+        "allActive": "Alla aktiva organisationer",
+        "count": "{count} valda"
+      },
+      "orgScopeModal": {
+        "title": "Välj organisationer för {name}",
+        "description": "Välj vilka organisationer denna medlem ska ha MSP-åtkomst till.",
+        "search": "Sök",
+        "searchPlaceholder": "Sök efter namn eller slug...",
+        "searchHint": "Sök för att se alla organisationer",
+        "noOrgs": "Inga organisationer tillgängliga",
+        "selected": "{count} av {total} valda",
+        "expiresAt": "Giltig till (valfritt)",
+        "expiresAtHint": "Lämna tomt för att inte sätta utgångsdatum.",
+        "note": "Anteckning (valfritt)",
+        "notePlaceholder": "Lägg till en anteckning om denna delegation...",
+        "effectiveAccess": "Effektiv åtkomst",
+        "organizationsCount": "Organisationer",
+        "permissions": "MSP-roller",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "cancel": "Avbryt"
       },
       "actions": {
         "disable": "Inaktivera",
@@ -1060,10 +1673,109 @@
         "includeChildrenUpdateFailed": "Kunde inte uppdatera åtkomst till alla organisationer.",
         "mspRolesUpdated": "MSP-roller uppdaterades.",
         "mspRolesUpdateFailed": "Kunde inte uppdatera MSP-roller.",
+        "orgScopeUpdated": "Org scope uppdaterades.",
+        "orgScopeUpdateFailed": "Kunde inte uppdatera org scope.",
         "disableConfirm": "Inaktivera {email}? Personen kan inte logga in förrän kontot aktiveras igen.",
         "removeConfirm": "Ta bort {email} permanent? Personen måste bjudas in på nytt för att få åtkomst.",
         "removeFailed": "Kunde inte ta bort medlemmen."
       }
+    },
+    "mspRoles": {
+      "back": "Tillbaka till tenant",
+      "title": "MSP-roller för {name}",
+      "description": "Hantera MSP-roller och deras behörigheter. MSP-roller definierar vilka modulpermissions som tilldelas till medlemmar med MSP-åtkomst.",
+      "results": "{count} roller",
+      "loading": "Laddar MSP-roller...",
+      "empty": "Inga MSP-roller skapade ännu. Klicka på \"Skapa\" för att skapa din första roll.",
+      "create": "Skapa MSP-roll",
+      "edit": "Redigera",
+      "clone": "Klona",
+      "delete": "Ta bort",
+      "permissions": "Behörigheter",
+      "noPermissions": "Inga behörigheter tilldelade",
+      "usedBy": "Används av {count} medlemmar",
+      "removedPermissions": "{count} borttagna permissions",
+      "removed": "Borttagen",
+      "deprecated": "Föråldrad",
+      "createTitle": "Skapa MSP-roll",
+      "editTitle": "Redigera MSP-roll",
+      "cancel": "Avbryt",
+      "save": "Spara",
+      "saving": "Sparar...",
+      "deleteConfirm": "Vill du verkligen ta bort rollen \"{name}\"?",
+      "selectAll": "Välj alla",
+      "deselectAll": "Avmarkera alla",
+      "loadingPermissions": "Laddar tillgängliga behörigheter...",
+      "noAvailablePermissions": "Inga tillgängliga behörigheter hittades.",
+        "form": {
+          "name": "Namn",
+          "namePlaceholder": "Cloudflare Admin",
+          "description": "Beskrivning",
+          "descriptionPlaceholder": "Fullständig admin-åtkomst till Cloudflare DNS-modulen",
+          "permissions": "Behörigheter",
+          "permissionsHint": "Välj vilka modulpermissions denna roll ska ge. Behörigheterna kommer från deklarerade moduler/plugins.",
+          "searchPlaceholder": "Sök moduler eller rättigheter...",
+          "noResults": "Inga moduler hittades"
+        },
+      "messages": {
+        "created": "MSP-rollen skapades.",
+        "updated": "MSP-rollen uppdaterades.",
+        "cloned": "MSP-rollen klonades.",
+        "deleted": "MSP-rollen togs bort.",
+        "error": "Kunde inte spara MSP-rollen.",
+        "cloneError": "Kunde inte klona MSP-rollen.",
+        "deleteError": "Kunde inte ta bort MSP-rollen.",
+        "createdFromTemplate": "MSP-rollen skapades från mall.",
+        "createFromTemplateError": "Kunde inte skapa roll från mall.",
+        "loadTemplatesError": "Kunde inte ladda tillgängliga mallar.",
+        "synced": "MSP-rollen synkades från mall.",
+        "syncError": "Kunde inte synka rollen från mall.",
+        "syncPreviewError": "Kunde inte ladda synkförhandsvisning.",
+        "promotedToTemplate": "MSP-rollmallen skapades i distributörens mallbibliotek.",
+        "promoteError": "Kunde inte skapa MSP-rollmall."
+      },
+      "createFromTemplate": "Skapa från mall...",
+      "fromTemplateTitle": "Skapa roll från mall",
+      "loadingTemplates": "Laddar tillgängliga mallar...",
+      "noTemplates": "Inga mallar tillgängliga. Kontakta din distributör.",
+      "selectTemplate": "Välj en mall att basera rollen på:",
+      "fromDistributor": "Från distributör",
+      "permissionsAvailable": "behörigheter tillgängliga",
+      "permissionsUnavailable": "behörigheter ej tillgängliga",
+      "optional": "valfritt",
+      "namePlaceholderFromTemplate": "Lämna tomt för att använda mallens namn",
+      "creating": "Skapar...",
+      "createRole": "Skapa roll",
+      "fromTemplate": "Från mall",
+      "updateAvailable": "Uppdatering tillgänglig",
+      "upToDate": "Synkad med mall",
+      "upgrade": "Uppgradera",
+      "syncTitle": "Uppgradera roll från mall",
+      "loadingSyncPreview": "Laddar förhandsvisning...",
+      "syncFrom": "Synka från",
+      "currentVersion": "Nuvarande version",
+      "modifiedLocally": "Rollen har modifierats lokalt",
+      "modifiedLocallyHint": "Rollen har ändrats sedan den senast synkades. Dina lokala ändringar kan skrivas över.",
+      "forceSync": "Fortsätt ändå (skriv över lokala ändringar)",
+      "syncStrategy": "Synkstrategi",
+      "strategyMerge": "Sammanfoga (behåll lokala tillägg)",
+      "strategyReplace": "Ersätt (exakt som mallen)",
+      "syncPreview": "Förhandsvisning av ändringar",
+      "permissionsToAdd": "behörigheter läggs till",
+      "permissionsToRemove": "behörigheter tas bort",
+      "permissionsUnchanged": "behörigheter oförändrade",
+      "permissionsSkipped": "behörigheter hoppa över (ej tillgängliga)",
+      "syncing": "Synkar...",
+      "applySync": "Tillämpa ändringar",
+      "promoteToTemplate": "Skapa MSP-rollmall",
+      "promoteToTemplateTitle": "Skapa MSP-rollmall från befintlig roll",
+      "promoteToTemplateDescription": "Kopiera denna roll till en distributörs mallbibliotek. MSP-rollmallen kan sedan publiceras och användas av andra leverantörer.",
+      "selectDistributor": "Välj distributör",
+      "noDistributors": "Ingen distributör kopplad till denna leverantör.",
+      "templateName": "Mallnamn",
+      "templateNamePlaceholder": "Lämna tomt för att använda rollens namn",
+      "promoting": "Skapar MSP-rollmall...",
+      "promoteButton": "Skapa MSP-rollmall"
     },
     "email": {
       "backToTenant": "← Tillbaka till tenant",
@@ -1249,6 +1961,8 @@
         "members": "Medlemmar",
         "emailSettings": "E-postinställningar",
         "modulePermissions": "Modulrättigheter",
+        "mspRoles": "MSP-roller",
+        "roleTemplates": "MSP-rollmallar",
         "branding": "Branding",
         "auditLogs": "Audit Loggar",
         "delete": "Ta bort permanent",
@@ -1304,6 +2018,65 @@
         },
         "confirmSlug": "Bekräfta slug",
         "confirmText": "Bekräfta åtgärden genom att skriva in {possessive} slug ({slug}) och markera att du förstår konsekvenserna. {extra}"
+      }
+    }
+  },
+  "adminDistributors": {
+    "templates": {
+      "back": "← Tillbaka till distributör",
+      "breadcrumb": "Distributör",
+      "title": "MSP-rollmallar - {name}",
+      "description": "Hantera MSP-rollmallar som leverantörer kan använda för att skapa MSP-roller.",
+      "results": "{count} mallar",
+      "loading": "Laddar mallar...",
+      "empty": "Inga MSP-rollmallar skapade ännu. Klicka på \"Skapa MSP-rollmall\" för att börja.",
+      "create": "Skapa MSP-rollmall",
+      "edit": "Redigera",
+      "delete": "Ta bort",
+      "publish": "Publicera",
+      "unpublish": "Avpublicera",
+      "published": "Publicerad",
+      "unpublished": "Opublicerad",
+      "permissions": "Behörigheter",
+      "noPermissions": "Inga behörigheter tilldelade",
+      "usedBy": "Används av {count} leverantörsroller",
+      "permissionCount": "{count} behörigheter",
+      "removed": "Borttagen",
+      "deprecated": "Föråldrad",
+      "createTitle": "Skapa MSP-rollmall",
+      "editTitle": "Redigera MSP-rollmall",
+      "cancel": "Avbryt",
+      "save": "Spara",
+      "saving": "Sparar...",
+      "deleteConfirm": "Vill du verkligen ta bort MSP-rollmallen \"{name}\"?",
+      "selectAll": "Välj alla",
+      "deselectAll": "Avmarkera alla",
+      "loadingPermissions": "Laddar tillgängliga behörigheter...",
+      "noAvailablePermissions": "Inga tillgängliga behörigheter hittades.",
+      "showUnpublished": "Visa opublicerade",
+      "form": {
+        "key": "Nyckel",
+        "keyPlaceholder": "cloudflare-admin",
+        "keyHint": "Unik identifierare för mallen. Prefix 'msp-template-' läggs till automatiskt.",
+        "name": "Namn",
+        "namePlaceholder": "Cloudflare Admin Mall",
+        "description": "Beskrivning",
+        "descriptionPlaceholder": "Fullständig admin-åtkomst till Cloudflare DNS-modulen",
+        "permissions": "Behörigheter",
+        "permissionsHint": "Välj vilka modulpermissions denna MSP-rollmall ska innehålla.",
+        "searchPlaceholder": "Sök moduler eller rättigheter...",
+        "noResults": "Inga moduler hittades"
+      },
+      "messages": {
+        "created": "MSP-rollmallen skapades.",
+        "updated": "MSP-rollmallen uppdaterades.",
+        "published": "MSP-rollmallen publicerades och är nu tillgänglig för leverantörer.",
+        "unpublished": "MSP-rollmallen avpublicerades.",
+        "deleted": "MSP-rollmallen togs bort.",
+        "error": "Kunde inte spara MSP-rollmallen.",
+        "publishError": "Kunde inte publicera MSP-rollmallen.",
+        "unpublishError": "Kunde inte avpublicera MSP-rollmallen.",
+        "deleteError": "Kunde inte ta bort MSP-rollmallen."
       }
     }
   },

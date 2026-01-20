@@ -5,6 +5,8 @@ export interface EmailRecipient {
   name?: string
 }
 
+export type EmailLocale = 'sv' | 'en'
+
 export interface EmailBranding {
   logoUrl?: string
   accentColor?: string
@@ -26,6 +28,7 @@ export interface EmailTemplateInput {
   pretitle?: string
   title?: string
   intro?: string
+  locale?: EmailLocale
   body: string[]
   action?: {
     label: string
@@ -35,6 +38,7 @@ export interface EmailTemplateInput {
 }
 
 export interface InvitationTemplateInput {
+  locale?: EmailLocale
   organisationName: string
   invitedBy: string
   role: string
@@ -44,6 +48,7 @@ export interface InvitationTemplateInput {
 }
 
 export interface PasswordResetTemplateInput {
+  locale?: EmailLocale
   resetUrl: string
   expiresAt: string
   branding?: EmailBranding

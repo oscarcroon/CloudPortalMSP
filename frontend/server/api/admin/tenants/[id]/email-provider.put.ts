@@ -48,8 +48,10 @@ export default defineEventHandler(async (event) => {
           fromEmail: payload.fromEmail,
           fromName: payload.fromName,
           replyToEmail: payload.replyToEmail,
+          emailLanguage: payload.emailLanguage,
           subjectPrefix: payload.subjectPrefix?.trim() || null,
           supportContact: payload.supportContact?.trim() || null,
+          emailDarkMode: payload.emailDarkMode,
           isActive: payload.isActive ?? false,
           provider: buildSecretsFromPayload(payload.provider, payload.fromEmail, existing)
         })
@@ -57,8 +59,10 @@ export default defineEventHandler(async (event) => {
           fromEmail: payload.fromEmail,
           fromName: payload.fromName,
           replyToEmail: payload.replyToEmail,
+          emailLanguage: payload.emailLanguage,
           subjectPrefix: payload.subjectPrefix?.trim() || null,
           supportContact: payload.supportContact?.trim() || null,
+          emailDarkMode: payload.emailDarkMode,
           isActive: payload.isActive ?? false,
           provider: buildSecretsFromPayload(payload.provider, payload.fromEmail, existing)
         })

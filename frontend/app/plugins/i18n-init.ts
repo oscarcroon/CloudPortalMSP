@@ -13,7 +13,7 @@ const resolveHeaderLocale = (acceptLanguage?: string | string[] | null) => {
 export default defineNuxtPlugin(async (nuxtApp) => {
   const auth = useAuth()
   const supportedCodes = new Set(SUPPORTED_LOCALE_CODES)
-  const i18n = nuxtApp.$i18n
+  const i18n = nuxtApp.$i18n as unknown as { setLocale: (locale: any) => Promise<void> }
 
   let targetLocale = DEFAULT_LOCALE
   const userLocale = auth.user.value?.locale

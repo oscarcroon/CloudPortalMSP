@@ -9,13 +9,13 @@ export const getClientIP = (event: H3Event): string | null => {
   const xForwardedFor = event.node.req.headers['x-forwarded-for']
   if (xForwardedFor) {
     const ips = Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor
-    return ips.split(',')[0].trim()
+    return ips ? ips.split(',')[0]?.trim() ?? null : null
   }
 
   // Try x-real-ip header
   const xRealIp = event.node.req.headers['x-real-ip']
   if (xRealIp) {
-    return Array.isArray(xRealIp) ? xRealIp[0] : xRealIp
+    return Array.isArray(xRealIp) ? xRealIp[0] ?? null : xRealIp ?? null
   }
 
   // Fallback to socket remote address

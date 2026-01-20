@@ -416,7 +416,7 @@ const activeAccentColor = computed(
   () => brandingDetails.value?.activeTheme.accentColor ?? DEFAULT_BRANDING_ACCENT
 )
 const activeNavBackgroundColor = computed(
-  () => brandingDetails.value?.activeTheme.navBackgroundColor ?? DEFAULT_NAV_BACKGROUND
+  () => brandingDetails.value?.activeTheme.navigationBackgroundColor ?? DEFAULT_NAV_BACKGROUND
 )
 const navColorInput = computed({
   get: () => navColor.value || activeNavBackgroundColor.value,

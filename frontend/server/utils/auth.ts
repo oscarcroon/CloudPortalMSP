@@ -2,7 +2,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { createError } from 'h3'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, or, gt } from 'drizzle-orm'
 import { createId } from '@paralleldrive/cuid2'
 import { getDb } from './db'
 import type { DrizzleDb } from './db'
@@ -16,7 +16,8 @@ import {
   tenantMemberships,
   tenants,
   users,
-  userModuleFavorites
+  userModuleFavorites,
+  mspOrgDelegations
 } from '../database/schema'
 import type { AuthOrganization, AuthState, AuthTenant } from '../types/auth'
 import type { RbacRole, TenantRole } from '~/constants/rbac'
@@ -152,6 +153,41 @@ export const buildAuthState = async (
     }
   }
 
+  // Delegation-baserade orgar (MSP → Org)
+  const delegationRows = await db
+    .select({
+      org: organizations,
+      delegation: mspOrgDelegations
+    })
+    .from(mspOrgDelegations)
+    .innerJoin(organizations, eq(organizations.id, mspOrgDelegations.orgId))
+    .where(and(eq(mspOrgDelegations.subjectId, userId), eq(mspOrgDelegations.subjectType, 'user')))
+
+  const now = Date.now()
+  for (const row of delegationRows) {
+    const expiresAt = row.delegation.expiresAt
+    const isExpired = expiresAt !== null && expiresAt !== undefined && expiresAt <= now
+    const isRevoked = row.delegation.revokedAt !== null && row.delegation.revokedAt !== undefined
+    if (isExpired || isRevoked) continue
+    const already = organizationPayload.some((org) => org.id === row.org.id)
+    if (already) continue
+    organizationPayload.push({
+      id: row.org.id,
+      name: row.org.name,
+      slug: row.org.slug,
+      status: row.org.status,
+      isSuspended: Boolean(row.org.isSuspended),
+      logoUrl: normalizeStoredLogoUrl(row.org.logoUrl),
+      requireSso: Boolean(row.org.requireSso),
+      hasLocalLoginOverride: false,
+      role: 'viewer',
+      tenantId: row.org.tenantId ?? null,
+      lastAccessedAt: null,
+      accessType: 'delegation',
+      expiresAt: expiresAt ?? null
+    } as any)
+  }
+
   const tenantRows = await fetchTenantMembershipRows(userId)
   const tenantRoles: Record<string, TenantRole> = {}
   const tenantIncludeChildren: Record<string, boolean> = {}
@@ -223,6 +259,7 @@ export const buildAuthState = async (
   }
 
   // Add proxy organizations for resolvedOrgId if user has access via tenant + includeChildren
+  // Also add for superadmins who can access any organization
   if (resolvedOrgId && !orgRoles[resolvedOrgId]) {
     const [resolvedOrg] = await db
       .select({
@@ -240,7 +277,9 @@ export const buildAuthState = async (
 
     if (resolvedOrg) {
       const proxyRole = deriveProxyRoleForTenant(resolvedOrg.tenantId)
-      if (proxyRole) {
+      // Superadmins can access any organization - give them admin role
+      const effectiveRole = proxyRole ?? (user.isSuperAdmin ? 'admin' : null)
+      if (effectiveRole) {
         const proxyOrg: AuthOrganization = {
           id: resolvedOrg.id,
           name: resolvedOrg.name,
@@ -249,14 +288,14 @@ export const buildAuthState = async (
           isSuspended: Boolean(resolvedOrg.isSuspended),
           logoUrl: normalizeStoredLogoUrl(resolvedOrg.logoUrl),
           requireSso: Boolean(resolvedOrg.requireSso),
-          hasLocalLoginOverride: false,
-          role: proxyRole,
+          hasLocalLoginOverride: user.isSuperAdmin, // Superadmins can bypass SSO
+          role: effectiveRole,
           tenantId: resolvedOrg.tenantId ?? null,
           lastAccessedAt: null,
-          accessType: 'msp'
+          accessType: user.isSuperAdmin && !proxyRole ? 'superadmin' : 'msp'
         }
         organizationPayload.push(proxyOrg)
-        orgRoles[proxyOrg.id] = proxyRole
+        orgRoles[proxyOrg.id] = effectiveRole
       }
     }
   }
@@ -689,8 +728,70 @@ export const setUserDefaultOrg = async (userId: string, organizationId: string |
 }
 
 export const listOrganizationsForUser = async (userId: string) => {
-  const rows = await fetchMembershipRows(userId)
-  return rows.map((row) => mapOrgRow(row, row.membership.role as RbacRole))
+  const db = getDb()
+  
+  // Get direct organization memberships
+  const directRows = await fetchMembershipRows(userId)
+  const directOrgs = directRows.map((row) => mapOrgRow(row, row.membership.role as RbacRole, false))
+  
+  // Get organizations accessible via MSP delegations
+  const now = new Date()
+  const delegatedOrgs = await db
+    .select({
+      org: organizations,
+      auth: organizationAuthSettings
+    })
+    .from(mspOrgDelegations)
+    .innerJoin(organizations, eq(organizations.id, mspOrgDelegations.orgId))
+    .leftJoin(
+      organizationAuthSettings,
+      eq(organizationAuthSettings.organizationId, organizations.id)
+    )
+    .where(
+      and(
+        eq(mspOrgDelegations.subjectType, 'user'),
+        eq(mspOrgDelegations.subjectId, userId),
+        isNull(mspOrgDelegations.revokedAt),
+        or(
+          isNull(mspOrgDelegations.expiresAt),
+          gt(mspOrgDelegations.expiresAt, now)
+        ),
+        eq(organizations.status, 'active')
+      )
+    )
+  
+  // Map delegated organizations (use default role 'viewer' for MSP access)
+  const delegatedOrgList = delegatedOrgs.map((row) => ({
+    id: row.org.id,
+    name: row.org.name,
+    slug: row.org.slug,
+    status: row.org.status,
+    isSuspended: Boolean(row.org.isSuspended),
+    logoUrl: normalizeStoredLogoUrl(row.org.logoUrl),
+    requireSso: Boolean(row.org.requireSso),
+    hasLocalLoginOverride: false, // MSP users don't get local login override
+    role: 'viewer' as RbacRole, // Default role for MSP access
+    tenantId: row.org.tenantId ?? null,
+    lastAccessedAt: null,
+    accessType: 'delegated' as const
+  }))
+  
+  // Combine and deduplicate by org ID (direct access takes precedence)
+  const orgMap = new Map<string, AuthOrganization>()
+  
+  // Add direct organizations first
+  for (const org of directOrgs) {
+    orgMap.set(org.id, org)
+  }
+  
+  // Add delegated organizations (skip if already in map)
+  for (const org of delegatedOrgList) {
+    if (!orgMap.has(org.id)) {
+      orgMap.set(org.id, org)
+    }
+  }
+  
+  return Array.from(orgMap.values())
 }
 
 export const listOrganizationsForEmail = async (email: string) => {

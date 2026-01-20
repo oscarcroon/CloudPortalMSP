@@ -15,9 +15,13 @@ backend/    Node (Express + TypeScript) API gateway
 
    Ladda ner och installera Node.js 24 LTS från [nodejs.org](https://nodejs.org/).
 
-2. **Installera dependencies**
+2. **Installera dependencies och setup**
 
 ```bash
+# Installera alla dependencies (root, frontend, backend)
+npm run install:all
+
+# Eller manuellt:
 cd frontend && npm install
 cd ../backend && npm install
 ```
@@ -40,12 +44,19 @@ npm install better-sqlite3
 cp env.example .env.local
 ```
 
-5. **Seed användare**
+5. **Initialisera databas och seed användare**
 
 ```bash
+# Enkelt sätt - gör allt automatiskt:
+npm run setup
+
+# Eller manuellt:
 cd frontend
-npm run seed:user
+npm run db:push    # Skapar databastabellerna
+npm run seed:user  # Skapar superadmin-användare
 ```
+
+**Notera:** `seed:user` kommer automatiskt att köra `db:push` om tabellerna saknas, så du kan hoppa över det steget om du vill.
 
 6. **Starta utvecklingsservrar**
 

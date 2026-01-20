@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .mod-cloudflare-dns-panel {
+    @apply border border-slate-200 bg-white/90 text-slate-900 shadow-card rounded-2xl p-6 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50;
+  }
+
+  .mod-cloudflare-dns-badge {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200;
+  }
+}
+
+

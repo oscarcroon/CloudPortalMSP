@@ -37,10 +37,17 @@
         </li>
         <li v-for="module in visiblePrimaryModules" :key="module.id">
           <NuxtLink
-            :to="module.routePath"
-            class="flex items-center gap-2 whitespace-nowrap py-2 transition hover:[background-color:var(--nav-hover-color)] hover:text-brand-light"
-            :class="isNavActive(module.routePath) ? 'text-brand-light border-b border-brand-light bg-[color:var(--nav-active-color)]' : 'text-white'"
+            :to="module.disabled ? '#' : module.routePath"
+            class="flex items-center gap-2 whitespace-nowrap py-2 transition"
+            :class="[
+              module.disabled
+                ? 'text-white/50 cursor-not-allowed'
+                : isNavActive(module.routePath)
+                  ? 'text-brand-light border-b border-brand-light bg-[color:var(--nav-active-color)] hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+                  : 'text-white hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+            ]"
             :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
+            @click.prevent="module.disabled ? undefined : undefined"
           >
             <Icon v-if="module.icon" :icon="module.icon" class="h-4 w-4 flex-shrink-0" />
             <span>{{ module.name }}</span>
@@ -61,10 +68,17 @@
             >
               <li v-for="module in overflowNavModules" :key="module.id">
                 <NuxtLink
-                  :to="module.routePath"
-                  class="flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition hover:[background-color:var(--nav-hover-color)] hover:text-brand-light"
-                  :class="isNavActive(module.routePath) ? 'text-brand-light bg-[color:var(--nav-active-color)]' : 'text-white'"
+                  :to="module.disabled ? '#' : module.routePath"
+                  class="flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition"
+                  :class="[
+                    module.disabled
+                      ? 'text-white/50 cursor-not-allowed'
+                      : isNavActive(module.routePath)
+                        ? 'text-brand-light bg-[color:var(--nav-active-color)] hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+                        : 'text-white hover:[background-color:var(--nav-hover-color)] hover:text-brand-light'
+                  ]"
                   :style="{ '--nav-hover-color': navHoverColor, '--nav-active-color': navActiveColor }"
+                  @click.prevent="module.disabled ? undefined : undefined"
                 >
                   <Icon v-if="module.icon" :icon="module.icon" class="h-4 w-4 flex-shrink-0" />
                   <span>{{ module.name }}</span>
@@ -116,9 +130,12 @@
       <NuxtLink
         v-for="module in mobileNavModules"
         :key="module.id"
-        :to="module.routePath"
-        class="flex items-center gap-2 py-2 text-sm text-white"
-        @click="mobileOpen = false"
+        :to="module.disabled ? '#' : module.routePath"
+        :class="[
+          'flex items-center gap-2 py-2 text-sm',
+          module.disabled ? 'text-white/50 cursor-not-allowed' : 'text-white'
+        ]"
+        @click="module.disabled ? undefined : (mobileOpen = false)"
       >
         <Icon v-if="module.icon" :icon="module.icon" class="h-4 w-4 flex-shrink-0" />
         <span>{{ module.name }}</span>
@@ -144,13 +161,14 @@
 
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
-import { computed, ref, useI18n } from '#imports'
+import { computed, onMounted, ref, useI18n, useRoute } from '#imports'
 import { useWindowSize } from '@vueuse/core'
 import ContextSwitcher from '~/components/navigation/ContextSwitcher.vue'
 import { useAuth } from '~/composables/useAuth'
 import { useModules, type VisibleModule } from '~/composables/useModules'
 import { useFavorites } from '~/composables/useFavorites'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
+import { usePermission } from '~/composables/usePermission'
 import { normalizeLogoUrl } from '~/utils/logo'
 import { DEFAULT_NAV_BACKGROUND } from '~~/shared/branding'
 
@@ -171,6 +189,7 @@ const defaultLogo = defaultLogoAsset
 const modulesStore = useModules()
 const { favoriteModules, nonFavoriteModules } = useFavorites()
 const { width } = useWindowSize()
+const { can } = usePermission()
 
 const activeLogo = computed(() => {
   const orgLogoUrl = auth.currentOrg.value?.logoUrl
@@ -181,14 +200,23 @@ const activeOrganisationName = computed(
   () => auth.currentOrg.value?.name ?? 'CoreIT Cloud Portal'
 )
 const navBackgroundColor = computed(
-  () => auth.branding.value?.activeTheme.navBackgroundColor ?? DEFAULT_NAV_BACKGROUND
+  () => auth.branding.value?.activeTheme.navigationBackgroundColor ?? DEFAULT_NAV_BACKGROUND
 )
 const navHoverColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0.10))
 const navActiveColor = computed(() => mixColor(navBackgroundColor.value, '#FFFFFF', 0))
 
-const accessibleModules = computed(() =>
-  modulesStore.modules.value.filter((module: VisibleModule) => !module.disabled)
-)
+const accessibleModules = computed(() => {
+  const list = modulesStore.modules.value ?? []
+  if (!Array.isArray(list)) return []
+  // Filtrera bort moduler som är:
+  // 1. Helt inaktiverade (enabled === false)
+  // 2. Avaktiverade (disabled === true) - dessa ska inte visas i navigationen
+  // 3. "Kommer snart" (disabled === true med comingSoonMessage) - dessa ska inte visas i navigationen
+  return list.filter((module: VisibleModule) => {
+    // Visa endast moduler som är enabled OCH inte disabled
+    return module.effectiveEnabled !== false && !module.disabled
+  })
+})
 
 const dedupeModules = (items: VisibleModule[]) => {
   const seen = new Set<string>()
@@ -211,7 +239,10 @@ const primaryNavSource = computed(() => {
 })
 
 const maxPrimaryLinks = computed(() => {
-  const currentWidth = width.value
+  // Use a consistent default width on server to avoid hydration mismatch
+  // On server, width.value will be undefined, so we use 0 to get the default (2)
+  // On client, use the actual width value
+  const currentWidth = process.client && width.value ? width.value : 0
   if (currentWidth >= 1600) return 6
   if (currentWidth >= 1360) return 5
   if (currentWidth >= 1100) return 4
@@ -242,16 +273,34 @@ const mobileNavModules = computed(() => {
   return dedupeModules([...favoriteModules.value, ...nonFavoriteModules.value])
 })
 
+const canManageOrg = can('org:manage')
+
+const getTenantTypeIcon = (type: string | undefined): string => {
+  switch (type) {
+    case 'distributor':
+      return 'mdi:city'
+    case 'provider':
+      return 'mdi:store'
+    default:
+      return 'mdi:office-building-outline'
+  }
+}
+
 const adminNavItems = computed(() => {
-  const items = [{ label: t('nav.settings'), to: '/settings', icon: 'mdi:cog' }]
+  const items = []
+
+  if (canManageOrg.value) {
+    items.push({ label: t('nav.settings'), to: '/settings', icon: 'mdi:cog' })
+  }
   const hasTenantAccess =
     auth.isSuperAdmin.value ||
     Object.keys(auth.state.value.data?.tenantRoles ?? {}).length > 0
   if (hasTenantAccess) {
-    items.push({ label: t('nav.tenants'), to: '/admin/tenants', icon: 'mdi:account-group' })
+    const tenantIcon = getTenantTypeIcon(auth.currentTenant.value?.type)
+    items.push({ label: t('nav.tenantAdmin'), to: '/tenant-admin', icon: tenantIcon })
   }
   if (auth.isSuperAdmin.value) {
-    items.push({ label: t('nav.superadmin'), to: '/admin/settings', icon: 'mdi:shield-crown' })
+    items.push({ label: t('nav.superadmin'), to: '/platform-admin', icon: 'mdi:shield-crown' })
   }
   return items
 })
@@ -292,5 +341,9 @@ function hexToRgbArray(hex: string | null | undefined): [number, number, number]
   }
   return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255]
 }
+
+onMounted(async () => {
+  await modulesStore.fetchVisibleModules()
+})
 </script>
 

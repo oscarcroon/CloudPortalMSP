@@ -3,6 +3,14 @@
     <TopBar />
     <MainNavbar />
 
+    <!-- Operations Incident Banner -->
+    <IncidentBanner
+      v-if="hasActiveIncidents"
+      :incidents="activeIncidents"
+      :show-details="true"
+      @mute="handleMuteIncident"
+    />
+
     <div v-if="authError" class="mx-auto max-w-6xl px-4">
       <div class="mb-4 flex items-start justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-200">
         <p>{{ authError }}</p>
@@ -26,7 +34,14 @@
       </div>
     </div>
 
+  <div v-if="delegationBanner" class="mx-auto max-w-6xl px-4">
+    <div class="mb-4 flex items-start justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-100">
+      <p>{{ delegationBanner.message }}</p>
+    </div>
+  </div>
+
     <main class="px-4 py-6 lg:px-10 max-w-6xl mx-auto w-full">
+      <Breadcrumb v-if="breadcrumbItems.length > 1" :items="breadcrumbItems" class="mb-4" />
       <slot />
     </main>
 
@@ -37,18 +52,125 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from '#imports'
+import { computed, onMounted, onUnmounted, ref, watch } from '#imports'
 import TopBar from '~/components/layout/TopBar.vue'
 import MainNavbar from '~/components/layout/MainNavbar.vue'
+import IncidentBanner from '~/components/operations/IncidentBanner.vue'
 import { useAuth } from '~/composables/useAuth'
+import { useBreadcrumbs } from '~/composables/useBreadcrumbs'
 
 const auth = useAuth()
 if (import.meta.client) {
   await auth.bootstrap()
 }
 
+// Operations feed - only load on client
+const activeIncidents = ref<any[]>([])
+const hasActiveIncidents = computed(() => activeIncidents.value.length > 0)
+
+let feedInstance: ReturnType<typeof useOperationsFeed> | null = null
+let lastFocusTime = 0
+const FOCUS_REFRESH_THROTTLE_MS = 5000 // Minimum 5 seconds between focus refreshes
+
+async function loadOperationsFeed() {
+  // Only run on client
+  if (import.meta.server) return
+  
+  try {
+    const { useOperationsFeed } = await import('~/composables/useOperationsFeed')
+    feedInstance = useOperationsFeed()
+    
+    // Initial fetch
+    await feedInstance.fetchFeed()
+    
+    // Watch for incidents
+    watch(() => feedInstance!.activeIncidents.value, (incidents) => {
+      activeIncidents.value = incidents
+    }, { immediate: true })
+    
+    // Watch for org/tenant changes and refetch
+    watch([() => auth.currentOrg.value?.id, () => auth.currentTenant.value?.id], async () => {
+      if (feedInstance) {
+        await feedInstance.fetchFeed()
+      }
+    })
+    
+    // Refresh feed when page becomes visible (user returns to tab/window)
+    // This helps show new incidents when user comes back to the tab
+    // Throttled to prevent excessive requests
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      window.addEventListener('focus', handleWindowFocus)
+    }
+  } catch (err) {
+    console.error('Failed to load operations feed:', err)
+  }
+}
+
+async function handleVisibilityChange() {
+  if (!document.hidden && feedInstance) {
+    // Page became visible, refresh feed (throttled)
+    const now = Date.now()
+    if (now - lastFocusTime > FOCUS_REFRESH_THROTTLE_MS) {
+      lastFocusTime = now
+      await feedInstance.fetchFeed()
+    }
+  }
+}
+
+async function handleWindowFocus() {
+  // Window gained focus, refresh feed (throttled)
+  if (feedInstance) {
+    const now = Date.now()
+    if (now - lastFocusTime > FOCUS_REFRESH_THROTTLE_MS) {
+      lastFocusTime = now
+      await feedInstance.fetchFeed()
+    }
+  }
+}
+
+onMounted(() => {
+  loadOperationsFeed()
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('focus', handleWindowFocus)
+  }
+})
+
+async function handleMuteIncident(incident: { id: string }) {
+  try {
+    if (feedInstance) {
+      // Use personal mute (per user) as default from banner
+      await feedInstance.muteIncidentForUser(incident.id)
+    } else {
+      // Fallback if feed not loaded yet - use new user mute endpoint
+      await $fetch(`/api/operations/incidents/${incident.id}/mute`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      // Remove from local list
+      activeIncidents.value = activeIncidents.value.filter((i) => i.id !== incident.id)
+    }
+  } catch (err) {
+    console.error('Failed to mute incident:', err)
+  }
+}
+
 const authError = computed(() => auth.state.value.error)
 const currentOrg = auth.currentOrg
+const delegationBanner = computed(() => {
+  const org = currentOrg.value
+  if (!org || org.accessType !== 'delegation') return null
+  const expires = org.expiresAt
+  const expiresText = expires ? `Gäller till ${new Date(expires).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}` : 'Ingen sluttid angiven.'
+  return {
+    message: `Åtkomst via delegation. ${expiresText}`
+  }
+})
 
 const clearAuthError = () => {
   auth.state.value.error = null
@@ -72,5 +194,7 @@ const ssoBanner = computed(() => {
     slug: org.slug
   }
 })
+
+const { items: breadcrumbItems } = useBreadcrumbs()
 </script>
 

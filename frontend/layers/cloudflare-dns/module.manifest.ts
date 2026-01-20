@@ -1,0 +1,47 @@
+import { definePluginManifest } from '../_shared/module-manifest'
+
+const manifest = definePluginManifest({
+  module: {
+    key: 'cloudflare-dns',
+    name: 'Cloudflare DNS',
+    description: 'Manage Cloudflare DNS zones, records och åtkomst.',
+    category: 'dns',
+    icon: 'mdi:cloud-outline'
+  },
+  permissions: [
+    { key: 'cloudflare-dns:view', description: 'View Cloudflare DNS zones and records.' },
+    { key: 'cloudflare-dns:edit_records', description: 'Create or update DNS records.' },
+    { key: 'cloudflare-dns:admin_zones', description: 'Create or delete zones and manage settings.' },
+    { key: 'cloudflare-dns:manage_org_config', description: 'Manage Cloudflare API token for the organization.' },
+    { key: 'cloudflare-dns:manage_acls', description: 'Manage zone ACLs inside the plugin.' }
+  ],
+  rbacDefaults: {
+    owner: [
+      'cloudflare-dns:view',
+      'cloudflare-dns:edit_records',
+      'cloudflare-dns:admin_zones',
+      'cloudflare-dns:manage_org_config',
+      'cloudflare-dns:manage_acls'
+    ],
+    admin: [
+        'cloudflare-dns:view',
+        'cloudflare-dns:edit_records',
+        'cloudflare-dns:admin_zones',
+      'cloudflare-dns:manage_org_config',
+        'cloudflare-dns:manage_acls'
+    ],
+    operator: [
+        'cloudflare-dns:view',
+        'cloudflare-dns:edit_records',
+        'cloudflare-dns:admin_zones',
+      'cloudflare-dns:manage_acls'
+    ],
+    member: ['cloudflare-dns:view'],
+    viewer: ['cloudflare-dns:view'],
+    support: ['cloudflare-dns:view']
+  }
+})
+
+export default manifest
+
+

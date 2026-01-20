@@ -1,7 +1,7 @@
 import { computed, useState } from '#imports'
 import type { ModuleId } from '~/constants/modules'
 import { useAuth } from './useAuth'
-import { useModules, type VisibleModule } from './useModules'
+import { useAvailableModules } from './useAvailableModules'
 
 const dedupeModuleIds = (ids: ModuleId[]): ModuleId[] => {
   const seen = new Set<ModuleId>()
@@ -18,18 +18,15 @@ const dedupeModuleIds = (ids: ModuleId[]): ModuleId[] => {
 
 export const useFavorites = () => {
   const auth = useAuth()
-  const { modules } = useModules()
+  const { modules } = useAvailableModules()
   const pending = useState('favorite-modules-pending', () => false)
 
   const favoriteIds = computed<ModuleId[]>(() => auth.state.value.data?.favoriteModules ?? [])
 
   const availableModuleMap = computed(() => {
-    const map = new Map<string, VisibleModule>()
+    const map = new Map<string, { key: string }>()
     for (const module of modules.value) {
-      if (module.disabled) {
-        continue
-      }
-      map.set(module.id, module)
+      map.set(module.key, module)
     }
     return map
   })
@@ -37,12 +34,12 @@ export const useFavorites = () => {
   const favoriteModules = computed(() => {
     return favoriteIds.value
       .map((id) => availableModuleMap.value.get(id))
-      .filter((module): module is VisibleModule => Boolean(module))
+      .filter((module): module is { key: string } => Boolean(module))
   })
 
   const nonFavoriteModules = computed(() => {
     return modules.value.filter(
-      (module) => !module.disabled && !favoriteIds.value.includes(module.id as ModuleId)
+      (module: any) => !favoriteIds.value.includes(module.key as ModuleId)
     )
   })
 

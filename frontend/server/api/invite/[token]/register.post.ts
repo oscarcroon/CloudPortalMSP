@@ -149,7 +149,7 @@ export default defineEventHandler(async (event) => {
             passwordHash,
             fullName: payload.fullName || existingUser.fullName,
             status: existingUser.status || 'active',
-            forcePasswordReset: 0,
+            forcePasswordReset: false,
             passwordResetTokenHash: null,
             passwordResetExpiresAt: null
           })
@@ -162,7 +162,7 @@ export default defineEventHandler(async (event) => {
             passwordHash,
             fullName: payload.fullName || existingUser.fullName,
             status: existingUser.status || 'active',
-            forcePasswordReset: 0,
+            forcePasswordReset: false,
             passwordResetTokenHash: null,
             passwordResetExpiresAt: null
           })
@@ -177,7 +177,7 @@ export default defineEventHandler(async (event) => {
           fullName: payload.fullName,
           status: 'active',
           passwordHash,
-          forcePasswordReset: 0
+          forcePasswordReset: false
         }).run()
       } else {
         await (db as any).insert(users).values({
@@ -186,14 +186,15 @@ export default defineEventHandler(async (event) => {
           fullName: payload.fullName,
           status: 'active',
           passwordHash,
-          forcePasswordReset: 0
+          forcePasswordReset: false
         })
       }
     }
 
     // Handle organization creation if organizationData exists
     if (organizationData) {
-      organizationId = createId()
+      const orgId = createId()
+      organizationId = orgId
       const finalSlug = organizationData.slug || slugify(organizationData.name)
 
       if (isSqlite) {
@@ -201,7 +202,7 @@ export default defineEventHandler(async (event) => {
           // Create organization
           tx.insert(organizations)
             .values({
-              id: organizationId,
+              id: orgId,
               name: organizationData.name,
               slug: finalSlug,
               tenantId: tenantInvitation.tenantId,
@@ -217,7 +218,7 @@ export default defineEventHandler(async (event) => {
           // Create auth settings
           tx.insert(organizationAuthSettings)
             .values({
-              organizationId,
+              organizationId: orgId,
               idpType: 'none',
               ssoEnforced: false,
               allowLocalLoginForOwners: true
@@ -228,7 +229,7 @@ export default defineEventHandler(async (event) => {
           tx.insert(organizationMemberships)
             .values({
               id: createId(),
-              organizationId,
+              organizationId: orgId,
               userId,
               role: 'owner' as OrganizationMemberRole,
               status: 'active',
@@ -248,7 +249,7 @@ export default defineEventHandler(async (event) => {
         await db.transaction(async (tx) => {
           // Create organization
           await tx.insert(organizations).values({
-            id: organizationId,
+            id: orgId,
             name: organizationData.name,
             slug: finalSlug,
             tenantId: tenantInvitation.tenantId,
@@ -262,7 +263,7 @@ export default defineEventHandler(async (event) => {
 
           // Create auth settings
           await tx.insert(organizationAuthSettings).values({
-            organizationId,
+            organizationId: orgId,
             idpType: 'none',
             ssoEnforced: false,
             allowLocalLoginForOwners: true
@@ -271,7 +272,7 @@ export default defineEventHandler(async (event) => {
           // Create organization membership
           await tx.insert(organizationMemberships).values({
             id: createId(),
-            organizationId,
+            organizationId: orgId,
             userId,
             role: 'owner' as OrganizationMemberRole,
             status: 'active',
@@ -470,7 +471,7 @@ export default defineEventHandler(async (event) => {
           fullName: payload.fullName || existingUser.fullName,
           defaultOrgId: invitation.organizationId,
           status: existingUser.status || 'active',
-          forcePasswordReset: 0,
+          forcePasswordReset: false,
           passwordResetTokenHash: null,
           passwordResetExpiresAt: null
         })
@@ -484,7 +485,7 @@ export default defineEventHandler(async (event) => {
           fullName: payload.fullName || existingUser.fullName,
           defaultOrgId: invitation.organizationId,
           status: existingUser.status || 'active',
-          forcePasswordReset: 0,
+          forcePasswordReset: false,
           passwordResetTokenHash: null,
           passwordResetExpiresAt: null
         })
@@ -604,7 +605,7 @@ export default defineEventHandler(async (event) => {
       status: 'active',
       passwordHash,
       defaultOrgId: invitation.organizationId,
-      forcePasswordReset: 0
+      forcePasswordReset: false
     }).run()
 
     await (db as any).insert(organizationMemberships).values({
@@ -630,7 +631,7 @@ export default defineEventHandler(async (event) => {
       status: 'active',
       passwordHash,
       defaultOrgId: invitation.organizationId,
-      forcePasswordReset: 0
+      forcePasswordReset: false
     })
 
     await (db as any).insert(organizationMemberships).values({

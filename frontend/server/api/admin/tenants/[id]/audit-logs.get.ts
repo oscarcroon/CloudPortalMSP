@@ -27,7 +27,11 @@ export default defineEventHandler(async (event) => {
   const userId = query.userId as string | undefined
   const orgId = query.orgId as string | undefined
   const eventType = query.eventType as AuditEventType | undefined
-  const severity = query.severity as string | undefined
+  const severityRaw = query.severity as string | undefined
+  const allowedSeverities = new Set(['error', 'critical', 'warning', 'info'] as const)
+  const severity = allowedSeverities.has(severityRaw as any)
+    ? (severityRaw as (typeof allowedSeverities extends Set<infer T> ? T : never))
+    : undefined
   const startDate = query.startDate ? new Date(query.startDate as string) : undefined
   // Set endDate to end of day (23:59:59.999) to include the entire day
   const endDate = query.endDate ? (() => {
@@ -92,13 +96,19 @@ export default defineEventHandler(async (event) => {
     conditions.push(lte(auditLogs.createdAt, endDate))
   }
   
-  const whereClause = conditions.length === 1 ? conditions[0] : and(...conditions)
+  const clauses = conditions.filter(Boolean) as unknown[]
+  const whereClause =
+    clauses.length === 0
+      ? undefined
+      : clauses.length === 1
+        ? clauses[0]
+        : and(...(clauses as [any, ...any[]]))
   
   // Get total count
   const [countResult] = await db
     .select({ count: sql<number>`count(*)` })
     .from(auditLogs)
-    .where(whereClause)
+    .where(whereClause as any)
   
   const total = countResult?.count || 0
   
@@ -127,7 +137,7 @@ export default defineEventHandler(async (event) => {
     .leftJoin(users, eq(users.id, auditLogs.userId))
     .leftJoin(organizations, eq(organizations.id, auditLogs.orgId))
     .leftJoin(tenants, eq(tenants.id, auditLogs.tenantId))
-    .where(whereClause)
+    .where(whereClause as any)
     .orderBy(desc(auditLogs.createdAt))
     .limit(pageSize)
     .offset(offset)
@@ -198,7 +208,7 @@ const buildScopeCondition = (
       if (clauses.length === 0) {
         return noMatch
       }
-      return clauses.slice(1).reduce((acc, clause) => or(acc, clause!), clauses[0]!)
+      return clauses.slice(1).reduce((acc, clause) => or(acc as any, clause as any), clauses[0]! as any)
     }
   }
 }

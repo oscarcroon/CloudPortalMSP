@@ -1,195 +1,426 @@
 {
-  "version": "7",
   "dialect": "sqlite",
   "entries": [
     {
-      "idx": 0,
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0000_rich_ezekiel_stane",
       "version": "6",
-      "when": 1763644730389,
-      "tag": "0000_cute_switch",
-      "breakpoints": true
+      "idx": 0
     },
     {
-      "idx": 1,
-      "version": "6",
-      "when": 1763669612995,
-      "tag": "0001_super_admin",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1763730963403,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0002_admin_org_model",
-      "breakpoints": true
+      "version": "6",
+      "idx": 1
     },
     {
-      "idx": 3,
-      "version": "6",
-      "when": 1764000000000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0003_password_reset",
-      "breakpoints": true
+      "version": "6",
+      "idx": 2
     },
     {
-      "idx": 4,
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0004_email_provider",
       "version": "6",
-      "when": 1764003805659,
+      "idx": 3
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0004_unique_meggan",
-      "breakpoints": true
+      "version": "6",
+      "idx": 4
     },
     {
-      "idx": 5,
-      "version": "6",
-      "when": 1764080098429,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0005_dear_praxagora",
-      "breakpoints": true
+      "version": "6",
+      "idx": 5
     },
     {
-      "idx": 6,
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0005_ncentral_monitoring",
       "version": "6",
-      "when": 1764095733305,
+      "idx": 6
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0006_material_wiccan",
-      "breakpoints": true
+      "version": "6",
+      "idx": 7
     },
     {
-      "idx": 7,
-      "version": "6",
-      "when": 1764098688565,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0007_third_pandemic",
-      "breakpoints": true
+      "version": "6",
+      "idx": 8
     },
     {
-      "idx": 8,
-      "version": "6",
-      "when": 1764105214271,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0008_cooing_garia",
-      "breakpoints": true
+      "version": "6",
+      "idx": 9
     },
     {
-      "idx": 9,
-      "version": "6",
-      "when": 1764145051430,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0009_bitter_silver_samurai",
-      "breakpoints": true
+      "version": "6",
+      "idx": 10
     },
     {
-      "idx": 10,
-      "version": "6",
-      "when": 1764184418619,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0010_abandoned_rage",
-      "breakpoints": true
+      "version": "6",
+      "idx": 11
     },
     {
-      "idx": 11,
-      "version": "6",
-      "when": 1764184449301,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0011_demonic_shadowcat",
-      "breakpoints": true
+      "version": "6",
+      "idx": 12
     },
     {
-      "idx": 12,
-      "version": "6",
-      "when": 1764283855102,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0012_cynical_vapor",
-      "breakpoints": true
+      "version": "6",
+      "idx": 13
     },
     {
-      "idx": 13,
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0012_rbac_context_switch",
       "version": "6",
-      "when": 1764363946988,
+      "idx": 14
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0013_audit_logs_enhancement",
+      "version": "6",
+      "idx": 15
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0013_charming_hawkeye",
-      "breakpoints": true
+      "version": "6",
+      "idx": 16
     },
     {
-      "idx": 14,
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0013_module_policies",
       "version": "6",
-      "when": 1764364127618,
+      "idx": 17
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0014_add_disabled_to_module_policies",
+      "version": "6",
+      "idx": 18
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0014_sparkling_wendigo",
-      "breakpoints": true
+      "version": "6",
+      "idx": 19
     },
     {
-      "idx": 15,
-      "version": "6",
-      "when": 1764453762922,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0015_lean_prima",
-      "breakpoints": true
+      "version": "6",
+      "idx": 20
     },
     {
-      "idx": 16,
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0015_user_module_permissions",
       "version": "6",
-      "when": 1764663499392,
+      "idx": 21
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0016_empty_nehzno",
-      "breakpoints": true
+      "version": "6",
+      "idx": 22
     },
     {
-      "idx": 17,
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0016_module_roles",
       "version": "6",
-      "when": 1764860000000,
+      "idx": 23
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0017_module_role_overrides",
-      "breakpoints": true
+      "version": "6",
+      "idx": 24
     },
     {
-      "idx": 18,
-      "version": "6",
-      "when": 1764860001000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0018_login_branding",
-      "breakpoints": true
+      "version": "6",
+      "idx": 25
     },
     {
-      "idx": 19,
-      "version": "6",
-      "when": 1764860002000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0019_global_branding",
-      "breakpoints": true
+      "version": "6",
+      "idx": 26
     },
     {
-      "idx": 20,
-      "version": "6",
-      "when": 1764860003000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0020_navigation_branding",
-      "breakpoints": true
+      "version": "6",
+      "idx": 27
     },
     {
-      "idx": 21,
-      "version": "6",
-      "when": 1764860004000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0021_user_module_favorites",
-      "breakpoints": true
+      "version": "6",
+      "idx": 28
     },
     {
-      "idx": 22,
-      "version": "6",
-      "when": 1764860005000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0022_tenant_member_roles",
-      "breakpoints": true
+      "version": "6",
+      "idx": 29
     },
     {
-      "idx": 23,
-      "version": "6",
-      "when": 1764860006000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0023_org_email_disclaimer",
-      "breakpoints": true
+      "version": "6",
+      "idx": 30
     },
     {
-      "idx": 24,
-      "version": "6",
-      "when": 1764860007000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0024_email_provider_metadata",
-      "breakpoints": true
+      "version": "6",
+      "idx": 31
     },
     {
-      "idx": 25,
-      "version": "6",
-      "when": 1764860008000,
+      "breakpoints": true,
+      "when": 1765784406.509,
       "tag": "0025_email_dark_mode",
+      "version": "6",
+      "idx": 32
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0026_user_locale",
+      "version": "6",
+      "idx": 33
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0027_module_policy_mode",
+      "version": "6",
+      "idx": 34
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0028_plugin_registry",
+      "version": "6",
+      "idx": 35
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0029_plugin_tables_fix",
+      "version": "6",
+      "idx": 36
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0030_cloudflare_dns_plugin",
+      "version": "6",
+      "idx": 37
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0031_modules_enabled",
+      "version": "6",
+      "idx": 38
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0032_plugin_acl",
+      "version": "6",
+      "idx": 39
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0033_org_groups_slug",
+      "version": "6",
+      "idx": 40
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0034_drop_legacy_module_roles",
+      "version": "6",
+      "idx": 41
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0035_msp_org_delegations",
+      "version": "6",
+      "idx": 42
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0036_org_group_module_permissions",
+      "version": "6",
+      "idx": 43
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0037_fix_msp_delegation_permissions_fk",
+      "version": "6",
+      "idx": 44
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0038_add_coming_soon_message",
+      "version": "6",
+      "idx": 45
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0039_add_module_status_fields",
+      "version": "6",
+      "idx": 46
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0040_add_msp_delegation_source",
+      "version": "6",
+      "idx": 47
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0041_create_msp_roles",
+      "version": "6",
+      "idx": 48
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0042_add_module_permissions_lifecycle",
+      "version": "6",
+      "idx": 49
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0043_update_msp_roles_schema",
+      "version": "6",
+      "idx": 50
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0044_add_template_support",
+      "version": "6",
+      "idx": 51
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0045_recreate_member_module_role_overrides",
+      "version": "6",
+      "idx": 52
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.51,
+      "tag": "0046_windows_dns_coreid_first",
+      "version": "6",
+      "idx": 53
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.51,
+      "tag": "0047_org_api_tokens",
+      "version": "6",
+      "idx": 54
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.51,
+      "tag": "0048_windows_dns_blocked_zones",
+      "version": "6",
+      "idx": 55
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.51,
+      "tag": "0049_tenant_operations",
+      "version": "6",
+      "idx": 56
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1767643731832,
+      "tag": "0057_blushing_black_knight",
       "breakpoints": true
     },
     {
-      "idx": 26,
+      "idx": 58,
       "version": "6",
-      "when": 1764860010000,
-      "tag": "0026_user_locale",
+      "when": 1768681712819,
+      "tag": "0058_silky_titanium_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1768744056683,
+      "tag": "0059_mature_terrax",
       "breakpoints": true
     }
-  ]
+  ],
+  "version": "6"
 }

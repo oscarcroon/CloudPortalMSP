@@ -142,6 +142,12 @@
                     >
                       {{ t('settings.organizations.inactive') }}
                     </span>
+                    <span
+                      v-if="org.accessType === 'delegation'"
+                      class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-800 dark:text-emerald-100"
+                    >
+                      {{ t('settings.organizations.viaDelegation') }}
+                    </span>
                   </div>
                   <p class="text-xs text-slate-500 dark:text-slate-400">
                     {{ t('settings.organizations.role') }}: {{ org.role }}
@@ -151,6 +157,16 @@
                     >
                       <Icon icon="mdi:account-hard-hat" class="h-3 w-3" />
                       {{ t('settings.organizations.viaTenant') }}
+                    </span>
+                    <span
+                      v-else-if="org.accessType === 'delegation'"
+                      class="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100"
+                    >
+                      <Icon icon="mdi:account-key" class="h-3 w-3" />
+                      {{ t('settings.organizations.viaDelegation') }}
+                      <span v-if="org.expiresAt" class="text-[10px] text-emerald-700 dark:text-emerald-200">
+                        ({{ formatExpiry(org.expiresAt) }})
+                      </span>
                     </span>
                   </p>
                 </div>
@@ -211,17 +227,44 @@
               {{ t('settings.members.description') }}
             </p>
           </div>
-          <NuxtLink
-            to="/settings/members"
-            :aria-disabled="isSettingsLocked"
-            :tabindex="isSettingsLocked ? -1 : 0"
-            :class="[
-              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
-              { 'pointer-events-none opacity-50': isSettingsLocked }
-            ]"
-          >
-            {{ t('settings.open') }}
-          </NuxtLink>
+          <div class="flex flex-col gap-2">
+            <NuxtLink
+              to="/settings/members"
+              :aria-disabled="isSettingsLocked"
+              :tabindex="isSettingsLocked ? -1 : 0"
+              :class="[
+                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                { 'pointer-events-none opacity-50': isSettingsLocked }
+              ]"
+            >
+              <Icon icon="mdi:account" class="h-4 w-4" />
+              {{ t('settings.members.title') }}
+            </NuxtLink>
+            <NuxtLink
+              to="/settings/groups"
+              :aria-disabled="isSettingsLocked"
+              :tabindex="isSettingsLocked ? -1 : 0"
+              :class="[
+                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                { 'pointer-events-none opacity-50': isSettingsLocked }
+              ]"
+            >
+              <Icon icon="mdi:account-multiple" class="h-4 w-4" />
+              {{ t('settings.groups.title') }}
+            </NuxtLink>
+            <NuxtLink
+              to="/settings/delegations"
+              :aria-disabled="isSettingsLocked || !canManageOrg"
+              :tabindex="isSettingsLocked || !canManageOrg ? -1 : 0"
+              :class="[
+                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                { 'pointer-events-none opacity-50': isSettingsLocked || !canManageOrg }
+              ]"
+            >
+              <Icon icon="mdi:account-key" class="h-4 w-4" />
+              {{ t('settings.delegations.open') }}
+            </NuxtLink>
+          </div>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
           <li>• {{ t('settings.members.features.status') }}</li>
@@ -407,26 +450,66 @@
         </ul>
       </div>
 
-      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
-        <div class="flex items-center gap-3">
-          <Icon icon="mdi:key-outline" class="h-6 w-6 text-brand" />
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.apiTokens.title') }}</h2>
-        </div>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ t('settings.apiTokens.description') }}</p>
-        <div class="mt-4 space-y-3">
-          <div
-            v-for="token in tokens"
-            :key="token.name"
-            class="rounded-xl border border-dashed border-slate-300 px-4 py-3 dark:border-slate-600 dark:bg-slate-900/40"
-          >
-            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ token.name }}</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">{{ token.description }}</p>
-            <button class="mt-2 text-xs font-semibold text-brand hover:text-brand-dark dark:text-brand-light">
-              {{ t('settings.apiTokens.configure') }}
-            </button>
+      <div
+        :class="[
+          'rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70',
+          { 'pointer-events-none opacity-50': isSettingsLocked }
+        ]"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:key-outline" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.apiTokens.title') }}</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {{ t('settings.apiTokens.description') }}
+            </p>
           </div>
+          <NuxtLink
+            to="/settings/api-tokens"
+            :aria-disabled="isSettingsLocked"
+            :tabindex="isSettingsLocked ? -1 : 0"
+            :class="[
+              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+              { 'pointer-events-none opacity-50': isSettingsLocked }
+            ]"
+          >
+            {{ t('settings.open') }}
+          </NuxtLink>
         </div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <li>• {{ t('settings.apiTokens.features.create') }}</li>
+          <li>• {{ t('settings.apiTokens.features.scopes') }}</li>
+          <li>• {{ t('settings.apiTokens.features.revoke') }}</li>
+        </ul>
       </div>
+
+      <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:bell-outline" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.operations.title') }}</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {{ t('settings.operations.description') }}
+            </p>
+          </div>
+          <NuxtLink
+            to="/settings/operations"
+            class="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200"
+          >
+            {{ t('settings.open') }}
+          </NuxtLink>
+        </div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <li>• {{ t('settings.operations.features.viewAll') }}</li>
+          <li>• {{ t('settings.operations.features.manage') }}</li>
+          <li>• {{ t('settings.operations.features.unmute') }}</li>
+        </ul>
+      </div>
+
     </div>
   </section>
 </template>
@@ -437,7 +520,7 @@ import { Icon } from '@iconify/vue'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'
 import { matchesSearch } from '~/utils/search'
-import type { AuthOrganization } from '~~/server/types/auth'
+import type { AuthOrganization } from '~/types/auth'
 
 const { t } = useI18n()
 const auth = useAuth()
@@ -454,13 +537,6 @@ onMounted(async () => {
 const showContent = computed(() => {
   return auth.state.value.initialized && !auth.state.value.loading
 })
-
-const tokens = [
-  { name: 'Cloudflare API Token', description: 'DNS edit, zone read' },
-  { name: 'Incus Client Cert', description: 'Projekt access per tenant' },
-  { name: 'ESXi/Morpheus Service Account', description: 'VM control plane' },
-  { name: 'WordPress Management Token', description: 'REST Application password' }
-]
 
 const currentTenantId = computed(() => auth.state.value.data?.currentTenantId ?? null)
 const hasActiveTenant = computed(() => Boolean(currentTenantId.value))
@@ -524,6 +600,9 @@ const activeOrgAccessLabel = computed(() => {
   if (activeOrganization.value.accessType === 'msp') {
     return activeOrganization.value.role === 'admin' ? t('settings.organizations.adminViaTenant') : t('settings.organizations.viewerViaTenant')
   }
+  if (activeOrganization.value.accessType === 'delegation') {
+    return t('settings.organizations.viaDelegation')
+  }
   return null
 })
 
@@ -560,6 +639,12 @@ const pagedOrganizations = computed(() => {
   return filteredOtherOrganizations.value.slice(start, start + PAGE_SIZE)
 })
 
+const formatExpiry = (ts: number) => {
+  if (!ts) return ''
+  const date = new Date(ts)
+  return date.toLocaleDateString('sv-SE')
+}
+
 async function handleSetPrimary(orgId: string) {
   if (isPrimaryOrganization(orgId)) {
     return // Already primary, do nothing
@@ -573,6 +658,7 @@ async function handleSetPrimary(orgId: string) {
 }
 
 const hasActiveOrg = computed(() => Boolean(auth.state.value.data?.currentOrgId))
+
 const organizationSectionTitle = computed(() =>
   hasActiveTenant.value && auth.currentTenant.value
     ? t('settings.organizations.titleForTenant', { tenant: auth.currentTenant.value.name })

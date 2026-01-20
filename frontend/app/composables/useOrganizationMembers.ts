@@ -7,7 +7,9 @@ import type {
   OrganizationMemberRole,
   OrganizationMemberStatus,
   MemberModuleRolesResponse,
-  UpdateMemberModuleRolesPayload
+  MemberModulePermissionsResponse,
+  UpdateMemberModuleRolesPayload,
+  UpdateMemberModulePermissionsPayload
 } from '~/types/members'
 
 export const useOrganizationMembers = () => {
@@ -67,6 +69,13 @@ export const useOrganizationMembers = () => {
     })
   }
 
+  const fetchMemberPermissionOverrides = async () => {
+    const organisationId = assertOrganisationId()
+    return $fetch<{ organizationId: string; userIds: string[] }>(
+      `/api/organizations/${organisationId}/members/module-permission-overrides`
+    )
+  }
+
   const removeMember = async (memberId: string) => {
     const organisationId = assertOrganisationId()
     return api(`/organisations/${organisationId}/members/${memberId}`, {
@@ -95,6 +104,28 @@ export const useOrganizationMembers = () => {
     )
   }
 
+  const fetchMemberModulePermissions = async (memberId: string, moduleId: string) => {
+    const organisationId = assertOrganisationId()
+    return $fetch<MemberModulePermissionsResponse>(
+      `/api/organizations/${organisationId}/modules/${moduleId}/users/${memberId}`
+    )
+  }
+
+  const updateMemberModulePermissions = async (
+    memberId: string,
+    moduleId: string,
+    payload: UpdateMemberModulePermissionsPayload
+  ) => {
+    const organisationId = assertOrganisationId()
+    return $fetch<MemberModulePermissionsResponse>(
+      `/api/organizations/${organisationId}/modules/${moduleId}/users/${memberId}`,
+      {
+        method: 'PUT',
+        body: payload
+      }
+    )
+  }
+
   return {
     currentOrganisationId,
     fetchMembers,
@@ -104,8 +135,11 @@ export const useOrganizationMembers = () => {
     removeMember,
     cancelInvitation,
     resendInvitation,
+    fetchMemberPermissionOverrides,
     fetchMemberModuleRoles,
-    updateMemberModuleRoles
+    updateMemberModuleRoles,
+    fetchMemberModulePermissions,
+    updateMemberModulePermissions
   }
 }
 

@@ -14,7 +14,8 @@ const previewSchema = z.object({
   organizationId: z.string().optional().nullable(),
   tenantId: z.string().optional().nullable(),
   disclaimerMarkdown: z.string().optional().nullable(),
-  isDarkMode: z.boolean().optional().nullable()
+  isDarkMode: z.boolean().optional().nullable(),
+  emailLanguage: z.enum(['sv', 'en']).optional().nullable()
 })
 
 export default defineEventHandler(async (event) => {
@@ -104,6 +105,9 @@ export default defineEventHandler(async (event) => {
   const isDarkMode = input.isDarkMode !== null && input.isDarkMode !== undefined 
     ? Boolean(input.isDarkMode) 
     : (senderContext.emailDarkMode ?? false)
+
+  const locale = input.emailLanguage ?? senderContext.emailLanguage ?? 'sv'
+  const localeCode = locale === 'en' ? 'en-US' : 'sv-SE'
   
   console.log('[email-preview] isDarkMode:', isDarkMode, 'input.isDarkMode:', input.isDarkMode, 'senderContext.emailDarkMode:', senderContext.emailDarkMode)
   
@@ -124,8 +128,9 @@ export default defineEventHandler(async (event) => {
       organisationName: 'Exempelorganisation',
       invitedBy: 'Exempel Användare',
       role: 'Medlem',
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleString('sv-SE'),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleString(localeCode),
       acceptUrl: 'https://example.com/invite/accept?token=example-token',
+      locale,
       branding
     })
     return {
@@ -138,7 +143,8 @@ export default defineEventHandler(async (event) => {
   // password-reset
   const content = buildPasswordResetEmail({
     resetUrl: 'https://example.com/reset-password?token=example-token',
-    expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000).toLocaleString('sv-SE'),
+    expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000).toLocaleString(localeCode),
+    locale,
     branding
   })
   return {

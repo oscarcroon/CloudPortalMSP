@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
 
   const authSettings = await ensureOrganizationAuthSettings(db, organization.id)
   const parsedConfig = parseIdpConfigString(authSettings.idpConfig)
-  const oidcConfig = ensureActiveOidcConfig(authSettings.idpType, parsedConfig)
+  const oidcConfig = ensureActiveOidcConfig(authSettings.idpType as any, parsedConfig)
   const metadata = await fetchOidcMetadata(oidcConfig)
   const tokenResponse = await exchangeCodeForTokens(metadata, oidcConfig, code, storedState.codeVerifier)
   if (!tokenResponse.access_token) {
@@ -124,7 +124,7 @@ export default defineEventHandler(async (event) => {
     })
     user = await findUserByEmail(email)
     if (!user) {
-      user = { id: result.userId, email }
+      throw createError({ statusCode: 500, message: 'Kunde inte skapa användare via SSO.' })
     }
   }
 

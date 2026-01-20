@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
   const includeChildrenShouldRemain = Boolean(normalizedRoles.length || existingPrimaryIsMsp)
 
   if (isMySql()) {
-    await (db as MySql2Database<typeof schema>).transaction(async (tx) => {
+    await (db as any).transaction(async (tx: any) => {
       await tx.delete(tenantMemberRoles).where(eq(tenantMemberRoles.membershipId, memberId))
 
       if (normalizedRoles.length) {

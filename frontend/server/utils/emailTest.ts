@@ -25,8 +25,8 @@ export const sendProviderTestEmail = async (
   
   // Resolve branding with disclaimer and support contact
   const branding = await resolveEmailBranding({
-    organizationId: context?.organizationId,
-    tenantId: context?.tenantId,
+    organizationId: context?.organizationId ?? undefined,
+    tenantId: context?.tenantId ?? undefined,
     supportContact: senderContext.supportContact ?? undefined,
     disclaimerMarkdown: disclaimerMarkdown ?? undefined,
     isDarkMode
@@ -40,7 +40,7 @@ export const sendProviderTestEmail = async (
     context: context
   })
   
-  const content = buildTestEmail(branding)
+  const content = buildTestEmail(branding, senderContext.emailLanguage === 'en' ? 'en' : 'sv')
   try {
     return await sendTemplatedEmail({
       profile,

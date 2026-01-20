@@ -101,7 +101,7 @@ export default defineEventHandler(async (event) => {
 
   await logTenantAction(
     event,
-    'INVITE_RESENT',
+    'USER_INVITED',
     {
       inviteId: invitation.id,
       email: invitation.email,

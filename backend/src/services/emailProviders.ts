@@ -130,6 +130,9 @@ const toSummary = (record: ProviderRecord, profile?: EmailProviderProfile | null
 
 const mapToProfile = (record: ProviderRecord, cryptoKey: string): EmailProviderProfile | null => {
   if (!record.fromEmail || !record.encryptedConfig || !record.encryptionIv || !record.encryptionAuthTag) {
+    console.warn(
+      `[email-provider] Incomplete provider record for target ${record.targetKey}. Missing required encryption fields or fromEmail.`
+    )
     return null
   }
   try {
@@ -173,10 +176,11 @@ const tryDecryptProfile = (record: ProviderRecord): EmailProviderProfile | null 
     // Only log warnings if not using dev fallback key
     const isDevFallback = process.env.NODE_ENV !== 'production' && !process.env.EMAIL_CRYPTO_KEY
     if (!isDevFallback) {
+      const baseMsg = `[email-provider] Failed to decrypt provider for target ${record.targetKey} (type=${record.providerType})`
       if (error instanceof Error && error.message.includes('EMAIL_CRYPTO_KEY')) {
-        console.warn('[email-provider] EMAIL_CRYPTO_KEY saknas – kan inte läsa krypterad konfiguration.')
+        console.warn(`${baseMsg}: EMAIL_CRYPTO_KEY saknas – kan inte läsa krypterad konfiguration.`)
       } else {
-        console.warn('[email-provider] Kunde inte dekryptera konfigurationen.', error)
+        console.warn(`${baseMsg}.`, error)
       }
     }
     return null
@@ -280,11 +284,26 @@ export const getEffectiveEmailProviderProfile = async (organisationId?: string |
       if (profile) {
         return profile
       }
+      console.warn(
+        `[email-provider] Active organisation provider could not be decrypted for ${organisationId}.`
+      )
+    } else if (record && !record.isActive) {
+      console.warn(`[email-provider] Organisation provider is inactive for ${organisationId}.`)
+    } else {
+      console.warn(`[email-provider] No organisation provider found for ${organisationId}.`)
     }
   }
   const globalRecord = await fetchByTargetKey(GLOBAL_TARGET_KEY)
   if (globalRecord && globalRecord.isActive) {
-    return mapToProfile(globalRecord, cryptoKey)
+    const profile = mapToProfile(globalRecord, cryptoKey)
+    if (profile) {
+      return profile
+    }
+    console.warn('[email-provider] Active global provider could not be decrypted.')
+  } else if (globalRecord && !globalRecord.isActive) {
+    console.warn('[email-provider] Global provider exists but is inactive.')
+  } else {
+    console.warn('[email-provider] No global provider configured.')
   }
   return null
 }

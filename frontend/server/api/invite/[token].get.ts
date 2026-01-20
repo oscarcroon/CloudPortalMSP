@@ -95,11 +95,10 @@ export default defineEventHandler(async (event) => {
       .limit(1)
       .get()
 
-    const auth = await ensureAuthState(event)
+    const auth = (await ensureAuthState(event)) ?? null
+    const authEmail = auth?.user?.email ? normalizeEmail(auth.user.email as string) : null
     const isSessionMatching =
-      Boolean(auth?.user?.email) &&
-      normalizeEmail(auth.user.email) === normalizedEmail &&
-      effectiveStatus === 'pending'
+      Boolean(authEmail) && authEmail === normalizedEmail && effectiveStatus === 'pending'
 
     // Parse organization data if present
     let organizationData: any = null
@@ -114,7 +113,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Get branding from global email provider (tenants don't have their own branding)
-    const brandingProfile = await getOrganisationEmailProviderProfile(null)
+    const brandingProfile = await getOrganisationEmailProviderProfile('')
     const branding = brandingProfile?.branding || null
 
     return {
@@ -208,10 +207,9 @@ export default defineEventHandler(async (event) => {
     .get()
 
   const auth = await ensureAuthState(event)
-  const isSessionMatching =
-    Boolean(auth?.user?.email) &&
-    normalizeEmail(auth.user.email) === normalizedEmail &&
-    effectiveStatus === 'pending'
+    const authEmail = auth?.user?.email ? normalizeEmail(auth.user.email as string) : null
+    const isSessionMatching =
+      Boolean(authEmail) && authEmail === normalizedEmail && effectiveStatus === 'pending'
 
   const brandingProfile = await getOrganisationEmailProviderProfile(row.organizationId)
 

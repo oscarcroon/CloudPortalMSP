@@ -14,7 +14,8 @@ export interface AuthOrganization {
   hasLocalLoginOverride: boolean
   tenantId?: string | null
   lastAccessedAt?: number | null
-  accessType?: 'direct' | 'msp'
+  accessType?: 'direct' | 'msp' | 'delegation' | 'superadmin'
+  expiresAt?: number | null
 }
 
 export interface AuthTenant {
@@ -107,7 +108,7 @@ export interface BrandingActiveTheme {
   loginBackgroundUrl: string | null
   loginBackgroundTint: string | null
   loginBackgroundTintOpacity: number
-  navBackgroundColor: string
+  navigationBackgroundColor: string
   accentColor: string
   paletteKey: string | null
   logoSource: BrandingThemeSource

@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   const organization = await requireOrganizationByIdentifier(db, orgSlug)
   const authSettings = await ensureOrganizationAuthSettings(db, organization.id)
   const parsedConfig = parseIdpConfigString(authSettings.idpConfig)
-  const oidcConfig = ensureActiveOidcConfig(authSettings.idpType, parsedConfig)
+  const oidcConfig = ensureActiveOidcConfig(authSettings.idpType as any, parsedConfig)
   const metadata = await fetchOidcMetadata(oidcConfig)
 
   const { verifier, challenge } = createPkceChallenge()

@@ -1,0 +1,287 @@
+{
+  "windowsDns": {
+    "title": "DNS",
+    "description": "Hantera DNS-zoner, poster och åtkomst.",
+    "cta": "Skapa zon",
+    "empty": "Inga zoner ännu.",
+
+    "statusCard": {
+      "label": "Status",
+      "title": "DNS",
+      "connected": "Ansluten",
+      "notConfigured": "Ej konfigurerad",
+      "online": "Online",
+      "offline": "Offline",
+      "zones": "Zoner",
+      "owned": "Ägda",
+      "records": "Records"
+    },
+
+    "index": {
+      "label": "DNS Management",
+      "title": "DNS Zones",
+      "subtitle": "Hantera dina DNS-zoner och records.",
+      "searchPlaceholder": "Sök zoner...",
+      "showing": "Visar {filtered} av {total} zoner",
+      "refreshTitle": "Uppdatera zoner",
+      "manageZones": "Hantera zoner",
+      "loading": "Laddar zoner...",
+      "errorTitle": "Fel vid laddning av zoner",
+      "retry": "Försök igen",
+      "noZonesFound": "Inga zoner hittades",
+      "noZonesFoundWithSearch": "Inga zoner hittades som matchar \"{searchTerm}\"",
+      "autoSetupMessage": "✓ {count} {zoneWord} hittades och aktiverades automatiskt",
+      "noZonesFoundMessage": "Inga DNS zoner hittade. Onborda din första DNS zon genom att trycka på \"Skapa Zon\".",
+      "accountRecreatedNoZonesMessage": "Inga DNS zoner hittade. Onborda din första DNS zon genom att trycka på \"Skapa Zon\".",
+      "needsAdminSetup": "Kontakta en administratör för att aktivera zoner."
+    },
+
+    "zoneList": {
+      "label": "DNS Zones",
+      "title": "DNS Zones",
+      "create": "Skapa zon",
+      "loading": "Laddar zoner...",
+      "noZones": "Inga zoner hittades.",
+      "owned": "Ägd",
+      "claimable": "Tillgänglig",
+      "record": "record",
+      "records": "records",
+      "loadingRecords": "Laddar...",
+      "viewZone": "Visa zon",
+      "invalidZone": "Ogiltig zon",
+      "export": "Exportera",
+      "exportSelected": "Exportera ({count})",
+      "selectMultiple": "Markera flera",
+      "selectAll": "Markera alla",
+      "selectAllFiltered": "Markera {count} filtrerade",
+      "deselectAll": "Avmarkera alla",
+      "cancelSelection": "Avbryt",
+      "selected": "{count} valda",
+      "filteredOf": "{filtered} av {total} visas",
+      "searchToSelect": "Sök för att filtrera zoner...",
+      "exportAsZip": "Exportera {count} som ZIP",
+      "shiftClickHint": "Tips: Håll Shift och klicka för att välja flera",
+      "delegation": {
+        "pending": "Väntar på delegering",
+        "active": "Delegerad",
+        "pendingTooltip": "Domänen pekar inte på våra namnservrar. Saknas: {missing}",
+        "activeTooltip": "Domänen är korrekt delegerad till våra namnservrar",
+        "actionRequired": "Åtgärd krävs",
+        "updateNameservers": "Uppdatera namnservrar hos din registrar till:"
+      },
+      "onboard": {
+        "label": "Onboarding",
+        "title": "Skapa DNS-zon",
+        "subtitle": "Vi guidar dig genom att lägga till domänen. Peka namnservrar hos din registrar; propagation kan ta upp till 24 timmar.",
+        "domainLabel": "Domän",
+        "domainPlaceholder": "example.com",
+        "nameServersTitle": "Ändra namnservrar hos din registrar till:",
+        "propagation": "Propagation kan ta upp till 24 timmar efter namnbyte.",
+        "copy": "Kopiera",
+        "copied": "Kopierad!",
+        "cancel": "Avbryt",
+        "createZone": "Skapa zon",
+        "openZone": "Öppna zon",
+        "noServersError": "Inga DNS-servrar tillgängliga. Vänligen konfigurera en server först."
+      }
+    },
+
+    "zoneInfo": {
+      "label": "Zone Information",
+      "title": "Zone Info (SOA)",
+      "primaryNs": "Primär namnserver",
+      "responsibleParty": "Ansvarig (rname)",
+      "serial": "Serial",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "expire": "Expire",
+      "minimumTtl": "Minimum TTL",
+      "ttl": "TTL",
+      "details": "Visa detaljer",
+      "notFound": "SOA-post saknas för denna zon."
+    },
+
+    "zone": {
+      "label": "DNS Zone",
+      "loadingZone": "Laddar zon...",
+      "back": "Tillbaka till zoner",
+      "loadingStatus": "Laddar status...",
+      "badge": "DNS",
+      "export": "Exportera",
+      "exportError": "Kunde inte exportera zonen",
+      "errorTitle": "Fel vid laddning av zon",
+      "retry": "Försök igen",
+      "loadingRecords": "Laddar records...",
+      "zoneNotFound": "Zon hittades inte",
+      "failedToLoad": "Kunde inte ladda zon",
+      "invalidZoneId": "Ogiltigt zon-ID. Gå tillbaka och försök igen.",
+      "danger": {
+        "label": "Danger zone",
+        "title": "Ta bort DNS-zon",
+        "description": "Detta tar bort zonen och alla DNS-records permanent. Kan inte ångras.",
+        "deleteAction": "Ta bort zon"
+      },
+      "delete": {
+        "confirmLabel": "Bekräfta borttagning",
+        "confirmTitle": "Ta bort DNS-zon",
+        "confirmDescription": "Detta tar bort zonen och alla records permanent. Kan inte ångras.",
+        "enterName": "Skriv zonens namn för att bekräfta:",
+        "ack": "Jag förstår att borttagningen inte går att ångra.",
+        "cancel": "Avbryt",
+        "error": "Kunde inte ta bort zonen."
+      }
+    },
+
+    "records": {
+      "label": "DNS Records",
+      "title": "Records för {zoneName}",
+      "searchPlaceholder": "Sök records...",
+      "filterByType": "Filtrera:",
+      "allTypes": "Alla",
+      "showing": "Visar {shown} av {total} records",
+      "addRecord": "Lägg till record",
+      "cancel": "Avbryt",
+      "save": "Spara",
+      "preview": "Förhandsvisning",
+      "previewLabel": "Detta record kommer skapas:",
+      "fields": {
+        "type": "Typ",
+        "name": "Namn",
+        "ttl": "TTL",
+        "content": "Content",
+        "priority": "Priority",
+        "mailServer": "Mail Server",
+        "weight": "Weight",
+        "port": "Port",
+        "target": "Target",
+        "flags": "Flags",
+        "tag": "Tag",
+        "value": "Value",
+        "usage": "Usage",
+        "selector": "Selector",
+        "matchingType": "Matching Type",
+        "certificateData": "Certificate Data (hex)",
+        "comment": "Kommentar (valfri)",
+        "commentPlaceholder": "Intern anteckning om denna record (syns inte i DNS)"
+      },
+      "contentLabels": {
+        "a": "IPv4 Address",
+        "aaaa": "IPv6 Address",
+        "cname": "Target",
+        "txt": "Text Value",
+        "ns": "Name Server",
+        "ptr": "Domain Name"
+      },
+      "contentPlaceholders": {
+        "a": "192.168.1.1",
+        "aaaa": "2001:db8::1",
+        "cname": "target.example.com",
+        "txt": "v=spf1 include:_spf.example.com ~all",
+        "ns": "ns1.example.com",
+        "ptr": "host.example.com"
+      },
+      "table": {
+        "type": "Typ",
+        "name": "Namn",
+        "content": "Content",
+        "ttl": "TTL",
+        "actions": "Åtgärder"
+      },
+      "noRecordsFound": "Inga records hittades",
+      "noRecordsFoundWithSearch": "Inga records hittades som matchar \"{searchTerm}\"",
+      "edit": "Redigera",
+      "delete": "Ta bort",
+      "deleteConfirm": "Ta bort {type} record för {name}?",
+      "createError": "Kunde inte skapa record",
+      "updateError": "Kunde inte uppdatera record",
+      "contentRequired": "Fyll i ett värde för det nya recordet innan du sparar.",
+      "txtEmptyError": "TXT-värdet får inte vara tomt.",
+      "deleteError": "Kunde inte ta bort record",
+      "missingRecordId": "Saknar record ID - kan inte uppdatera",
+      "pagination": "Sida {page} av {pages}",
+      "redirectManaged": {
+        "badge": "Redirect",
+        "content": "Hanteras av Redirects",
+        "tooltip": "Denna DNS-post hanteras automatiskt av Redirect-tjänsten",
+        "editWarning": "Denna post hanteras av Redirects. Ändringar kan påverka omdirigeringar.",
+        "openRedirects": "Öppna i Redirects"
+      }
+    },
+
+    "autodiscover": {
+      "label": "Autodiscover Zoner",
+      "title": "Autodiscover Zoner",
+      "subtitle": "Hitta zoner som matchar din organisations COREID och aktivera dem.",
+      "info": {
+        "title": "Autodiscover söker efter zoner med en TXT-post som innehåller",
+        "coreIdLabel": "Din organisations COREID:",
+        "coreIdPlaceholder": "<din-id>"
+      },
+      "searching": "Söker...",
+      "runAutodiscover": "Kör Autodiscover",
+      "activating": "Aktiverar...",
+      "activateAll": "Aktivera alla ({count})",
+      "activateSelected": "Aktivera valda ({count})",
+      "foundZones": "Hittade {count} matchande {zoneWord}",
+      "alreadyActivated": "{count} redan aktiverade",
+      "activated": "Aktiverad",
+      "available": "Tillgänglig",
+      "noZonesFound": "Inga zoner hittades som matchar ditt COREID",
+      "noZonesHint": "Se till att zonerna har en TXT-post med ditt COREID-värde",
+      "backToZones": "Tillbaka till zoner",
+      "error": "Autodiscover misslyckades.",
+      "activationError": "Aktivering misslyckades."
+    },
+
+    "manageZones": {
+      "title": "Hantera zoner",
+      "subtitle": "Visa, aktivera eller dölj zoner för din organisation.",
+      "close": "Stäng",
+      "loading": "Laddar zoner...",
+      "error": "Kunde inte ladda zoner",
+      "retry": "Försök igen",
+      "rescan": "Sök igen",
+      "rescanning": "Söker...",
+      "coreIdInfo": "Söker efter zoner med COREID:",
+      "noZonesFound": "Inga zoner hittades",
+      "noZonesHint": "Se till att zonerna har en TXT-post med COREID={coreId}",
+      "status": {
+        "allowed": "Aktiv",
+        "available": "Tillgänglig",
+        "blocked": "Dold"
+      },
+      "actions": {
+        "hide": "Dölj",
+        "show": "Visa",
+        "activate": "Aktivera",
+        "delete": "Ta bort"
+      },
+      "confirmHide": "Dölj {count} {zoneWord}? De kommer inte längre visas eller vara tillgängliga.",
+      "confirmShow": "Visa {count} {zoneWord}? De blir tillgängliga igen.",
+      "success": {
+        "hidden": "{count} {zoneWord} har dolts",
+        "shown": "{count} {zoneWord} är nu aktiva",
+        "deleted": "{count} {zoneWord} har tagits bort"
+      },
+      "delete": {
+        "confirmLabel": "Bekräfta borttagning",
+        "confirmTitle": "Ta bort DNS-zoner",
+        "confirmDescription": "Detta tar bort {count} zon(er) permanent inklusive alla DNS-records. Kan inte ångras.",
+        "ack": "Jag förstår att borttagningen inte går att ångra.",
+        "cancel": "Avbryt",
+        "error": "Kunde inte ta bort zonerna."
+      },
+      "zoneWord": {
+        "one": "zon",
+        "other": "zoner"
+      },
+      "tabs": {
+        "all": "Alla",
+        "allowed": "Aktiva",
+        "available": "Tillgängliga",
+        "blocked": "Dolda"
+      }
+    }
+  }
+}
+

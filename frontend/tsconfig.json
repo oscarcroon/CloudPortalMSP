@@ -9,7 +9,9 @@
       "~~/*": ["./*"],
       "#imports": ["./.nuxt/imports"],
       "server/*": ["./server/*"]
-    }
-  }
+    },
+    "skipLibCheck": true
+  },
+  "exclude": ["scripts/legacy/**"]
 }
 

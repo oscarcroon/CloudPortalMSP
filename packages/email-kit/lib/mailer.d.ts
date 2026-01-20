@@ -1,4 +1,4 @@
-import type { EmailBranding, EmailContent, InvitationTemplateInput, PasswordResetTemplateInput, SendTemplatedEmailOptions } from './types.js';
+import type { EmailContent, InvitationTemplateInput, PasswordResetTemplateInput, SendTemplatedEmailOptions } from './types.js';
 export declare const sendTemplatedEmail: (options: SendTemplatedEmailOptions) => Promise<{
     delivered: boolean;
     channel: string;
@@ -10,5 +10,4 @@ export declare const sendTemplatedEmail: (options: SendTemplatedEmailOptions) =>
 }>;
 export declare const buildInvitationEmail: (input: InvitationTemplateInput) => EmailContent;
 export declare const buildPasswordResetEmail: (input: PasswordResetTemplateInput) => EmailContent;
-export declare const buildTestEmail: (branding?: EmailBranding) => EmailContent;
 //# sourceMappingURL=mailer.d.ts.map

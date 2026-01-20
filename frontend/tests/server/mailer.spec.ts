@@ -31,7 +31,7 @@ const brandingMock = vi.hoisted(() => {
       loginBackgroundUrl: null,
       loginBackgroundTint: null,
       loginBackgroundTintOpacity: 0.85,
-      navBackgroundColor: '#ffffff',
+      navigationBackgroundColor: '#ffffff',
       accentColor: '#1C6DD0',
       paletteKey: null
     }

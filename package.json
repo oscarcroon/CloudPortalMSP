@@ -8,9 +8,14 @@
   ],
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
-    "dev:backend": "npm --prefix backend run dev"
+    "dev:backend": "npm --prefix backend run dev",
+    "setup": "npm --prefix frontend run setup",
+    "install:all": "npm install && npm --prefix frontend install && npm --prefix backend install"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
   }
 }

@@ -121,7 +121,7 @@ export default defineEventHandler(async (event) => {
               fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
               status: 'active',
               defaultOrgId: organizationId,
-              forcePasswordReset: 1
+              forcePasswordReset: true
             })
             .run()
         } else {
@@ -205,7 +205,7 @@ export default defineEventHandler(async (event) => {
             fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
             status: 'active',
             defaultOrgId: organizationId,
-            forcePasswordReset: 1
+            forcePasswordReset: true
           })
         } else {
           const updates: Partial<typeof users.$inferInsert> = {}

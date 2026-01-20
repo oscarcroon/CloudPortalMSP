@@ -1,7 +1,12 @@
 <template>
   <section class="space-y-8">
     <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
+      <NuxtLink
+        to="/admin"
+        class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
+      >
+        ← Tillbaka
+      </NuxtLink>
       <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">Skapa organisation</h1>
       <p class="text-sm text-slate-600 dark:text-slate-400">Två steg: grundläggande organisationsinställningar och uppgifter för ägarkontot.</p>
     </header>
@@ -27,7 +32,7 @@
       <div v-show="currentStep === 1" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Steg 1: Organisationsdetaljer</h2>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
-          <div class="md:col-span-2">
+          <div v-if="!hasPrefillTenant" class="md:col-span-2">
             <TenantSelector
               v-model="form.tenantId"
               :distributors="providers"
@@ -36,6 +41,11 @@
               placeholder="Välj leverantör..."
               help-text="Välj leverantör som organisationen ska tillhöra"
             />
+          </div>
+          <div v-else class="md:col-span-2">
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Leverantör</label>
+            <p class="mt-1 text-sm font-medium text-slate-900 dark:text-white">{{ prefillTenantName }}</p>
+            <input type="hidden" :value="form.tenantId" />
           </div>
           <div class="md:col-span-2">
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Namn</label>
@@ -65,15 +75,6 @@
               class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
               placeholder="kontakt@example.com"
             />
-          </div>
-          <div>
-            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Standardroll</label>
-            <select
-              v-model="form.defaultRole"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
-            >
-              <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
-            </select>
           </div>
           <div>
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">COREID <span class="text-red-500">*</span></label>
@@ -215,7 +216,6 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, useFetch, useRoute, useRouter, watch } from '#imports'
-import { rbacRoles } from '~/constants/rbac'
 import type { AdminCreateOrganizationResponse, AdminTenantSummary } from '~/types/admin'
 import TenantSelector from '~/components/admin/TenantSelector.vue'
 import { useAuth } from '~/composables/useAuth'
@@ -237,7 +237,6 @@ if (import.meta.client) {
     await router.replace('/settings?error=missing-permission')
   }
 }
-const roles = rbacRoles
 const steps = [
   { id: 1, label: 'Organisationsdetaljer' },
   { id: 2, label: 'Ägarkonto' }
@@ -251,8 +250,10 @@ const existingUserInfo = ref<{ email: string; fullName: string | null; status: s
 const userConfirmed = ref(false)
 const checkingEmail = ref(false)
 
-// Get tenantId from query if provided
-const initialTenantId = typeof route.query.tenantId === 'string' ? route.query.tenantId : ''
+// Get tenantId from query if provided, or use currentTenant
+const queryTenantId = typeof route.query.tenantId === 'string' ? route.query.tenantId : ''
+const initialTenantId = queryTenantId || auth.currentTenant.value?.id || ''
+const hasPrefillTenant = Boolean(queryTenantId)
 
 // Fetch providers (organizations are now linked to providers, not distributors)
 interface TenantsResponse {
@@ -267,12 +268,18 @@ const { data: providersData } = await useFetch<TenantsResponse>('/api/admin/tena
 
 const providers = computed(() => providersData.value?.tenants ?? [])
 
+// Get prefill tenant name
+const prefillTenantName = computed(() => {
+  if (!hasPrefillTenant || !initialTenantId) return ''
+  const tenant = providers.value.find((p: AdminTenantSummary) => p.id === initialTenantId)
+  return tenant?.name ?? auth.currentTenant.value?.name ?? initialTenantId
+})
+
 const form = reactive({
   tenantId: initialTenantId,
   name: '',
   slug: '',
   billingEmail: '',
-  defaultRole: roles[3],
   coreId: '',
   ownerEmail: ''
 })
@@ -362,12 +369,12 @@ const confirmExistingUser = () => {
 
 const goToPreviousStep = () => {
   if (currentStep.value <= 1) {
-    // Navigate back to tenant page if tenantId is provided, otherwise to organizations list
+    // Navigate back to tenant page if tenantId is provided, otherwise to admin dashboard
     const tenantId = typeof route.query.tenantId === 'string' ? route.query.tenantId : null
     if (tenantId) {
       router.push(`/admin/tenants/${tenantId}`)
     } else {
-      router.push('/admin/organizations')
+      router.push('/admin')
     }
     return
   }
@@ -391,7 +398,6 @@ const handleSubmit = async () => {
   try {
     const payload = {
       name: form.name.trim(),
-      defaultRole: form.defaultRole,
       tenantId: form.tenantId,
       owner: {
         email: form.ownerEmail.trim()

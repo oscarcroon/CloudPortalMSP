@@ -49,6 +49,7 @@ const props = defineProps<{
   tenantId?: string | null
   disclaimerMarkdown?: string | null
   isDarkMode?: boolean | null
+  emailLanguage?: 'sv' | 'en' | null
 }>()
 
 const emit = defineEmits<{
@@ -82,6 +83,7 @@ watch(
 // Track previous values to detect changes
 const previousDarkMode = ref<boolean | null | undefined>(undefined)
 const previousDisclaimer = ref<string | null | undefined>(undefined)
+const previousLanguage = ref<'sv' | 'en' | null | undefined>(undefined)
 
 // Reload preview when isDarkMode changes (only if modal is open)
 watch(
@@ -114,7 +116,19 @@ watch(
     if (newValue) {
       previousDarkMode.value = props.isDarkMode
       previousDisclaimer.value = props.disclaimerMarkdown
+      previousLanguage.value = props.emailLanguage ?? 'sv'
     }
+  }
+)
+
+// Reload preview when emailLanguage changes (only if modal is open)
+watch(
+  () => props.emailLanguage,
+  async (newValue) => {
+    if (props.isOpen && previousLanguage.value !== undefined && newValue !== previousLanguage.value) {
+      await loadPreview()
+    }
+    previousLanguage.value = newValue ?? 'sv'
   }
 )
 
@@ -131,7 +145,8 @@ const loadPreview = async () => {
           organizationId: props.organizationId,
           tenantId: props.tenantId,
           disclaimerMarkdown: props.disclaimerMarkdown,
-          isDarkMode: props.isDarkMode !== undefined ? props.isDarkMode : null
+          isDarkMode: props.isDarkMode !== undefined ? props.isDarkMode : null,
+          emailLanguage: props.emailLanguage ?? null
         }
       }
     )

@@ -1,9 +1,11 @@
 import { defineEventHandler, getRouterParam, createError } from 'h3'
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, and } from 'drizzle-orm'
 import {
   tenantInvitations,
   tenantMemberships,
   tenantMemberRoles,
+  tenantMemberMspRoles,
+  mspRoles,
   users,
   tenants
 } from '../../../../database/schema'
@@ -47,8 +49,10 @@ export default defineEventHandler(async (event) => {
 
   const membershipIds = memberRows.map((row) => row.membershipId)
   let membershipRoleMap: Record<string, string[]> = {}
+  let membershipMspRoleMap: Record<string, string[]> = {}
 
   if (membershipIds.length) {
+    // Get legacy string-based roles
     const roleRows = await db
       .select({
         membershipId: tenantMemberRoles.membershipId,
@@ -58,10 +62,37 @@ export default defineEventHandler(async (event) => {
       .where(inArray(tenantMemberRoles.membershipId, membershipIds))
 
     membershipRoleMap = roleRows.reduce<Record<string, string[]>>((acc, row) => {
-      if (!acc[row.membershipId]) {
-        acc[row.membershipId] = []
+      const membershipId = row.membershipId
+      if (!membershipId) return acc
+      if (!acc[membershipId]) {
+        acc[membershipId] = []
       }
-      acc[row.membershipId].push(row.roleKey)
+      acc[membershipId].push(row.roleKey)
+      return acc
+    }, {})
+
+    // Get DB-based MSP roles
+    const mspRoleRows = await db
+      .select({
+        membershipId: tenantMemberMspRoles.tenantMembershipId,
+        roleKey: mspRoles.key
+      })
+      .from(tenantMemberMspRoles)
+      .innerJoin(mspRoles, eq(mspRoles.id, tenantMemberMspRoles.roleId))
+      .where(
+        and(
+          inArray(tenantMemberMspRoles.tenantMembershipId, membershipIds),
+          eq(mspRoles.tenantId, tenantId)
+        )
+      )
+
+    membershipMspRoleMap = mspRoleRows.reduce<Record<string, string[]>>((acc, row) => {
+      const membershipId = row.membershipId
+      if (!membershipId) return acc
+      if (!acc[membershipId]) {
+        acc[membershipId] = []
+      }
+      acc[membershipId].push(row.roleKey)
       return acc
     }, {})
   }
@@ -169,17 +200,25 @@ export default defineEventHandler(async (event) => {
       type: tenant.type,
       status: tenant.status
     },
-    members: memberRows.map((row) => ({
-      membershipId: row.membershipId,
-      userId: row.userId,
-      email: row.email,
-      fullName: row.fullName,
-      role: row.role,
-      mspRoles: membershipRoleMap[row.membershipId]?.map((role) => role as any) ?? [],
-      status: row.status,
-      includeChildren: Boolean(row.includeChildren),
-      addedAt: row.addedAt ? new Date(row.addedAt).toISOString() : null
-    })),
+    members: memberRows.map((row) => {
+      // Combine legacy string-based roles and DB-based MSP roles
+      const legacyRoles = membershipRoleMap[row.membershipId]?.filter((r) => r.startsWith('msp-')) ?? []
+      const dbMspRoles = membershipMspRoleMap[row.membershipId] ?? []
+      // Merge and deduplicate
+      const allMspRoles = Array.from(new Set([...legacyRoles, ...dbMspRoles]))
+      
+      return {
+        membershipId: row.membershipId,
+        userId: row.userId,
+        email: row.email,
+        fullName: row.fullName,
+        role: row.role,
+        mspRoles: allMspRoles.map((role) => role as any),
+        status: row.status,
+        includeChildren: Boolean(row.includeChildren),
+        addedAt: row.addedAt ? new Date(row.addedAt).toISOString() : null
+      }
+    }),
     invites: invitations
   }
 })
