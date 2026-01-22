@@ -26,8 +26,20 @@ npm run install:all
 
 **Från projektets root-mapp:**
 
+Kopiera `env.example` till en `.env`-fil för att skapa din lokala miljövariabelfil. Både `.env` och `.env.local` fungerar, men `.env.local` är rekommenderat för lokala inställningar (har högre prioritet):
+
+**Windows (PowerShell/CMD):**
+```bash
+copy env.example .env.local
+# Eller:
+copy env.example .env
+```
+
+**Linux/Mac:**
 ```bash
 cp env.example .env.local
+# Eller:
+cp env.example .env
 ```
 
 ### 3. Initialisera databas och skapa användare
