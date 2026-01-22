@@ -1,8 +1,9 @@
-﻿import { createId } from '@paralleldrive/cuid2'
+import { createId } from '@paralleldrive/cuid2'
 import { and, eq, ne, sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 import { createError, getRouterParam } from 'h3'
 import type { DrizzleDb } from '~~/server/utils/db'
+import { getDb } from '~~/server/utils/db'
 import {
   organizationAuthSettings,
   organizationInvitations,
@@ -15,8 +16,116 @@ import type {
   OrganizationIdpType,
   OrganizationMemberStatus
 } from '~/types/admin'
+import { ensureAuthState } from '~~/server/utils/session'
+import { canAccessOrganization, requireTenantPermission } from '~~/server/utils/rbac'
 
 export const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
+ * Validate that the user can manage a specific organization.
+ * This allows:
+ * - Super admins (always)
+ * - Tenant owners/admins with 'tenants:manage' permission for the organization's tenant
+ * 
+ * Returns the organization if access is granted, throws 403 otherwise.
+ */
+export const requireOrganizationManageAccess = async (
+  event: H3Event,
+  organization: typeof organizations.$inferSelect
+) => {
+  const auth = await ensureAuthState(event)
+  
+  if (!auth) {
+    throw createError({ statusCode: 401, message: 'Not authenticated' })
+  }
+
+  // Super admins can always access
+  if (auth.user.isSuperAdmin) {
+    return { auth, organization }
+  }
+
+  // Check if user has access to the organization
+  const hasAccess = await canAccessOrganization(auth, organization.id)
+  if (!hasAccess) {
+    throw createError({
+      statusCode: 403,
+      message: 'Du har inte behörighet att hantera denna organisation.'
+    })
+  }
+
+  // If organization belongs to a provider tenant, user must have manage permission for that tenant
+  if (organization.tenantId) {
+    try {
+      await requireTenantPermission(event, 'tenants:manage', organization.tenantId)
+    } catch {
+      throw createError({
+        statusCode: 403,
+        message: 'Du måste ha hanteringsbehörighet för leverantören som organisationen tillhör.'
+      })
+    }
+  } else {
+    // Organization without tenant - only super admins can manage
+    throw createError({
+      statusCode: 403,
+      message: 'Endast superadmins kan hantera organisationer utan leverantör.'
+    })
+  }
+
+  return { auth, organization }
+}
+
+/**
+ * Validate that the user can read organization details.
+ * This allows:
+ * - Super admins (always)
+ * - Tenant owners/admins with 'tenants:read' permission for the organization's tenant
+ * 
+ * Returns the organization if access is granted, throws 403 otherwise.
+ */
+export const requireOrganizationReadAccess = async (
+  event: H3Event,
+  organization: typeof organizations.$inferSelect
+) => {
+  const auth = await ensureAuthState(event)
+  
+  if (!auth) {
+    throw createError({ statusCode: 401, message: 'Not authenticated' })
+  }
+
+  // Super admins can always access
+  if (auth.user.isSuperAdmin) {
+    return { auth, organization }
+  }
+
+  // Check if user has access to the organization
+  const hasAccess = await canAccessOrganization(auth, organization.id)
+  if (!hasAccess) {
+    throw createError({
+      statusCode: 403,
+      message: 'Du har inte behörighet att se denna organisation.'
+    })
+  }
+
+  // If organization belongs to a provider tenant, user must have read permission for that tenant
+  if (organization.tenantId) {
+    try {
+      await requireTenantPermission(event, 'tenants:read', organization.tenantId)
+    } catch {
+      throw createError({
+        statusCode: 403,
+        message: 'Du måste ha läsbehörighet för leverantören som organisationen tillhör.'
+      })
+    }
+  } else {
+    // Organization without tenant - only super admins can access
+    throw createError({
+      statusCode: 403,
+      message: 'Endast superadmins kan se organisationer utan leverantör.'
+    })
+  }
+
+  return { auth, organization }
+}
 
 export const parseOrgParam = (event: H3Event, paramName = 'orgId') => {
   const value = getRouterParam(event, paramName)

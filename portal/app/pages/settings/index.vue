@@ -253,6 +253,18 @@
               {{ t('settings.groups.title') }}
             </NuxtLink>
             <NuxtLink
+              to="/settings/group-permissions"
+              :aria-disabled="isSettingsLocked"
+              :tabindex="isSettingsLocked ? -1 : 0"
+              :class="[
+                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+                { 'pointer-events-none opacity-50': isSettingsLocked }
+              ]"
+            >
+              <Icon icon="mdi:shield-account" class="h-4 w-4" />
+              {{ t('settings.groupPermissions.title') }}
+            </NuxtLink>
+            <NuxtLink
               to="/settings/delegations"
               :aria-disabled="isSettingsLocked || !canManageOrg"
               :tabindex="isSettingsLocked || !canManageOrg ? -1 : 0"

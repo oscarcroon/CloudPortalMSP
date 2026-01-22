@@ -8,11 +8,11 @@ import {
 } from '../../../../../../database/schema'
 import { getDb } from '../../../../../../utils/db'
 import type { DrizzleDb } from '../../../../../../utils/db'
-import { requireSuperAdmin } from '../../../../../../utils/rbac'
 import {
   assertOwnerWillRemain,
   parseOrgParam,
-  requireOrganizationByIdentifier
+  requireOrganizationByIdentifier,
+  requireOrganizationManageAccess
 } from '../../../utils'
 import { logUserAction } from '../../../../../../utils/audit'
 
@@ -26,13 +26,15 @@ const parseMemberParam = (event: Parameters<typeof parseOrgParam>[0]) => {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const memberParam = parseMemberParam(event)
   const payload = payloadSchema.parse(await readBody(event))
 
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, organization)
 
   const [membership] = await db
     .select({

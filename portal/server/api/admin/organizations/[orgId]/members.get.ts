@@ -6,14 +6,15 @@ import {
   users
 } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
-import { requireSuperAdmin } from '../../../../utils/rbac'
-import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
+import { parseOrgParam, requireOrganizationByIdentifier, requireOrganizationReadAccess } from '../utils'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationReadAccess(event, organization)
 
   const memberRows = await db
     .select({

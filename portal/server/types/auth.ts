@@ -28,6 +28,8 @@ export interface AuthOrganization {
   lastAccessedAt?: number | null
   accessType?: 'direct' | 'msp' | 'delegation' | 'superadmin'
   expiresAt?: number | null
+  /** Setup wizard status: 'pending' = needs setup, 'complete' = ready to use */
+  setupStatus?: 'pending' | 'complete'
 }
 
 export interface AuthTenant {

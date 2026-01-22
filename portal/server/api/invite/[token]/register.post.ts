@@ -1,4 +1,4 @@
-﻿import { createId } from '@paralleldrive/cuid2'
+import { createId } from '@paralleldrive/cuid2'
 import { and, eq } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { z, ZodError } from 'zod'
@@ -19,6 +19,7 @@ import { slugify } from '~~/server/utils/auth'
 import { logTenantAction, logOrganizationAction } from '~~/server/utils/audit'
 import type { OrganizationMemberRole } from '~/types/members'
 import { formatZodErrorAsList } from '~~/server/utils/errors'
+import { initializeNewOrganization } from '~~/server/utils/orgSetup'
 
 const registerSchema = z.object({
   password: passwordSchema,
@@ -286,6 +287,18 @@ export default defineEventHandler(async (event) => {
           .update(users)
           .set({ defaultOrgId: organizationId })
           .where(eq(users.id, userId))
+      }
+
+      // Initialize organization with blocked modules and default groups
+      try {
+        const setupResult = await initializeNewOrganization({
+          orgId: orgId,
+          ownerUserId: userId
+        })
+        console.log(`[register] Initialized org ${orgId}: ${setupResult.modulesBlocked} modules blocked`)
+      } catch (initError) {
+        console.error('[register] Failed to initialize organization setup', initError)
+        // Don't fail - org is created, setup can be retried
       }
     }
 

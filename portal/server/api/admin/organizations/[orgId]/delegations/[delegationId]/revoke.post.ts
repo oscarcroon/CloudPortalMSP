@@ -1,13 +1,10 @@
 import { createError, defineEventHandler, getRouterParam } from 'h3'
 import { eq } from 'drizzle-orm'
-import { requireSuperAdmin } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
 import { mspOrgDelegations } from '~~/server/database/schema'
-import { requireOrganizationByIdentifier } from '../../../utils'
+import { requireOrganizationByIdentifier, requireOrganizationManageAccess } from '../../../utils'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
-
   const orgId = getRouterParam(event, 'orgId')
   const delegationId = getRouterParam(event, 'delegationId')
   if (!orgId || !delegationId) {
@@ -16,6 +13,9 @@ export default defineEventHandler(async (event) => {
 
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgId)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, organization)
   const [existing] = await db
     .select()
     .from(mspOrgDelegations)

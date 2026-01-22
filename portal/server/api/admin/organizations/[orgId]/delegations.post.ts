@@ -1,6 +1,5 @@
 import { createError, defineEventHandler, readBody } from 'h3'
 import { eq } from 'drizzle-orm'
-import { requireSuperAdmin } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
 import {
   mspOrgDelegations,
@@ -10,14 +9,15 @@ import {
   users
 } from '~~/server/database/schema'
 import { createId } from '@paralleldrive/cuid2'
-import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
+import { parseOrgParam, requireOrganizationByIdentifier, requireOrganizationManageAccess } from '../utils'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
-
   const db = getDb()
   const orgParam = parseOrgParam(event)
   const org = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, org)
 
   const body = await readBody<{
     subjectType?: 'user'

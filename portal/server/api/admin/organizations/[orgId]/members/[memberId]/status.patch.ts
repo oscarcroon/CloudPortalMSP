@@ -2,11 +2,11 @@ import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
 import { getDb } from '../../../../../../utils/db'
-import { requireSuperAdmin } from '../../../../../../utils/rbac'
 import {
   assertOwnerWillRemain,
   parseOrgParam,
-  requireOrganizationByIdentifier
+  requireOrganizationByIdentifier,
+  requireOrganizationManageAccess
 } from '../../../utils'
 import { organizationMemberships } from '../../../../../../database/schema'
 import { fetchMemberPayload } from '../helpers'
@@ -16,12 +16,14 @@ export const statusSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const memberParam = parseOrgParam(event, 'memberId')
   const { status } = statusSchema.parse(await readBody(event))
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, organization)
 
   const [membership] = await db
     .select({

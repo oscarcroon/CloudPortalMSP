@@ -16,6 +16,7 @@ import { normalizeEmail } from '~~/server/utils/crypto'
 import { requireSession } from '~~/server/utils/session'
 import type { OrganizationMemberRole } from '~/types/members'
 import { sendInviteAcceptedNotification } from '~~/server/utils/mailer'
+import { initializeNewOrganization, assignUserToDefaultGroup } from '~~/server/utils/orgSetup'
 
 export default defineEventHandler(async (event) => {
   const token = getRouterParam(event, 'token')
@@ -149,6 +150,18 @@ export default defineEventHandler(async (event) => {
             .set({ defaultOrgId: organizationId })
             .where(eq(users.id, auth.user.id))
         }
+
+        // Initialize organization with blocked modules and default groups
+        try {
+          const setupResult = await initializeNewOrganization({
+            orgId: organizationId,
+            ownerUserId: auth.user.id
+          })
+          console.log(`[invite] Initialized org ${organizationId}: ${setupResult.modulesBlocked} modules blocked`)
+        } catch (initError) {
+          console.error('[invite] Failed to initialize organization setup', initError)
+          // Don't fail - org is created, setup can be retried
+        }
       } catch (error) {
         console.error('[invite] Failed to create organization from tenant invitation', error)
         // Continue anyway - tenant membership is created
@@ -237,6 +250,17 @@ export default defineEventHandler(async (event) => {
       createdAt: now,
       updatedAt: now
     })
+  }
+
+  // Assign user to default group (for new members)
+  try {
+    await assignUserToDefaultGroup({
+      orgId: invitation.organizationId,
+      userId: auth.user.id
+    })
+  } catch (groupError) {
+    console.error('[invite/accept] Failed to assign user to default group', groupError)
+    // Don't fail the request - membership is created
   }
 
   await db

@@ -76,7 +76,8 @@ const mapOrgRow = (row: MembershipRow, role: RbacRole, isSuperAdmin: boolean): A
   role,
   tenantId: row.org.tenantId ?? null,
   lastAccessedAt: row.membership.lastAccessedAt ?? null,
-  accessType: 'direct'
+  accessType: 'direct',
+  setupStatus: (row.org.setupStatus as 'pending' | 'complete') ?? 'complete'
 })
 
 export const findUserByEmail = async (email: string) => {
@@ -184,7 +185,8 @@ export const buildAuthState = async (
       tenantId: row.org.tenantId ?? null,
       lastAccessedAt: null,
       accessType: 'delegation',
-      expiresAt: expiresAt ?? null
+      expiresAt: expiresAt ?? null,
+      setupStatus: (row.org.setupStatus as 'pending' | 'complete') ?? 'complete'
     } as any)
   }
 
@@ -270,7 +272,8 @@ export const buildAuthState = async (
         status: organizations.status,
         isSuspended: organizations.isSuspended,
         logoUrl: organizations.logoUrl,
-        requireSso: organizations.requireSso
+        requireSso: organizations.requireSso,
+        setupStatus: organizations.setupStatus
       })
       .from(organizations)
       .where(eq(organizations.id, resolvedOrgId))
@@ -292,7 +295,8 @@ export const buildAuthState = async (
           role: effectiveRole,
           tenantId: resolvedOrg.tenantId ?? null,
           lastAccessedAt: null,
-          accessType: user.isSuperAdmin && !proxyRole ? 'superadmin' : 'msp'
+          accessType: user.isSuperAdmin && !proxyRole ? 'superadmin' : 'msp',
+          setupStatus: (resolvedOrg.setupStatus as 'pending' | 'complete') ?? 'complete'
         }
         organizationPayload.push(proxyOrg)
         orgRoles[proxyOrg.id] = effectiveRole
@@ -316,7 +320,8 @@ export const buildAuthState = async (
         status: organizations.status,
         isSuspended: organizations.isSuspended,
         logoUrl: organizations.logoUrl,
-        requireSso: organizations.requireSso
+        requireSso: organizations.requireSso,
+        setupStatus: organizations.setupStatus
       })
       .from(organizations)
       .where(
@@ -349,7 +354,8 @@ export const buildAuthState = async (
         role: proxyRole,
         tenantId: org.tenantId ?? null,
         lastAccessedAt: null,
-        accessType: 'msp'
+        accessType: 'msp',
+        setupStatus: (org.setupStatus as 'pending' | 'complete') ?? 'complete'
       }
       organizationPayload.push(proxyOrg)
       // Always update orgRoles with proxy role, even if it was in presetRoles
@@ -396,7 +402,39 @@ export const buildAuthState = async (
   // otherwise use first tenant in list
   let resolvedTenantId: string | null
   if (forcedTenantId !== undefined) {
-    resolvedTenantId = forcedTenantId && tenantRoles[forcedTenantId] ? forcedTenantId : null
+    if (forcedTenantId && tenantRoles[forcedTenantId]) {
+      // User has membership in this tenant
+      resolvedTenantId = forcedTenantId
+    } else if (forcedTenantId && user.isSuperAdmin) {
+      // Superadmin can switch to any tenant without membership
+      // Fetch the tenant and add it to tenantPayload if not already present
+      const existingTenant = tenantPayload.find((t) => t.id === forcedTenantId)
+      if (!existingTenant) {
+        const [targetTenant] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, forcedTenantId))
+        
+        if (targetTenant) {
+          const superadminTenant: AuthTenant = {
+            id: targetTenant.id,
+            name: targetTenant.name,
+            slug: targetTenant.slug,
+            type: targetTenant.type as 'provider' | 'distributor' | 'organization',
+            parentTenantId: targetTenant.parentTenantId ?? null,
+            role: 'admin' as TenantRole, // Superadmins get admin role
+            includeChildren: true,
+            status: targetTenant.status
+          }
+          tenantPayload.push(superadminTenant)
+          tenantRoles[targetTenant.id] = 'admin' as TenantRole
+          tenantIncludeChildren[targetTenant.id] = true
+        }
+      }
+      resolvedTenantId = forcedTenantId
+    } else {
+      resolvedTenantId = null
+    }
   } else {
     resolvedTenantId = tenantPayload[0]?.id ?? null
   }

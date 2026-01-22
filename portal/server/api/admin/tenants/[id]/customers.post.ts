@@ -14,6 +14,7 @@ import { normalizeEmail } from '../../../../utils/crypto'
 import { slugify } from '../../../../utils/auth'
 import { requireTenantPermission } from '../../../../utils/rbac'
 import { rbacRoles } from '~/constants/rbac'
+import { initializeNewOrganization } from '../../../../utils/orgSetup'
 
 const createCustomerSchema = z.object({
   name: z.string().min(2).max(120),
@@ -200,6 +201,18 @@ export default defineEventHandler(async (event) => {
     .select()
     .from(organizations)
     .where(eq(organizations.id, organizationId))
+
+  // Initialize organization with blocked modules and default groups
+  try {
+    const setupResult = await initializeNewOrganization({
+      orgId: organizationId,
+      ownerUserId
+    })
+    console.log(`[customers.post] Initialized org ${organizationId}: ${setupResult.modulesBlocked} modules blocked`)
+  } catch (initError) {
+    console.error('[customers.post] Failed to initialize organization setup', initError)
+    // Don't fail - org is created, setup can be retried
+  }
 
   return {
     organization,

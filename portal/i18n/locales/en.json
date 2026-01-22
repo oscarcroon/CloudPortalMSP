@@ -504,6 +504,38 @@
       "noMembersFound": "No members match your search.",
       "searchLimit": "Showing the first {count} results."
     },
+    "groupPermissions": {
+      "title": "Group Permissions",
+      "description": "Manage module permissions for each organization group. Groups with permissions can access specific modules.",
+      "noOrg": "Select an organization to manage group permissions.",
+      "loading": "Loading groups...",
+      "loadingPermissions": "Loading permissions...",
+      "empty": "No groups found. Create groups in the Groups section first.",
+      "results": "{count} groups",
+      "permissionsSet": "permissions set",
+      "showOnlyEnabled": "Show only enabled modules",
+      "searchModules": "Search modules...",
+      "noModulesFound": "No modules match your search.",
+      "moduleDisabled": "Disabled",
+      "grant": "Grant",
+      "deny": "Deny",
+      "granted": "granted",
+      "denied": "denied",
+      "noPermissions": "inherits default",
+      "grantAll": "Grant all",
+      "denyAll": "Deny all",
+      "clearAll": "Clear",
+      "unsavedChanges": "{count} unsaved changes",
+      "save": "Save permissions",
+      "saved": "Permissions saved successfully",
+      "help": {
+        "title": "How group permissions work",
+        "grantDesc": "Members of this group explicitly receive this permission for the module.",
+        "denyDesc": "Members of this group are explicitly blocked from this permission.",
+        "inherit": "Inherit",
+        "inheritDesc": "No explicit setting. Access is determined by module policies and other group memberships."
+      }
+    },
     "organizations": {
       "title": "Organizations",
       "titleForTenant": "Organizations for {tenant}",
@@ -2055,6 +2087,39 @@
       "requiresPasswordReset": "Requires password reset",
       "count": "{count}",
       "activeCount": "({count} active)"
+    }
+  },
+  "orgSetup": {
+    "title": "Organization Setup",
+    "subtitle": "Configure {orgName} to get started",
+    "complete": "Complete Setup",
+    "steps": {
+      "modules": {
+        "label": "Modules",
+        "title": "Activate Modules",
+        "description": "Select which modules should be available for your organization. You can change this later in settings.",
+        "enabled": "modules activated",
+        "enableAll": "Enable All",
+        "disableAll": "Disable All"
+      },
+      "templates": {
+        "label": "Roles",
+        "title": "Choose Role Template",
+        "description": "Select a permission template that defines what different user groups can do. This can be customized later."
+      },
+      "defaultGroup": {
+        "label": "Default Group",
+        "title": "Default Group for New Users",
+        "description": "When new users join your organization, they will automatically be assigned to this group."
+      }
+    },
+    "pending": {
+      "title": "Setup In Progress",
+      "description": "The organization {orgName} is being set up by an administrator.",
+      "contact": "Please contact your administrator for access.",
+      "checkAgain": "Check Again",
+      "switchOrg": "Switch Organization",
+      "logout": "Log Out"
     }
   }
 }

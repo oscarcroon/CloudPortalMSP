@@ -1,9 +1,7 @@
-import { and, eq, isNull, or, gt, inArray, sql } from 'drizzle-orm'
+import { and, eq, isNull, or, gt, inArray } from 'drizzle-orm'
 import { createError, H3Event } from 'h3'
 import { manifests } from '~~/layers/plugin-manifests'
 import {
-  organizationModulePolicies,
-  tenantModulePolicies,
   userModulePermissions,
   organizationMemberships,
   mspOrgDelegations,
@@ -14,7 +12,6 @@ import {
   tenantMemberships,
   tenantMemberRoles,
   tenantMemberMspRoles,
-  mspRoles,
   mspRolePermissions,
   modulePermissions as modulePermissionsTable
 } from '~~/server/database/schema'
@@ -25,6 +22,7 @@ import type { RbacRole, TenantRole } from '~/constants/rbac'
 import type { ModulePolicy } from '~/types/modules'
 import { getModulePermissionsForMspRoles } from './mspRolePermissionBundles'
 import { canAccessTenant } from './rbac'
+import { getEffectiveModulePolicyForOrg } from './modulePolicy'
 
 type PermissionKey = string
 
@@ -33,17 +31,13 @@ type Effect = 'grant' | 'deny'
 export interface EffectiveModulePermissions {
   allowedPermissions: Set<PermissionKey>
   baselinePermissions: Set<PermissionKey>
-  groupGrants: Map<string, Set<PermissionKey>> // groupId -> perms (unused when group table saknas)
+  groupGrants: Map<string, Set<PermissionKey>> // groupId -> perms
   groupDenies: Map<string, Set<PermissionKey>>
   userGrants: Set<PermissionKey>
   userDenies: Set<PermissionKey>
   delegatedGrants?: Set<PermissionKey>
   effectivePermissions: Set<PermissionKey>
   policy: ModulePolicy & { enabled: boolean; disabled: boolean }
-  debug?: {
-    tenantPolicy?: ModulePolicy | null
-    orgPolicy?: ModulePolicy | null
-  }
 }
 
 const getModuleManifest = (moduleKey: string) =>
@@ -133,50 +127,8 @@ export const getBaselineModulePermissionsForUser = async (
   return result
 }
 
-const parseModulePolicy = (raw?: any | null): ModulePolicy | null => {
-  if (!raw) return null
-  return {
-    moduleKey: raw.moduleId ?? raw.moduleKey ?? '',
-    mode: (raw.mode ?? 'inherit') as ModulePolicy['mode'],
-    allowedRoles: raw.allowedRoles ? JSON.parse(raw.allowedRoles) : [],
-    allowedPermissions: raw.permissionOverrides ? Object.keys(JSON.parse(raw.permissionOverrides)) : [],
-    permissionOverrides: raw.permissionOverrides ? JSON.parse(raw.permissionOverrides) : undefined
-  }
-}
-
-const mergePolicies = (upstream: ModulePolicy, current: ModulePolicy | null, permissionKeys: string[]): ModulePolicy => {
-  if (!current || current.mode === 'inherit') {
-    return upstream
-  }
-  if (upstream.mode === 'blocked' || current.mode === 'blocked') {
-    return { ...current, mode: 'blocked', allowedPermissions: [], allowedRoles: [] } as ModulePolicy
-  }
-  const base = new Set(
-    upstream.allowedPermissions && upstream.allowedPermissions.length > 0 ? upstream.allowedPermissions : permissionKeys
-  )
-  const mergedOverrides = {
-    ...(upstream.permissionOverrides ?? {}),
-    ...(current.permissionOverrides ?? {})
-  }
-  const allowKeys = Object.entries(mergedOverrides)
-    .filter(([, v]) => v !== false)
-    .map(([k]) => k)
-  const allowFromField =
-    current.allowedPermissions && current.allowedPermissions.length > 0
-      ? current.allowedPermissions.filter((k) => base.has(k))
-      : []
-  const allowedPermissions =
-    current.mode === 'allowlist'
-      ? (allowKeys.length ? allowKeys : allowFromField).filter((k) => base.has(k))
-      : Array.from(base)
-  return {
-    moduleKey: upstream.moduleKey,
-    mode: current.mode,
-    allowedPermissions,
-    allowedRoles: current.allowedRoles ?? [],
-    permissionOverrides: mergedOverrides
-  } as ModulePolicy
-}
+// Policy resolution is now delegated to modulePolicy.ts
+// This file only handles user-level permission resolution (baseline, groups, overrides)
 
 export const resolveEffectiveModulePermissions = async ({
   orgId,
@@ -214,42 +166,12 @@ export const resolveEffectiveModulePermissions = async ({
 
   const db = getDb()
 
-  // Policy: tenant + org
-  const [orgPolicyRaw] = await db
-    .select()
-    .from(organizationModulePolicies)
-    .where(and(eq(organizationModulePolicies.organizationId, orgId), eq(organizationModulePolicies.moduleId, moduleKey)))
-
-  const orgPolicy = parseModulePolicy(orgPolicyRaw)
-
-  let tenantPolicy: ModulePolicy | null = null
-  if (orgPolicyRaw?.organizationId) {
-    const [tenantRow] = await db
-      .select()
-      .from(tenantModulePolicies)
-      .where(and(eq(tenantModulePolicies.tenantId, orgPolicyRaw.organizationId), eq(tenantModulePolicies.moduleId, moduleKey)))
-    tenantPolicy = parseModulePolicy(tenantRow)
-  }
-
-  const basePolicy: ModulePolicy = {
-    moduleKey,
-    mode: 'allowlist',
-    allowedRoles: [],
-    allowedPermissions: permissionKeys,
-    allowedPermissionsSource: 'base'
-  }
-
-  const tenantMerged = mergePolicies(basePolicy, tenantPolicy, permissionKeys)
-  const effectivePolicy = mergePolicies(tenantMerged, orgPolicy, permissionKeys)
+  // Use modulePolicy.ts as single source of truth for policy resolution
+  // This properly handles global -> distributor -> tenant -> org cascade
+  const effectivePolicy = await getEffectiveModulePolicyForOrg(orgId, moduleKey)
 
   // Type guard: check if policy is blocked
-  const isPolicyBlocked: boolean = effectivePolicy.mode === 'blocked'
-  if (isPolicyBlocked) {
-    const blockedPolicy: ModulePolicy & { enabled: boolean; disabled: boolean } = {
-      ...(effectivePolicy as ModulePolicy),
-      enabled: false,
-      disabled: true
-    }
+  if (effectivePolicy.mode === 'blocked') {
     return {
       allowedPermissions: new Set(),
       baselinePermissions: baseline,
@@ -258,16 +180,18 @@ export const resolveEffectiveModulePermissions = async ({
       userGrants: new Set(),
       userDenies: new Set(),
       effectivePermissions: new Set(),
-      policy: blockedPolicy,
-      debug: { tenantPolicy, orgPolicy }
+      policy: effectivePolicy
     }
   }
 
-  // Allowed permissions (policy)
+  // FAIL-CLOSED: If mode is allowlist and allowedPermissions is empty, grant NO permissions
+  // This is a security measure to ensure explicit permission grants are required
   const allowed = new Set<string>(
-    effectivePolicy.allowedPermissions && effectivePolicy.allowedPermissions.length > 0
-      ? effectivePolicy.allowedPermissions
-      : permissionKeys
+    effectivePolicy.mode === 'allowlist' && (!effectivePolicy.allowedPermissions || effectivePolicy.allowedPermissions.length === 0)
+      ? [] // Fail-closed: empty allowlist = no permissions
+      : effectivePolicy.allowedPermissions && effectivePolicy.allowedPermissions.length > 0
+        ? effectivePolicy.allowedPermissions
+        : permissionKeys
   )
 
   // group grants/denies (tabell saknas i denna miljö): lämna tomt
@@ -540,12 +464,6 @@ export const resolveEffectiveModulePermissions = async ({
     effective.delete(perm)
   }
 
-  const policyWithFlags: ModulePolicy & { enabled: boolean; disabled: boolean } = {
-    ...effectivePolicy,
-    enabled: effectivePolicy.mode !== 'blocked',
-    disabled: effectivePolicy.mode === 'blocked'
-  }
-
   return {
     allowedPermissions: allowed,
     baselinePermissions: baseline,
@@ -555,8 +473,7 @@ export const resolveEffectiveModulePermissions = async ({
     userDenies,
     delegatedGrants,
     effectivePermissions: effective,
-    policy: policyWithFlags,
-    debug: { tenantPolicy, orgPolicy }
+    policy: effectivePolicy
   }
 }
 

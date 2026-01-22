@@ -20,6 +20,7 @@ import { ensureOrganizationAuthSettings, serializeAuthSettings, slugRegex, creat
 import { sendInvitationEmail } from '~~/server/utils/mailer'
 import { describeEmailSendError } from '~~/server/utils/emailTest'
 import { logOrganizationAction } from '../../../utils/audit'
+import { initializeNewOrganization } from '../../../utils/orgSetup'
 
 const createOrgSchema = z.object({
   name: z.string().min(2).max(120),
@@ -287,6 +288,18 @@ export default defineEventHandler(async (event) => {
     tenantId: organization.tenantId || undefined,
     ownerEmail: normalizedOwnerEmail
   }, organization.id)
+
+  // Initialize organization with blocked modules and default groups
+  try {
+    const setupResult = await initializeNewOrganization({
+      orgId: organizationId,
+      ownerUserId
+    })
+    console.log(`[create-org] Initialized org ${organizationId}: ${setupResult.modulesBlocked} modules blocked, defaultGroupId=${setupResult.defaultGroupId}`)
+  } catch (initError) {
+    console.error('[create-org] Failed to initialize organization setup', initError)
+    // Don't fail the request - org is created, setup can be retried
+  }
 
   const authSettings = await ensureOrganizationAuthSettings(db, organizationId)
 

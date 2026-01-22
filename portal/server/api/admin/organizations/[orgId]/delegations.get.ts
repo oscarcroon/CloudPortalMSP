@@ -1,19 +1,20 @@
 import { defineEventHandler, getQuery } from 'h3'
 import { and, eq, isNull } from 'drizzle-orm'
-import { requireSuperAdmin } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
 import { mspOrgDelegations, mspOrgDelegationPermissions, organizations, users } from '~~/server/database/schema'
-import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
+import { parseOrgParam, requireOrganizationByIdentifier, requireOrganizationReadAccess } from '../utils'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
-
   const orgParam = parseOrgParam(event)
   const query = getQuery(event)
   const includeRevoked = String(query.revoked ?? 'false') === 'true'
 
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationReadAccess(event, organization)
+  
   const rows = await db
     .select({
       delegation: mspOrgDelegations,

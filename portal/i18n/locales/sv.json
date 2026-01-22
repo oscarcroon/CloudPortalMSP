@@ -499,6 +499,38 @@
       "noMembersFound": "Inga medlemmar matchar sökningen.",
       "searchLimit": "Visar de första {count} träffarna."
     },
+    "groupPermissions": {
+      "title": "Gruppbehörigheter",
+      "description": "Hantera modulbehörigheter för varje organisationsgrupp. Grupper med behörigheter kan komma åt specifika moduler.",
+      "noOrg": "Välj en organisation för att hantera gruppbehörigheter.",
+      "loading": "Laddar grupper...",
+      "loadingPermissions": "Laddar behörigheter...",
+      "empty": "Inga grupper hittades. Skapa grupper under Grupper först.",
+      "results": "{count} grupper",
+      "permissionsSet": "behörigheter satta",
+      "showOnlyEnabled": "Visa endast aktiverade moduler",
+      "searchModules": "Sök moduler...",
+      "noModulesFound": "Inga moduler matchar din sökning.",
+      "moduleDisabled": "Inaktiverad",
+      "grant": "Tillåt",
+      "deny": "Neka",
+      "granted": "tillåtna",
+      "denied": "nekade",
+      "noPermissions": "ärver standard",
+      "grantAll": "Tillåt alla",
+      "denyAll": "Neka alla",
+      "clearAll": "Rensa",
+      "unsavedChanges": "{count} osparade ändringar",
+      "save": "Spara behörigheter",
+      "saved": "Behörigheter sparade",
+      "help": {
+        "title": "Så fungerar gruppbehörigheter",
+        "grantDesc": "Medlemmar i gruppen får explicit tillgång till denna behörighet för modulen.",
+        "denyDesc": "Medlemmar i gruppen blockeras explicit från denna behörighet.",
+        "inherit": "Ärv",
+        "inheritDesc": "Ingen explicit inställning. Åtkomst avgörs av modulpolicies och andra gruppmedlemskap."
+      }
+    },
     "organizations": {
       "title": "Organisationer",
       "titleForTenant": "Organisationer för {tenant}",
@@ -2198,6 +2230,39 @@
       "requiresPasswordReset": "Kräver lösenordsbyte",
       "count": "{count} st",
       "activeCount": "({count} aktiva)"
+    }
+  },
+  "orgSetup": {
+    "title": "Organisationsinställning",
+    "subtitle": "Konfigurera {orgName} för att komma igång",
+    "complete": "Slutför inställning",
+    "steps": {
+      "modules": {
+        "label": "Moduler",
+        "title": "Aktivera moduler",
+        "description": "Välj vilka moduler som ska vara tillgängliga för din organisation. Du kan ändra detta senare i inställningar.",
+        "enabled": "moduler aktiverade",
+        "enableAll": "Aktivera alla",
+        "disableAll": "Inaktivera alla"
+      },
+      "templates": {
+        "label": "Roller",
+        "title": "Välj rollmall",
+        "description": "Välj en behörighetsmall som definierar vad olika användargrupper kan göra. Detta kan anpassas senare."
+      },
+      "defaultGroup": {
+        "label": "Standardgrupp",
+        "title": "Standardgrupp för nya användare",
+        "description": "När nya användare ansluter till din organisation tilldelas de automatiskt till denna grupp."
+      }
+    },
+    "pending": {
+      "title": "Inställning pågår",
+      "description": "Organisationen {orgName} konfigureras av en administratör.",
+      "contact": "Kontakta din administratör för åtkomst.",
+      "checkAgain": "Kontrollera igen",
+      "switchOrg": "Byt organisation",
+      "logout": "Logga ut"
     }
   }
 }

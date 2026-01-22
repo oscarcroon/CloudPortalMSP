@@ -18,6 +18,7 @@ import {
 import { describeEmailSendError } from '~~/server/utils/emailTest'
 import { sendInvitationEmail } from '~~/server/utils/mailer'
 import { logUserAction } from '~~/server/utils/audit'
+import { assignUserToDefaultGroup } from '~~/server/utils/orgSetup'
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -142,6 +143,17 @@ export default defineEventHandler(async (event) => {
 
     if (!member) {
       throw createError({ statusCode: 500, message: 'Failed to read member after update.' })
+    }
+
+    // Assign new member to default group
+    try {
+      await assignUserToDefaultGroup({
+        orgId: organization.id,
+        userId: member.userId
+      })
+    } catch (groupError) {
+      console.error('[invite.post] Failed to assign member to default group', groupError)
+      // Don't fail the request - membership is created
     }
 
     await logUserAction(event, 'USER_INVITED', { targetUserId: member.userId, targetUserEmail: member.email, organizationId: organization.id, role: member.role, directAdd: true }, member.userId)

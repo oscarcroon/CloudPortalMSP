@@ -1,13 +1,14 @@
-﻿import { and, eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam } from 'h3'
 import { organizationInvitations } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
-import { requireSuperAdmin } from '~~/server/utils/rbac'
-import { parseOrgParam, requireOrganizationByIdentifier } from '../../../utils'
+import { parseOrgParam, requireOrganizationByIdentifier, requireOrganizationManageAccess } from '../../../utils'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
   const organization = await requireOrganizationByIdentifier(getDb(), parseOrgParam(event))
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, organization)
   const inviteId = getRouterParam(event, 'inviteId')
   if (!inviteId) {
     throw createError({ statusCode: 400, message: 'Saknar inbjudnings-ID.' })

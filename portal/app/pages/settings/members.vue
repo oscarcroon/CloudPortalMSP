@@ -370,95 +370,163 @@
                   :key="entry.moduleId"
                   class="rounded-xl border border-slate-200 bg-slate-50/60 text-sm dark:border-white/10 dark:bg-white/5"
                 >
-                  <button
-                    class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
-                    @click="toggleModuleCollapse(entry.moduleId)"
-                  >
-                    <div class="flex flex-col gap-1">
-                      <div class="flex items-center gap-2">
-                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">{{ entry.moduleName }}</p>
-                    <span
-                          v-if="entry.dirty"
-                          class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
+                  <!-- Module header with quick actions -->
+                  <div class="flex items-center justify-between px-3 py-2">
+                    <div
+                      class="flex flex-1 cursor-pointer items-center gap-2"
+                      @click="toggleModuleCollapse(entry.moduleId)"
                     >
-                          Osparad
-                    </span>
-                </div>
-                      <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                        Policy: {{ entry.policyMode }} | Tillåtna: {{ entry.allowedPermissions.length }}
-                      </p>
-                </div>
-                    <Icon
-                      :icon="isModuleCollapsed(entry.moduleId) ? 'mdi:chevron-down' : 'mdi:chevron-up'"
-                      class="h-5 w-5 text-slate-500"
-                    />
-                  </button>
-                  <Transition name="fade">
-                    <div v-if="!isModuleCollapsed(entry.moduleId)" class="space-y-2 border-t border-slate-200 px-3 py-3 text-sm dark:border-white/10">
-                      <div class="flex flex-wrap items-center gap-2">
-                <button
-                          class="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-700 transition hover:bg-white dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
-                          :disabled="entry.loading"
-                          @click.stop="loadPermissions(entry.moduleId)"
-                        >
-                          {{ entry.permissions.length ? 'Uppdatera' : 'Ladda' }}
-                        </button>
-                        <button
-                          class="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-700 transition hover:bg-white disabled:opacity-40 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
-                          :disabled="entry.loading || entry.saving || !entry.permissions.length"
-                          @click.stop="resetModulePermissions(entry.moduleId)"
-                >
-                          Återställ till standard
-                        </button>
-                        <button
-                          class="rounded bg-brand px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
-                          :disabled="!entry.dirty || entry.saving"
-                          @click.stop="savePermissions(entry.moduleId)"
-                        >
-                          {{ entry.saving ? 'Sparar…' : 'Spara' }}
-                </button>
-              </div>
-                      <p v-if="entry.error" class="text-xs text-red-600 dark:text-red-300">{{ entry.error }}</p>
-                      <div v-else-if="entry.loading" class="text-xs text-slate-500 dark:text-slate-400">
-                        Laddar rättigheter…
-            </div>
-                      <div v-else-if="!entry.permissions.length" class="text-xs text-slate-500 dark:text-slate-400">
-                        Inga manifestdeklarerade rättigheter.
+                      <Icon
+                        :icon="isModuleCollapsed(entry.moduleId) ? 'mdi:chevron-right' : 'mdi:chevron-down'"
+                        class="h-4 w-4 text-slate-400"
+                      />
+                      <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-2">
+                          <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">{{ entry.moduleName }}</p>
+                          <span
+                            v-if="entry.dirty"
+                            class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
+                          >
+                            Osparad
+                          </span>
+                        </div>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400">
+                          {{ getModulePermissionSummary(entry) }}
+                        </p>
                       </div>
-                      <div v-else class="space-y-2">
-                        <div
-                          v-for="perm in entry.permissions"
-                          :key="perm.key"
-                          class="flex items-start justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] shadow-sm dark:border-white/5 dark:bg-slate-900"
-                        >
-                          <div class="flex-1">
-                            <p class="font-semibold text-slate-800 dark:text-slate-100">{{ perm.key }}</p>
-                            <p v-if="perm.description" class="text-[11px] text-slate-500 dark:text-slate-400">
-                              {{ perm.description }}
-                            </p>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                              Källa: {{ perm.source }} | Tillåten av policy: {{ perm.allowed ? 'Ja' : 'Nej' }}
-                            </p>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            <span
-                              class="rounded-full px-2 py-1 text-[11px] font-semibold"
-                              :class="perm.effective ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'"
-                            >
-                              {{ perm.effective ? 'Aktiv' : 'Inaktiv' }}
-                            </span>
+                    </div>
+                    <!-- Quick action buttons - always visible -->
+                    <div class="flex gap-1">
+                      <button
+                        class="rounded px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+                        title="Tillåt alla"
+                        :disabled="entry.saving || !entry.permissions.length"
+                        @click.stop="setAllModulePermissions(entry.moduleId, 'grant')"
+                      >
+                        <Icon icon="mdi:check-all" class="h-4 w-4" />
+                      </button>
+                      <button
+                        class="rounded px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30"
+                        title="Neka alla"
+                        :disabled="entry.saving || !entry.permissions.length"
+                        @click.stop="setAllModulePermissions(entry.moduleId, 'deny')"
+                      >
+                        <Icon icon="mdi:close-circle-outline" class="h-4 w-4" />
+                      </button>
+                      <button
+                        class="rounded px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10"
+                        title="Återställ (ärv)"
+                        :disabled="entry.saving || !entry.permissions.length"
+                        @click.stop="setAllModulePermissions(entry.moduleId, 'inherit')"
+                      >
+                        <Icon icon="mdi:eraser" class="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Permissions list - expandable -->
+                  <div v-if="!isModuleCollapsed(entry.moduleId)" class="border-t border-slate-200 px-3 py-3 dark:border-white/10">
+                    <!-- Action buttons row -->
+                    <div class="mb-3 flex flex-wrap items-center gap-2">
+                      <button
+                        class="rounded border border-slate-200 px-3 py-1 text-[11px] text-slate-700 transition hover:bg-white dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
+                        :disabled="entry.loading"
+                        @click.stop="loadPermissions(entry.moduleId)"
+                      >
+                        {{ entry.permissions.length ? 'Uppdatera' : 'Ladda' }}
+                      </button>
+                      <button
+                        class="rounded bg-brand px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
+                        :disabled="!entry.dirty || entry.saving"
+                        @click.stop="savePermissions(entry.moduleId)"
+                      >
+                        {{ entry.saving ? 'Sparar…' : 'Spara' }}
+                      </button>
+                    </div>
+
+                    <p v-if="entry.error" class="mb-2 text-xs text-red-600 dark:text-red-300">{{ entry.error }}</p>
+                    <div v-else-if="entry.loading" class="text-xs text-slate-500 dark:text-slate-400">
+                      Laddar rättigheter…
+                    </div>
+                    <div v-else-if="!entry.permissions.length" class="text-xs text-slate-500 dark:text-slate-400">
+                      Inga manifestdeklarerade rättigheter. Klicka "Ladda" för att hämta.
+                    </div>
+
+                    <!-- Permissions list - single column for sidebar -->
+                    <div v-else class="space-y-2">
+                      <div
+                        v-for="perm in entry.permissions"
+                        :key="perm.key"
+                        class="rounded-lg border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-black/20"
+                      >
+                        <!-- Permission name and description -->
+                        <div class="mb-2">
+                          <p 
+                            class="text-sm font-medium text-slate-800 dark:text-slate-100"
+                            :title="perm.key"
+                          >
+                            {{ formatPermissionKey(perm.key) }}
+                          </p>
+                          <p 
+                            v-if="perm.description" 
+                            class="mt-0.5 text-xs text-slate-500 dark:text-slate-400"
+                            :title="perm.description"
+                          >
+                            {{ perm.description }}
+                          </p>
+                        </div>
+                        <!-- Action buttons row -->
+                        <div class="flex items-center justify-between">
+                          <span 
+                            class="text-[10px] text-slate-400 dark:text-slate-500"
+                            :class="{ 'text-amber-600 dark:text-amber-400': !perm.allowed }"
+                          >
+                            {{ perm.allowed ? '' : 'Blockerad av policy' }}
+                          </span>
+                          <div class="flex gap-1">
                             <button
-                              class="rounded border border-slate-200 px-3 py-1 text-[11px] font-semibold transition hover:bg-white disabled:opacity-40 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
+                              :class="[
+                                'rounded px-3 py-1.5 text-xs font-medium transition',
+                                perm.state === 'grant'
+                                  ? 'bg-emerald-500 text-white shadow-sm'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-white/10 dark:text-slate-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400'
+                              ]"
                               :disabled="!perm.allowed || entry.saving"
-                              @click.stop="togglePermission(entry.moduleId, perm.key)"
+                              :title="'Tillåt denna behörighet'"
+                              @click="setPermissionState(entry.moduleId, perm.key, 'grant')"
                             >
-                              {{ perm.state === 'inherit' ? 'Ärv' : perm.state === 'grant' ? 'Tillåt' : 'Neka' }}
+                              Tillåt
+                            </button>
+                            <button
+                              :class="[
+                                'rounded px-3 py-1.5 text-xs font-medium transition',
+                                perm.state === 'deny'
+                                  ? 'bg-red-500 text-white shadow-sm'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-700 dark:bg-white/10 dark:text-slate-400 dark:hover:bg-red-900/30 dark:hover:text-red-400'
+                              ]"
+                              :disabled="!perm.allowed || entry.saving"
+                              :title="'Neka denna behörighet'"
+                              @click="setPermissionState(entry.moduleId, perm.key, 'deny')"
+                            >
+                              Neka
+                            </button>
+                            <button
+                              :class="[
+                                'rounded px-3 py-1.5 text-xs font-medium transition',
+                                perm.state === 'inherit'
+                                  ? 'bg-slate-400 text-white shadow-sm dark:bg-slate-500'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-400 dark:hover:bg-white/20'
+                              ]"
+                              :disabled="!perm.allowed || entry.saving"
+                              :title="'Ärv från standard (ingen explicit inställning)'"
+                              @click="setPermissionState(entry.moduleId, perm.key, 'inherit')"
+                            >
+                              Ärv
                             </button>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </Transition>
+                  </div>
                 </div>
               </div>
             </div>
@@ -525,6 +593,14 @@ const roleNames: Record<RbacRole, string> = {
 }
 
 const getRoleName = (role: RbacRole | string): string => roleNames[role as RbacRole] ?? role
+
+const policyModeNames: Record<string, string> = {
+  'inherit': 'Ärver',
+  'blocked': 'Blockerad',
+  'allowlist': 'Tillåtna',
+  'default-closed': 'Standard (stängd)'
+}
+const formatPolicyMode = (mode: string): string => policyModeNames[mode] ?? mode
 
 const membersApi = useOrganizationMembers()
 const permission = usePermission()
@@ -708,25 +784,61 @@ const loadAllModulePermissions = async (member: OrganizationMember) => {
   }
 }
 
-const cycleState = (state: PermissionState): PermissionState => {
-  if (state === 'inherit') return 'grant'
-  if (state === 'grant') return 'deny'
-  return 'inherit'
-}
-
 const markDirty = (moduleId: string) => {
   const entry = permissionEntries.value.find((m) => m.moduleId === moduleId)
   if (entry) entry.dirty = true
 }
 
-const togglePermission = (moduleId: string, permKey: string) => {
+// Set a specific permission to a specific state (grant, deny, inherit)
+const setPermissionState = (moduleId: string, permKey: string, state: PermissionState) => {
   const entry = permissionEntries.value.find((m) => m.moduleId === moduleId)
   if (!entry) return
   const perm = entry.permissions.find((p) => p.key === permKey)
   if (!perm || !perm.allowed || entry.saving) return
-  perm.state = cycleState(perm.state)
-  perm.effective = perm.state === 'grant' ? true : perm.state === 'deny' ? false : perm.effective
+  if (perm.state === state) return // No change
+  perm.state = state
+  perm.effective = state === 'grant' ? true : state === 'deny' ? false : perm.effective
   markDirty(moduleId)
+}
+
+// Set all permissions in a module to the same state
+const setAllModulePermissions = (moduleId: string, state: PermissionState) => {
+  const entry = permissionEntries.value.find((m) => m.moduleId === moduleId)
+  if (!entry || !entry.permissions.length || entry.saving) return
+  let changed = false
+  for (const perm of entry.permissions) {
+    if (perm.allowed && perm.state !== state) {
+      perm.state = state
+      perm.effective = state === 'grant' ? true : state === 'deny' ? false : perm.effective
+      changed = true
+    }
+  }
+  if (changed) markDirty(moduleId)
+}
+
+// Get summary text for module header (e.g., "3 tillåtna, 1 nekad")
+const getModulePermissionSummary = (entry: ModulePermissionEntry): string => {
+  if (!entry.permissions.length) {
+    return 'Klicka för att ladda rättigheter'
+  }
+  const granted = entry.permissions.filter(p => p.state === 'grant').length
+  const denied = entry.permissions.filter(p => p.state === 'deny').length
+  const inherited = entry.permissions.filter(p => p.state === 'inherit').length
+  
+  const parts: string[] = []
+  if (granted > 0) parts.push(`${granted} tillåtna`)
+  if (denied > 0) parts.push(`${denied} nekade`)
+  if (inherited > 0 && parts.length === 0) parts.push(`${inherited} ärver`)
+  
+  return parts.length > 0 ? parts.join(', ') : 'inga explicita inställningar'
+}
+
+// Format permission key to readable text
+const formatPermissionKey = (key: string): string => {
+  // Convert snake_case or kebab-case to title case
+  return key
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
 }
 
 const savePermissions = async (moduleId: string) => {
@@ -742,16 +854,32 @@ const savePermissions = async (moduleId: string) => {
     const resp = await membersApi.updateMemberModulePermissions(userId, moduleId, {
       permissionOverrides: { grants, denies }
     })
-    entry.allowedPermissions = resp.allowedPermissions ?? entry.allowedPermissions
-    entry.permissions =
-      resp.permissions?.map((p) => ({
+    
+    // Update local permission states from the response (if available) or keep current states
+    if (resp.permissions && Array.isArray(resp.permissions)) {
+      entry.allowedPermissions = resp.allowedPermissions ?? entry.allowedPermissions
+      entry.permissions = resp.permissions.map((p) => ({
         key: p.key,
         description: p.description ?? null,
         allowed: p.allowed ?? entry.allowedPermissions.includes(p.key),
         effective: !!p.effective,
         source: p.state === 'grant' ? 'user' : p.state === 'deny' ? 'user' : 'inherit',
         state: (p.state as PermissionState) ?? 'inherit'
-      })) ?? []
+      }))
+    } else {
+      // API doesn't return full permissions, update local state based on response
+      const respOverrides = resp.permissionOverrides as { grants?: string[], denies?: string[] } | undefined
+      const savedGrants = new Set(respOverrides?.grants ?? grants)
+      const savedDenies = new Set(respOverrides?.denies ?? denies)
+      entry.permissions = entry.permissions.map((p) => ({
+        ...p,
+        state: savedGrants.has(p.key) ? 'grant' as PermissionState : savedDenies.has(p.key) ? 'deny' as PermissionState : 'inherit' as PermissionState,
+        source: savedGrants.has(p.key) ? 'user' : savedDenies.has(p.key) ? 'user' : 'inherit',
+        effective: savedGrants.has(p.key) ? true : savedDenies.has(p.key) ? false : p.effective
+      }))
+    }
+    
+    // Update override flag for the member based on ALL modules
     updateOverrideFlagForMember(userId, permissionEntries.value)
     entry.dirty = false
     successMessage.value = 'Modulrättigheter uppdaterades.'

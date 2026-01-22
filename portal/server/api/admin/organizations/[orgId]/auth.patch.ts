@@ -1,16 +1,16 @@
-﻿import { eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { defineEventHandler, readBody } from 'h3'
 import {
   organizationAuthSettings,
   organizations
 } from '../../../../database/schema'
 import { getDb } from '../../../../utils/db'
-import { requireSuperAdmin } from '../../../../utils/rbac'
 import {
   buildOrganizationDetailPayload,
   ensureOrganizationAuthSettings,
   parseOrgParam,
   requireOrganizationByIdentifier,
+  requireOrganizationManageAccess,
   stringifyIdpConfig
 } from '../utils'
 import type { OrganizationIdpType } from '~/types/admin'
@@ -22,13 +22,15 @@ import {
 import { logOrganizationAction } from '../../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const payload = organizationAuthUpdateSchema.parse(await readBody(event))
   const db = getDb()
   const isSqlite =
     (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, organization)
   const authSettings = await ensureOrganizationAuthSettings(db, organization.id)
 
   // Store old values for audit log

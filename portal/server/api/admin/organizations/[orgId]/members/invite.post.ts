@@ -10,11 +10,11 @@ import {
 } from '../../../../../database/schema'
 import { getDb } from '../../../../../utils/db'
 import { normalizeEmail } from '../../../../../utils/crypto'
-import { requireSuperAdmin } from '../../../../../utils/rbac'
 import {
   createInviteToken,
   parseOrgParam,
-  requireOrganizationByIdentifier
+  requireOrganizationByIdentifier,
+  requireOrganizationManageAccess
 } from '../../utils'
 import { describeEmailSendError } from '~~/server/utils/emailTest'
 import { sendInvitationEmail } from '~~/server/utils/mailer'
@@ -45,12 +45,14 @@ type InviteTransactionResult =
     }
 
 export default defineEventHandler(async (event) => {
-  const auth = await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const payload = inviteSchema.parse(await readBody(event))
   const normalizedEmail = normalizeEmail(payload.email)
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  const { auth } = await requireOrganizationManageAccess(event, organization)
   const allowDirectAdd = Boolean(organization.requireSso)
   const invitedByLabel = auth.user.fullName?.trim() || auth.user.email
   const isSqlite =

@@ -117,6 +117,13 @@ export const organizations = sqliteTable(
     billingEmail: text('billing_email'),
     coreId: text('core_id'),
     emailDisclaimerMarkdown: text('email_disclaimer_markdown'),
+    // Setup wizard fields - controls onboarding flow for new organizations
+    setupStatus: text('setup_status')
+      .$type<'pending' | 'complete'>()
+      .notNull()
+      .default('complete'), // Default 'complete' so existing orgs don't get stuck in wizard
+    setupCompletedAt: integer('setup_completed_at', { mode: 'timestamp_ms' }),
+    defaultGroupId: text('default_group_id'), // Auto-assign new members to this org group
     ...timestampColumns()
   },
   table => ({

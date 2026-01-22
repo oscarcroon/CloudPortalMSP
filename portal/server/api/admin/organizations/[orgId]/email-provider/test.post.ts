@@ -1,4 +1,4 @@
-﻿import { createError, defineEventHandler, readBody } from 'h3'
+import { createError, defineEventHandler, readBody } from 'h3'
 import { z } from 'zod'
 import { recordTestResult } from '~~/server/utils/emailProvider'
 import { describeEmailSendError, sendProviderTestEmail } from '~~/server/utils/emailTest'
@@ -8,18 +8,19 @@ import {
 } from '~~/server/utils/emailProviderPayload'
 import { getDb } from '~~/server/utils/db'
 import { cryptoKeyHelpText, formatZodError, isMissingCryptoKeyError } from '~~/server/utils/errors'
-import { requireSuperAdmin } from '~~/server/utils/rbac'
-import { parseOrgParam, requireOrganizationByIdentifier } from '../../utils'
+import { parseOrgParam, requireOrganizationByIdentifier, requireOrganizationManageAccess } from '../../utils'
 
 const testSchema = emailProviderPayloadSchema.extend({
   testEmail: z.string().email()
 })
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, organization)
   try {
     const body = await readBody(event)
     const payload = testSchema.parse(body)

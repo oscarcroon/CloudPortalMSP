@@ -72,12 +72,17 @@ export default defineEventHandler(async (event) => {
       requireSso: Boolean(organization.requireSso)
     },
     members: memberRows.map((row) => ({
+      id: row.membershipId,
       membershipId: row.membershipId,
+      organizationId: orgId,
       userId: row.userId,
       email: row.email,
+      displayName: row.fullName || undefined,
       fullName: row.fullName,
       role: row.role,
       status: row.status,
+      createdAt: row.addedAt,
+      updatedAt: row.addedAt,
       addedAt: row.addedAt
     })),
     invitations: inviteRows.map((row) => ({

@@ -12,14 +12,15 @@ import { getDb } from '~~/server/utils/db'
 import { organizations } from '~~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import { cryptoKeyHelpText, formatZodError, isMissingCryptoKeyError } from '~~/server/utils/errors'
-import { requireSuperAdmin } from '~~/server/utils/rbac'
-import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
+import { parseOrgParam, requireOrganizationByIdentifier, requireOrganizationManageAccess } from '../utils'
 
 export default defineEventHandler(async (event) => {
-  await requireSuperAdmin(event)
   const orgParam = parseOrgParam(event)
   const db = getDb()
   const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, organization)
   try {
     const body = await readBody(event)
     const payload = emailProviderPayloadSchema.parse(body)

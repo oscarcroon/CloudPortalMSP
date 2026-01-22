@@ -1,7 +1,7 @@
 import { computed, useState } from '#imports'
 import type { ModuleId } from '~/constants/modules'
 import { useAuth } from './useAuth'
-import { useAvailableModules } from './useAvailableModules'
+import { useModules } from './useModules'
 
 const dedupeModuleIds = (ids: ModuleId[]): ModuleId[] => {
   const seen = new Set<ModuleId>()
@@ -18,7 +18,11 @@ const dedupeModuleIds = (ids: ModuleId[]): ModuleId[] => {
 
 export const useFavorites = () => {
   const auth = useAuth()
-  const { modules } = useAvailableModules()
+  // Use useModules instead of useAvailableModules to get all visible modules
+  // Module visibility/access is already handled by backend via effectiveEnabled/effectiveDisabled
+  // Using useAvailableModules incorrectly filtered out modules based on frontend permission checks
+  // that don't include module-specific permissions (like cloudflare-dns:view)
+  const { modules } = useModules()
   const pending = useState('favorite-modules-pending', () => false)
 
   const favoriteIds = computed<ModuleId[]>(() => auth.state.value.data?.favoriteModules ?? [])
