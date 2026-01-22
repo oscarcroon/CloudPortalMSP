@@ -42,14 +42,16 @@
         <div class="space-y-4">
           <div class="rounded-2xl border border-slate-200 bg-white shadow-card dark:border-white/10 dark:bg-[#0c1524]">
           <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/5">
-            <div>
-              <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.delegations.list.title') }}</p>
-              <p class="text-sm text-slate-600 dark:text-slate-300">
-                {{ visibleDelegations.filter(d => !d.revokedAt && !isExpired(d)).length }} st
-                <span v-if="groupedDelegations.length > 0" class="text-xs text-slate-500">
-                  ({{ groupedDelegations.length }} {{ t('settings.delegations.list.users') }})
-                </span>
-              </p>
+            <div class="flex items-center gap-3">
+              <div>
+                <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.delegations.list.title') }}</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300">
+                  {{ visibleDelegations.filter(d => !d.revokedAt && !isExpired(d)).length }} st
+                  <span v-if="groupedDelegations.length > 0" class="text-xs text-slate-500">
+                    ({{ groupedDelegations.length }} {{ t('settings.delegations.list.users') }})
+                  </span>
+                </p>
+              </div>
             </div>
             <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
               <input v-model="showRevoked" type="checkbox" class="rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20" />
@@ -69,18 +71,18 @@
               :key="group.subjectId"
               class="group"
             >
-              <summary class="cursor-pointer px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                <div class="flex items-center justify-between gap-3">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <Icon icon="mdi:chevron-down" class="chevron-icon h-4 w-4 text-slate-400 transition-transform duration-200 flex-shrink-0" />
+              <summary class="cursor-pointer px-6 py-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors list-none">
+                <div class="flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <Icon icon="mdi:chevron-down" class="chevron-icon h-5 w-5 text-slate-400 transition-transform duration-200 flex-shrink-0" />
+                    <div class="flex-1 min-w-0">
                       <p class="font-semibold text-slate-900 dark:text-white truncate">
                         {{ group.subjectName || group.subjectEmail || group.subjectId }}
                       </p>
+                      <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        {{ group.subjectEmail || group.subjectId }}
+                      </p>
                     </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                      {{ group.subjectEmail || group.subjectId }}
-                    </p>
                   </div>
                   <div class="flex items-center gap-2 flex-shrink-0">
                     <span
@@ -101,7 +103,7 @@
                     >
                       {{ group.revokedCount }} {{ group.revokedCount !== 1 ? t('settings.delegations.list.revokedPlural') : t('settings.delegations.list.revoked') }}
                     </span>
-                    <span class="text-xs text-slate-500 dark:text-slate-400">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       ({{ group.delegations.length }} {{ t('settings.delegations.list.total') }})
                     </span>
                   </div>
@@ -240,21 +242,8 @@
             </p>
 
             <div class="mt-4 space-y-4">
-              <!-- Tab switcher: Existing user / Invite external -->
+              <!-- Tab switcher: Invite external / Existing user -->
               <div class="flex rounded-lg border border-slate-200 p-1 dark:border-white/10">
-                <button
-                  type="button"
-                  :class="[
-                    'flex-1 rounded-md px-3 py-2 text-sm font-medium transition',
-                    recipientMode === 'existing'
-                      ? 'bg-brand text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10'
-                  ]"
-                  @click="recipientMode = 'existing'"
-                >
-                  <Icon icon="mdi:account-search" class="mr-1.5 inline h-4 w-4" />
-                  {{ t('settings.delegations.form.tabExisting') }}
-                </button>
                 <button
                   type="button"
                   :class="[
@@ -267,6 +256,19 @@
                 >
                   <Icon icon="mdi:email-plus-outline" class="mr-1.5 inline h-4 w-4" />
                   {{ t('settings.delegations.form.tabInvite') }}
+                </button>
+                <button
+                  type="button"
+                  :class="[
+                    'flex-1 rounded-md px-3 py-2 text-sm font-medium transition',
+                    recipientMode === 'existing'
+                      ? 'bg-brand text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10'
+                  ]"
+                  @click="recipientMode = 'existing'"
+                >
+                  <Icon icon="mdi:account-search" class="mr-1.5 inline h-4 w-4" />
+                  {{ t('settings.delegations.form.tabExisting') }}
                 </button>
               </div>
 
@@ -691,7 +693,7 @@ const selectedModulesWithPermissions = computed(() => {
 })
 
 // Recipient mode
-const recipientMode = ref<'existing' | 'invite'>('existing')
+const recipientMode = ref<'existing' | 'invite'>('invite')
 
 // Organization members for search
 const { fetchMembers } = useOrganizationMembers()
@@ -860,7 +862,7 @@ const getModuleSelectedCount = (moduleKey: string): number => {
 }
 
 const resetForm = () => {
-  recipientMode.value = 'existing'
+  recipientMode.value = 'invite'
   userQuery.value = ''
   selectedUser.value = null
   inviteEmail.value = ''
@@ -1002,6 +1004,14 @@ const togglePermissions = (id: string) => {
 </script>
 
 <style scoped>
+/* Hide browser's default summary marker */
+summary {
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
 /* Rotate chevron when details is open */
 details[open] summary .chevron-icon {
   transform: rotate(180deg);
