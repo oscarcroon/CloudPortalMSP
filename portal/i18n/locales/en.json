@@ -540,6 +540,15 @@
       "unsavedChanges": "{count} unsaved changes",
       "save": "Save permissions",
       "saved": "Permissions saved successfully",
+      "info": {
+        "title": "How group permissions work",
+        "description": "Group permissions let you grant specific access rights to modules based on group membership. Perfect for organizing access by roles, departments, or projects.",
+        "useCase1": "Give the support group access to DNS management but not certificates",
+        "useCase2": "Let the development group manage all modules while customer service only sees specific ones",
+        "useCase3": "Create project groups with time-limited access to specific modules",
+        "howItWorks": "How the settings work:",
+        "note": "Permissions are inherited from higher levels if nothing else is specified. Explicit settings at group level override inherited permissions."
+      },
       "help": {
         "title": "How group permissions work",
         "grantDesc": "Members of this group explicitly receive this permission for the module.",

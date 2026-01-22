@@ -6,26 +6,38 @@
       </div>
 
     <template v-else>
-      <!-- Info box explaining the permission system -->
-      <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/30 dark:bg-blue-500/10">
-        <div class="flex gap-3">
-          <Icon icon="mdi:information-outline" class="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-          <div class="space-y-2 text-sm text-blue-800 dark:text-blue-200">
-            <p class="font-semibold">{{ t('settings.groupPermissions.help.title') }}</p>
-            <ul class="space-y-1 text-blue-700 dark:text-blue-300">
-              <li class="flex items-start gap-2">
-                <span class="inline-block rounded bg-emerald-500 px-1.5 py-0.5 text-xs font-medium text-white">{{ t('settings.groupPermissions.grant') }}</span>
-                <span>{{ t('settings.groupPermissions.help.grantDesc') }}</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="inline-block rounded bg-red-500 px-1.5 py-0.5 text-xs font-medium text-white">{{ t('settings.groupPermissions.deny') }}</span>
-                <span>{{ t('settings.groupPermissions.help.denyDesc') }}</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="inline-block rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-600 dark:text-slate-200">{{ t('settings.groupPermissions.help.inherit') }}</span>
-                <span>{{ t('settings.groupPermissions.help.inheritDesc') }}</span>
-              </li>
-            </ul>
+      <!-- Info callout explaining group permissions -->
+      <div class="rounded-2xl border border-brand/20 bg-brand/5 p-5 dark:border-brand/30 dark:bg-brand/10">
+        <div class="flex items-start gap-4">
+          <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand dark:bg-brand/20">
+            <Icon icon="mdi:account-group-outline" class="h-5 w-5" />
+          </div>
+          <div class="flex-1 space-y-2">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('settings.groupPermissions.info.title') }}</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-300">
+              {{ t('settings.groupPermissions.info.description') }}
+            </p>
+            <div class="mt-3 rounded-lg border border-slate-200 bg-white/50 p-3 dark:border-white/10 dark:bg-white/5">
+              <p class="mb-2 text-xs font-semibold text-slate-700 dark:text-slate-300">{{ t('settings.groupPermissions.info.howItWorks') }}</p>
+              <ul class="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                <li class="flex items-start gap-2">
+                  <span class="inline-block rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-medium text-white">{{ t('settings.groupPermissions.grant') }}</span>
+                  <span>{{ t('settings.groupPermissions.help.grantDesc') }}</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="inline-block rounded bg-red-500 px-1.5 py-0.5 text-[10px] font-medium text-white">{{ t('settings.groupPermissions.deny') }}</span>
+                  <span>{{ t('settings.groupPermissions.help.denyDesc') }}</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="inline-block rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-600 dark:text-slate-200">{{ t('settings.groupPermissions.help.inherit') }}</span>
+                  <span>{{ t('settings.groupPermissions.help.inheritDesc') }}</span>
+                </li>
+              </ul>
+            </div>
+            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              <Icon icon="mdi:information-outline" class="mr-1 inline h-3.5 w-3.5" />
+              {{ t('settings.groupPermissions.info.note') }}
+            </p>
           </div>
         </div>
       </div>

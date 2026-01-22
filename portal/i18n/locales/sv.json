@@ -535,6 +535,15 @@
       "unsavedChanges": "{count} osparade ändringar",
       "save": "Spara behörigheter",
       "saved": "Behörigheter sparade",
+      "info": {
+        "title": "Så fungerar gruppbehörigheter",
+        "description": "Gruppbehörigheter låter dig ge specifika åtkomsträttigheter till moduler baserat på gruppmedlemskap. Perfekt för att organisera åtkomst efter roller, avdelningar eller projekt.",
+        "useCase1": "Ge supportgruppen åtkomst till DNS-hantering men inte certifikat",
+        "useCase2": "Låt utvecklingsgruppen hantera alla moduler medan kundservice bara ser specifika",
+        "useCase3": "Skapa projektgrupper med tidsbegränsad åtkomst till specifika moduler",
+        "howItWorks": "Så fungerar inställningarna:",
+        "note": "Behörigheter ärvs från högre nivåer om inget annat anges. Explicit inställning på gruppnivå åsidosätter ärvda behörigheter."
+      },
       "help": {
         "title": "Så fungerar gruppbehörigheter",
         "grantDesc": "Medlemmar i gruppen får explicit tillgång till denna behörighet för modulen.",
