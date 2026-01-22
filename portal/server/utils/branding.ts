@@ -56,6 +56,7 @@ export interface BrandingMediaFields {
   loginLogoLightUrl: string | null
   loginLogoDarkUrl: string | null
   loginBackgroundUrl: string | null
+  emailLogoUrl: string | null
   loginBackgroundTint: string | null
   loginBackgroundTintOpacity: number | null
   navigationBackgroundColor: string | null
@@ -110,6 +111,7 @@ export type BrandingMediaType =
   | 'loginLogoLight'
   | 'loginLogoDark'
   | 'loginBackground'
+  | 'emailLogo'
 
 interface BrandingMediaConfig {
   column: keyof BrandingThemeRow
@@ -138,6 +140,10 @@ const BRANDING_MEDIA_CONFIG: Record<BrandingMediaType, BrandingMediaConfig> = {
   loginBackground: {
     column: 'loginBackgroundUrl',
     filenameSuffix: 'login-background'
+  },
+  emailLogo: {
+    column: 'emailLogoUrl',
+    filenameSuffix: 'email-logo'
   }
 }
 
@@ -439,6 +445,7 @@ function buildLayer(input: {
   const normalizedLoginBackground = normalizeStoredLogoUrl(
     input.theme?.loginBackgroundUrl ?? null
   )
+  const normalizedEmailLogo = normalizeStoredLogoUrl(input.theme?.emailLogoUrl ?? null)
   return {
     targetType: input.targetType,
     targetId: input.targetId,
@@ -449,6 +456,7 @@ function buildLayer(input: {
     loginLogoLightUrl: normalizedLoginLogoLight,
     loginLogoDarkUrl: normalizedLoginLogoDark,
     loginBackgroundUrl: normalizedLoginBackground,
+    emailLogoUrl: normalizedEmailLogo,
     loginBackgroundTint: input.theme?.loginBackgroundTint ?? null,
     loginBackgroundTintOpacity: input.theme?.loginBackgroundTintOpacity ?? null,
     navigationBackgroundColor: input.theme?.navigationBackgroundColor ?? null,
@@ -491,6 +499,7 @@ function buildResolution(
     layer => layer.logoUrl
   ])
   const loginBackground = determineLayerValue(layers, [layer => layer.loginBackgroundUrl])
+  const emailLogo = determineLayerValue(layers, [layer => layer.emailLogoUrl])
   const loginBackgroundTint = determineLayerValue(layers, [layer => layer.loginBackgroundTint])
   const loginBackgroundTintOpacity = determineNumericValue(
     layers,
@@ -511,6 +520,7 @@ function buildResolution(
     loginLogoLightUrl: loginLogoLight.value,
     loginLogoDarkUrl: loginLogoDark.value,
     loginBackgroundUrl: loginBackground.value,
+    emailLogoUrl: emailLogo.value,
     loginBackgroundTint: loginBackgroundTint.value,
     loginBackgroundTintOpacity: loginBackgroundTintOpacity.value,
     navigationBackgroundColor: navBackground.value ?? DEFAULT_NAV_BACKGROUND,
@@ -632,6 +642,7 @@ export function getDefaultBrandingResolution(): BrandingResolution {
     loginLogoLightUrl: null,
     loginLogoDarkUrl: null,
     loginBackgroundUrl: null,
+    emailLogoUrl: null,
     loginBackgroundTint: null,
     loginBackgroundTintOpacity: DEFAULT_LOGIN_BACKGROUND_TINT_OPACITY,
     navigationBackgroundColor: DEFAULT_NAV_BACKGROUND,

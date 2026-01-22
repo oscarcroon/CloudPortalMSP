@@ -305,6 +305,55 @@ function buildTags(routes: InternalRouteDefinition[]): OpenAPIV3.TagObject[] {
 function buildPublicOperation(op: PublicOperationMeta): OpenAPIV3.OperationObject {
   const pathParams = extractPathParameters(op.path)
 
+  // Build responses from serialized schemas
+  const responses: OpenAPIV3.ResponsesObject = {}
+
+  if (op.responses) {
+    for (const [statusCode, response] of Object.entries(op.responses)) {
+      if (response.schema) {
+        responses[statusCode] = {
+          description: response.description,
+          content: {
+            'application/json': {
+              schema: response.schema,
+            },
+          },
+        }
+      } else {
+        // Use standard response refs for error codes without custom schemas
+        const standardRefs: Record<string, string> = {
+          '400': '#/components/responses/BadRequest',
+          '401': '#/components/responses/Unauthorized',
+          '403': '#/components/responses/Forbidden',
+          '404': '#/components/responses/NotFound',
+          '429': '#/components/responses/TooManyRequests',
+          '500': '#/components/responses/InternalServerError',
+        }
+        if (standardRefs[statusCode]) {
+          responses[statusCode] = { $ref: standardRefs[statusCode] }
+        } else {
+          responses[statusCode] = { description: response.description }
+        }
+      }
+    }
+  }
+
+  // Ensure we have at least some default responses
+  if (!responses['200']) {
+    responses['200'] = {
+      description: 'Successful response',
+      content: {
+        'application/json': {
+          schema: { type: 'object', additionalProperties: true },
+        },
+      },
+    }
+  }
+  if (!responses['401']) responses['401'] = { $ref: '#/components/responses/Unauthorized' }
+  if (!responses['403']) responses['403'] = { $ref: '#/components/responses/Forbidden' }
+  if (!responses['429']) responses['429'] = { $ref: '#/components/responses/TooManyRequests' }
+  if (!responses['500']) responses['500'] = { $ref: '#/components/responses/InternalServerError' }
+
   const operation: OpenAPIV3.OperationObject = {
     operationId: op.operationId,
     tags: op.tags,
@@ -313,20 +362,7 @@ function buildPublicOperation(op: PublicOperationMeta): OpenAPIV3.OperationObjec
     security: [{ OrgApiToken: [] }],
     deprecated: op.deprecated,
     'x-required-scopes': op.requiredScopes,
-    responses: {
-      '200': {
-        description: 'Successful response',
-        content: {
-          'application/json': {
-            schema: { type: 'object', additionalProperties: true },
-          },
-        },
-      },
-      '401': { $ref: '#/components/responses/Unauthorized' },
-      '403': { $ref: '#/components/responses/Forbidden' },
-      '429': { $ref: '#/components/responses/TooManyRequests' },
-      '500': { $ref: '#/components/responses/InternalServerError' },
-    },
+    responses,
   } as OpenAPIV3.OperationObject
 
   // Add resource constraints if defined
@@ -334,13 +370,61 @@ function buildPublicOperation(op: PublicOperationMeta): OpenAPIV3.OperationObjec
     (operation as any)['x-resource-constraints'] = op.resourceConstraints
   }
 
-  // Add path parameters if any
-  if (pathParams.length > 0) {
-    operation.parameters = pathParams
+  // Build parameters array
+  const parameters: OpenAPIV3.ParameterObject[] = []
+
+  // Add path parameters - use serialized schema if available, otherwise extract from path
+  if (op.pathParams?.schema) {
+    const pathSchema = op.pathParams.schema as OpenAPIV3.SchemaObject
+    if (pathSchema.properties) {
+      for (const [name, propSchema] of Object.entries(pathSchema.properties)) {
+        parameters.push({
+          name,
+          in: 'path',
+          required: true,
+          schema: propSchema as OpenAPIV3.SchemaObject,
+          description: (propSchema as OpenAPIV3.SchemaObject).description || `The ${name} parameter`,
+        })
+      }
+    }
+  } else if (pathParams.length > 0) {
+    parameters.push(...pathParams)
   }
 
-  // Add request body for methods that typically have one
-  if (['post', 'put', 'patch'].includes(op.method)) {
+  // Add query parameters from serialized schema
+  if (op.queryParams?.schema) {
+    const querySchema = op.queryParams.schema as OpenAPIV3.SchemaObject
+    if (querySchema.properties) {
+      const requiredProps = querySchema.required || []
+      for (const [name, propSchema] of Object.entries(querySchema.properties)) {
+        parameters.push({
+          name,
+          in: 'query',
+          required: requiredProps.includes(name),
+          schema: propSchema as OpenAPIV3.SchemaObject,
+          description: (propSchema as OpenAPIV3.SchemaObject).description,
+        })
+      }
+    }
+  }
+
+  if (parameters.length > 0) {
+    operation.parameters = parameters
+  }
+
+  // Add request body from serialized schema
+  if (op.requestBody?.schema) {
+    operation.requestBody = {
+      description: 'Request body',
+      required: true,
+      content: {
+        'application/json': {
+          schema: op.requestBody.schema,
+        },
+      },
+    }
+  } else if (['post', 'put', 'patch'].includes(op.method)) {
+    // Fallback for methods that typically have a body
     operation.requestBody = {
       description: 'Request body',
       content: {

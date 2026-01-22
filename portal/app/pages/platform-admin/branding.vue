@@ -215,6 +215,13 @@
         </div>
       </div>
 
+      <EmailBrandingAsset
+        mode="global"
+        target-id="global"
+        :branding="brandingDetails"
+        @updated="fetchBranding"
+      />
+
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-3">
@@ -243,6 +250,7 @@
 import { Icon } from '@iconify/vue'
 import { computed, onMounted, reactive, ref, watch } from '#imports'
 import defaultLogoAsset from '~/assets/images/coreit-logo-neg.svg'
+import EmailBrandingAsset from '~/components/branding/EmailBrandingAsset.vue'
 import LoginBrandingAssets from '~/components/branding/LoginBrandingAssets.vue'
 import { normalizeLogoUrl } from '~/utils/logo'
 import type { BrandingState, BrandingThemeSource } from '~/types/auth'

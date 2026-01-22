@@ -310,16 +310,23 @@ export async function resolveEmailBranding(options: EmailBrandingOptions = {}) {
       : await resolveGlobalBranding()
 
   const theme = resolution.activeTheme
+  // Prioritera e-post-specifik logga, sedan falla tillbaka till app-logga
+  // Detta möjliggör användning av SVG för app (webbläsare) och PNG/JPG för e-post (Outlook)
   const logoSource =
     options.overrideLogoUrl ??
+    theme.emailLogoUrl ??
     theme.logoUrl ??
     theme.appLogoLightUrl ??
     theme.appLogoDarkUrl ??
     null
+  
+  // Konvertera logo till data URI för e-post
+  // OBS: Vi faller INTE tillbaka till logoSource om konverteringen misslyckas,
+  // eftersom URL:er inte fungerar i e-postklienter (ger trasiga bilder)
   const logoDataUri = await convertLogoToDataUri(logoSource, options.organizationId)
 
   const branding: EmailBranding = {
-    logoUrl: logoDataUri ?? logoSource ?? undefined,
+    logoUrl: logoDataUri ?? undefined,
     accentColor: theme.accentColor ?? undefined,
     backgroundColor: undefined, // Bakgrunden på e-postet ändras baserat på dark mode
     logoBackgroundColor: theme.navigationBackgroundColor ?? undefined, // Bakgrunden bakom loggan använder NavBar-färgen

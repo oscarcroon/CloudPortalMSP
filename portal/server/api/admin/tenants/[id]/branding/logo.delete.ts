@@ -38,6 +38,9 @@ function resolveVariantMediaType(value: string | null): BrandingMediaType {
       return 'loginLogoDark'
     case 'login-background':
       return 'loginBackground'
+    case 'email':
+    case 'email-logo':
+      return 'emailLogo'
     default:
       return 'appLogoLight'
   }

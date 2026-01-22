@@ -84,6 +84,7 @@ export interface BrandingThemeLayer {
   loginLogoLightUrl: string | null
   loginLogoDarkUrl: string | null
   loginBackgroundUrl: string | null
+  emailLogoUrl: string | null
   loginBackgroundTint: string | null
   loginBackgroundTintOpacity: number | null
   navigationBackgroundColor: string | null
@@ -106,6 +107,7 @@ export interface BrandingActiveTheme {
   loginLogoLightUrl: string | null
   loginLogoDarkUrl: string | null
   loginBackgroundUrl: string | null
+  emailLogoUrl: string | null
   loginBackgroundTint: string | null
   loginBackgroundTintOpacity: number
   navigationBackgroundColor: string

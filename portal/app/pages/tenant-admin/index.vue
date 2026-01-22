@@ -71,8 +71,8 @@
                 :to="`/tenant-admin/tenants/${currentTenant.id}`"
                 class="rounded-lg border border-slate-100 bg-slate-50 p-4 transition hover:border-brand/30 hover:bg-brand/5 dark:border-white/5 dark:bg-white/5 dark:hover:border-brand/30 dark:hover:bg-brand/10"
               >
-                <p class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ organizationCount }}</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('admin.tenantAdmin.overview.organizations') }}</p>
+                <p class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ overviewPrimaryCount }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ overviewPrimaryLabel }}</p>
               </NuxtLink>
               <NuxtLink
                 :to="`/tenant-admin/tenants/${currentTenant.id}/members`"
@@ -516,6 +516,8 @@ const showAllIncidents = ref(false)
 const incidentsPerPage = 5
 
 const currentTenant = computed(() => auth.currentTenant.value)
+const isDistributor = computed(() => currentTenant.value?.type === 'distributor')
+const isProvider = computed(() => currentTenant.value?.type === 'provider')
 
 // --- Operations: Incidents & News ---
 interface IncidentItem {
@@ -772,8 +774,44 @@ const { data: organizationsData } = useFetch<OrganizationsResponse>(
   }
 )
 
+interface ProvidersResponseItem {
+  id: string
+  name: string
+  slug: string
+  type: string
+  status: string
+}
+
+const { data: providersData, refresh: refreshProviders } = useFetch<ProvidersResponseItem[]>(
+  () => `/api/admin/tenants/${tenantId.value}/providers`,
+  {
+    immediate: false,
+    default: () => []
+  }
+)
+
+watch([tenantId, isDistributor], ([newTenantId, distributor]) => {
+  if (newTenantId && distributor) {
+    refreshProviders()
+  }
+}, { immediate: true })
+
 const organizationCount = computed(() => {
   return organizationsData.value?.organizations?.length ?? 0
+})
+
+const providerCount = computed(() => {
+  return providersData.value?.length ?? 0
+})
+
+const overviewPrimaryCount = computed(() => {
+  return isDistributor.value ? providerCount.value : organizationCount.value
+})
+
+const overviewPrimaryLabel = computed(() => {
+  return isDistributor.value
+    ? t('admin.tenantAdmin.overview.providers')
+    : t('admin.tenantAdmin.overview.organizations')
 })
 
 const memberCount = computed(() => {

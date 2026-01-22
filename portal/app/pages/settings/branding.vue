@@ -239,6 +239,14 @@
           </div>
         </div>
 
+        <EmailBrandingAsset
+          v-if="currentOrgId && brandingDetails"
+          mode="organization"
+          :target-id="currentOrgId"
+          :branding="brandingDetails"
+          @updated="refreshBranding"
+        />
+
         <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
           <div class="flex items-start justify-between gap-4">
             <div class="flex items-center gap-3">
@@ -276,6 +284,7 @@ import { useAuth } from '~/composables/useAuth'
 import { useI18n } from '#imports'
 
 const { t } = useI18n()
+import EmailBrandingAsset from '~/components/branding/EmailBrandingAsset.vue'
 import LoginBrandingAssets from '~/components/branding/LoginBrandingAssets.vue'
 import { normalizeLogoUrl } from '~/utils/logo'
 import type { BrandingState, BrandingThemeSource } from '~/types/auth'

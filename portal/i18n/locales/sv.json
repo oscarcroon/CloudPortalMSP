@@ -994,6 +994,31 @@
           "saveError": "Kunde inte spara tint."
         }
       },
+      "emailBranding": {
+        "title": "E-post-branding",
+        "description": "Separat logotyp för e-postutskick. Använd PNG eller JPG för bäst kompatibilitet med Outlook.",
+        "previewAlt": "Förhandsvisning av e-postlogotyp",
+        "noLogo": "Ingen logotyp",
+        "customLabel": "Anpassad e-post-logga",
+        "usesAppLogo": "App-loggan används för e-post",
+        "upload": "Ladda upp e-post-logga",
+        "uploading": "Laddar upp...",
+        "remove": "Ta bort",
+        "removing": "Tar bort...",
+        "helper": "Rekommenderat format: PNG eller JPG. Max 2 MB. SVG stöds inte för e-post (Outlook-kompatibilitet).",
+        "reasonTitle": "Varför en separat e-post-logga?",
+        "reasonOutlookSvg": "Outlook-klienten stödjer inte SVG-bilder i e-post",
+        "reasonUniversal": "PNG/JPG fungerar i alla e-postklienter",
+        "reasonSeparate": "Du kan använda SVG för appen och PNG/JPG för e-post",
+        "reasonFallback": "Om ingen e-post-logga laddas upp används app-loggan",
+        "updated": "E-post-logotypen uppdaterades.",
+        "removed": "E-post-logotypen togs bort.",
+        "uploadError": "Kunde inte ladda upp logotypen.",
+        "removeError": "Kunde inte ta bort logotypen.",
+        "removeConfirm": "Vill du ta bort e-post-logotypen? App-loggan kommer användas för e-post istället.",
+        "invalidFormat": "Ogiltigt filformat. Tillåtna format: .jpg, .png, .webp.",
+        "fileTooLarge": "Filen får vara max 2 MB."
+      },
       "messages": {
         "logoUpdated": "Logotypen uppdaterades.",
         "logoRemoved": "Logotypen togs bort.",
@@ -1082,6 +1107,7 @@
       "overview": {
         "title": "Tenant-översikt",
         "organizations": "Organisationer",
+        "providers": "Leverantörer",
         "members": "Medlemmar",
         "modules": "Aktiva moduler",
         "viewDetails": "Visa detaljer",

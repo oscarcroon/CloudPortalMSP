@@ -1,7 +1,8 @@
 /**
  * Public Operations Generator
  *
- * Scans *.openapi.ts files and generates a static list of public operations.
+ * Scans *.openapi.ts files and generates a static list of public operations
+ * with serialized OpenAPI schemas from Zod definitions.
  * This script is run at build/CI time, NOT at runtime.
  *
  * Usage: npx tsx scripts/generate-public-operations.ts
@@ -10,10 +11,23 @@
 import { readdirSync, statSync, writeFileSync, existsSync } from 'node:fs'
 import { join, relative, basename, dirname, sep, posix } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import type { OpenAPIV3 } from 'openapi-types'
 
 // ============================================================================
 // Types
 // ============================================================================
+
+interface SerializedSchema {
+  /** OpenAPI schema object */
+  schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
+}
+
+interface SerializedResponse {
+  /** Response description */
+  description: string
+  /** Response schema (if any) */
+  schema?: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
+}
 
 interface PublicOperationMeta {
   /** OpenAPI path */
@@ -36,6 +50,14 @@ interface PublicOperationMeta {
   deprecated?: boolean
   /** Source file reference */
   fileRef: string
+  /** Serialized request body schema */
+  requestBody?: SerializedSchema
+  /** Serialized query parameters schema */
+  queryParams?: SerializedSchema
+  /** Serialized path parameters schema */
+  pathParams?: SerializedSchema
+  /** Serialized response schemas by status code */
+  responses?: Record<string, SerializedResponse>
 }
 
 // ============================================================================
@@ -50,6 +72,42 @@ const OUTPUT_FILE = join(OUTPUT_DIR, 'operations.public.generated.ts')
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const
 type HttpMethod = (typeof HTTP_METHODS)[number]
+
+// ============================================================================
+// Zod to OpenAPI Conversion
+// ============================================================================
+
+/**
+ * Convert a Zod schema to OpenAPI schema object.
+ * This is a standalone implementation to avoid runtime dependencies.
+ */
+async function zodSchemaToOpenApi(
+  schema: any
+): Promise<OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | null> {
+  if (!schema) return null
+
+  try {
+    // Import zod-to-openapi dynamically
+    const { OpenAPIRegistry, OpenApiGeneratorV3 } = await import(
+      '@asteasolutions/zod-to-openapi'
+    )
+
+    const tempRegistry = new OpenAPIRegistry()
+    tempRegistry.register('TempSchema', schema)
+
+    const generator = new OpenApiGeneratorV3(tempRegistry.definitions)
+    const doc = generator.generateDocument({
+      openapi: '3.0.3',
+      info: { title: 'Temp', version: '1.0.0' },
+    })
+
+    const schemas = doc.components?.schemas || {}
+    return (schemas['TempSchema'] as OpenAPIV3.SchemaObject) || null
+  } catch (error) {
+    console.warn(`   ⚠️ Failed to convert Zod schema: ${error}`)
+    return null
+  }
+}
 
 // ============================================================================
 // Helpers
@@ -250,6 +308,56 @@ async function importOperationFile(
       return null
     }
 
+    // Serialize Zod schemas to OpenAPI format
+    let requestBody: SerializedSchema | undefined
+    let queryParams: SerializedSchema | undefined
+    let pathParams: SerializedSchema | undefined
+    let responses: Record<string, SerializedResponse> | undefined
+
+    // Convert request body schema
+    if (definition.body) {
+      const schema = await zodSchemaToOpenApi(definition.body)
+      if (schema) {
+        requestBody = { schema }
+      }
+    }
+
+    // Convert query parameters schema
+    if (definition.query) {
+      const schema = await zodSchemaToOpenApi(definition.query)
+      if (schema) {
+        queryParams = { schema }
+      }
+    }
+
+    // Convert path parameters schema
+    if (definition.params) {
+      const schema = await zodSchemaToOpenApi(definition.params)
+      if (schema) {
+        pathParams = { schema }
+      }
+    }
+
+    // Convert response schemas
+    if (definition.responses) {
+      responses = {}
+      for (const [statusCode, response] of Object.entries(definition.responses)) {
+        const resp = response as { description: string; schema?: any }
+        const serializedResponse: SerializedResponse = {
+          description: resp.description,
+        }
+
+        if (resp.schema) {
+          const schema = await zodSchemaToOpenApi(resp.schema)
+          if (schema) {
+            serializedResponse.schema = schema
+          }
+        }
+
+        responses[statusCode] = serializedResponse
+      }
+    }
+
     return {
       path,
       method,
@@ -261,6 +369,10 @@ async function importOperationFile(
       resourceConstraints: definition['x-resource-constraints'],
       deprecated: definition.deprecated,
       fileRef: relative(FRONTEND_ROOT, filePath).split(sep).join(posix.sep),
+      requestBody,
+      queryParams,
+      pathParams,
+      responses,
     }
   } catch (error) {
     console.error(`   ❌ Error importing ${relative(FRONTEND_ROOT, filePath)}:`, error)
@@ -322,6 +434,20 @@ async function main() {
  * Re-generate with: npm run generate:openapi
  */
 
+import type { OpenAPIV3 } from 'openapi-types'
+
+export interface SerializedSchema {
+  /** OpenAPI schema object */
+  schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
+}
+
+export interface SerializedResponse {
+  /** Response description */
+  description: string
+  /** Response schema (if any) */
+  schema?: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
+}
+
 export interface PublicOperationMeta {
   /** OpenAPI path */
   path: string
@@ -343,6 +469,14 @@ export interface PublicOperationMeta {
   deprecated?: boolean
   /** Source file reference */
   fileRef: string
+  /** Serialized request body schema */
+  requestBody?: SerializedSchema
+  /** Serialized query parameters schema */
+  queryParams?: SerializedSchema
+  /** Serialized path parameters schema */
+  pathParams?: SerializedSchema
+  /** Serialized response schemas by status code */
+  responses?: Record<string, SerializedResponse>
 }
 
 /**

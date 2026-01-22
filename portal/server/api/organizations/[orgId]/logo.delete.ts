@@ -1,4 +1,4 @@
-﻿import { createError, defineEventHandler, getQuery, getRouterParam } from 'h3'
+import { createError, defineEventHandler, getQuery, getRouterParam } from 'h3'
 import {
   removeBrandingMediaAsset,
   type BrandingMediaType
@@ -36,6 +36,9 @@ function resolveVariantMediaType(value: string | null): BrandingMediaType {
       return 'loginLogoDark'
     case 'login-background':
       return 'loginBackground'
+    case 'email':
+    case 'email-logo':
+      return 'emailLogo'
     default:
       return 'appLogoLight'
   }

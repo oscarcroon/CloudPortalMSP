@@ -999,6 +999,31 @@
           "saveError": "Could not save tint."
         }
       },
+      "emailBranding": {
+        "title": "Email branding",
+        "description": "Separate logo for email sends. Use PNG or JPG for best Outlook compatibility.",
+        "previewAlt": "Email logo preview",
+        "noLogo": "No logo",
+        "customLabel": "Custom email logo",
+        "usesAppLogo": "App logo is used for email",
+        "upload": "Upload email logo",
+        "uploading": "Uploading...",
+        "remove": "Remove",
+        "removing": "Removing...",
+        "helper": "Recommended format: PNG or JPG. Max 2 MB. SVG is not supported for email (Outlook compatibility).",
+        "reasonTitle": "Why a separate email logo?",
+        "reasonOutlookSvg": "Outlook desktop does not support SVG images in email",
+        "reasonUniversal": "PNG/JPG works in all email clients",
+        "reasonSeparate": "You can use SVG for the app and PNG/JPG for email",
+        "reasonFallback": "If no email logo is uploaded, the app logo is used",
+        "updated": "Email logo updated.",
+        "removed": "Email logo removed.",
+        "uploadError": "Could not upload the logo.",
+        "removeError": "Could not remove the logo.",
+        "removeConfirm": "Do you want to remove the email logo? The app logo will be used for email instead.",
+        "invalidFormat": "Invalid file format. Allowed formats: .jpg, .png, .webp.",
+        "fileTooLarge": "File must be max 2 MB."
+      },
       "messages": {
         "logoUpdated": "Logo updated.",
         "logoRemoved": "Logo removed.",
@@ -1087,6 +1112,7 @@
       "overview": {
         "title": "Tenant overview",
         "organizations": "Organizations",
+        "providers": "Providers",
         "members": "Members",
         "modules": "Active modules",
         "viewDetails": "View details",

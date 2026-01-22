@@ -98,8 +98,8 @@ export const renderBrandedTemplate = (
   const outroLines = input.outro ?? []
   let text = renderText(introLines, bodyLines, outroLines, input.action)
   const footerMessage: Record<EmailLocale, string> = {
-    sv: 'Det här meddelandet skickades automatiskt – svara bara om du behöver hjälp.',
-    en: 'This message was sent automatically—reply only if you need help.'
+    sv: 'Detta är ett automatiskt meddelande.',
+    en: 'This is an automated message.'
   }
   if (branding?.footerTextPlain) {
     text = `${text}\n\n${branding.footerTextPlain}`
@@ -148,13 +148,12 @@ export const renderBrandedTemplate = (
             : ''
         }
         ${renderLines(outroLines, isDark)}
-        ${
-          branding?.footerText
-            ? `<div style="margin-top:36px;padding-top:20px;border-top:1px solid ${borderTopColor};font-size:13px;color:${textSecondary};">${branding.footerText}</div>`
-            : `<div style="margin-top:36px;padding-top:20px;border-top:1px solid ${borderTopColor};font-size:13px;color:${textSecondary};">${footerMessage[locale]}</div>`
-        }
       </div>
-      <p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">${footerMessage[locale]}</p>
+      ${
+        branding?.footerText
+          ? `<div style="margin-top:18px;font-size:13px;color:${textSecondary};text-align:center;">${branding.footerText}</div>`
+          : `<div style="margin-top:18px;font-size:13px;color:${textSecondary};text-align:center;">${footerMessage[locale]}</div>`
+      }
     </div>
   </div>
   `.trim()
@@ -292,8 +291,7 @@ export const buildTestEmail = (branding?: EmailBranding, locale: EmailLocale = '
         'Om du kan läsa detta har testet lyckats och meddelanden kommer att levereras till dina användare på samma sätt (inklusive eventuell branding).'
       ],
       outro: [
-        'Vänliga hälsningar,',
-        'Detta meddelande skickades automatiskt - svara inte på det.'
+        'Vänliga hälsningar'
       ]
     },
     en: {
@@ -306,8 +304,7 @@ export const buildTestEmail = (branding?: EmailBranding, locale: EmailLocale = '
         'If you can read this, the test succeeded and messages will be delivered to your users in the same way (including any branding).'
       ],
       outro: [
-        'Best regards,',
-        'This message was sent automatically – please do not reply.'
+        'Best regards'
       ]
     }
   }

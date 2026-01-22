@@ -169,7 +169,7 @@ export default defineEventHandler(async (event) => {
             role: 'owner',
             token: inviteToken,
             status: 'pending',
-            invitedByUserId: null,
+            invitedByUserId: auth.user.id,
             expiresAt: inviteExpiresAt
           })
           .run()
@@ -248,7 +248,7 @@ export default defineEventHandler(async (event) => {
           role: 'owner',
           token: inviteToken,
           status: 'pending',
-          invitedByUserId: null,
+          invitedByUserId: auth.user.id,
           expiresAt: inviteExpiresAt
         })
       })
@@ -291,11 +291,12 @@ export default defineEventHandler(async (event) => {
   const authSettings = await ensureOrganizationAuthSettings(db, organizationId)
 
   // Always send invitation email to owner when creating new organization
+  const invitedByLabel = auth.user.fullName?.trim() || auth.user.email
   try {
     await sendInvitationEmail({
       organizationId: organization.id,
       organizationName: organization.name,
-      invitedBy: 'System',
+      invitedBy: invitedByLabel,
       role: 'owner',
       to: normalizedOwnerEmail,
       expiresAt: inviteExpiresAtMs,

@@ -244,6 +244,15 @@
             </div>
           </div>
 
+          <EmailBrandingAsset
+            v-if="brandingDetails"
+            class="mt-6"
+            mode="tenant"
+            :target-id="tenantId"
+            :branding="brandingDetails"
+            @updated="fetchBranding"
+          />
+
           <div class="border-t border-slate-200 pt-6 dark:border-white/10">
             <div class="flex items-center gap-3">
               <Icon icon="mdi:login" class="h-6 w-6 text-brand" />
@@ -340,6 +349,7 @@ import {
   DEFAULT_NAV_BACKGROUND,
   normalizeHexColor
 } from '~~/shared/branding'
+import EmailBrandingAsset from '~/components/branding/EmailBrandingAsset.vue'
 import LoginBrandingAssets from '~/components/branding/LoginBrandingAssets.vue'
 import { useI18n } from '#imports'
 
