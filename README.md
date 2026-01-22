@@ -2,70 +2,52 @@
 
 Multi-tenant portal för hantering av Cloudflare, Incus, ESXi/Morpheus och WordPress-resurser.
 
-## Struktur
+## Krav
 
-```
-portal/     Nuxt 4 fullstack (Nitro server + Tailwind + Pinia)
-packages/   Delade paket (email-kit)
-```
+**Rekommenderat: Node.js 22 LTS**
 
-## Kom igång lokalt
+Applikationen fungerar med Node.js 22 LTS. Detta är den rekommenderade versionen för minst bekymmer.
 
-1. **Installera Node.js 24 LTS**
+**Node.js 24 LTS (känd bugg)**
 
-   Ladda ner och installera Node.js 24 LTS från [nodejs.org](https://nodejs.org/).
+Om du kör Node.js 24 LTS finns det en känd bugg i `better-sqlite3` som gör att du behöver paketera och installera `better-sqlite3` manuellt. Detta kan vara komplicerat, så vi rekommenderar att använda Node.js 22 LTS istället.
 
-2. **Installera dependencies och setup**
+## Kom igång
+
+### 1. Installera dependencies
 
 ```bash
-# Installera alla dependencies
 npm run install:all
-
-# Eller manuellt:
-cd portal && npm install
 ```
 
-3. **Installera better-sqlite3 separat**
-
-   `better-sqlite3` finns inte tillgängligt för Node.js 24 LTS via npm, så installera det separat:
-
-```bash
-cd portal
-npm install better-sqlite3
-```
-
-4. **Konfigurera miljövariabler**
+### 2. Konfigurera miljövariabler
 
 ```bash
 cp env.example .env.local
 ```
 
-5. **Initialisera databas och seed användare**
+### 3. Initialisera databas och skapa användare
 
 ```bash
-# Enkelt sätt - gör allt automatiskt:
 npm run setup
-
-# Eller manuellt:
-cd portal
-npm run db:push    # Skapar databastabellerna
-npm run seed:user  # Skapar superadmin-användare
 ```
 
-**Notera:** `seed:user` kommer automatiskt att köra `db:push` om tabellerna saknas, så du kan hoppa över det steget om du vill.
+Detta skapar databastabellerna och en superadmin-användare automatiskt.
 
-6. **Starta utvecklingsserver**
+### 4. Starta utvecklingsserver
 
 ```bash
-# Från root:
-npm run dev
-
-# Eller från portal:
-cd portal
 npm run dev
 ```
 
-Applikationen körs på `http://localhost:3000`. Nitro hanterar både frontend och API-routes.
+Applikationen körs på `http://localhost:3000`.
+
+## Projektstruktur
+
+```
+portal/     Nuxt 4 fullstack (Nitro server + Tailwind + Pinia)
+packages/   Delade paket (email-kit)
+```
 
 ## Databas
 
