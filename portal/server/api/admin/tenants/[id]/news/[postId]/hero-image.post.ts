@@ -7,7 +7,6 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { eq, and } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam, readMultipartFormData } from 'h3'
 import { createId } from '@paralleldrive/cuid2'
@@ -16,6 +15,7 @@ import { getDb } from '../../../../../../utils/db'
 import { requireTenantPermission } from '../../../../../../utils/rbac'
 import { ensureAuthState } from '../../../../../../utils/session'
 import { logTenantAction } from '../../../../../../utils/audit'
+import { resolveUploadsRoot } from '../../../../../../utils/uploads'
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 // 5MB
 const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif'])
@@ -28,9 +28,7 @@ const ALLOWED_MIME_TYPES = new Set([
 ])
 
 // Setup upload directory
-const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const portalRoot = path.resolve(currentDir, '..', '..', '..', '..', '..', '..', '..')
-const uploadsDir = process.env.UPLOADS_DIR || path.join(portalRoot, 'uploads')
+const uploadsDir = resolveUploadsRoot()
 const newsImagesDir = path.join(uploadsDir, 'news')
 fs.mkdirSync(newsImagesDir, { recursive: true })
 

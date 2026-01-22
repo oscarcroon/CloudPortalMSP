@@ -7,7 +7,6 @@ import {
 } from '@coreit/email-kit'
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { eq } from 'drizzle-orm'
 import { getEffectiveEmailSenderContext } from '~~/server/utils/emailProvider'
 import { outboxDir } from './outbox'
@@ -15,6 +14,7 @@ import { resolveBrandingChain, resolveGlobalBranding } from '~~/server/utils/bra
 import { organizations } from '~~/server/database/schema'
 import { getDb } from './db'
 import { renderMarkdown } from '~~/shared/markdown'
+import { resolveUploadsRoot } from '~~/server/utils/uploads'
 
 const DEFAULT_PORTAL_URL = 'http://localhost:3000'
 
@@ -111,9 +111,7 @@ export const fetchOrganizationDisclaimer = async (organizationId?: string | null
  */
 async function findLogoByOrgId(organizationId: string): Promise<string | null> {
   try {
-    const currentDir = path.dirname(fileURLToPath(import.meta.url))
-    const portalRoot = path.resolve(currentDir, '..', '..')
-    const uploadsDir = process.env.UPLOADS_DIR || path.join(portalRoot, 'uploads')
+    const uploadsDir = resolveUploadsRoot()
     const logosDir = path.join(uploadsDir, 'logos')
 
     if (!fs.existsSync(logosDir)) {
@@ -239,15 +237,12 @@ async function convertLogoToDataUri(
     console.log('[mailer] Extracted filename:', filename)
 
     // Hitta filen på disk (samma sökväg som branding.ts)
-    const currentDir = path.dirname(fileURLToPath(import.meta.url))
-    const portalRoot = path.resolve(currentDir, '..', '..')
-    const uploadsDir = process.env.UPLOADS_DIR || path.join(portalRoot, 'uploads')
+    const uploadsDir = resolveUploadsRoot()
     const logosDir = path.join(uploadsDir, 'logos')
     const filePath = path.join(logosDir, filename)
 
     console.log('[mailer] Looking for logo file:', filePath)
     console.log('[mailer] Logos dir exists:', fs.existsSync(logosDir))
-    console.log('[mailer] Portal root:', portalRoot)
     console.log('[mailer] Uploads dir:', uploadsDir)
     
     if (fs.existsSync(logosDir)) {

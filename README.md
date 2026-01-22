@@ -16,11 +16,15 @@ Om du kör Node.js 24 LTS finns det en känd bugg i `better-sqlite3` som gör at
 
 ### 1. Installera dependencies
 
+**Från projektets root-mapp:**
+
 ```bash
 npm run install:all
 ```
 
 ### 2. Konfigurera miljövariabler
+
+**Från projektets root-mapp:**
 
 ```bash
 cp env.example .env.local
@@ -28,13 +32,26 @@ cp env.example .env.local
 
 ### 3. Initialisera databas och skapa användare
 
+**Från projektets root-mapp:**
+
 ```bash
+# Enkelt sätt - gör allt automatiskt:
 npm run setup
 ```
 
-Detta skapar databastabellerna och en superadmin-användare automatiskt.
+**Eller manuellt (från portal-mappen):**
+
+```bash
+cd portal
+npm run db:push    # Skapar databastabellerna
+npm run seed:user  # Skapar superadmin-användare
+```
+
+**Notera:** `seed:user` kommer automatiskt att köra `db:push` om tabellerna saknas, så du kan hoppa över det steget om du vill.
 
 ### 4. Starta utvecklingsserver
+
+**Från projektets root-mapp:**
 
 ```bash
 npm run dev
@@ -52,6 +69,8 @@ packages/   Delade paket (email-kit)
 ## Databas
 
 Schemat finns i `portal/server/database/schema.ts`. För att generera och applicera migrationer:
+
+**Från portal-mappen:**
 
 ```bash
 cd portal

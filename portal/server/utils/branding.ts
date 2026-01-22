@@ -1,11 +1,11 @@
 import { createId } from '@paralleldrive/cuid2'
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { createError } from 'h3'
 import { and, asc, eq } from 'drizzle-orm'
 import type { DrizzleDb } from './db'
 import { getDb } from './db'
+import { resolveUploadsRoot } from './uploads'
 import {
   brandingThemes,
   distributorProviders,
@@ -32,9 +32,7 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/webp'
 ])
 
-const currentDir = path.dirname(fileURLToPath(import.meta.url))
-const portalRoot = path.resolve(currentDir, '..', '..')
-const uploadsDir = process.env.UPLOADS_DIR || path.join(portalRoot, 'uploads')
+const uploadsDir = resolveUploadsRoot()
 const logosDir = path.join(uploadsDir, 'logos')
 fs.mkdirSync(logosDir, { recursive: true })
 
