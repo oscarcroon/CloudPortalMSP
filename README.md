@@ -5,8 +5,8 @@ Multi-tenant portal för hantering av Cloudflare, Incus, ESXi/Morpheus och WordP
 ## Struktur
 
 ```
-frontend/   Nuxt 4 + Tailwind + Pinia SPA/SSR hybrid
-backend/    Node (Express + TypeScript) API gateway
+portal/     Nuxt 4 fullstack (Nitro server + Tailwind + Pinia)
+packages/   Delade paket (email-kit)
 ```
 
 ## Kom igång lokalt
@@ -18,12 +18,11 @@ backend/    Node (Express + TypeScript) API gateway
 2. **Installera dependencies och setup**
 
 ```bash
-# Installera alla dependencies (root, frontend, backend)
+# Installera alla dependencies
 npm run install:all
 
 # Eller manuellt:
-cd frontend && npm install
-cd ../backend && npm install
+cd portal && npm install
 ```
 
 3. **Installera better-sqlite3 separat**
@@ -31,10 +30,7 @@ cd ../backend && npm install
    `better-sqlite3` finns inte tillgängligt för Node.js 24 LTS via npm, så installera det separat:
 
 ```bash
-cd frontend
-npm install better-sqlite3
-
-cd ../backend
+cd portal
 npm install better-sqlite3
 ```
 
@@ -51,33 +47,32 @@ cp env.example .env.local
 npm run setup
 
 # Eller manuellt:
-cd frontend
+cd portal
 npm run db:push    # Skapar databastabellerna
 npm run seed:user  # Skapar superadmin-användare
 ```
 
 **Notera:** `seed:user` kommer automatiskt att köra `db:push` om tabellerna saknas, så du kan hoppa över det steget om du vill.
 
-6. **Starta utvecklingsservrar**
+6. **Starta utvecklingsserver**
 
 ```bash
-# Terminal 1 – API
-cd backend
+# Från root:
 npm run dev
 
-# Terminal 2 – Nuxt frontend
-cd frontend
+# Eller från portal:
+cd portal
 npm run dev
 ```
 
-Nuxt proxar `/api/*` requests till `http://localhost:4000` via `nuxt.config.ts`.
+Applikationen körs på `http://localhost:3000`. Nitro hanterar både frontend och API-routes.
 
 ## Databas
 
-Schemat finns i `frontend/server/database/schema.ts`. För att generera och applicera migrationer:
+Schemat finns i `portal/server/database/schema.ts`. För att generera och applicera migrationer:
 
 ```bash
-cd frontend
+cd portal
 npm run db:generate   # generera SQL från schema
 npm run db:migrate    # applicera SQL till databasen
 ```

@@ -2,15 +2,14 @@
   "name": "cloud-customer-portal",
   "private": true,
   "workspaces": [
-    "frontend",
-    "backend",
+    "portal",
     "packages/email-kit"
   ],
   "scripts": {
-    "dev:frontend": "npm --prefix frontend run dev",
-    "dev:backend": "npm --prefix backend run dev",
-    "setup": "npm --prefix frontend run setup",
-    "install:all": "npm install && npm --prefix frontend install && npm --prefix backend install"
+    "dev": "npm --prefix portal run dev",
+    "build": "npm --prefix portal run build",
+    "setup": "npm --prefix portal run setup",
+    "install:all": "npm install && npm --prefix portal install"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1"
