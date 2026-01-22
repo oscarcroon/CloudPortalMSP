@@ -211,6 +211,18 @@
       "distributor": "Distributör",
       "willCreate": "Organisation · Skapas vid accept"
     },
+    "delegation": {
+      "title": "Delegerad åtkomst",
+      "heading": "Acceptera delegerad åtkomst",
+      "subtitle": "Du har bjudits in till begränsad åtkomst utan att bli medlem.",
+      "accessType": "Delegerad åtkomst",
+      "permissions": "Behörigheter",
+      "permissionsUnit": "st",
+      "note": "Meddelande",
+      "createAccountIntro": "Skapa ett konto för att få tillgång till de delegerade behörigheterna.",
+      "accountCreated": "Konto skapat och åtkomst aktiverad! Du omdirigeras...",
+      "accessGranted": "Delegerad åtkomst aktiverad! Du omdirigeras..."
+    },
     "errors": {
       "expired": "Den här inbjudan har gått ut. Kontakta din administratör för att få en ny länk.",
       "cancelled": "Inbjudan har återkallats av en administratör.",
@@ -557,7 +569,97 @@
       "noOrganizations": "Inga organisationer är kopplade till den aktuella leverantören. Lägg till en organisation eller byt leverantör i context switchern."
     },
     "delegations": {
-      "open": "Delegationer"
+      "title": "Delegationer",
+      "description": "Hantera MSP→Org-delegationer utan att lägga till medlemmar i organisationen.",
+      "open": "Delegationer",
+      "info": {
+        "title": "Vad är delegationer?",
+        "description": "Delegationer ger externa användare åtkomst till specifika moduler utan att de blir medlemmar i organisationen. Perfekt för konsulter, webbyråer eller partners som behöver begränsad åtkomst.",
+        "useCase1": "Ge en extern konsult tidsbegränsad åtkomst till DNS-hantering",
+        "useCase2": "Låt en webbyrå hantera certifikat eller redirects utan full åtkomst",
+        "useCase3": "Dela specifika modulrättigheter med partners eller leverantörer",
+        "note": "Till skillnad från medlemmar får delegerade användare inte åtkomst till organisationens inställningar eller medlemslista."
+      },
+      "list": {
+        "title": "Aktiva delegationer",
+        "loading": "Laddar delegationer...",
+        "empty": "Inga delegationer hittades.",
+        "showRevoked": "Visa återkallade",
+        "users": "användare",
+        "total": "totalt",
+        "active": "aktiv",
+        "activePlural": "aktiva",
+        "expired": "utgången",
+        "expiredPlural": "utgångna",
+        "revoked": "återkallad",
+        "revokedPlural": "återkallade",
+        "validUntil": "Gäller till:",
+        "noExpiry": "Ingen slutdag",
+        "revoking": "Återkallar...",
+        "revoke": "Återkalla",
+        "showPermissions": "Visa rättigheter",
+        "hidePermissions": "Dölj rättigheter",
+        "permissions": "Rättigheter"
+      },
+      "form": {
+        "title": "Ny delegation",
+        "description": "Tilldela modulrättigheter till en användare utan medlemskap i organisationen.",
+        "tabExisting": "Befintlig användare",
+        "tabInvite": "Bjud in extern",
+        "searchUser": "Sök användare",
+        "searchPlaceholder": "E-post eller namn (söker automatiskt)",
+        "searching": "Söker...",
+        "results": "Träffar",
+        "selectedUser": "Vald användare:",
+        "existingDelegationWarning": "Användaren har redan {count} aktiv delegation | Användaren har redan {count} aktiva delegationer",
+        "existingDelegationNote": "Permissions från alla aktiva delegationer sammanfogas (union). Detta kan vara avsiktligt om du vill ge olika permissions för olika ändamål eller tidsperioder.",
+        "inviteEmail": "E-postadress",
+        "inviteEmailPlaceholder": "extern{'@'}konsult.se",
+        "inviteName": "Namn (valfritt)",
+        "inviteNamePlaceholder": "Anna Andersson",
+        "modules": "Moduler",
+        "modulesDescription": "Välj vilka moduler användaren ska få åtkomst till",
+        "selectAll": "Markera alla",
+        "deselectAll": "Avmarkera alla",
+        "permissionsCount": "{count} rättighet | {count} rättigheter",
+        "advancedPermissions": "Avancerat: Finjustera rättigheter",
+        "customized": "Anpassad",
+        "modulesSelected": "{modules} modul valda ({permissions} rättigheter) | {modules} moduler valda ({permissions} rättigheter)",
+        "step1": "Steg 1",
+        "step2": "Steg 2",
+        "chooseModules": "Välj moduler",
+        "finetunePermissions": "Finjustera behörigheter",
+        "finetuneDescription": "Alla rättigheter för valda moduler är markerade. Avmarkera de du inte vill inkludera.",
+        "selectModulesFirst": "Välj minst en modul i steg 1 för att fortsätta.",
+        "allPermissionsSelected": "Alla rättigheter",
+        "somePermissionsSelected": "{selected} av {total} rättigheter",
+        "searchModules": "Sök moduler eller rättigheter...",
+        "noModules": "Inga moduler hittades",
+        "expiresAt": "Gäller till (valfritt)",
+        "note": "Kommentar (valfritt)",
+        "selectPermission": "Välj minst en modul eller rättighet.",
+        "creating": "Skapar...",
+        "create": "Skapa delegation",
+        "inviting": "Bjuder in...",
+        "invite": "Bjud in och skapa delegation",
+        "reset": "Rensa formulär"
+      },
+      "inviteSuccess": "Inbjudan skickad till {email}. En delegation har skapats.",
+      "createSuccess": "Delegation skapad för {name}.",
+      "revokeConfirm": "Återkalla denna delegation?",
+      "invitations": {
+        "title": "Väntande inbjudningar",
+        "sentBy": "Skickad av",
+        "expires": "Giltig till",
+        "permissions": "rättigheter",
+        "cancel": "Avbryt",
+        "cancelling": "Avbryter...",
+        "cancelConfirm": "Är du säker på att du vill avbryta denna inbjudan?",
+        "cancelError": "Kunde inte avbryta inbjudan.",
+        "resend": "Skicka igen",
+        "resending": "Skickar...",
+        "resendError": "Kunde inte skicka om inbjudan."
+      }
     },
     "operations": {
       "title": "Driftmeddelanden",
@@ -639,6 +741,30 @@
         "cancel": "Avbryt",
         "cancelling": "Avbryter..."
       },
+      "delegations": {
+        "title": "Delegerad åtkomst",
+        "description": "Användare som har åtkomst via delegation utan att vara medlemmar i organisationen.",
+        "manage": "Hantera delegationer",
+        "view": "Visa",
+        "activeSingular": "aktiv delegation",
+        "activePlural": "aktiva delegationer"
+      },
+      "delegationInvitations": {
+        "title": "Väntande delegationsinbjudningar",
+        "description": "Externa användare som har bjudits in för delegerad åtkomst men ännu inte accepterat.",
+        "manage": "Hantera delegationer",
+        "sentBy": "Skickad av",
+        "permissions": "rättigheter",
+        "cancel": "Avbryt",
+        "cancelling": "Avbryter...",
+        "cancelConfirm": "Är du säker på att du vill avbryta inbjudan till {email}?",
+        "cancelSuccess": "Inbjudan till {email} har avbrutits.",
+        "cancelError": "Kunde inte avbryta inbjudan.",
+        "resend": "Skicka igen",
+        "resending": "Skickar...",
+        "resendSuccess": "Inbjudan till {email} har skickats om.",
+        "resendError": "Kunde inte skicka om inbjudan."
+      },
       "moduleRoles": {
         "title": "Modulroller",
         "loading": "Laddar modulroller...",
@@ -705,6 +831,10 @@
         "roles": "Hantera roller och behörigheter",
         "remove": "Ta bort medlemmar från organisationen"
       }
+    },
+    "memberAccess": {
+      "title": "Medlemmar & åtkomst",
+      "description": "Hantera medlemmar, grupper, behörigheter och delegationer för den aktiva organisationen."
     },
     "auth": {
       "title": "Auth & SSO",

@@ -221,62 +221,23 @@
           <div>
             <div class="flex items-center gap-3">
               <Icon icon="mdi:account-group-outline" class="h-6 w-6 text-brand" />
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.members.title') }}</h2>
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.memberAccess.title') }}</h2>
             </div>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {{ t('settings.members.description') }}
+              {{ t('settings.memberAccess.description') }}
             </p>
           </div>
-          <div class="flex flex-col gap-2">
-            <NuxtLink
-              to="/settings/members"
-              :aria-disabled="isSettingsLocked"
-              :tabindex="isSettingsLocked ? -1 : 0"
-              :class="[
-                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
-                { 'pointer-events-none opacity-50': isSettingsLocked }
-              ]"
-            >
-              <Icon icon="mdi:account" class="h-4 w-4" />
-              {{ t('settings.members.title') }}
-            </NuxtLink>
-            <NuxtLink
-              to="/settings/groups"
-              :aria-disabled="isSettingsLocked"
-              :tabindex="isSettingsLocked ? -1 : 0"
-              :class="[
-                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
-                { 'pointer-events-none opacity-50': isSettingsLocked }
-              ]"
-            >
-              <Icon icon="mdi:account-multiple" class="h-4 w-4" />
-              {{ t('settings.groups.title') }}
-            </NuxtLink>
-            <NuxtLink
-              to="/settings/group-permissions"
-              :aria-disabled="isSettingsLocked"
-              :tabindex="isSettingsLocked ? -1 : 0"
-              :class="[
-                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
-                { 'pointer-events-none opacity-50': isSettingsLocked }
-              ]"
-            >
-              <Icon icon="mdi:shield-account" class="h-4 w-4" />
-              {{ t('settings.groupPermissions.title') }}
-            </NuxtLink>
-            <NuxtLink
-              to="/settings/delegations"
-              :aria-disabled="isSettingsLocked || !canManageOrg"
-              :tabindex="isSettingsLocked || !canManageOrg ? -1 : 0"
-              :class="[
-                'flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
-                { 'pointer-events-none opacity-50': isSettingsLocked || !canManageOrg }
-              ]"
-            >
-              <Icon icon="mdi:account-key" class="h-4 w-4" />
-              {{ t('settings.delegations.open') }}
-            </NuxtLink>
-          </div>
+          <NuxtLink
+            to="/settings/members"
+            :aria-disabled="isSettingsLocked"
+            :tabindex="isSettingsLocked ? -1 : 0"
+            :class="[
+              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+              { 'pointer-events-none opacity-50': isSettingsLocked }
+            ]"
+          >
+            {{ t('settings.open') }}
+          </NuxtLink>
         </div>
         <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
           <li>• {{ t('settings.members.features.status') }}</li>

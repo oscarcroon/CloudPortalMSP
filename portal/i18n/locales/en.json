@@ -216,6 +216,18 @@
       "distributor": "Distributor",
       "willCreate": "Organization · Created on accept"
     },
+    "delegation": {
+      "title": "Delegated access",
+      "heading": "Accept delegated access",
+      "subtitle": "You have been invited to limited access without becoming a member.",
+      "accessType": "Delegated access",
+      "permissions": "Permissions",
+      "permissionsUnit": "pcs",
+      "note": "Message",
+      "createAccountIntro": "Create an account to get access to the delegated permissions.",
+      "accountCreated": "Account created and access activated! Redirecting...",
+      "accessGranted": "Delegated access activated! Redirecting..."
+    },
     "errors": {
       "expired": "This invitation has expired. Contact your administrator to get a new link.",
       "cancelled": "The invitation has been revoked by an administrator.",
@@ -562,7 +574,97 @@
       "noOrganizations": "No organizations are linked to the current provider. Add an organization or switch provider in the context switcher."
     },
     "delegations": {
-      "open": "Delegations"
+      "title": "Delegations",
+      "description": "Manage MSP-to-organization delegations without adding members to the organization.",
+      "open": "Delegations",
+      "info": {
+        "title": "What are delegations?",
+        "description": "Delegations give external users access to specific modules without making them members of the organization. Perfect for consultants, web agencies, or partners who need limited access.",
+        "useCase1": "Give an external consultant time-limited access to DNS management",
+        "useCase2": "Let a web agency manage certificates or redirects without full access",
+        "useCase3": "Share specific module permissions with partners or vendors",
+        "note": "Unlike members, delegated users do not get access to the organization's settings or member list."
+      },
+      "list": {
+        "title": "Active delegations",
+        "loading": "Loading delegations...",
+        "empty": "No delegations found.",
+        "showRevoked": "Show revoked",
+        "users": "users",
+        "total": "total",
+        "active": "active",
+        "activePlural": "active",
+        "expired": "expired",
+        "expiredPlural": "expired",
+        "revoked": "revoked",
+        "revokedPlural": "revoked",
+        "validUntil": "Valid until:",
+        "noExpiry": "No expiry date",
+        "revoking": "Revoking...",
+        "revoke": "Revoke",
+        "showPermissions": "Show permissions",
+        "hidePermissions": "Hide permissions",
+        "permissions": "Permissions"
+      },
+      "form": {
+        "title": "New delegation",
+        "description": "Assign module permissions to a user without organization membership.",
+        "tabExisting": "Existing user",
+        "tabInvite": "Invite external",
+        "searchUser": "Search user",
+        "searchPlaceholder": "Email or name (searches automatically)",
+        "searching": "Searching...",
+        "results": "Results",
+        "selectedUser": "Selected user:",
+        "existingDelegationWarning": "User already has {count} active delegation | User already has {count} active delegations",
+        "existingDelegationNote": "Permissions from all active delegations are combined (union). This can be intentional if you want to give different permissions for different purposes or time periods.",
+        "inviteEmail": "Email address",
+        "inviteEmailPlaceholder": "external{'@'}consultant.com",
+        "inviteName": "Name (optional)",
+        "inviteNamePlaceholder": "John Doe",
+        "modules": "Modules",
+        "modulesDescription": "Select which modules the user should have access to",
+        "selectAll": "Select all",
+        "deselectAll": "Deselect all",
+        "permissionsCount": "{count} permission | {count} permissions",
+        "advancedPermissions": "Advanced: Fine-tune permissions",
+        "customized": "Customized",
+        "modulesSelected": "{modules} module selected ({permissions} permissions) | {modules} modules selected ({permissions} permissions)",
+        "step1": "Step 1",
+        "step2": "Step 2",
+        "chooseModules": "Choose modules",
+        "finetunePermissions": "Fine-tune permissions",
+        "finetuneDescription": "All permissions for selected modules are checked. Uncheck those you don't want to include.",
+        "selectModulesFirst": "Select at least one module in step 1 to continue.",
+        "allPermissionsSelected": "All permissions",
+        "somePermissionsSelected": "{selected} of {total} permissions",
+        "searchModules": "Search modules or permissions...",
+        "noModules": "No modules found",
+        "expiresAt": "Valid until (optional)",
+        "note": "Comment (optional)",
+        "selectPermission": "Select at least one module or permission.",
+        "creating": "Creating...",
+        "create": "Create delegation",
+        "inviting": "Inviting...",
+        "invite": "Invite and create delegation",
+        "reset": "Reset form"
+      },
+      "inviteSuccess": "Invitation sent to {email}. A delegation has been created.",
+      "createSuccess": "Delegation created for {name}.",
+      "revokeConfirm": "Revoke this delegation?",
+      "invitations": {
+        "title": "Pending invitations",
+        "sentBy": "Sent by",
+        "expires": "Valid until",
+        "permissions": "permissions",
+        "cancel": "Cancel",
+        "cancelling": "Cancelling...",
+        "cancelConfirm": "Are you sure you want to cancel this invitation?",
+        "cancelError": "Failed to cancel invitation.",
+        "resend": "Resend",
+        "resending": "Sending...",
+        "resendError": "Failed to resend invitation."
+      }
     },
     "operations": {
       "title": "Incidents",
@@ -644,6 +746,30 @@
         "cancel": "Cancel",
         "cancelling": "Cancelling..."
       },
+      "delegations": {
+        "title": "Delegated access",
+        "description": "Users who have access via delegation without being members of the organization.",
+        "manage": "Manage delegations",
+        "view": "View",
+        "activeSingular": "active delegation",
+        "activePlural": "active delegations"
+      },
+      "delegationInvitations": {
+        "title": "Pending delegation invitations",
+        "description": "External users who have been invited for delegated access but haven't accepted yet.",
+        "manage": "Manage delegations",
+        "sentBy": "Sent by",
+        "permissions": "permissions",
+        "cancel": "Cancel",
+        "cancelling": "Cancelling...",
+        "cancelConfirm": "Are you sure you want to cancel the invitation to {email}?",
+        "cancelSuccess": "Invitation to {email} has been cancelled.",
+        "cancelError": "Failed to cancel invitation.",
+        "resend": "Resend",
+        "resending": "Sending...",
+        "resendSuccess": "Invitation to {email} has been resent.",
+        "resendError": "Failed to resend invitation."
+      },
       "moduleRoles": {
         "title": "Module roles",
         "loading": "Loading module roles...",
@@ -710,6 +836,10 @@
         "roles": "Manage roles and permissions",
         "remove": "Remove members from the organization"
       }
+    },
+    "memberAccess": {
+      "title": "Members & access",
+      "description": "Manage members, groups, permissions and delegations for the active organization."
     },
     "auth": {
       "title": "Auth & SSO",

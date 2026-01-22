@@ -262,7 +262,10 @@ export const buildAuthState = async (
 
   // Add proxy organizations for resolvedOrgId if user has access via tenant + includeChildren
   // Also add for superadmins who can access any organization
-  if (resolvedOrgId && !orgRoles[resolvedOrgId]) {
+  // Check organizationPayload instead of orgRoles since presetRoles may contain stale roles
+  // for organizations no longer in the payload (e.g., superadmin switching to org via forcedOrgId)
+  const orgAlreadyInPayload = organizationPayload.some((org) => org.id === resolvedOrgId)
+  if (resolvedOrgId && !orgAlreadyInPayload) {
     const [resolvedOrg] = await db
       .select({
         id: organizations.id,

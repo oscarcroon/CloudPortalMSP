@@ -1,20 +1,9 @@
 <template>
-  <section class="space-y-6">
-    <header class="space-y-1">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-        {{ t('settings.administration') }}
-      </p>
-      <h1 class="text-2xl font-semibold text-slate-900 dark:text-white">
-        {{ t('settings.groupPermissions.title') }}
-      </h1>
-      <p class="text-sm text-slate-600 dark:text-slate-400">
-        {{ t('settings.groupPermissions.description') }}
-      </p>
-    </header>
-
-    <div v-if="!currentOrgId" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-      {{ t('settings.groupPermissions.noOrg') }}
-    </div>
+  <MemberAccessLayout>
+    <div class="space-y-6">
+      <div v-if="!currentOrgId" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+        {{ t('settings.groupPermissions.noOrg') }}
+      </div>
 
     <template v-else>
       <!-- Info box explaining the permission system -->
@@ -262,8 +251,9 @@
           </div>
         </div>
       </div>
-    </template>
-  </section>
+      </template>
+    </div>
+  </MemberAccessLayout>
 </template>
 
 <script setup lang="ts">

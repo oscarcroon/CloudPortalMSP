@@ -464,6 +464,151 @@ export const sendInvitationEmail = async (input: {
   return { acceptUrl, storedAt }
 }
 
+const buildDelegationAcceptUrl = (token: string) =>
+  `${inviteBaseUrl}/invite/delegation?token=${encodeURIComponent(token)}`
+
+export const sendDelegationInvitationEmail = async (input: {
+  organizationId: string
+  organizationName: string
+  invitedBy: string
+  permissionCount: number
+  to: string
+  expiresAt: number
+  token?: string | null // Optional - if not provided, no action button will be shown
+  note?: string | null
+  organizationLogo?: string | null
+}) => {
+  const acceptUrl = input.token ? buildDelegationAcceptUrl(input.token) : null
+  const senderContext = await getEffectiveEmailSenderContext(input.organizationId)
+  const locale = normalizeEmailLocale(senderContext.emailLanguage)
+  const expiresLabel = localeToDateString(input.expiresAt, locale)
+  const provider = senderContext.profile
+  const disclaimerMarkdown = await fetchOrganizationDisclaimer(input.organizationId)
+  const branding = await resolveEmailBranding({
+    organizationId: input.organizationId,
+    overrideLogoUrl: input.organizationLogo ?? null,
+    disclaimerMarkdown,
+    supportContact: senderContext.supportContact,
+    isDarkMode: senderContext.emailDarkMode
+  })
+
+  const copy: Record<EmailLocale, {
+    subject: string
+    pretitle: string
+    intro: string
+    body: string[]
+    action: string
+    outro: string[]
+  }> = {
+    sv: {
+      subject: input.token 
+        ? `Du har bjudits in till ${input.organizationName}`
+        : `Du har fått delegerad åtkomst till ${input.organizationName}`,
+      pretitle: input.token ? 'Inbjudan till delegerad åtkomst' : 'Delegerad åtkomst',
+      intro: 'Hej!',
+      body: input.token
+        ? [
+            `${input.invitedBy} har bjudit in dig till delegerad åtkomst för ${input.organizationName}.`,
+            `Du får åtkomst till ${input.permissionCount} behörighet${input.permissionCount === 1 ? '' : 'er'}.`,
+            ...(input.note ? [`Meddelande: "${input.note}"`] : []),
+            `Inbjudan är giltig till ${expiresLabel}.`
+          ]
+        : [
+            `${input.invitedBy} har gett dig delegerad åtkomst till ${input.organizationName}.`,
+            `Du har nu åtkomst till ${input.permissionCount} behörighet${input.permissionCount === 1 ? '' : 'er'}.`,
+            ...(input.note ? [`Meddelande: "${input.note}"`] : []),
+            ...(input.expiresAt ? [`Åtkomsten är giltig till ${expiresLabel}.`] : [])
+          ],
+      action: 'Acceptera inbjudan',
+      outro: input.token
+        ? [
+            'Klicka på knappen ovan för att skapa ditt konto och få åtkomst.',
+            'Om du inte förväntade dig detta mejl kan du ignorera det.'
+          ]
+        : [
+            'Du kan logga in med ditt befintliga konto för att komma åt dessa funktioner.',
+            'Om du inte förväntade dig detta mejl kan du ignorera det.'
+          ]
+    },
+    en: {
+      subject: input.token
+        ? `You've been invited to ${input.organizationName}`
+        : `You've been granted delegated access to ${input.organizationName}`,
+      pretitle: input.token ? 'Invitation to delegated access' : 'Delegated access',
+      intro: 'Hi!',
+      body: input.token
+        ? [
+            `${input.invitedBy} has invited you to have delegated access to ${input.organizationName}.`,
+            `You will have access to ${input.permissionCount} permission${input.permissionCount === 1 ? '' : 's'}.`,
+            ...(input.note ? [`Message: "${input.note}"`] : []),
+            `The invitation is valid until ${expiresLabel}.`
+          ]
+        : [
+            `${input.invitedBy} has granted you delegated access to ${input.organizationName}.`,
+            `You now have access to ${input.permissionCount} permission${input.permissionCount === 1 ? '' : 's'}.`,
+            ...(input.note ? [`Message: "${input.note}"`] : []),
+            ...(input.expiresAt ? [`Access is valid until ${expiresLabel}.`] : [])
+          ],
+      action: 'Accept invitation',
+      outro: input.token
+        ? [
+            'Click the button above to create your account and get access.',
+            'If you were not expecting this email, you can ignore it.'
+          ]
+        : [
+            'You can log in with your existing account to access these features.',
+            'If you were not expecting this email, you can ignore it.'
+          ]
+    }
+  }
+
+  const copyForLocale = copy[locale]
+  const content = renderBrandedTemplate(
+    {
+      locale,
+      subject: copyForLocale.subject,
+      pretitle: copyForLocale.pretitle,
+      title: input.organizationName,
+      intro: copyForLocale.intro,
+      body: copyForLocale.body,
+      ...(acceptUrl ? { action: { label: copyForLocale.action, url: acceptUrl } } : {}),
+      outro: copyForLocale.outro
+    },
+    branding
+  )
+  const finalContent = {
+    ...content,
+    subject: formatSubject(content.subject, senderContext.subjectPrefix)
+  }
+
+  if (provider) {
+    const delivery = await sendTemplatedEmail({
+      profile: provider,
+      to: [{ email: input.to }],
+      content: finalContent,
+      dryRunOutboxDir: outboxDir
+    })
+    return { acceptUrl, delivery }
+  }
+
+  const storedAt = await writeOutboxPreview(
+    {
+      to: [{ email: input.to }],
+      subject: finalContent.subject,
+      html: finalContent.html,
+      text: finalContent.text,
+      meta: {
+        reason: 'missing-provider',
+        organizationId: input.organizationId,
+        type: 'delegation-invitation'
+      }
+    },
+    outboxDir
+  )
+  console.info(`[mail] Delegation invitation email for ${input.to} stored at ${storedAt}`)
+  return { acceptUrl, storedAt }
+}
+
 export const sendInviteAcceptedNotification = async (input: {
   organizationId: string
   organizationName: string

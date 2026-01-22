@@ -2,7 +2,7 @@ import { createError, defineEventHandler, getQuery, getRouterParam } from 'h3'
 import { and, eq, isNull } from 'drizzle-orm'
 import { requirePermission } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
-import { mspOrgDelegations, mspOrgDelegationPermissions, organizations, users } from '~~/server/database/schema'
+import { mspOrgDelegations, mspOrgDelegationPermissions, mspOrgDelegationInvitations, organizations, users } from '~~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
   const orgId = getRouterParam(event, 'orgId')
@@ -72,13 +72,45 @@ export default defineEventHandler(async (event) => {
     })
   )
 
+  // Get pending invitations
+  const invitationRows = await db
+    .select({
+      invitation: mspOrgDelegationInvitations,
+      invitedBy: users
+    })
+    .from(mspOrgDelegationInvitations)
+    .leftJoin(users, eq(users.id, mspOrgDelegationInvitations.invitedByUserId))
+    .where(
+      and(
+        eq(mspOrgDelegationInvitations.orgId, organization.id),
+        eq(mspOrgDelegationInvitations.status, 'pending')
+      )
+    )
+
+  const invitations = invitationRows.map((row) => ({
+    id: row.invitation.id,
+    email: row.invitation.email,
+    permissionKeys: JSON.parse(row.invitation.permissionKeys || '[]') as string[],
+    note: row.invitation.note,
+    status: row.invitation.status,
+    expiresAt: row.invitation.expiresAt,
+    delegationExpiresAt: row.invitation.delegationExpiresAt,
+    createdAt: row.invitation.createdAt,
+    invitedBy: row.invitedBy ? {
+      id: row.invitedBy.id,
+      email: row.invitedBy.email,
+      fullName: row.invitedBy.fullName
+    } : null
+  }))
+
   return {
     organization: {
       id: organization.id,
       name: organization.name,
       slug: organization.slug
     },
-    delegations
+    delegations,
+    invitations
   }
 })
 

@@ -1,33 +1,14 @@
 <template>
-  <section class="space-y-8">
-    <header class="space-y-2">
-      <NuxtLink
-        to="/settings"
-        class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
-      >
-        {{ t('settings.members.backToSettings') }}
-      </NuxtLink>
-      <div>
-        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.members.title') }}</h1>
-        <p class="text-sm text-slate-600 dark:text-slate-400">
-          {{ t('settings.members.pageDescription') }}
-        </p>
-      </div>
-    </header>
-
+  <MemberAccessLayout>
     <ClientOnly>
       <div v-if="!currentOrgId" class="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
         {{ t('settings.members.noActiveOrg') }}
       </div>
       <div v-else class="space-y-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('settings.members.activeOrganization') }}</p>
-          <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ organisationName }}</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400">
-            {{ memberSummary }}
-          </p>
-        </div>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          {{ memberSummary }}
+        </p>
         <div class="flex flex-wrap gap-2">
           <button
             class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
@@ -295,6 +276,109 @@
           </table>
         </div>
       </div>
+
+      <!-- Pending Delegation Invitations Section -->
+      <div v-if="delegationInvitations.length > 0" class="rounded-2xl border border-amber-200 bg-amber-50/50 shadow-card dark:border-amber-500/20 dark:bg-amber-900/10">
+        <div class="border-b border-amber-200 px-6 py-4 dark:border-amber-500/20">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <Icon icon="mdi:email-clock-outline" class="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('settings.members.delegationInvitations.title') }}</p>
+            </div>
+            <NuxtLink 
+              to="/settings/delegations" 
+              class="text-xs font-medium text-amber-600 hover:text-amber-700 hover:underline dark:text-amber-400 dark:hover:text-amber-300"
+            >
+              {{ t('settings.members.delegationInvitations.manage') }}
+            </NuxtLink>
+          </div>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {{ t('settings.members.delegationInvitations.description') }}
+          </p>
+        </div>
+        <div class="divide-y divide-amber-100 dark:divide-amber-500/10">
+          <div 
+            v-for="invite in delegationInvitations" 
+            :key="invite.id"
+            class="flex items-center justify-between px-6 py-3"
+          >
+            <div>
+              <p class="font-medium text-slate-900 dark:text-white">{{ invite.email }}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                {{ t('settings.members.delegationInvitations.sentBy') }} {{ invite.invitedBy?.fullName || invite.invitedBy?.email || '–' }}
+              </p>
+              <p v-if="invite.note" class="text-xs text-slate-600 dark:text-slate-300">{{ invite.note }}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                {{ invite.permissionKeys.length }} {{ t('settings.members.delegationInvitations.permissions') }}
+              </span>
+              <button
+                class="rounded border border-brand/40 px-2 py-1 text-xs text-brand transition hover:bg-brand/10 disabled:opacity-50 dark:border-brand/60 dark:text-brand"
+                :disabled="delegationInviteCancelLoadingId === invite.id || delegationInviteResendLoadingId === invite.id"
+                @click="resendDelegationInvitation(invite)"
+              >
+                {{ delegationInviteResendLoadingId === invite.id ? t('settings.members.delegationInvitations.resending') : t('settings.members.delegationInvitations.resend') }}
+              </button>
+              <button
+                class="rounded border border-red-200 px-2 py-1 text-xs text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-900/30"
+                :disabled="delegationInviteCancelLoadingId === invite.id || delegationInviteResendLoadingId === invite.id"
+                @click="cancelDelegationInvitation(invite)"
+              >
+                {{ delegationInviteCancelLoadingId === invite.id ? t('settings.members.delegationInvitations.cancelling') : t('settings.members.delegationInvitations.cancel') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delegated Access Section -->
+      <div v-if="delegatedUsers.length > 0" class="rounded-2xl border border-purple-200 bg-purple-50/50 shadow-card dark:border-purple-500/20 dark:bg-purple-900/10">
+        <div class="border-b border-purple-200 px-6 py-4 dark:border-purple-500/20">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <Icon icon="mdi:account-key" class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ t('settings.members.delegations.title') }}</p>
+            </div>
+            <NuxtLink 
+              to="/settings/delegations" 
+              class="text-xs font-medium text-purple-600 hover:text-purple-700 hover:underline dark:text-purple-400 dark:hover:text-purple-300"
+            >
+              {{ t('settings.members.delegations.manage') }}
+            </NuxtLink>
+          </div>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {{ t('settings.members.delegations.description') }}
+          </p>
+        </div>
+        <div class="divide-y divide-purple-100 dark:divide-purple-500/10">
+          <div 
+            v-for="delegation in delegatedUsers" 
+            :key="delegation.subjectId"
+            class="flex items-center justify-between px-6 py-3"
+          >
+            <div>
+              <p class="font-medium text-slate-900 dark:text-white">
+                {{ delegation.subjectName || delegation.subjectEmail }}
+              </p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                {{ delegation.subjectEmail }}
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700 dark:bg-purple-900/40 dark:text-purple-200">
+                {{ delegation.activeCount }} {{ delegation.activeCount === 1 ? t('settings.members.delegations.activeSingular') : t('settings.members.delegations.activePlural') }}
+              </span>
+              <NuxtLink 
+                to="/settings/delegations" 
+                class="rounded border border-purple-200 px-2 py-1 text-xs text-purple-600 transition hover:bg-purple-100 dark:border-purple-500/30 dark:text-purple-300 dark:hover:bg-purple-900/30"
+              >
+                {{ t('settings.members.delegations.view') }}
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
+      </div>
       </div>
       <template #fallback>
         <div class="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
@@ -303,7 +387,7 @@
         </div>
       </template>
     </ClientOnly>
-  </section>
+  </MemberAccessLayout>
 
   <InviteMemberDialog
     :open="showInviteModal"
@@ -610,6 +694,26 @@ const invitations = ref<OrganizationInvitationSummary[]>([])
 const organisationName = ref('')
 const organisationRequireSso = ref(false)
 const loading = ref(false)
+
+// Delegated users (non-members with active delegations)
+interface DelegatedUser {
+  subjectId: string
+  subjectName: string | null
+  subjectEmail: string | null
+  activeCount: number
+}
+const delegatedUsers = ref<DelegatedUser[]>([])
+interface DelegationInvite {
+  id: string
+  email: string
+  permissionKeys: string[]
+  note?: string | null
+  expiresAt: number | Date | null
+  invitedBy?: { id: string; email: string; fullName?: string | null } | null
+}
+const delegationInvitations = ref<DelegationInvite[]>([])
+const delegationInviteCancelLoadingId = ref('')
+const delegationInviteResendLoadingId = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
 const roleLoadingId = ref('')
@@ -985,6 +1089,7 @@ const loadMembers = async () => {
   if (!currentOrgId.value) {
     members.value = []
     invitations.value = []
+    delegatedUsers.value = []
     organisationName.value = ''
     organisationRequireSso.value = false
     hasPermissionOverrides.value = []
@@ -1004,6 +1109,51 @@ const loadMembers = async () => {
     const overridesResp = await membersApi.fetchMemberPermissionOverrides()
     hasPermissionOverrides.value = overridesResp?.userIds ?? []
     overridesLoaded.value = true
+    
+    // Fetch delegations to show non-member delegated users and pending invitations
+    try {
+      const delegationsResp = await $fetch<{ 
+        delegations: Array<{ subjectId: string; subjectName: string | null; subjectEmail: string | null; revokedAt: number | null; expiresAt: number | null }>
+        invitations?: DelegationInvite[]
+      }>(
+        `/api/organizations/${currentOrgId.value}/delegations`
+      )
+      const memberUserIds = new Set(response.members.map(m => m.userId).filter(Boolean))
+      const now = Date.now()
+      
+      // Group by subjectId and count active delegations
+      const groupedBySubject = new Map<string, { subjectName: string | null; subjectEmail: string | null; activeCount: number }>()
+      for (const d of delegationsResp.delegations ?? []) {
+        // Skip if user is already a member
+        if (memberUserIds.has(d.subjectId)) continue
+        // Skip revoked or expired
+        if (d.revokedAt) continue
+        if (d.expiresAt && d.expiresAt <= now) continue
+        
+        const existing = groupedBySubject.get(d.subjectId)
+        if (existing) {
+          existing.activeCount++
+        } else {
+          groupedBySubject.set(d.subjectId, {
+            subjectName: d.subjectName,
+            subjectEmail: d.subjectEmail,
+            activeCount: 1
+          })
+        }
+      }
+      
+      delegatedUsers.value = Array.from(groupedBySubject.entries()).map(([subjectId, data]) => ({
+        subjectId,
+        ...data
+      }))
+      
+      // Store pending delegation invitations
+      delegationInvitations.value = delegationsResp.invitations ?? []
+    } catch {
+      // Don't fail the whole load if delegations fail
+      delegatedUsers.value = []
+      delegationInvitations.value = []
+    }
   } catch (error) {
     errorMessage.value = extractErrorMessage(error) || 'Kunde inte hämta medlemmar just nu.'
     // Don't set overridesLoaded to true on error - keep it false
@@ -1245,6 +1395,53 @@ const cancelPendingInvitation = async (invite: OrganizationInvitationSummary) =>
     errorMessage.value = extractErrorMessage(error) || 'Kunde inte avbryta inbjudan.'
   } finally {
     inviteCancelLoadingId.value = ''
+  }
+}
+
+const cancelDelegationInvitation = async (invite: DelegationInvite) => {
+  if (!currentOrgId.value) return
+  if (!confirm(t('settings.members.delegationInvitations.cancelConfirm', { email: invite.email }))) {
+    return
+  }
+  delegationInviteCancelLoadingId.value = invite.id
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await $fetch(
+      `/api/organizations/${currentOrgId.value}/delegations/invitations/${invite.id}`,
+      { method: 'DELETE' }
+    )
+    successMessage.value = t('settings.members.delegationInvitations.cancelSuccess', { email: invite.email })
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+    await loadMembers()
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error) || t('settings.members.delegationInvitations.cancelError')
+  } finally {
+    delegationInviteCancelLoadingId.value = ''
+  }
+}
+
+const resendDelegationInvitation = async (invite: DelegationInvite) => {
+  if (!currentOrgId.value) return
+  delegationInviteResendLoadingId.value = invite.id
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await $fetch(
+      `/api/organizations/${currentOrgId.value}/delegations/invitations/${invite.id}/resend`,
+      { method: 'POST' }
+    )
+    successMessage.value = t('settings.members.delegationInvitations.resendSuccess', { email: invite.email })
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+    await loadMembers()
+  } catch (error) {
+    errorMessage.value = extractErrorMessage(error) || t('settings.members.delegationInvitations.resendError')
+  } finally {
+    delegationInviteResendLoadingId.value = ''
   }
 }
 

@@ -12,6 +12,7 @@ export interface OrganizationMember {
   userId?: string
   email: string
   displayName?: string
+  fullName?: string
   role: OrganizationMemberRole
   status: OrganizationMemberStatus
   invitedAt?: string

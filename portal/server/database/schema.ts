@@ -1386,6 +1386,39 @@ export const mspOrgDelegationPermissions = sqliteTable(
 )
 
 /**
+ * MSP Delegation Invitations - Pending invitations for external users to receive delegation access
+ * Similar to organizationInvitations but for delegation-based access without membership
+ */
+export const mspOrgDelegationInvitations = sqliteTable(
+  'msp_org_delegation_invitations',
+  {
+    id: text('id').primaryKey().$defaultFn(createId),
+    orgId: text('org_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    token: text('token').notNull(),
+    permissionKeys: text('permission_keys').notNull(), // JSON array of permission keys
+    note: text('note'),
+    status: text('status').notNull().default('pending'), // pending, accepted, cancelled, expired
+    invitedByUserId: text('invited_by_user_id').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+    delegationExpiresAt: integer('delegation_expires_at', { mode: 'timestamp_ms' }), // When the resulting delegation should expire
+    acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
+    delegationId: text('delegation_id').references(() => mspOrgDelegations.id, {
+      onDelete: 'set null'
+    }), // Set when accepted
+    ...timestampColumns()
+  },
+  table => ({
+    tokenIdx: uniqueIndex('msp_delegation_invites_token_idx').on(table.token),
+    orgEmailIdx: index('msp_delegation_invites_org_email_idx').on(table.orgId, table.email)
+  })
+)
+
+/**
  * MSP Roles - Dynamically defined roles for MSP access
  * Each role is tenant-specific and defines which module permissions it grants
  * 

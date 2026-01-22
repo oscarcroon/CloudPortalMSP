@@ -178,6 +178,22 @@ export interface AdminDelegation {
   createdAt?: number | null
 }
 
+export interface DelegationInvitation {
+  id: string
+  email: string
+  permissionKeys: string[]
+  note?: string | null
+  status: 'pending' | 'accepted' | 'cancelled' | 'expired'
+  expiresAt: number | Date | null
+  delegationExpiresAt?: number | Date | null
+  createdAt?: number | Date | null
+  invitedBy?: {
+    id: string
+    email: string
+    fullName?: string | null
+  } | null
+}
+
 export interface AdminDelegationsResponse {
   organization: {
     id: string
@@ -185,6 +201,7 @@ export interface AdminDelegationsResponse {
     slug: string
   }
   delegations: AdminDelegation[]
+  invitations?: DelegationInvitation[]
 }
 
 export interface AdminMoveOrganizationProviderPayload {
