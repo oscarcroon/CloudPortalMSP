@@ -143,7 +143,7 @@
                 <td class="px-6 py-4">
                   <select
                     :value="member.role"
-                    class="rounded border border-slate-200 bg-transparent px-2 py-1 text-sm dark:border-white/10"
+                    class="role-select rounded border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200"
                     :disabled="!canManageUsers || member.status !== 'active' || roleLoadingId === member.id"
                     @change="handleRoleChange(member, ($event.target as HTMLSelectElement).value)"
                   >
@@ -1457,4 +1457,15 @@ watch(
 )
 </script>
 
+<style scoped>
+.role-select option {
+  background-color: rgb(255 255 255);
+  color: rgb(15 23 42);
+}
+:deep(.dark .role-select option),
+:global(.dark) .role-select option {
+  background-color: rgb(30 41 59);
+  color: rgb(226 232 240);
+}
+</style>
 
