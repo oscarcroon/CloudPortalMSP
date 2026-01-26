@@ -394,7 +394,7 @@
                   'rounded-xl border p-4 transition-all duration-200',
                   selectedModules.size > 0 
                     ? 'border-slate-200 bg-slate-50/50 dark:border-white/10 dark:bg-white/5' 
-                    : 'border-dashed border-slate-300 bg-slate-100/50 dark:border-white/10 dark:bg-white/2'
+                    : 'border-dashed border-slate-300 bg-slate-100/50 dark:border-white/10 dark:bg-slate-800/50'
                 ]"
               >
                 <div class="flex items-center gap-3 mb-3">
@@ -403,7 +403,7 @@
                       'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-colors',
                       selectedModules.size > 0 
                         ? 'bg-brand text-white' 
-                        : 'bg-slate-300 text-slate-500 dark:bg-slate-600 dark:text-slate-400'
+                        : 'bg-slate-300 text-slate-500 dark:bg-slate-600 dark:text-slate-300'
                     ]"
                   >2</span>
                   <h3 
@@ -411,7 +411,7 @@
                       'text-sm font-semibold',
                       selectedModules.size > 0 
                         ? 'text-slate-900 dark:text-white' 
-                        : 'text-slate-400 dark:text-slate-500'
+                        : 'text-slate-400 dark:text-slate-300'
                     ]"
                   >{{ t('settings.delegations.form.finetunePermissions') }}</h3>
                   <span 
@@ -424,8 +424,8 @@
 
                 <!-- Placeholder when no modules selected -->
                 <div v-if="selectedModules.size === 0" class="py-6 text-center">
-                  <Icon icon="mdi:tune-vertical" class="mx-auto mb-2 h-8 w-8 text-slate-300 dark:text-slate-600" />
-                  <p class="text-sm text-slate-400 dark:text-slate-500">{{ t('settings.delegations.form.selectModulesFirst') }}</p>
+                  <Icon icon="mdi:tune-vertical" class="mx-auto mb-2 h-8 w-8 text-slate-300 dark:text-slate-400" />
+                  <p class="text-sm text-slate-400 dark:text-slate-300">{{ t('settings.delegations.form.selectModulesFirst') }}</p>
                 </div>
 
                 <!-- Permission fine-tuning when modules are selected -->
