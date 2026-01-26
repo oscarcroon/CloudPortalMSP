@@ -174,10 +174,22 @@ export function normalizeStoredLogoUrl(logoUrl: string | null | undefined): stri
 
   let normalized = logoUrl.replace(/\/api\/api\//g, '/api/')
 
+  // Convert absolute URLs (including localhost) to relative paths
   if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+    // Extract the path from the URL
+    try {
+      const url = new URL(normalized)
+      normalized = url.pathname
+    } catch {
+      // If URL parsing fails, try to extract path manually
+      const match = normalized.match(/https?:\/\/[^/]+(\/.*)/)
+      if (match) {
+        normalized = match[1]
+      }
+    }
+    // Normalize the path format
     normalized = normalized.replace(/\/uploads\/logos\//, '/api/uploads/logos/')
     normalized = normalized.replace(/\/api\/api\//g, '/api/')
-    return normalized
   }
 
   if (normalized.startsWith('/uploads/logos/')) {
@@ -923,8 +935,8 @@ function getSafeExtension(filename: string) {
 }
 
 function buildLogoUrlFromFilename(filename: string) {
-  const base = DEFAULT_BASE_URL.replace(/\/$/, '')
-  return `${base}/api/uploads/logos/${filename}`
+  // Return relative path to avoid hostname locking
+  return `/api/uploads/logos/${filename}`
 }
 
 async function persistLogoFile(

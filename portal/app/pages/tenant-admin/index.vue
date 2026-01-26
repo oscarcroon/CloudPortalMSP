@@ -34,7 +34,7 @@
           <!-- Has tenant -->
           <div v-if="currentTenant" class="space-y-4">
             <!-- Tenant name and info -->
-            <div class="flex items-start justify-between">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div class="flex items-center gap-4">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl" :class="tenantTypeColor">
                   <Icon :icon="tenantTypeIcon" class="h-6 w-6" />
@@ -47,19 +47,19 @@
                   </div>
                 </div>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <NuxtLink
                   :to="`/tenant-admin/tenants/${currentTenant.id}`"
                   class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
                 >
-                  <Icon icon="mdi:open-in-new" class="h-4 w-4" />
+                  <Icon icon="mdi:open-in-new" class="h-4 w-4 flex-shrink-0" />
                   {{ t('admin.tenantAdmin.overview.viewDetails') }}
                 </NuxtLink>
                 <NuxtLink
                   to="/tenant-admin/tenants"
                   class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
                 >
-                  <Icon icon="mdi:sitemap" class="h-4 w-4" />
+                  <Icon icon="mdi:sitemap" class="h-4 w-4 flex-shrink-0" />
                   {{ t('admin.tenantAdmin.overview.viewTenantTree') }}
                 </NuxtLink>
               </div>

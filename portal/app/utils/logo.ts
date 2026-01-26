@@ -1,6 +1,7 @@
 /**
  * Normaliserar en logotyp-URL för att säkerställa att den använder rätt sökväg.
  * Konverterar gamla format (/uploads/logos/...) till nya format (/api/uploads/logos/...)
+ * Konverterar fullständiga URL:er (inklusive localhost) till relativa sökvägar
  * Hanterar också dubblerade /api/api/ prefix
  */
 export function normalizeLogoUrl(logoUrl: string | null | undefined): string | null {
@@ -11,13 +12,22 @@ export function normalizeLogoUrl(logoUrl: string | null | undefined): string | n
   // Ta bort dubblerade /api/api/ prefix först
   let normalized = logoUrl.replace(/\/api\/api\//g, '/api/')
 
-  // Om det redan är en fullständig URL (http/https)
+  // Konvertera fullständiga URL:er (inklusive localhost) till relativa sökvägar
   if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
-    // Konvertera gamla format till nya format även för fullständiga URL:er
+    // Extrahera sökvägen från URL:en
+    try {
+      const url = new URL(normalized)
+      normalized = url.pathname
+    } catch {
+      // Om URL-parsing misslyckas, försök extrahera sökväg manuellt
+      const match = normalized.match(/https?:\/\/[^/]+(\/.*)/)
+      if (match) {
+        normalized = match[1]
+      }
+    }
+    // Normalisera sökvägsformatet
     normalized = normalized.replace(/\/uploads\/logos\//, '/api/uploads/logos/')
-    // Ta bort dubblerade /api/api/ igen om det skapades
     normalized = normalized.replace(/\/api\/api\//g, '/api/')
-    return normalized
   }
 
   // Konvertera relativa sökvägar från /uploads/logos/ till /api/uploads/logos/
