@@ -11,6 +11,20 @@ import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
 const MAX_COMMENT_LENGTH = 2000
 
 /**
+ * Check if a record name represents the reserved COREID marker subdomain.
+ */
+function isCoreIdMarkerRecord(recordName: string, zoneName?: string): boolean {
+  const name = recordName.toLowerCase().replace(/\.$/, '')
+  if (name === '_coreid') return true
+  if (zoneName) {
+    const expected = `_coreid.${zoneName.toLowerCase()}`
+    if (name === expected) return true
+  }
+  if (name.startsWith('_coreid.')) return true
+  return false
+}
+
+/**
  * Check if creating this record would conflict with a redirect.
  * Returns the conflicting redirect's host if found, null otherwise.
  */
@@ -101,6 +115,14 @@ export default defineEventHandler(async (event) => {
 
   // Block SOA record creation - SOA is managed via Zone settings
   assertNotSoa(body.type)
+
+  // Guard: Block creation of reserved _coreid marker record
+  if (isCoreIdMarkerRecord(body.name)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Kan inte skapa eller ändra _coreid-markörposten. Denna post hanteras av systemet.'
+    })
+  }
 
   // Normalize TXT content: strip surrounding double quotes (Windows DNS rejects them)
   let normalizedContent = body.content

@@ -11,6 +11,20 @@ import { assertNotSoa, assertRecordNotSoa, isSoaType } from '@windows-dns/server
 const MAX_COMMENT_LENGTH = 2000
 
 /**
+ * Check if a record name represents the reserved COREID marker subdomain.
+ */
+function isCoreIdMarkerRecord(recordName: string, zoneName?: string): boolean {
+  const name = recordName.toLowerCase().replace(/\.$/, '')
+  if (name === '_coreid') return true
+  if (zoneName) {
+    const expected = `_coreid.${zoneName.toLowerCase()}`
+    if (name === expected) return true
+  }
+  if (name.startsWith('_coreid.')) return true
+  return false
+}
+
+/**
  * Check if updating this record would conflict with a redirect.
  */
 async function checkRedirectConflict(
@@ -146,6 +160,21 @@ export default defineEventHandler(async (event) => {
       const records = await client.listRecordsForZone(zoneId)
       assertRecordNotSoa(recordId, records)
       existingRecord = records.find((r: any) => r.id === recordId)
+    }
+
+    // Guard: Block modification of reserved _coreid marker record
+    if (existingRecord?.name && isCoreIdMarkerRecord(existingRecord.name, zoneName)) {
+      throw createError({
+        statusCode: 403,
+        message: 'Kan inte ändra _coreid-markörposten. Denna post hanteras av systemet.'
+      })
+    }
+    // Also block if trying to rename something TO _coreid
+    if (body?.name !== undefined && isCoreIdMarkerRecord(body.name, zoneName)) {
+      throw createError({
+        statusCode: 403,
+        message: 'Kan inte döpa om en post till _coreid. Detta namn är reserverat för systemet.'
+      })
     }
 
     // Check for redirect conflicts if name is being changed

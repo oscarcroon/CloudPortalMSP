@@ -3,6 +3,21 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 
+/**
+ * Check if a record name represents the reserved COREID marker subdomain.
+ * Used to filter out the _coreid marker from UI.
+ */
+function isCoreIdMarkerRecord(recordName: string, zoneName?: string): boolean {
+  const name = recordName.toLowerCase().replace(/\.$/, '')
+  if (name === '_coreid') return true
+  if (zoneName) {
+    const expected = `_coreid.${zoneName.toLowerCase()}`
+    if (name === expected) return true
+  }
+  if (name.startsWith('_coreid.')) return true
+  return false
+}
+
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
   if (!auth?.currentOrgId) {
@@ -27,8 +42,13 @@ export default defineEventHandler(async (event) => {
     // Use listRecordsForZone which explicitly grants access to this specific zone
     const records = await client.listRecordsForZone(zoneId)
 
+    // Filter out the reserved _coreid marker record from UI display
+    const filteredRecords = records.filter((record: any) => {
+      return !isCoreIdMarkerRecord(record.name)
+    })
+
     return {
-      records,
+      records: filteredRecords,
       access: {
         canEditRecords: moduleRights.canEditRecords,
         canEditZones: moduleRights.canEditZones

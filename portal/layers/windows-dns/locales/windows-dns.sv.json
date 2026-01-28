@@ -213,7 +213,7 @@
       "title": "Autodiscover Zoner",
       "subtitle": "Hitta zoner som matchar din organisations COREID och aktivera dem.",
       "info": {
-        "title": "Autodiscover söker efter zoner med en TXT-post som innehåller",
+        "title": "Autodiscover söker efter zoner med en TXT-post på _coreid.<zon> som innehåller",
         "coreIdLabel": "Din organisations COREID:",
         "coreIdPlaceholder": "<din-id>"
       },
@@ -227,7 +227,7 @@
       "activated": "Aktiverad",
       "available": "Tillgänglig",
       "noZonesFound": "Inga zoner hittades som matchar ditt COREID",
-      "noZonesHint": "Se till att zonerna har en TXT-post med ditt COREID-värde",
+      "noZonesHint": "Se till att zonerna har en TXT-post på _coreid.<zon> med värdet COREID=<din-id>",
       "backToZones": "Tillbaka till zoner",
       "error": "Autodiscover misslyckades.",
       "activationError": "Aktivering misslyckades."
@@ -244,7 +244,7 @@
       "rescanning": "Söker...",
       "coreIdInfo": "Söker efter zoner med COREID:",
       "noZonesFound": "Inga zoner hittades",
-      "noZonesHint": "Se till att zonerna har en TXT-post med COREID={coreId}",
+      "noZonesHint": "Se till att zonerna har en TXT-post på _coreid.<zon> med värdet COREID={coreId}",
       "status": {
         "allowed": "Aktiv",
         "available": "Tillgänglig",

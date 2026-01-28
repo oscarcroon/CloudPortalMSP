@@ -102,6 +102,25 @@ The base URL is now **global** via `WINDOWS_DNS_API_URL` (not per-org).
 
 Configure via the admin UI at `/windows-dns/admin` or programmatically.
 
+### COREID Marker Format
+
+To link a DNS zone to an organization, create a TXT record on the `_coreid` subdomain:
+
+```
+_coreid.<zone>   TXT   "COREID=<organization-id>"
+```
+
+**Example for `example.com`:**
+```
+_coreid.example.com.   3600   IN   TXT   "COREID=ABCD"
+```
+
+The marker record:
+- Is automatically created when a zone is created via the portal
+- Is hidden from the UI to prevent accidental modification
+- Cannot be modified or deleted via the public API (protected)
+- Is used by autodiscover to match zones to organizations
+
 ### Obtaining a LayerToken
 
 1. Go to **WindowsDNS Admin Panel**

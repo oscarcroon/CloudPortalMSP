@@ -4,6 +4,20 @@ import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/window
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
 
+/**
+ * Check if a record name represents the reserved COREID marker subdomain.
+ */
+function isCoreIdMarkerRecord(recordName: string, zoneName?: string): boolean {
+  const name = recordName.toLowerCase().replace(/\.$/, '')
+  if (name === '_coreid') return true
+  if (zoneName) {
+    const expected = `_coreid.${zoneName.toLowerCase()}`
+    if (name === expected) return true
+  }
+  if (name.startsWith('_coreid.')) return true
+  return false
+}
+
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
   if (!auth?.currentOrgId) {
@@ -33,6 +47,14 @@ export default defineEventHandler(async (event) => {
 
   // Block SOA record deletion - SOA is managed via Zone settings
   assertNotSoa(body.type)
+
+  // Guard: Block deletion of reserved _coreid marker record
+  if (isCoreIdMarkerRecord(body.name)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Kan inte ta bort _coreid-markörposten. Denna post hanteras av systemet.'
+    })
+  }
 
   try {
     const client = await getClientForOrg(orgId)

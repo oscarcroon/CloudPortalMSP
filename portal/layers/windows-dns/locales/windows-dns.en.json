@@ -213,7 +213,7 @@
       "title": "Autodiscover Zones",
       "subtitle": "Find zones that match your organization's COREID and activate them.",
       "info": {
-        "title": "Autodiscover searches for zones with a TXT record containing",
+        "title": "Autodiscover searches for zones with a TXT record at _coreid.<zone> containing",
         "coreIdLabel": "Your organization's COREID:",
         "coreIdPlaceholder": "<your-id>"
       },
@@ -227,7 +227,7 @@
       "activated": "Activated",
       "available": "Available",
       "noZonesFound": "No zones found matching your COREID",
-      "noZonesHint": "Make sure zones have a TXT record with your COREID value",
+      "noZonesHint": "Make sure zones have a TXT record at _coreid.<zone> with the value COREID=<your-id>",
       "backToZones": "Back to zones",
       "error": "Autodiscover failed.",
       "activationError": "Activation failed."
@@ -244,7 +244,7 @@
       "rescanning": "Scanning...",
       "coreIdInfo": "Searching for zones with COREID:",
       "noZonesFound": "No zones found",
-      "noZonesHint": "Make sure zones have a TXT record with COREID={coreId}",
+      "noZonesHint": "Make sure zones have a TXT record at _coreid.<zone> with the value COREID={coreId}",
       "status": {
         "allowed": "Active",
         "available": "Available",
