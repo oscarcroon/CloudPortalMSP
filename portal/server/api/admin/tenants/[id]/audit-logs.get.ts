@@ -6,6 +6,7 @@ import { requireTenantPermission } from '../../../../utils/rbac'
 import { validatePagination } from '../../../../utils/validation'
 import type { AuditEventType } from '../../../../utils/audit'
 import { getTenantAuditScope } from '../../../../utils/auditScope'
+import { getEventTypesForModule } from '../../../../audit/registry'
 import {
   auditContextScopeSchema,
   DEFAULT_AUDIT_CONTEXT_SCOPE,
@@ -26,6 +27,7 @@ export default defineEventHandler(async (event) => {
   // Parse filters
   const userId = query.userId as string | undefined
   const orgId = query.orgId as string | undefined
+  const moduleKey = query.moduleKey as string | undefined
   const eventType = query.eventType as AuditEventType | undefined
   const severityRaw = query.severity as string | undefined
   const allowedSeverities = new Set(['error', 'critical', 'warning', 'info'] as const)
@@ -82,6 +84,12 @@ export default defineEventHandler(async (event) => {
   
   if (eventType) {
     conditions.push(eq(auditLogs.eventType, eventType))
+  } else if (moduleKey) {
+    // If no specific eventType but moduleKey is set, filter by all event types in that module
+    const moduleEventTypes = getEventTypesForModule(moduleKey)
+    if (moduleEventTypes.length > 0) {
+      conditions.push(inArray(auditLogs.eventType, moduleEventTypes))
+    }
   }
   
   if (severity) {

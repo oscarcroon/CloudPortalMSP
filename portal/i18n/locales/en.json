@@ -1458,6 +1458,60 @@
         "auditLogsDesc": "Review tenant activity"
       }
     },
+    "auditLogsPage": {
+      "title": "Audit Logs",
+      "subtitle": "View security events and administrative activities in the system.",
+      "tenantSubtitle": "View security events and administrative activities for this tenant and its organizations.",
+      "backToTenant": "Back to tenant",
+      "accessDenied": {
+        "title": "Access Denied",
+        "description": "You do not have permission to view audit logs for this tenant. Only users with admin or support role can read audit logs."
+      },
+      "filters": {
+        "context": "Context",
+        "allContexts": "All contexts",
+        "tenantOnly": "This tenant only",
+        "providersOnly": "Providers only",
+        "organizationsOnly": "Organizations only",
+        "module": "Module",
+        "allModules": "All modules",
+        "eventType": "Event Type",
+        "all": "All",
+        "severity": "Severity",
+        "fromDate": "From date",
+        "toDate": "To date",
+        "filter": "Filter",
+        "clear": "Clear"
+      },
+      "loading": "Loading...",
+      "table": {
+        "timestamp": "Timestamp",
+        "event": "Event",
+        "user": "User",
+        "context": "Context",
+        "severity": "Severity",
+        "ip": "IP",
+        "details": "Details",
+        "view": "View",
+        "na": "N/A",
+        "tenant": "Tenant",
+        "organization": "Organization"
+      },
+      "noLogs": "No audit logs found for the selected filters.",
+      "pagination": {
+        "showing": "Showing {from}-{to} of {total}",
+        "page": "Page {page} of {totalPages}",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "details": {
+        "title": "Details",
+        "close": "Close",
+        "eventType": "Event Type",
+        "requestId": "Request ID",
+        "metadata": "Metadata"
+      }
+    },
     "sections": {
       "tenants": {
         "title": "Tenants",

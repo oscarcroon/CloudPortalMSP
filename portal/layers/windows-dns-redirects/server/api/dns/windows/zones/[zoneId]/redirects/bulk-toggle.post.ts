@@ -8,6 +8,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirects, windowsDnsAllowedZones } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -91,6 +92,16 @@ export default defineEventHandler(async (event) => {
       updatedAt: new Date()
     })
     .where(inArray(windowsDnsRedirects.id, body.ids))
+
+  // Log audit event for bulk toggle
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECTS_BULK_TOGGLED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    zoneId,
+    updatedCount: body.ids.length,
+    updatedIds: body.ids,
+    isActive: body.isActive
+  })
 
   return {
     success: true,

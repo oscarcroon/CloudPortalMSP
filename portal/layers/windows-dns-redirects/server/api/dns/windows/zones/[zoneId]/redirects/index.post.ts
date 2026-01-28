@@ -17,6 +17,7 @@ import {
   isDnsIntegrationEnabled,
   trackManagedRecord
 } from '@windows-dns-redirects/server/utils/dnsPlanRedirectRecords'
+import { logAuditEvent } from '~~/server/utils/audit'
 import type { WindowsDnsRedirectCreateInput } from '../../../../types'
 
 export default defineEventHandler(async (event) => {
@@ -266,6 +267,19 @@ export default defineEventHandler(async (event) => {
       }
     }
   }
+
+  // Log audit event for redirect creation (do not log destinationUrl)
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECT_CREATED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    entityId: redirect.id,
+    zoneId,
+    zoneName,
+    host,
+    sourcePath: body.sourcePath,
+    redirectType,
+    statusCode
+  })
 
   return {
     redirect: {

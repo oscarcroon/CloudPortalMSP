@@ -2,6 +2,7 @@ import { createError, defineEventHandler, getRouterParam } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getCloudflareDnsZoneAccessForUser } from '@cloudflare-dns/server/lib/cloudflare-dns/access'
 import { getClientForOrg } from '@cloudflare-dns/server/lib/cloudflare-dns/client'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -24,6 +25,14 @@ export default defineEventHandler(async (event) => {
 
   const client = await getClientForOrg(orgId)
   await client.deleteRecord(zoneId, recordId)
+
+  // Audit log
+  await logAuditEvent(event, 'CLOUDFLARE_DNS_RECORD_DELETED', {
+    moduleKey: 'cloudflare-dns',
+    entityType: 'record',
+    entityId: recordId,
+    zoneId
+  })
 
   return { ok: true }
 })

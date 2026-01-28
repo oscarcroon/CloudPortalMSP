@@ -17,6 +17,7 @@ import {
   isDnsIntegrationEnabled,
   trackManagedRecord
 } from '@windows-dns-redirects/server/utils/dnsPlanRedirectRecords'
+import { logAuditEvent } from '~~/server/utils/audit'
 import type { WindowsDnsRedirectUpdateInput } from '../../../../types'
 
 export default defineEventHandler(async (event) => {
@@ -289,6 +290,19 @@ export default defineEventHandler(async (event) => {
     .set(updateData)
     .where(eq(windowsDnsRedirects.id, redirectId))
     .returning()
+
+  // Log audit event for redirect update (do not log destinationUrl)
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECT_UPDATED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    entityId: redirectId,
+    zoneId,
+    zoneName,
+    host: redirect.host,
+    sourcePath: redirect.sourcePath,
+    redirectType: redirect.redirectType,
+    statusCode: redirect.statusCode
+  })
 
   return {
     redirect: {

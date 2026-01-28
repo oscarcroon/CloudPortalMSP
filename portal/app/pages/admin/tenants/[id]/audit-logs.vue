@@ -5,13 +5,13 @@
         :to="`/admin/tenants/${tenantId}`"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka till tenant
+        ← {{ $t('admin.auditLogsPage.backToTenant') }}
       </NuxtLink>
       <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Audit Loggar - {{ tenant?.name ?? (tenantLoading ? 'Laddar...' : 'Okänd tenant') }}</h1>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ $t('nav.superadmin') }}</p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ $t('admin.auditLogsPage.title') }} - {{ tenant?.name ?? (tenantLoading ? $t('admin.auditLogsPage.loading') : 'N/A') }}</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Visa säkerhetshändelser och administrativa aktiviteter för denna tenant och dess organisationer.
+          {{ $t('admin.auditLogsPage.tenantSubtitle') }}
         </p>
       </div>
     </header>
@@ -21,9 +21,9 @@
       <div class="flex items-start gap-4">
         <Icon icon="mdi:lock-alert" class="h-6 w-6 text-red-600 dark:text-red-400" />
         <div>
-          <h2 class="text-lg font-semibold text-red-900 dark:text-red-100">Åtkomst nekad</h2>
+          <h2 class="text-lg font-semibold text-red-900 dark:text-red-100">{{ $t('admin.auditLogsPage.accessDenied.title') }}</h2>
           <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-            Du har inte behörighet att visa audit logs för denna tenant. Endast användare med admin- eller support-roll kan läsa audit logs.
+            {{ $t('admin.auditLogsPage.accessDenied.description') }}
           </p>
         </div>
       </div>
@@ -31,9 +31,9 @@
 
     <!-- Filters -->
     <div v-if="!accessDenied" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6" @submit.prevent="loadLogs">
+      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7" @submit.prevent="loadLogs()">
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Kontext</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.context') }}</label>
           <select
             v-model="contextScope"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
@@ -45,23 +45,38 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Event Type</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.module') }}</label>
           <select
-            v-model="filters.eventType"
+            v-model="filters.moduleKey"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           >
-            <option value="">Alla</option>
-            <option v-for="type in eventTypes" :key="type" :value="type">{{ type }}</option>
+            <option value="">{{ $t('admin.auditLogsPage.filters.allModules') }}</option>
+            <option v-for="mod in auditModules" :key="mod.moduleKey" :value="mod.moduleKey">
+              {{ mod.moduleName }}
+            </option>
           </select>
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Severity</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.eventType') }}</label>
+          <select
+            v-model="filters.eventType"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+          >
+            <option value="">{{ $t('admin.auditLogsPage.filters.all') }}</option>
+            <option v-for="et in filteredEventTypes" :key="et.type" :value="et.type">
+              {{ et.label }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.severity') }}</label>
           <select
             v-model="filters.severity"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           >
-            <option value="">Alla</option>
+            <option value="">{{ $t('admin.auditLogsPage.filters.all') }}</option>
             <option value="info">Info</option>
             <option value="warning">Warning</option>
             <option value="error">Error</option>
@@ -70,7 +85,7 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Från datum</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.fromDate') }}</label>
           <input
             v-model="filters.startDate"
             type="date"
@@ -79,7 +94,7 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Till datum</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.toDate') }}</label>
           <input
             v-model="filters.endDate"
             type="date"
@@ -92,34 +107,34 @@
             type="submit"
             class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
           >
-            Filtrera
+            {{ $t('admin.auditLogsPage.filters.filter') }}
           </button>
           <button
             type="button"
             class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
             @click="clearFilters"
           >
-            Rensa
+            {{ $t('admin.auditLogsPage.filters.clear') }}
           </button>
         </div>
       </form>
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading && !accessDenied" class="text-center text-slate-600 dark:text-slate-400">Laddar...</div>
+    <div v-if="loading && !accessDenied" class="text-center text-slate-600 dark:text-slate-400">{{ $t('admin.auditLogsPage.loading') }}</div>
 
     <!-- Logs table -->
     <div v-else-if="!accessDenied" class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
       <table class="w-full">
         <thead class="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
           <tr>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Tidpunkt</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Event</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Användare</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Kontext</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Severity</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">IP</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">Detaljer</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.table.timestamp') }}</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.table.event') }}</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.table.user') }}</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.table.context') }}</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.table.severity') }}</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.table.ip') }}</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.table.details') }}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-200 dark:divide-white/10">
@@ -131,15 +146,15 @@
               <span class="font-mono text-xs">{{ log.eventType }}</span>
             </td>
             <td class="px-4 py-3 text-sm text-slate-900 dark:text-white">
-              {{ log.userEmail || log.userName || 'N/A' }}
+              {{ log.userEmail || log.userName || $t('admin.auditLogsPage.table.na') }}
             </td>
             <td class="px-4 py-3 text-sm text-slate-900 dark:text-white">
               <span v-if="log.tenantId && log.tenantName">
-                <span class="text-xs text-slate-500 dark:text-slate-400">Tenant:</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('admin.auditLogsPage.table.tenant') }}:</span>
                 {{ log.tenantName }}
               </span>
               <span v-else-if="log.orgId && log.orgName">
-                <span class="text-xs text-slate-500 dark:text-slate-400">Organisation:</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('admin.auditLogsPage.table.organization') }}:</span>
                 {{ log.orgName }}
               </span>
               <span v-else class="text-slate-400 dark:text-slate-500">—</span>
@@ -157,7 +172,7 @@
               </span>
             </td>
             <td class="px-4 py-3 text-sm font-mono text-slate-600 dark:text-slate-400">
-              {{ log.ip || 'N/A' }}
+              {{ log.ip || $t('admin.auditLogsPage.table.na') }}
             </td>
             <td class="px-4 py-3 text-sm">
               <button
@@ -165,7 +180,7 @@
                 class="text-brand hover:underline"
                 @click="showDetails(log)"
               >
-                Visa
+                {{ $t('admin.auditLogsPage.table.view') }}
               </button>
             </td>
           </tr>
@@ -176,7 +191,7 @@
     <!-- Pagination -->
     <div v-if="pagination && pagination.totalPages > 1" class="flex items-center justify-between">
       <div class="text-sm text-slate-600 dark:text-slate-400">
-        Visar {{ (pagination.page - 1) * pagination.pageSize + 1 }} - {{ Math.min(pagination.page * pagination.pageSize, pagination.total) }} av {{ pagination.total }}
+        {{ $t('admin.auditLogsPage.pagination.showing', { from: (pagination.page - 1) * pagination.pageSize + 1, to: Math.min(pagination.page * pagination.pageSize, pagination.total), total: pagination.total }) }}
       </div>
       <div class="flex gap-2">
         <button
@@ -184,14 +199,14 @@
           class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand disabled:opacity-50 dark:border-white/10 dark:text-slate-200"
           @click="changePage(pagination.page - 1)"
         >
-          Föregående
+          {{ $t('admin.auditLogsPage.pagination.previous') }}
         </button>
         <button
           :disabled="pagination.page >= pagination.totalPages"
           class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand disabled:opacity-50 dark:border-white/10 dark:text-slate-200"
           @click="changePage(pagination.page + 1)"
         >
-          Nästa
+          {{ $t('admin.auditLogsPage.pagination.next') }}
         </button>
       </div>
     </div>
@@ -205,7 +220,7 @@
       <div class="max-w-2xl rounded-xl border border-slate-200 bg-white shadow-lg dark:border-white/10 dark:bg-slate-900">
         <div class="border-b border-slate-200 p-4 dark:border-white/10">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Logg Detaljer</h2>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ $t('admin.auditLogsPage.details.title') }}</h2>
             <button
               class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               @click="selectedLog = null"
@@ -216,15 +231,15 @@
         </div>
         <div class="p-4 space-y-4">
           <div>
-            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Event Type</label>
+            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{{ $t('admin.auditLogsPage.details.eventType') }}</label>
             <p class="mt-1 font-mono text-sm text-slate-900 dark:text-white">{{ selectedLog.eventType }}</p>
           </div>
           <div>
-            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Request ID</label>
+            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{{ $t('admin.auditLogsPage.details.requestId') }}</label>
             <p class="mt-1 font-mono text-sm text-slate-900 dark:text-white">{{ selectedLog.requestId }}</p>
           </div>
           <div>
-            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Metadata</label>
+            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{{ $t('admin.auditLogsPage.details.metadata') }}</label>
             <pre class="mt-1 overflow-auto rounded-lg bg-slate-100 p-3 text-xs text-slate-900 dark:bg-slate-800 dark:text-white">{{ JSON.stringify(selectedLog.meta, null, 2) }}</pre>
           </div>
         </div>
@@ -236,7 +251,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from '#imports'
 import { Icon } from '@iconify/vue'
-import type { AuditEventType } from '~~/server/utils/audit'
+
+const { t } = useI18n()
 
 definePageMeta({
   // Tenant admins can access audit logs for their tenant
@@ -298,46 +314,56 @@ const hasProviders = ref(false)
 const hasOrganizations = ref(false)
 const contextScope = ref<ContextScope>(parseContextScope(route.query.contextScope))
 
-const eventTypes: AuditEventType[] = [
-  'LOGIN_SUCCESS',
-  'LOGIN_FAILED',
-  'LOGOUT',
-  'USER_CREATED',
-  'USER_UPDATED',
-  'USER_DELETED',
-  'USER_INVITED',
-  'INVITE_ACCEPTED',
-  'INVITE_CANCELLED',
-  'INVITE_EXPIRED',
-  'USER_REMOVED',
-  'ROLE_CHANGED',
-  'ORGANIZATION_CREATED',
-  'ORGANIZATION_UPDATED',
-  'ORGANIZATION_DELETED',
-  'TENANT_CREATED',
-  'TENANT_UPDATED',
-  'TENANT_DELETED',
-  'PERMISSION_DENIED',
-  'RATE_LIMIT_EXCEEDED',
-  'MODULE_ENABLED',
-  'MODULE_DISABLED'
-]
+// Audit modules and event types fetched from API
+interface AuditEventOption {
+  type: string
+  label: string
+}
+
+interface AuditModule {
+  moduleKey: string
+  moduleName: string
+  eventTypes: AuditEventOption[]
+}
+
+const auditModules = ref<AuditModule[]>([])
+
+// Filtered event types based on selected module
+const filteredEventTypes = computed(() => {
+  if (!filters.value.moduleKey) {
+    // Return all event types from all modules
+    return auditModules.value.flatMap(m => m.eventTypes)
+  }
+  // Return only event types from selected module
+  const selectedModule = auditModules.value.find(m => m.moduleKey === filters.value.moduleKey)
+  return selectedModule?.eventTypes ?? []
+})
+
+const loadAuditModules = async () => {
+  try {
+    const response = await $fetch<{ modules: AuditModule[] }>('/api/admin/audit-logs/event-types?locale=sv')
+    auditModules.value = response.modules || []
+  } catch (error) {
+    console.error('Failed to load audit modules', error)
+    auditModules.value = []
+  }
+}
 
 const contextOptions = computed(() => {
   const options: { value: ContextScope; label: string }[] = [
-    { value: 'all', label: 'Alla kontexter' },
-    { value: 'tenant', label: 'Endast denna tenant' }
+    { value: 'all', label: t('admin.auditLogsPage.filters.allContexts') },
+    { value: 'tenant', label: t('admin.auditLogsPage.filters.tenantOnly') }
   ]
 
   if (tenant.value?.type === 'distributor') {
     if (hasProviders.value) {
-      options.push({ value: 'providers', label: 'Endast leverantörer' })
+      options.push({ value: 'providers', label: t('admin.auditLogsPage.filters.providersOnly') })
     }
     if (hasOrganizations.value) {
-      options.push({ value: 'organizations', label: 'Endast organisationer' })
+      options.push({ value: 'organizations', label: t('admin.auditLogsPage.filters.organizationsOnly') })
     }
   } else if (tenant.value?.type === 'provider' && hasOrganizations.value) {
-    options.push({ value: 'organizations', label: 'Endast organisationer' })
+    options.push({ value: 'organizations', label: t('admin.auditLogsPage.filters.organizationsOnly') })
   }
 
   return options
@@ -387,10 +413,16 @@ const getDefaultDates = () => {
 const defaultDates = getDefaultDates()
 
 const filters = ref({
+  moduleKey: '',
   eventType: '',
   severity: '',
   startDate: defaultDates.startDate,
   endDate: defaultDates.endDate
+})
+
+// Clear eventType when module changes
+watch(() => filters.value.moduleKey, () => {
+  filters.value.eventType = ''
 })
 
 const loadTenant = async () => {
@@ -439,6 +471,7 @@ const loadLogs = async (page = 1) => {
     })
     
     params.append('contextScope', contextScope.value)
+    if (filters.value.moduleKey) params.append('moduleKey', filters.value.moduleKey)
     if (filters.value.eventType) params.append('eventType', filters.value.eventType)
     if (filters.value.severity) params.append('severity', filters.value.severity)
     if (filters.value.startDate) params.append('startDate', filters.value.startDate)
@@ -461,6 +494,7 @@ const loadLogs = async (page = 1) => {
 const clearFilters = () => {
   const dates = getDefaultDates()
   filters.value = {
+    moduleKey: '',
     eventType: '',
     severity: '',
     startDate: dates.startDate,
@@ -491,7 +525,10 @@ const formatDate = (date: Date | string) => {
 }
 
 onMounted(async () => {
-  await loadTenant()
+  await Promise.all([
+    loadTenant(),
+    loadAuditModules()
+  ])
   loadLogs()
 })
 </script>

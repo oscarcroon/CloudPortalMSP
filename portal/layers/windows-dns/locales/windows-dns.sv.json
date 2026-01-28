@@ -205,7 +205,12 @@
         "tooltip": "Denna DNS-post hanteras automatiskt av Redirect-tjänsten",
         "editWarning": "Denna post hanteras av Redirects. Ändringar kan påverka omdirigeringar.",
         "openRedirects": "Öppna i Redirects"
-      }
+      },
+      "lastChangedAt": "Senast ändrad",
+      "lastChangedBy": "Av",
+      "auditUnknown": "Ingen ändringshistorik",
+      "auditUnknownUser": "Okänd användare",
+      "auditInfo": "Visa ändringshistorik"
     },
 
     "autodiscover": {

@@ -3,6 +3,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getCloudflareDnsModuleAccessForUser } from '@cloudflare-dns/server/lib/cloudflare-dns/access'
 import { getClientForOrg } from '@cloudflare-dns/server/lib/cloudflare-dns/client'
 import { upsertZoneCache } from '@cloudflare-dns/server/lib/cloudflare-dns/org-config'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -37,6 +38,14 @@ export default defineEventHandler(async (event) => {
       recordCount: zone.recordCount ?? null
     }
   ])
+
+  // Audit log
+  await logAuditEvent(event, 'CLOUDFLARE_DNS_ZONE_CREATED', {
+    moduleKey: 'cloudflare-dns',
+    entityType: 'zone',
+    entityId: zone.id,
+    zoneName: zone.name
+  })
 
   return { zone }
 })

@@ -10,7 +10,20 @@
 
     <!-- Filters -->
     <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5" @submit.prevent="loadLogs">
+      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7" @submit.prevent="loadLogs()">
+        <div>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Modul</label>
+          <select
+            v-model="filters.moduleKey"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+          >
+            <option value="">Alla moduler</option>
+            <option v-for="mod in auditModules" :key="mod.moduleKey" :value="mod.moduleKey">
+              {{ mod.moduleName }}
+            </option>
+          </select>
+        </div>
+
         <div>
           <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Event Type</label>
           <select
@@ -18,7 +31,9 @@
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           >
             <option value="">Alla</option>
-            <option v-for="type in eventTypes" :key="type" :value="type">{{ type }}</option>
+            <option v-for="et in filteredEventTypes" :key="et.type" :value="et.type">
+              {{ et.label }}
+            </option>
           </select>
         </div>
 
@@ -193,8 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from '#imports'
-import type { AuditEventType } from '~~/server/utils/audit'
+import { ref, onMounted, computed, watch } from '#imports'
 
 definePageMeta({
   superAdmin: true
@@ -221,38 +235,51 @@ interface AuditLog {
 }
 
 interface Filters {
+  moduleKey: string
   eventType: string
   severity: string
   startDate: string
   endDate: string
 }
 
+// Audit modules and event types fetched from API
+interface AuditEventOption {
+  type: string
+  label: string
+}
+
+interface AuditModule {
+  moduleKey: string
+  moduleName: string
+  eventTypes: AuditEventOption[]
+}
+
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
 const pagination = ref<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
+const auditModules = ref<AuditModule[]>([])
 
-const eventTypes: AuditEventType[] = [
-  'LOGIN_SUCCESS',
-  'LOGIN_FAILED',
-  'LOGOUT',
-  'USER_CREATED',
-  'USER_UPDATED',
-  'USER_DELETED',
-  'USER_INVITED',
-  'USER_REMOVED',
-  'ROLE_CHANGED',
-  'ORGANIZATION_CREATED',
-  'ORGANIZATION_UPDATED',
-  'ORGANIZATION_DELETED',
-  'TENANT_CREATED',
-  'TENANT_UPDATED',
-  'TENANT_DELETED',
-  'PERMISSION_DENIED',
-  'RATE_LIMIT_EXCEEDED',
-  'MODULE_ENABLED',
-  'MODULE_DISABLED'
-]
+// Filtered event types based on selected module
+const filteredEventTypes = computed(() => {
+  if (!filters.value.moduleKey) {
+    // Return all event types from all modules
+    return auditModules.value.flatMap(m => m.eventTypes)
+  }
+  // Return only event types from selected module
+  const selectedModule = auditModules.value.find(m => m.moduleKey === filters.value.moduleKey)
+  return selectedModule?.eventTypes ?? []
+})
+
+const loadAuditModules = async () => {
+  try {
+    const response = await $fetch<{ modules: AuditModule[] }>('/api/admin/audit-logs/event-types?locale=sv')
+    auditModules.value = response.modules || []
+  } catch (error) {
+    console.error('Failed to load audit modules', error)
+    auditModules.value = []
+  }
+}
 
 // Set default dates: 1 day back to today
 const getDefaultDates = () => {
@@ -269,10 +296,16 @@ const getDefaultDates = () => {
 const defaultDates = getDefaultDates()
 
 const filters = ref<Filters>({
+  moduleKey: '',
   eventType: '',
   severity: '',
   startDate: defaultDates.startDate,
   endDate: defaultDates.endDate
+})
+
+// Clear eventType when module changes
+watch(() => filters.value.moduleKey, () => {
+  filters.value.eventType = ''
 })
 
 const loadLogs = async (page = 1) => {
@@ -283,6 +316,7 @@ const loadLogs = async (page = 1) => {
       pageSize: '50'
     })
     
+    if (filters.value.moduleKey) params.append('moduleKey', filters.value.moduleKey)
     if (filters.value.eventType) params.append('eventType', filters.value.eventType)
     if (filters.value.severity) params.append('severity', filters.value.severity)
     if (filters.value.startDate) params.append('startDate', filters.value.startDate)
@@ -301,6 +335,7 @@ const loadLogs = async (page = 1) => {
 const clearFilters = () => {
   const dates = getDefaultDates()
   filters.value = {
+    moduleKey: '',
     eventType: '',
     severity: '',
     startDate: dates.startDate,
@@ -329,8 +364,9 @@ const formatDate = (date: Date | string) => {
   })
 }
 
-onMounted(() => {
-  // Load logs with default date filter
+onMounted(async () => {
+  // Load modules and logs in parallel
+  await loadAuditModules()
   loadLogs()
 })
 </script>

@@ -1453,6 +1453,60 @@
         "auditLogsDesc": "Granska tenant-aktivitet"
       }
     },
+    "auditLogsPage": {
+      "title": "Audit Loggar",
+      "subtitle": "Visa säkerhetshändelser och administrativa aktiviteter i systemet.",
+      "tenantSubtitle": "Visa säkerhetshändelser och administrativa aktiviteter för denna tenant och dess organisationer.",
+      "backToTenant": "Tillbaka till tenant",
+      "accessDenied": {
+        "title": "Åtkomst nekad",
+        "description": "Du har inte behörighet att visa audit logs för denna tenant. Endast användare med admin- eller support-roll kan läsa audit logs."
+      },
+      "filters": {
+        "context": "Kontext",
+        "allContexts": "Alla kontexter",
+        "tenantOnly": "Endast denna tenant",
+        "providersOnly": "Endast leverantörer",
+        "organizationsOnly": "Endast organisationer",
+        "module": "Modul",
+        "allModules": "Alla moduler",
+        "eventType": "Event Type",
+        "all": "Alla",
+        "severity": "Severity",
+        "fromDate": "Från datum",
+        "toDate": "Till datum",
+        "filter": "Filtrera",
+        "clear": "Rensa"
+      },
+      "loading": "Laddar...",
+      "table": {
+        "timestamp": "Tidpunkt",
+        "event": "Event",
+        "user": "Användare",
+        "context": "Kontext",
+        "severity": "Severity",
+        "ip": "IP",
+        "details": "Detaljer",
+        "view": "Visa",
+        "na": "N/A",
+        "tenant": "Tenant",
+        "organization": "Organisation"
+      },
+      "noLogs": "Inga audit-loggar hittades för de valda filtren.",
+      "pagination": {
+        "showing": "Visar {from}-{to} av {total}",
+        "page": "Sida {page} av {totalPages}",
+        "previous": "Föregående",
+        "next": "Nästa"
+      },
+      "details": {
+        "title": "Detaljer",
+        "close": "Stäng",
+        "eventType": "Event Type",
+        "requestId": "Request ID",
+        "metadata": "Metadata"
+      }
+    },
     "sections": {
       "tenants": {
         "title": "Tenants",

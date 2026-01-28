@@ -3,6 +3,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 /**
  * Check if a record name represents the reserved COREID marker subdomain.
@@ -62,6 +63,17 @@ export default defineEventHandler(async (event) => {
       name: body.name,
       type: body.type,
       content: body.content
+    })
+
+    // Log audit event for record deletion
+    // recordId may be provided by UI for better tracking
+    await logAuditEvent(event, 'WINDOWS_DNS_RECORD_DELETED', {
+      moduleKey: 'windows-dns',
+      entityType: 'windows_dns_record',
+      entityId: body.recordId ?? null,
+      zoneId,
+      recordType: body.type,
+      recordName: body.name
     })
 
     return { success: true }

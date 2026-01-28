@@ -4,6 +4,7 @@ import { auditLogs, users } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { requirePermission } from '../../../utils/rbac'
 import { validatePagination } from '../../../utils/validation'
+import { getAllOrgAuditEventTypes } from '../../../audit/registry'
 import type { AuditEventType } from '../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
@@ -76,19 +77,8 @@ export default defineEventHandler(async (event) => {
   
   // Get logs with user info
   // Only show relevant event types for org admins (not all security events)
-  const relevantEventTypes: AuditEventType[] = [
-    'LOGIN_SUCCESS',
-    'LOGIN_FAILED',
-    'ROLE_CHANGED',
-    'USER_INVITED',
-    'USER_REMOVED',
-    'MODULE_ENABLED',
-    'MODULE_DISABLED',
-    'SENSITIVE_DATA_ACCESSED',
-    'ORGANIZATION_UPDATED',
-    'ORG_SETTINGS_UPDATED',
-    'ORG_AUTH_SETTINGS_UPDATED'
-  ]
+  // Event types are loaded from the audit registry (core + layer modules)
+  const relevantEventTypes = getAllOrgAuditEventTypes()
   
   const logs = await db
     .select({

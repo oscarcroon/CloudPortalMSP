@@ -2,6 +2,7 @@ import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getCloudflareDnsZoneAccessForUser } from '@cloudflare-dns/server/lib/cloudflare-dns/access'
 import { getClientForOrg } from '@cloudflare-dns/server/lib/cloudflare-dns/client'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -46,6 +47,16 @@ export default defineEventHandler(async (event) => {
     proxied: body.proxied ?? null,
     priority: body.priority ?? null,
     comment: body.comment ?? null
+  })
+
+  // Audit log
+  await logAuditEvent(event, 'CLOUDFLARE_DNS_RECORD_CREATED', {
+    moduleKey: 'cloudflare-dns',
+    entityType: 'record',
+    entityId: record.id,
+    zoneId,
+    recordType: body.type,
+    recordName: body.name
   })
 
   return { record }

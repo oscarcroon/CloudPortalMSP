@@ -6,6 +6,7 @@ import {
 } from '@cloudflare-dns/server/lib/cloudflare-dns/access'
 import { getClientForOrg } from '@cloudflare-dns/server/lib/cloudflare-dns/client'
 import { clearZoneCacheForOrg } from '@cloudflare-dns/server/lib/cloudflare-dns/org-config'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -34,6 +35,13 @@ export default defineEventHandler(async (event) => {
   await client.deleteZone(zoneId)
 
   await clearZoneCacheForOrg(orgId)
+
+  // Audit log
+  await logAuditEvent(event, 'CLOUDFLARE_DNS_ZONE_DELETED', {
+    moduleKey: 'cloudflare-dns',
+    entityType: 'zone',
+    entityId: zoneId
+  })
 
   return { ok: true }
 })

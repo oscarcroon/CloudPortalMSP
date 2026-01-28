@@ -9,6 +9,7 @@ import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirects, windowsDnsAllowedZones, windowsDnsRedirectImportLogs } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { normalizeRedirectHost } from '@windows-dns-redirects/server/utils/normalizeHost'
+import { logAuditEvent } from '~~/server/utils/audit'
 import type { WindowsDnsRedirectImportRow, WindowsDnsRedirectImportError } from '../../../../types'
 
 interface ImportBody {
@@ -201,6 +202,18 @@ export default defineEventHandler(async (event) => {
     failedRows: errors.length,
     errorDetails: errors.length > 0 ? JSON.stringify(errors) : null,
     importedBy: auth.user.id
+  })
+
+  // Log audit event for import (do not log redirect contents)
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECTS_IMPORTED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    zoneId,
+    zoneName,
+    filename: body.filename || 'import.csv',
+    totalRows: body.rows.length,
+    successfulRows: toInsert.length,
+    failedRows: errors.length
   })
 
   return {

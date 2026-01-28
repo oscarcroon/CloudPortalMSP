@@ -310,8 +310,17 @@
                       <span class="hidden sm:inline">{{ $t('windowsDns.records.redirectManaged.openRedirects') }}</span>
                     </NuxtLink>
                   </template>
-                  <!-- Normal records: edit/delete buttons -->
+                  <!-- Normal records: info/edit/delete buttons -->
                   <template v-else>
+                    <!-- Info icon for audit history -->
+                    <button
+                      v-if="record.id && auditSummaries[record.id]"
+                      class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-400"
+                      type="button"
+                      :title="formatAuditTooltip(record.id)"
+                    >
+                      <Icon icon="mdi:information-outline" class="h-4 w-4" />
+                    </button>
                     <button
                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
                       type="button"
@@ -596,6 +605,84 @@ watch(
 )
 
 const recordTypes = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'SRV', 'NS', 'PTR', 'CAA', 'TLSA']
+
+// Audit summaries for "last changed" info
+interface AuditSummary {
+  lastChangedAt: string
+  eventType: string
+  user: {
+    id: string
+    email: string | null
+    fullName: string | null
+  } | null
+}
+
+const auditSummaries = ref<Record<string, AuditSummary>>({})
+const loadingAuditSummaries = ref(false)
+
+// Fetch audit summaries for current page of records
+const fetchAuditSummaries = async () => {
+  const recordIds = pagedRecords.value
+    .map((r: any) => r.id)
+    .filter((id: string | undefined) => id != null)
+
+  if (recordIds.length === 0) {
+    auditSummaries.value = {}
+    return
+  }
+
+  loadingAuditSummaries.value = true
+  try {
+    const response = await $fetch<{ summaries: Record<string, AuditSummary> }>(
+      `/api/dns/windows/zones/${props.zoneId}/records/audit-summaries`,
+      {
+        method: 'POST',
+        body: { recordIds }
+      }
+    )
+    auditSummaries.value = response.summaries || {}
+  } catch (err) {
+    console.warn('[windows-dns] Failed to fetch audit summaries:', err)
+    auditSummaries.value = {}
+  } finally {
+    loadingAuditSummaries.value = false
+  }
+}
+
+// Watch for paged records changes and fetch audit summaries
+watch(
+  () => pagedRecords.value,
+  () => {
+    fetchAuditSummaries()
+  },
+  { immediate: true }
+)
+
+// Format audit tooltip text
+const formatAuditTooltip = (recordId: string): string => {
+  const { $i18n } = useNuxtApp()
+  const summary = auditSummaries.value[recordId]
+
+  if (!summary) {
+    return $i18n.t('windowsDns.records.auditUnknown') || 'Ingen ändringshistorik'
+  }
+
+  const date = new Date(summary.lastChangedAt)
+  const formattedDate = date.toLocaleString('sv-SE', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
+  const userName = summary.user?.fullName || summary.user?.email || ($i18n.t('windowsDns.records.auditUnknownUser') || 'Okänd användare')
+
+  const lastChangedAt = $i18n.t('windowsDns.records.lastChangedAt') || 'Senast ändrad'
+  const lastChangedBy = $i18n.t('windowsDns.records.lastChangedBy') || 'Av'
+
+  return `${lastChangedAt}: ${formattedDate}\n${lastChangedBy}: ${userName}`
+}
 
 const ttlOptions = [
   { value: 300, label: '5 min' },
@@ -1178,7 +1265,9 @@ const deleteRecord = async (record: any) => {
       body: {
         name: record.name,
         type: record.type,
-        content: record.content || record.value || record.data
+        content: record.content || record.value || record.data,
+        // Include recordId for better audit logging
+        recordId: record.id
       }
     })
     emit('refresh')

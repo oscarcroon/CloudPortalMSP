@@ -7,6 +7,7 @@ import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/window
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
 import { assertNotSoa, assertRecordNotSoa, isSoaType } from '@windows-dns/server/utils/assert-not-soa'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 const MAX_COMMENT_LENGTH = 2000
 
@@ -203,6 +204,17 @@ export default defineEventHandler(async (event) => {
     if (body?.comment !== undefined) updates.comment = body.comment
 
     const record = await client.updateRecord(zoneId, recordId, updates)
+
+    // Log audit event for record update
+    await logAuditEvent(event, 'WINDOWS_DNS_RECORD_UPDATED', {
+      moduleKey: 'windows-dns',
+      entityType: 'windows_dns_record',
+      entityId: recordId,
+      zoneId,
+      zoneName,
+      recordType: body?.type ?? existingRecord?.type,
+      recordName: body?.name ?? existingRecord?.name
+    })
 
     return { record }
   } catch (error: any) {

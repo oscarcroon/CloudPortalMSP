@@ -205,7 +205,12 @@
         "tooltip": "This DNS record is automatically managed by the Redirect service",
         "editWarning": "This record is managed by Redirects. Changes may affect redirects.",
         "openRedirects": "Open in Redirects"
-      }
+      },
+      "lastChangedAt": "Last changed",
+      "lastChangedBy": "By",
+      "auditUnknown": "No change history",
+      "auditUnknownUser": "Unknown user",
+      "auditInfo": "Show change history"
     },
 
     "autodiscover": {

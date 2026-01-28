@@ -15,7 +15,7 @@
     <template v-else>
       <!-- Filters -->
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-        <form class="grid grid-cols-1 gap-4 md:grid-cols-3" @submit.prevent="loadLogs">
+        <form class="grid grid-cols-1 gap-4 md:grid-cols-3" @submit.prevent="loadLogs()">
           <div>
             <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('settings.audit.eventType') }}</label>
             <select
@@ -23,7 +23,9 @@
               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             >
               <option value="">{{ t('settings.audit.all') }}</option>
-              <option v-for="type in relevantEventTypes" :key="type" :value="type">{{ type }}</option>
+              <optgroup v-for="group in eventTypeGroups" :key="group.moduleKey" :label="group.moduleName">
+                <option v-for="et in group.eventTypes" :key="et.type" :value="et.type">{{ et.label }}</option>
+              </optgroup>
             </select>
           </div>
 
@@ -166,7 +168,6 @@ const { t } = useI18n()
 import { ref, computed, onMounted } from '#imports'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'
-import type { AuditEventType } from '~~/server/utils/audit'
 
 const auth = useAuth()
 const permission = usePermission()
@@ -196,19 +197,36 @@ const loading = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
 const pagination = ref<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
 
-const relevantEventTypes: AuditEventType[] = [
-  'LOGIN_SUCCESS',
-  'LOGIN_FAILED',
-  'ROLE_CHANGED',
-  'USER_INVITED',
-  'USER_REMOVED',
-  'MODULE_ENABLED',
-  'MODULE_DISABLED',
-  'SENSITIVE_DATA_ACCESSED',
-  'ORGANIZATION_UPDATED',
-  'ORG_SETTINGS_UPDATED',
-  'ORG_AUTH_SETTINGS_UPDATED'
-]
+// Event type groups fetched from API (dynamically loaded from audit registry)
+interface EventTypeOption {
+  type: string
+  label: string
+}
+
+interface EventTypeGroup {
+  moduleKey: string
+  moduleName: string
+  eventTypes: EventTypeOption[]
+}
+
+const eventTypeGroups = ref<EventTypeGroup[]>([])
+
+const loadEventTypes = async () => {
+  if (!hasActiveOrg.value) return
+
+  try {
+    const orgId = auth.state.value.data?.currentOrgId
+    const { locale } = useI18n()
+    const response = await $fetch<{ groups: EventTypeGroup[] }>(
+      `/api/organizations/${orgId}/audit-logs/event-types?locale=${locale.value}`
+    )
+    eventTypeGroups.value = response.groups || []
+  } catch (error) {
+    console.error('Failed to load event types', error)
+    // Fallback to empty groups - user can still see logs without filter
+    eventTypeGroups.value = []
+  }
+}
 
 // Set default dates: 1 day back to today
 const getDefaultDates = () => {
@@ -290,7 +308,11 @@ onMounted(async () => {
     await auth.bootstrap()
   }
   if (hasActiveOrg.value && canViewAudit.value) {
-    loadLogs()
+    // Load event types and logs in parallel
+    await Promise.all([
+      loadEventTypes(),
+      loadLogs()
+    ])
   }
 })
 </script>

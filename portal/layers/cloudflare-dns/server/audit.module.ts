@@ -1,0 +1,54 @@
+/**
+ * Cloudflare DNS Audit Module
+ *
+ * Registers audit event types for the Cloudflare DNS layer.
+ */
+
+import { registerAuditModule } from '~~/server/audit/registry'
+import type { AuditEventType } from '~~/server/utils/audit'
+
+const eventTypes: AuditEventType[] = [
+  'CLOUDFLARE_DNS_RECORD_CREATED',
+  'CLOUDFLARE_DNS_RECORD_UPDATED',
+  'CLOUDFLARE_DNS_RECORD_DELETED',
+  'CLOUDFLARE_DNS_ZONE_CREATED',
+  'CLOUDFLARE_DNS_ZONE_DELETED',
+  'CLOUDFLARE_DNS_CONFIG_UPDATED'
+]
+
+registerAuditModule({
+  moduleKey: 'cloudflare-dns',
+  moduleName: {
+    sv: 'Cloudflare DNS',
+    en: 'Cloudflare DNS'
+  },
+  eventTypes,
+  eventLabels: {
+    CLOUDFLARE_DNS_RECORD_CREATED: {
+      sv: 'DNS-post skapad',
+      en: 'DNS record created'
+    },
+    CLOUDFLARE_DNS_RECORD_UPDATED: {
+      sv: 'DNS-post uppdaterad',
+      en: 'DNS record updated'
+    },
+    CLOUDFLARE_DNS_RECORD_DELETED: {
+      sv: 'DNS-post borttagen',
+      en: 'DNS record deleted'
+    },
+    CLOUDFLARE_DNS_ZONE_CREATED: {
+      sv: 'DNS-zon skapad',
+      en: 'DNS zone created'
+    },
+    CLOUDFLARE_DNS_ZONE_DELETED: {
+      sv: 'DNS-zon borttagen',
+      en: 'DNS zone deleted'
+    },
+    CLOUDFLARE_DNS_CONFIG_UPDATED: {
+      sv: 'Cloudflare-konfiguration uppdaterad',
+      en: 'Cloudflare configuration updated'
+    }
+  },
+  // All events are visible in org audit
+  orgAuditEventTypes: eventTypes
+})

@@ -7,6 +7,7 @@ import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/window
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
 import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 const MAX_COMMENT_LENGTH = 2000
 
@@ -199,6 +200,17 @@ export default defineEventHandler(async (event) => {
 
     console.log(`[windows-dns] Creating record with payload:`, JSON.stringify(recordPayload))
     const record = await client.createRecord(zoneId, recordPayload)
+
+    // Log audit event for record creation
+    await logAuditEvent(event, 'WINDOWS_DNS_RECORD_CREATED', {
+      moduleKey: 'windows-dns',
+      entityType: 'windows_dns_record',
+      entityId: record.id,
+      zoneId,
+      zoneName,
+      recordType: body.type,
+      recordName: body.name
+    })
 
     return { record }
   } catch (error: any) {
