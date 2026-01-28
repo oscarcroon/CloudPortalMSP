@@ -1,0 +1,440 @@
+{
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0000_rich_ezekiel_stane",
+      "version": "6",
+      "idx": 0
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0002_admin_org_model",
+      "version": "6",
+      "idx": 1
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0003_password_reset",
+      "version": "6",
+      "idx": 2
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0004_email_provider",
+      "version": "6",
+      "idx": 3
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0004_unique_meggan",
+      "version": "6",
+      "idx": 4
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0005_dear_praxagora",
+      "version": "6",
+      "idx": 5
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0005_ncentral_monitoring",
+      "version": "6",
+      "idx": 6
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0006_material_wiccan",
+      "version": "6",
+      "idx": 7
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0007_third_pandemic",
+      "version": "6",
+      "idx": 8
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0008_cooing_garia",
+      "version": "6",
+      "idx": 9
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0009_bitter_silver_samurai",
+      "version": "6",
+      "idx": 10
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0010_abandoned_rage",
+      "version": "6",
+      "idx": 11
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0011_demonic_shadowcat",
+      "version": "6",
+      "idx": 12
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0012_cynical_vapor",
+      "version": "6",
+      "idx": 13
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0012_rbac_context_switch",
+      "version": "6",
+      "idx": 14
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0013_audit_logs_enhancement",
+      "version": "6",
+      "idx": 15
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0013_charming_hawkeye",
+      "version": "6",
+      "idx": 16
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0013_module_policies",
+      "version": "6",
+      "idx": 17
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0014_add_disabled_to_module_policies",
+      "version": "6",
+      "idx": 18
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0014_sparkling_wendigo",
+      "version": "6",
+      "idx": 19
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0015_lean_prima",
+      "version": "6",
+      "idx": 20
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0015_user_module_permissions",
+      "version": "6",
+      "idx": 21
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0016_empty_nehzno",
+      "version": "6",
+      "idx": 22
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0016_module_roles",
+      "version": "6",
+      "idx": 23
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0017_module_role_overrides",
+      "version": "6",
+      "idx": 24
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0018_login_branding",
+      "version": "6",
+      "idx": 25
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0019_global_branding",
+      "version": "6",
+      "idx": 26
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0020_navigation_branding",
+      "version": "6",
+      "idx": 27
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0021_user_module_favorites",
+      "version": "6",
+      "idx": 28
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0022_tenant_member_roles",
+      "version": "6",
+      "idx": 29
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0023_org_email_disclaimer",
+      "version": "6",
+      "idx": 30
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0024_email_provider_metadata",
+      "version": "6",
+      "idx": 31
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0025_email_dark_mode",
+      "version": "6",
+      "idx": 32
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0026_user_locale",
+      "version": "6",
+      "idx": 33
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0027_module_policy_mode",
+      "version": "6",
+      "idx": 34
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0028_plugin_registry",
+      "version": "6",
+      "idx": 35
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0029_plugin_tables_fix",
+      "version": "6",
+      "idx": 36
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0030_cloudflare_dns_plugin",
+      "version": "6",
+      "idx": 37
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0031_modules_enabled",
+      "version": "6",
+      "idx": 38
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0032_plugin_acl",
+      "version": "6",
+      "idx": 39
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0033_org_groups_slug",
+      "version": "6",
+      "idx": 40
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0034_drop_legacy_module_roles",
+      "version": "6",
+      "idx": 41
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0035_msp_org_delegations",
+      "version": "6",
+      "idx": 42
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0036_org_group_module_permissions",
+      "version": "6",
+      "idx": 43
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0037_fix_msp_delegation_permissions_fk",
+      "version": "6",
+      "idx": 44
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0038_add_coming_soon_message",
+      "version": "6",
+      "idx": 45
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0039_add_module_status_fields",
+      "version": "6",
+      "idx": 46
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0040_add_msp_delegation_source",
+      "version": "6",
+      "idx": 47
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0041_create_msp_roles",
+      "version": "6",
+      "idx": 48
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0042_add_module_permissions_lifecycle",
+      "version": "6",
+      "idx": 49
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0043_update_msp_roles_schema",
+      "version": "6",
+      "idx": 50
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0044_add_template_support",
+      "version": "6",
+      "idx": 51
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.509,
+      "tag": "0045_recreate_member_module_role_overrides",
+      "version": "6",
+      "idx": 52
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.51,
+      "tag": "0046_windows_dns_coreid_first",
+      "version": "6",
+      "idx": 53
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.51,
+      "tag": "0047_org_api_tokens",
+      "version": "6",
+      "idx": 54
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.51,
+      "tag": "0048_windows_dns_blocked_zones",
+      "version": "6",
+      "idx": 55
+    },
+    {
+      "breakpoints": true,
+      "when": 1765784406.51,
+      "tag": "0049_tenant_operations",
+      "version": "6",
+      "idx": 56
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1767643731832,
+      "tag": "0057_blushing_black_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "6",
+      "when": 1768681712819,
+      "tag": "0058_silky_titanium_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1768744056683,
+      "tag": "0059_mature_terrax",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "6",
+      "when": 1769184000000,
+      "tag": "0060_add_email_logo",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "6",
+      "when": 1769356800000,
+      "tag": "0061_add_org_setup_fields",
+      "breakpoints": true
+    }
+  ],
+  "version": "6"
+}

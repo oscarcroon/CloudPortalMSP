@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../.."
+		},
+		{
+			"path": "../../../../../WindowsDNS-dev"
+		},
+		{
+			"path": "../../../../../redirectlayer"
+		}
+	],
+	"settings": {}
+}

@@ -2,82 +2,90 @@
 
 Multi-tenant portal för hantering av Cloudflare, Incus, ESXi/Morpheus och WordPress-resurser.
 
-## Struktur
+## Krav
 
-```
-frontend/   Nuxt 4 + Tailwind + Pinia SPA/SSR hybrid
-backend/    Node (Express + TypeScript) API gateway
-```
+**Rekommenderat: Node.js 22 LTS**
 
-## Kom igång lokalt
+Applikationen fungerar med Node.js 22 LTS. Detta är den rekommenderade versionen för minst bekymmer.
 
-1. **Installera Node.js 24 LTS**
+**Node.js 24 LTS (känd bugg)**
 
-   Ladda ner och installera Node.js 24 LTS från [nodejs.org](https://nodejs.org/).
+Om du kör Node.js 24 LTS finns det en känd bugg i `better-sqlite3` som gör att du behöver paketera och installera `better-sqlite3` manuellt. Detta kan vara komplicerat, så vi rekommenderar att använda Node.js 22 LTS istället.
 
-2. **Installera dependencies och setup**
+## Kom igång
+
+### 1. Installera dependencies
+
+**Från projektets root-mapp:**
 
 ```bash
-# Installera alla dependencies (root, frontend, backend)
 npm run install:all
-
-# Eller manuellt:
-cd frontend && npm install
-cd ../backend && npm install
 ```
 
-3. **Installera better-sqlite3 separat**
+### 2. Konfigurera miljövariabler
 
-   `better-sqlite3` finns inte tillgängligt för Node.js 24 LTS via npm, så installera det separat:
+**Från projektets root-mapp:**
 
+Kopiera `env.example` till en `.env`-fil för att skapa din lokala miljövariabelfil. Både `.env` och `.env.local` fungerar, men `.env.local` är rekommenderat för lokala inställningar (har högre prioritet):
+
+**Windows (PowerShell/CMD):**
 ```bash
-cd frontend
-npm install better-sqlite3
-
-cd ../backend
-npm install better-sqlite3
+copy env.example .env.local
+# Eller:
+copy env.example .env
 ```
 
-4. **Konfigurera miljövariabler**
-
+**Linux/Mac:**
 ```bash
 cp env.example .env.local
+# Eller:
+cp env.example .env
 ```
 
-5. **Initialisera databas och seed användare**
+### 3. Initialisera databas och skapa användare
+
+**Från projektets root-mapp:**
 
 ```bash
 # Enkelt sätt - gör allt automatiskt:
 npm run setup
+```
 
-# Eller manuellt:
-cd frontend
+**Eller manuellt (från portal-mappen):**
+
+```bash
+cd portal
 npm run db:push    # Skapar databastabellerna
 npm run seed:user  # Skapar superadmin-användare
 ```
 
 **Notera:** `seed:user` kommer automatiskt att köra `db:push` om tabellerna saknas, så du kan hoppa över det steget om du vill.
 
-6. **Starta utvecklingsservrar**
+### 4. Starta utvecklingsserver
+
+**Från projektets root-mapp:**
 
 ```bash
-# Terminal 1 – API
-cd backend
-npm run dev
-
-# Terminal 2 – Nuxt frontend
-cd frontend
 npm run dev
 ```
 
-Nuxt proxar `/api/*` requests till `http://localhost:4000` via `nuxt.config.ts`.
+Applikationen körs på `http://localhost:3000`.
+
+## Projektstruktur
+
+```
+portal/     Nuxt 4 fullstack (Nitro server + Tailwind + Pinia)
+packages/   Delade paket (email-kit)
+```
 
 ## Databas
 
-Schemat finns i `frontend/server/database/schema.ts`. För att generera och applicera migrationer:
+Schemat finns i `portal/server/database/schema.ts`. För att generera och applicera migrationer:
+
+**Från portal-mappen:**
 
 ```bash
-cd frontend
+cd portal
 npm run db:generate   # generera SQL från schema
 npm run db:migrate    # applicera SQL till databasen
 ```

@@ -1,0 +1,66 @@
+import { createError, defineEventHandler, readBody } from 'h3'
+import { z } from 'zod'
+import {
+  getOrganizationEmailProviderProfile,
+  saveOrganizationEmailProvider
+} from '~~/server/utils/emailProvider'
+import {
+  buildSecretsFromPayload,
+  emailProviderPayloadSchema
+} from '~~/server/utils/emailProviderPayload'
+import { getDb } from '~~/server/utils/db'
+import { organizations } from '~~/server/database/schema'
+import { eq } from 'drizzle-orm'
+import { cryptoKeyHelpText, formatZodError, isMissingCryptoKeyError } from '~~/server/utils/errors'
+import { parseOrgParam, requireOrganizationByIdentifier, requireOrganizationManageAccess } from '../utils'
+
+export default defineEventHandler(async (event) => {
+  const orgParam = parseOrgParam(event)
+  const db = getDb()
+  const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - allows superadmins and tenant admins
+  await requireOrganizationManageAccess(event, organization)
+  try {
+    const body = await readBody(event)
+    const payload = emailProviderPayloadSchema.parse(body)
+    const existing = await getOrganizationEmailProviderProfile(organization.id)
+    const disclaimer = payload.disclaimerMarkdown?.trim() || null
+    const provider = await saveOrganizationEmailProvider(organization.id, {
+      fromEmail: payload.fromEmail,
+      fromName: payload.fromName,
+      replyToEmail: payload.replyToEmail,
+      emailLanguage: payload.emailLanguage,
+      subjectPrefix: payload.subjectPrefix?.trim() || null,
+      supportContact: payload.supportContact?.trim() || null,
+      emailDarkMode: payload.emailDarkMode,
+      isActive: payload.isActive ?? true,
+      provider: buildSecretsFromPayload(payload.provider, payload.fromEmail, existing)
+    })
+    await db
+      .update(organizations)
+      .set({
+        emailDisclaimerMarkdown: disclaimer,
+        updatedAt: new Date()
+      })
+      .where(eq(organizations.id, organization.id))
+    provider.disclaimerMarkdown = disclaimer
+    return { organization, provider }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw createError({
+        statusCode: 400,
+        message: formatZodError(error)
+      })
+    }
+    if (error instanceof Error && error.message.includes('krävs')) {
+      throw createError({ statusCode: 400, message: error.message })
+    }
+    if (isMissingCryptoKeyError(error)) {
+      throw createError({ statusCode: 500, message: cryptoKeyHelpText })
+    }
+    console.error('[admin-email] Failed to save org provider', error)
+    throw createError({ statusCode: 500, message: 'Kunde inte spara e-postprovider.' })
+  }
+})
+
