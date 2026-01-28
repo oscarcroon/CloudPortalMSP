@@ -1,10 +1,11 @@
 /**
  * Cloudflare DNS Audit Module
  *
- * Registers audit event types for the Cloudflare DNS layer.
+ * Registers audit event types and entity fields for the Cloudflare DNS layer.
  */
 
 import { registerAuditModule } from '~~/server/audit/registry'
+import { registerAuditEntityFields } from '~~/server/utils/audit-diff'
 import type { AuditEventType } from '~~/server/utils/audit'
 
 const eventTypes: AuditEventType[] = [
@@ -16,6 +17,7 @@ const eventTypes: AuditEventType[] = [
   'CLOUDFLARE_DNS_CONFIG_UPDATED'
 ]
 
+// Register audit event types
 registerAuditModule({
   moduleKey: 'cloudflare-dns',
   moduleName: {
@@ -51,4 +53,19 @@ registerAuditModule({
   },
   // All events are visible in org audit
   orgAuditEventTypes: eventTypes
+})
+
+// Register entity fields for audit diff tracking
+registerAuditEntityFields({
+  entityType: 'cloudflare_dns_record',
+  moduleKey: 'cloudflare-dns',
+  fields: [
+    { name: 'type', type: 'string' },
+    { name: 'name', type: 'string' },
+    { name: 'content', type: 'string' },
+    { name: 'ttl', type: 'number' },
+    { name: 'priority', type: 'number' },
+    { name: 'proxied', type: 'boolean' },
+    { name: 'comment', type: 'string' }
+  ]
 })

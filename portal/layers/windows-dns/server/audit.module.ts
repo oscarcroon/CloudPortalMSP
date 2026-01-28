@@ -1,10 +1,11 @@
 /**
  * Windows DNS Audit Module
  *
- * Registers audit event types for the Windows DNS layer.
+ * Registers audit event types and entity fields for the Windows DNS layer.
  */
 
 import { registerAuditModule } from '~~/server/audit/registry'
+import { registerAuditEntityFields } from '~~/server/utils/audit-diff'
 import type { AuditEventType } from '~~/server/utils/audit'
 
 const eventTypes: AuditEventType[] = [
@@ -13,6 +14,7 @@ const eventTypes: AuditEventType[] = [
   'WINDOWS_DNS_RECORD_DELETED'
 ]
 
+// Register audit event types
 registerAuditModule({
   moduleKey: 'windows-dns',
   moduleName: {
@@ -36,4 +38,18 @@ registerAuditModule({
   },
   // All events are visible in org audit
   orgAuditEventTypes: eventTypes
+})
+
+// Register entity fields for audit diff tracking
+registerAuditEntityFields({
+  entityType: 'windows_dns_record',
+  moduleKey: 'windows-dns',
+  fields: [
+    { name: 'type', type: 'string' },
+    { name: 'name', type: 'string' },
+    { name: 'content', type: 'string' },
+    { name: 'ttl', type: 'number' },
+    { name: 'priority', type: 'number' },
+    { name: 'comment', type: 'string' }
+  ]
 })

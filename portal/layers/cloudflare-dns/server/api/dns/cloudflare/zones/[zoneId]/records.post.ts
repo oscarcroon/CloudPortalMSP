@@ -3,6 +3,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getCloudflareDnsZoneAccessForUser } from '@cloudflare-dns/server/lib/cloudflare-dns/access'
 import { getClientForOrg } from '@cloudflare-dns/server/lib/cloudflare-dns/client'
 import { logAuditEvent } from '~~/server/utils/audit'
+import { buildDnsRecordAuditMeta } from '~~/server/utils/audit-diff'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -49,15 +50,19 @@ export default defineEventHandler(async (event) => {
     comment: body.comment ?? null
   })
 
-  // Audit log
-  await logAuditEvent(event, 'CLOUDFLARE_DNS_RECORD_CREATED', {
+  // Audit log with changes
+  const auditMeta = buildDnsRecordAuditMeta({
     moduleKey: 'cloudflare-dns',
-    entityType: 'record',
+    entityType: 'cloudflare_dns_record',
     entityId: record.id,
     zoneId,
-    recordType: body.type,
-    recordName: body.name
+    recordType: record.type,
+    recordName: record.name,
+    operation: 'create',
+    before: null,
+    after: record
   })
+  await logAuditEvent(event, 'CLOUDFLARE_DNS_RECORD_CREATED', auditMeta)
 
   return { record }
 })

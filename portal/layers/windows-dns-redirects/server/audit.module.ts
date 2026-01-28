@@ -1,10 +1,11 @@
 /**
  * Windows DNS Redirects Audit Module
  *
- * Registers audit event types for the Windows DNS Redirects layer.
+ * Registers audit event types and entity fields for the Windows DNS Redirects layer.
  */
 
 import { registerAuditModule } from '~~/server/audit/registry'
+import { registerAuditEntityFields } from '~~/server/utils/audit-diff'
 import type { AuditEventType } from '~~/server/utils/audit'
 
 const eventTypes: AuditEventType[] = [
@@ -17,6 +18,7 @@ const eventTypes: AuditEventType[] = [
   'WINDOWS_DNS_REDIRECTS_TRAEFIK_SYNC'
 ]
 
+// Register audit event types
 registerAuditModule({
   moduleKey: 'windows-dns-redirects',
   moduleName: {
@@ -56,4 +58,20 @@ registerAuditModule({
   },
   // All events are visible in org audit
   orgAuditEventTypes: eventTypes
+})
+
+// Register entity fields for audit diff tracking
+registerAuditEntityFields({
+  entityType: 'windows_dns_redirect',
+  moduleKey: 'windows-dns-redirects',
+  fields: [
+    { name: 'host', type: 'string' },
+    { name: 'targetUrl', type: 'string' },
+    { name: 'type', type: 'string' },
+    { name: 'statusCode', type: 'number' },
+    { name: 'preservePath', type: 'boolean' },
+    { name: 'preserveQuery', type: 'boolean' },
+    { name: 'enabled', type: 'boolean' },
+    { name: 'comment', type: 'string' }
+  ]
 })

@@ -4,6 +4,7 @@ import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/window
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
 import { logAuditEvent } from '~~/server/utils/audit'
+import { buildDnsRecordAuditMeta } from '~~/server/utils/audit-diff'
 
 /**
  * Check if a record name represents the reserved COREID marker subdomain.
@@ -59,22 +60,38 @@ export default defineEventHandler(async (event) => {
 
   try {
     const client = await getClientForOrg(orgId)
+    
+    // Fetch existing record for audit "before" state if recordId is available
+    let existingRecord: Record<string, unknown> | null = null
+    if (body.recordId) {
+      const records = await client.listRecordsForZone(zoneId)
+      existingRecord = (records.find((r: any) => r.id === body.recordId) as Record<string, unknown>) || null
+    }
+    
     await client.deleteRecord(zoneId, {
       name: body.name,
       type: body.type,
       content: body.content
     })
 
-    // Log audit event for record deletion
-    // recordId may be provided by UI for better tracking
-    await logAuditEvent(event, 'WINDOWS_DNS_RECORD_DELETED', {
+    // Log audit event for record deletion with changes
+    const auditMeta = buildDnsRecordAuditMeta({
       moduleKey: 'windows-dns',
       entityType: 'windows_dns_record',
       entityId: body.recordId ?? null,
       zoneId,
+      zoneName: undefined, // Not available in this endpoint
       recordType: body.type,
-      recordName: body.name
+      recordName: body.name,
+      operation: 'delete',
+      before: existingRecord || {
+        type: body.type,
+        name: body.name,
+        content: body.content
+      },
+      after: null
     })
+    await logAuditEvent(event, 'WINDOWS_DNS_RECORD_DELETED', auditMeta)
 
     return { success: true }
   } catch (error: any) {

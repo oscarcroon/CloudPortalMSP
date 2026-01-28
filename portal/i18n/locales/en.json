@@ -1253,6 +1253,23 @@
         "events": "View logins and security events",
         "track": "Track changes in roles and members",
         "overview": "Overview of module activations"
+      },
+      "detailsModal": {
+        "title": "Log Details",
+        "eventType": "Event Type",
+        "requestId": "Request ID",
+        "summary": "Summary",
+        "operation": "Operation",
+        "operationCreate": "Created",
+        "operationUpdate": "Updated",
+        "operationDelete": "Deleted",
+        "changes": "Changes",
+        "field": "Field",
+        "previous": "Previous",
+        "new": "New",
+        "truncated": "Some values have been truncated due to size.",
+        "otherMetadata": "Other Metadata",
+        "metadata": "Metadata"
       }
     },
     "apiTokens": {

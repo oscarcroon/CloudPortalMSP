@@ -150,6 +150,33 @@ export class CloudflareClient {
     )
   }
 
+  /**
+   * Get a single DNS record by ID.
+   * Used for fetching "before" state in audit logging.
+   */
+  async getRecord(zoneId: string, recordId: string): Promise<CloudflareDnsRecord | null> {
+    try {
+      const { result } = await this.request<any>(`/zones/${zoneId}/dns_records/${recordId}`)
+      if (!result) return null
+      return {
+        id: result.id,
+        type: result.type,
+        name: result.name,
+        content: result.content,
+        ttl: result.ttl ?? null,
+        proxied: result.proxied ?? null,
+        priority: result.priority ?? null,
+        comment: result.comment ?? null
+      } satisfies CloudflareDnsRecord
+    } catch (error: any) {
+      // Return null for 404 (record not found)
+      if (error?.statusCode === 404) {
+        return null
+      }
+      throw error
+    }
+  }
+
   async createRecord(zoneId: string, record: Partial<CloudflareDnsRecord>) {
     const body = {
       type: record.type,

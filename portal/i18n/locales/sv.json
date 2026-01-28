@@ -1248,6 +1248,23 @@
         "events": "Visa inloggningar och säkerhetshändelser",
         "track": "Spåra ändringar i roller och medlemmar",
         "overview": "Översikt över modulaktiveringar"
+      },
+      "detailsModal": {
+        "title": "Logg-detaljer",
+        "eventType": "Event Type",
+        "requestId": "Request ID",
+        "summary": "Sammanfattning",
+        "operation": "Operation",
+        "operationCreate": "Skapad",
+        "operationUpdate": "Uppdaterad",
+        "operationDelete": "Borttagen",
+        "changes": "Ändringar",
+        "field": "Fält",
+        "previous": "Tidigare",
+        "new": "Nytt",
+        "truncated": "Vissa värden har trunkerats på grund av storlek.",
+        "otherMetadata": "Övrig metadata",
+        "metadata": "Metadata"
       }
     },
     "apiTokens": {

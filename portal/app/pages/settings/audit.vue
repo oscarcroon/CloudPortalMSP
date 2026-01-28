@@ -128,35 +128,11 @@
       </div>
 
       <!-- Details modal -->
-      <div
+      <AuditLogDetailsModal
         v-if="selectedLog"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-        @click.self="selectedLog = null"
-      >
-        <div class="max-w-2xl rounded-xl border border-slate-200 bg-white shadow-lg dark:border-white/10 dark:bg-slate-900">
-          <div class="border-b border-slate-200 p-4 dark:border-white/10">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Logg Detaljer</h2>
-              <button
-                class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                @click="selectedLog = null"
-              >
-                <Icon icon="mdi:close" class="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          <div class="p-4 space-y-4">
-            <div>
-              <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Event Type</label>
-              <p class="mt-1 font-mono text-sm text-slate-900 dark:text-white">{{ selectedLog.eventType }}</p>
-            </div>
-            <div>
-              <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Metadata</label>
-              <pre class="mt-1 overflow-auto rounded-lg bg-slate-100 p-3 text-xs text-slate-900 dark:bg-slate-800 dark:text-white">{{ JSON.stringify(selectedLog.meta, null, 2) }}</pre>
-            </div>
-          </div>
-        </div>
-      </div>
+        v-model="showDetailsModal"
+        :log="selectedLog"
+      />
     </template>
   </section>
 </template>
@@ -195,6 +171,7 @@ interface AuditLog {
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
+const showDetailsModal = ref(false)
 const pagination = ref<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
 
 // Event type groups fetched from API (dynamically loaded from audit registry)
@@ -289,6 +266,7 @@ const changePage = (page: number) => {
 
 const showDetails = (log: AuditLog) => {
   selectedLog.value = log
+  showDetailsModal.value = true
 }
 
 const formatDate = (date: Date | string) => {
