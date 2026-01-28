@@ -8,6 +8,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirectOrgConfig, windowsDnsRedirects } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
+import { getSftpConfigFromEnv, buildRemotePath, isSftpConfigured } from '../../../../../utils/sftp-client'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -41,14 +42,16 @@ export default defineEventHandler(async (event) => {
     .from(windowsDnsRedirects)
     .where(eq(windowsDnsRedirects.organizationId, orgId))
 
+  // Get SFTP configuration from environment
+  const sftpConfig = getSftpConfigFromEnv()
+  const configured = sftpConfig !== null
+
   // Determine sync status
   let status: 'synced' | 'pending' | 'error' | 'not_configured' = 'not_configured'
-  let message = 'Traefik configuration path not set'
+  let message = 'SFTP not configured. Set environment variables.'
 
-  if (config?.traefikConfigPath) {
-    if (config.lastConfigSync) {
-      // Check if there are changes since last sync
-      // For now, assume synced if lastConfigSync exists
+  if (configured) {
+    if (config?.lastConfigSync) {
       status = 'synced'
       message = 'Configuration is synced'
     } else {
@@ -57,11 +60,19 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Build org-specific remote path
+  const remotePath = sftpConfig ? buildRemotePath(sftpConfig.remoteDir, orgId) : null
+
   return {
     status,
     message,
+    configured,
     lastSync: config?.lastConfigSync?.toISOString?.() || config?.lastConfigSync || null,
-    configPath: config?.traefikConfigPath || null,
+    sftp: sftpConfig ? {
+      host: sftpConfig.host,
+      port: sftpConfig.port,
+      remotePath
+    } : null,
     stats: {
       totalRedirects: Number(stats?.totalRedirects) || 0,
       activeRedirects: Number(stats?.activeRedirects) || 0

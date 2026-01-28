@@ -1,6 +1,9 @@
 /**
  * POST /api/dns/windows/redirects/traefik/sync
- * Sync redirects to Traefik configuration
+ * Sync redirects to Traefik configuration via SFTP
+ *
+ * Each organization gets their own config file: /dynamic/redirects-{orgId}.yml
+ * SFTP connection settings are read from environment variables.
  */
 import { createError, defineEventHandler, getQuery } from 'h3'
 import { eq } from 'drizzle-orm'
@@ -8,10 +11,13 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirectOrgConfig, windowsDnsRedirects, windowsDnsAllowedZones } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
-import { writeFile, mkdir } from 'fs/promises'
-import { dirname } from 'path'
-import { existsSync } from 'fs'
 import * as yaml from 'yaml'
+import {
+  getSftpConfigFromEnv,
+  buildRemotePath,
+  uploadTraefikConfig,
+  isSftpConfigured
+} from '../../../../../utils/sftp-client'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -27,25 +33,38 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'No permission to sync Traefik.' })
   }
 
+  // Check SFTP configuration from environment
+  const sftpConfig = getSftpConfigFromEnv()
+  if (!sftpConfig) {
+    throw createError({
+      statusCode: 500,
+      message: 'SFTP not configured. Set TRAEFIK_SFTP_HOST, TRAEFIK_SFTP_USERNAME, TRAEFIK_SFTP_KEY_PATH, and TRAEFIK_SFTP_REMOTE_DIR environment variables.'
+    })
+  }
+
   const db = getDb()
   const query = getQuery(event)
   const dryRun = query.dryRun === '1' || query.dryRun === 'true'
 
-  // Get config
-  const [config] = await db
+  // Get or create org config (for tracking last sync)
+  let [config] = await db
     .select()
     .from(windowsDnsRedirectOrgConfig)
     .where(eq(windowsDnsRedirectOrgConfig.organizationId, orgId))
     .limit(1)
 
-  if (!config?.traefikConfigPath) {
-    throw createError({
-      statusCode: 400,
-      message: 'Traefik configuration path not set. Configure it first.'
-    })
+  if (!config) {
+    ;[config] = await db
+      .insert(windowsDnsRedirectOrgConfig)
+      .values({
+        organizationId: orgId,
+        traefikConfigPath: null,
+        lastConfigSync: null
+      })
+      .returning()
   }
 
-  // Get all active redirects grouped by zone
+  // Get all active redirects for this organization
   const redirects = await db
     .select()
     .from(windowsDnsRedirects)
@@ -57,32 +76,42 @@ export default defineEventHandler(async (event) => {
     .from(windowsDnsAllowedZones)
     .where(eq(windowsDnsAllowedZones.organizationId, orgId))
 
-  const zoneMap = new Map(zones.map(z => [z.zoneId, z.zoneName]))
+  const zoneMap = new Map(zones.map(z => [z.zoneId, z.zoneName || '']))
 
   // Generate Traefik configuration
   const traefikConfig = generateTraefikConfig(redirects, zoneMap)
+  const yamlContent = yaml.stringify(traefikConfig)
+
+  // Build org-specific remote path
+  const remotePath = buildRemotePath(sftpConfig.remoteDir, orgId)
 
   if (dryRun) {
     return {
       dryRun: true,
       config: traefikConfig,
       redirectCount: redirects.filter(r => r.isActive).length,
+      remotePath,
+      host: sftpConfig.host,
       message: 'Dry run completed. Configuration not applied.'
     }
   }
 
-  // Write the configuration file
+  // Upload via SFTP
   try {
-    const configPath = config.traefikConfigPath
-    const configDir = dirname(configPath)
+    const result = await uploadTraefikConfig(
+      {
+        host: sftpConfig.host,
+        port: sftpConfig.port,
+        username: sftpConfig.username,
+        privateKeyPath: sftpConfig.privateKeyPath
+      },
+      remotePath,
+      yamlContent
+    )
 
-    // Ensure directory exists
-    if (!existsSync(configDir)) {
-      await mkdir(configDir, { recursive: true })
+    if (!result.success) {
+      throw new Error(result.error || 'SFTP upload failed')
     }
-
-    // Write YAML config
-    await writeFile(configPath, yaml.stringify(traefikConfig), 'utf-8')
 
     // Update last sync timestamp
     await db
@@ -91,20 +120,23 @@ export default defineEventHandler(async (event) => {
         lastConfigSync: new Date(),
         updatedAt: new Date()
       })
-      .where(eq(windowsDnsRedirectOrgConfig.id, config.id))
+      .where(eq(windowsDnsRedirectOrgConfig.id, config!.id))
 
     return {
       success: true,
-      configPath,
+      remotePath,
+      host: sftpConfig.host,
+      bytesWritten: result.bytesWritten,
       redirectCount: redirects.filter(r => r.isActive).length,
       syncedAt: new Date().toISOString(),
-      message: 'Traefik configuration synced successfully.'
+      message: 'Traefik configuration synced via SFTP successfully.'
     }
   } catch (error: any) {
     console.error('[windows-dns-redirects] Traefik sync failed:', error)
+
     throw createError({
       statusCode: 500,
-      message: `Failed to write Traefik config: ${error.message}`
+      message: `Failed to sync Traefik config: ${error.message}`
     })
   }
 })

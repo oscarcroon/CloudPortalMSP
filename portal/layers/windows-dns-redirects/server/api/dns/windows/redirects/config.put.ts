@@ -1,6 +1,9 @@
 /**
  * PUT /api/dns/windows/redirects/config
  * Update redirect configuration for the organization
+ *
+ * Note: SFTP settings are configured via environment variables, not per-organization.
+ * This endpoint is kept for potential future per-org settings.
  */
 import { createError, defineEventHandler, readBody } from 'h3'
 import { eq } from 'drizzle-orm'
@@ -8,9 +11,10 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirectOrgConfig } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
+import { getSftpConfigFromEnv, buildRemotePath } from '../../../../utils/sftp-client'
 
 interface ConfigUpdateBody {
-  traefikConfigPath?: string | null
+  // Reserved for future per-org settings
 }
 
 export default defineEventHandler(async (event) => {
@@ -38,40 +42,47 @@ export default defineEventHandler(async (event) => {
     .limit(1)
 
   if (!config) {
-    // Create config with provided values
+    // Create config
     ;[config] = await db
       .insert(windowsDnsRedirectOrgConfig)
       .values({
         organizationId: orgId,
-        traefikConfigPath: body.traefikConfigPath ?? null,
+        traefikConfigPath: null,
         lastConfigSync: null
       })
       .returning()
   } else {
-    // Update existing config
-    const updateData: Record<string, any> = {
-      updatedAt: new Date()
-    }
-
-    if (body.traefikConfigPath !== undefined) {
-      updateData.traefikConfigPath = body.traefikConfigPath
-    }
-
+    // Update timestamp
     ;[config] = await db
       .update(windowsDnsRedirectOrgConfig)
-      .set(updateData)
+      .set({
+        updatedAt: new Date()
+      })
       .where(eq(windowsDnsRedirectOrgConfig.id, config.id))
       .returning()
   }
 
+  // Get SFTP configuration from environment (read-only, for display purposes)
+  const sftpConfig = getSftpConfigFromEnv()
+  const remotePath = sftpConfig ? buildRemotePath(sftpConfig.remoteDir, orgId) : null
+
   return {
     config: {
-      id: config.id,
-      organizationId: config.organizationId,
-      traefikConfigPath: config.traefikConfigPath,
-      lastConfigSync: config.lastConfigSync?.toISOString?.() || config.lastConfigSync,
-      createdAt: config.createdAt?.toISOString?.() || config.createdAt,
-      updatedAt: config.updatedAt?.toISOString?.() || config.updatedAt
+      id: config!.id,
+      organizationId: config!.organizationId,
+      lastConfigSync: config!.lastConfigSync?.toISOString?.() || config!.lastConfigSync,
+      createdAt: config!.createdAt?.toISOString?.() || config!.createdAt,
+      updatedAt: config!.updatedAt?.toISOString?.() || config!.updatedAt
+    },
+    // SFTP settings from environment (read-only)
+    sftp: sftpConfig ? {
+      configured: true,
+      host: sftpConfig.host,
+      port: sftpConfig.port,
+      username: sftpConfig.username,
+      remotePath
+    } : {
+      configured: false
     }
   }
 })

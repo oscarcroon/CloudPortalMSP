@@ -8,6 +8,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirectOrgConfig } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
+import { getSftpConfigFromEnv, buildRemotePath } from '../../../../utils/sftp-client'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -44,14 +45,27 @@ export default defineEventHandler(async (event) => {
       .returning()
   }
 
+  // Get SFTP configuration from environment (read-only, for display purposes)
+  const sftpConfig = getSftpConfigFromEnv()
+  const remotePath = sftpConfig ? buildRemotePath(sftpConfig.remoteDir, orgId) : null
+
   return {
     config: {
-      id: config.id,
-      organizationId: config.organizationId,
-      traefikConfigPath: config.traefikConfigPath,
-      lastConfigSync: config.lastConfigSync?.toISOString?.() || config.lastConfigSync,
-      createdAt: config.createdAt?.toISOString?.() || config.createdAt,
-      updatedAt: config.updatedAt?.toISOString?.() || config.updatedAt
+      id: config!.id,
+      organizationId: config!.organizationId,
+      lastConfigSync: config!.lastConfigSync?.toISOString?.() || config!.lastConfigSync,
+      createdAt: config!.createdAt?.toISOString?.() || config!.createdAt,
+      updatedAt: config!.updatedAt?.toISOString?.() || config!.updatedAt
+    },
+    // SFTP settings from environment (read-only)
+    sftp: sftpConfig ? {
+      configured: true,
+      host: sftpConfig.host,
+      port: sftpConfig.port,
+      username: sftpConfig.username,
+      remotePath
+    } : {
+      configured: false
     }
   }
 })

@@ -100,6 +100,16 @@ export function createWindowsDnsRedirectsSchema(
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
       traefikConfigPath: text('traefik_config_path'),
       lastConfigSync: integer('last_config_sync', { mode: 'timestamp' }),
+      // SFTP sync configuration
+      syncMode: text('sync_mode', { enum: ['local', 'sftp'] }).notNull().default('local'),
+      sftpHost: text('sftp_host'),
+      sftpPort: integer('sftp_port').default(22),
+      sftpUsername: text('sftp_username'),
+      sftpKeyPath: text('sftp_key_path'),
+      sftpRemotePath: text('sftp_remote_path'),
+      sftpConnectionStatus: text('sftp_connection_status', { enum: ['unknown', 'ok', 'error'] }).default('unknown'),
+      sftpLastConnectionTest: integer('sftp_last_connection_test', { mode: 'timestamp' }),
+      sftpLastConnectionError: text('sftp_last_connection_error'),
       createdAt: integer('created_at', { mode: 'timestamp' })
         .notNull()
         .default(sql`(strftime('%s', 'now'))`),
