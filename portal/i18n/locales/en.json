@@ -1233,6 +1233,7 @@
       "description": "View security events and administrative activities for the organization.",
       "pageDescription": "View security events and administrative activities for this organization.",
       "noActiveOrg": "Select an organization to view audit logs.",
+      "module": "Module",
       "eventType": "Event Type",
       "all": "All",
       "fromDate": "From date",

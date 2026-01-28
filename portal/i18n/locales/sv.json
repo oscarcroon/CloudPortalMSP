@@ -1228,6 +1228,7 @@
       "description": "Visa säkerhetshändelser och administrativa aktiviteter för organisationen.",
       "pageDescription": "Visa säkerhetshändelser och administrativa aktiviteter för denna organisation.",
       "noActiveOrg": "Välj en organisation för att visa audit loggar.",
+      "module": "Modul",
       "eventType": "Event Type",
       "all": "Alla",
       "fromDate": "Från datum",

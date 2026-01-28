@@ -1,10 +1,10 @@
 import { defineEventHandler, getRouterParam, getQuery, createError } from 'h3'
-import { eq, and, gte, lte, desc, sql } from 'drizzle-orm'
+import { eq, and, gte, lte, desc, sql, inArray } from 'drizzle-orm'
 import { auditLogs, users } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { requirePermission } from '../../../utils/rbac'
 import { validatePagination } from '../../../utils/validation'
-import { getAllOrgAuditEventTypes } from '../../../audit/registry'
+import { getAllOrgAuditEventTypes, getEventTypesForModule } from '../../../audit/registry'
 import type { AuditEventType } from '../../../utils/audit'
 
 export default defineEventHandler(async (event) => {
@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
   
   // Parse filters
   const userId = query.userId as string | undefined
+  const moduleKey = query.moduleKey as string | undefined
   const eventType = query.eventType as AuditEventType | undefined
   const severityRaw = query.severity as string | undefined
   const allowedSeverities = new Set(['error', 'critical', 'warning', 'info'] as const)
@@ -33,7 +34,12 @@ export default defineEventHandler(async (event) => {
     ? (severityRaw as (typeof allowedSeverities extends Set<infer T> ? T : never))
     : undefined
   const startDate = query.startDate ? new Date(query.startDate as string) : undefined
-  const endDate = query.endDate ? new Date(query.endDate as string) : undefined
+  // Set endDate to end of day (23:59:59.999) to include the entire day
+  const endDate = query.endDate ? (() => {
+    const date = new Date(query.endDate as string)
+    date.setHours(23, 59, 59, 999)
+    return date
+  })() : undefined
   
   // Pagination
   const { page, pageSize, offset } = validatePagination({
@@ -45,12 +51,40 @@ export default defineEventHandler(async (event) => {
   // Build where conditions - only show logs for this organization
   const conditions = [eq(auditLogs.orgId, orgId)]
   
-  if (userId) {
-    conditions.push(eq(auditLogs.userId, userId))
-  }
+  // Determine which event types to include
+  // Only show relevant event types for org admins (not all security events)
+  const relevantEventTypes = getAllOrgAuditEventTypes()
   
   if (eventType) {
-    conditions.push(eq(auditLogs.eventType, eventType))
+    // Specific event type selected - only show if it's in relevant types
+    if (relevantEventTypes.includes(eventType)) {
+      conditions.push(eq(auditLogs.eventType, eventType))
+    } else {
+      // Event type not allowed for org view - return empty
+      conditions.push(sql`1 = 0`)
+    }
+  } else if (moduleKey) {
+    // Module selected - filter by all event types in that module that are org-relevant
+    const moduleEventTypes = getEventTypesForModule(moduleKey)
+    const allowedModuleTypes = moduleEventTypes.filter(t => relevantEventTypes.includes(t))
+    if (allowedModuleTypes.length > 0) {
+      conditions.push(inArray(auditLogs.eventType, allowedModuleTypes))
+    } else {
+      // No event types from this module are allowed - return empty
+      conditions.push(sql`1 = 0`)
+    }
+  } else {
+    // No specific filter - show all org-relevant event types
+    if (relevantEventTypes.length > 0) {
+      conditions.push(inArray(auditLogs.eventType, relevantEventTypes))
+    } else {
+      // No relevant event types defined - return empty
+      conditions.push(sql`1 = 0`)
+    }
+  }
+  
+  if (userId) {
+    conditions.push(eq(auditLogs.userId, userId))
   }
   
   if (severity) {
@@ -74,11 +108,6 @@ export default defineEventHandler(async (event) => {
     .where(whereClause)
   
   const total = countResult?.count || 0
-  
-  // Get logs with user info
-  // Only show relevant event types for org admins (not all security events)
-  // Event types are loaded from the audit registry (core + layer modules)
-  const relevantEventTypes = getAllOrgAuditEventTypes()
   
   const logs = await db
     .select({
@@ -104,15 +133,13 @@ export default defineEventHandler(async (event) => {
     .limit(pageSize)
     .offset(offset)
   
-  // Filter to only show relevant event types and mask IP for privacy
-  const logsWithParsedMeta = logs
-    .filter(log => relevantEventTypes.includes(log.eventType as AuditEventType))
-    .map(log => ({
-      ...log,
-      meta: log.meta ? JSON.parse(log.meta) : null,
-      // Mask IP address (show only first 3 octets)
-      ip: log.ip ? log.ip.split('.').slice(0, 3).join('.') + '.xxx' : null
-    }))
+  // Parse meta and mask IP for privacy (event type filtering is done in SQL)
+  const logsWithParsedMeta = logs.map(log => ({
+    ...log,
+    meta: log.meta ? JSON.parse(log.meta) : null,
+    // Mask IP address (show only first 3 octets)
+    ip: log.ip ? log.ip.split('.').slice(0, 3).join('.') + '.xxx' : null
+  }))
   
   return {
     logs: logsWithParsedMeta,

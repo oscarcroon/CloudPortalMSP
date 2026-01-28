@@ -31,7 +31,7 @@
 
     <!-- Filters -->
     <div v-if="!accessDenied" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7" @submit.prevent="loadLogs()">
+      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
         <div>
           <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.context') }}</label>
           <select
@@ -103,12 +103,6 @@
         </div>
 
         <div class="flex items-end gap-2">
-          <button
-            type="submit"
-            class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
-          >
-            {{ $t('admin.auditLogsPage.filters.filter') }}
-          </button>
           <button
             type="button"
             class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
@@ -393,10 +387,35 @@ const filters = ref({
   endDate: defaultDates.endDate
 })
 
+const isReady = ref(false)
+const suppressNextFilterLoad = ref(false)
+
+const triggerFilterReload = () => {
+  if (!isReady.value) return
+  loadLogs(1)
+}
+
 // Clear eventType when module changes
 watch(() => filters.value.moduleKey, () => {
-  filters.value.eventType = ''
+  if (filters.value.eventType) {
+    suppressNextFilterLoad.value = true
+    filters.value.eventType = ''
+  }
+  triggerFilterReload()
 })
+
+watch(() => filters.value.eventType, () => {
+  if (suppressNextFilterLoad.value) {
+    suppressNextFilterLoad.value = false
+    return
+  }
+  triggerFilterReload()
+})
+
+watch(() => filters.value.severity, triggerFilterReload)
+watch(() => filters.value.startDate, triggerFilterReload)
+watch(() => filters.value.endDate, triggerFilterReload)
+watch(contextScope, triggerFilterReload)
 
 const loadTenant = async () => {
   tenantLoading.value = true
@@ -503,7 +522,8 @@ onMounted(async () => {
     loadTenant(),
     loadAuditModules()
   ])
-  loadLogs()
+  await loadLogs()
+  isReady.value = true
 })
 </script>
 

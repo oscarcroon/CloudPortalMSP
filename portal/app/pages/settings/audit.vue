@@ -15,7 +15,20 @@
     <template v-else>
       <!-- Filters -->
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-        <form class="grid grid-cols-1 gap-4 md:grid-cols-3" @submit.prevent="loadLogs()">
+        <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('settings.audit.module') }}</label>
+            <select
+              v-model="filters.moduleKey"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            >
+              <option value="">{{ t('settings.audit.all') }}</option>
+              <option v-for="mod in auditModules" :key="mod.moduleKey" :value="mod.moduleKey">
+                {{ mod.moduleName }}
+              </option>
+            </select>
+          </div>
+
           <div>
             <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('settings.audit.eventType') }}</label>
             <select
@@ -23,9 +36,9 @@
               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             >
               <option value="">{{ t('settings.audit.all') }}</option>
-              <optgroup v-for="group in eventTypeGroups" :key="group.moduleKey" :label="group.moduleName">
-                <option v-for="et in group.eventTypes" :key="et.type" :value="et.type">{{ et.label }}</option>
-              </optgroup>
+              <option v-for="et in filteredEventTypes" :key="et.type" :value="et.type">
+                {{ et.label }}
+              </option>
             </select>
           </div>
 
@@ -48,12 +61,6 @@
           </div>
 
           <div class="flex items-end gap-2">
-            <button
-              type="submit"
-              class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
-            >
-              {{ t('settings.audit.filter') }}
-            </button>
             <button
               type="button"
               class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
@@ -141,7 +148,7 @@
 import { useI18n } from '#imports'
 
 const { t } = useI18n()
-import { ref, computed, onMounted } from '#imports'
+import { ref, computed, onMounted, watch } from '#imports'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'
 
@@ -186,7 +193,15 @@ interface EventTypeGroup {
   eventTypes: EventTypeOption[]
 }
 
-const eventTypeGroups = ref<EventTypeGroup[]>([])
+const auditModules = ref<EventTypeGroup[]>([])
+
+const filteredEventTypes = computed(() => {
+  if (!filters.value.moduleKey) {
+    return auditModules.value.flatMap(group => group.eventTypes)
+  }
+  const selectedModule = auditModules.value.find(group => group.moduleKey === filters.value.moduleKey)
+  return selectedModule?.eventTypes ?? []
+})
 
 const loadEventTypes = async () => {
   if (!hasActiveOrg.value) return
@@ -197,11 +212,11 @@ const loadEventTypes = async () => {
     const response = await $fetch<{ groups: EventTypeGroup[] }>(
       `/api/organizations/${orgId}/audit-logs/event-types?locale=${locale.value}`
     )
-    eventTypeGroups.value = response.groups || []
+    auditModules.value = response.groups || []
   } catch (error) {
     console.error('Failed to load event types', error)
     // Fallback to empty groups - user can still see logs without filter
-    eventTypeGroups.value = []
+    auditModules.value = []
   }
 }
 
@@ -220,10 +235,38 @@ const getDefaultDates = () => {
 const defaultDates = getDefaultDates()
 
 const filters = ref({
+  moduleKey: '',
   eventType: '',
   startDate: defaultDates.startDate,
   endDate: defaultDates.endDate
 })
+
+const isReady = ref(false)
+const suppressNextFilterLoad = ref(false)
+
+const triggerFilterReload = () => {
+  if (!isReady.value) return
+  loadLogs(1)
+}
+
+watch(() => filters.value.moduleKey, () => {
+  if (filters.value.eventType) {
+    suppressNextFilterLoad.value = true
+    filters.value.eventType = ''
+  }
+  triggerFilterReload()
+})
+
+watch(() => filters.value.eventType, () => {
+  if (suppressNextFilterLoad.value) {
+    suppressNextFilterLoad.value = false
+    return
+  }
+  triggerFilterReload()
+})
+
+watch(() => filters.value.startDate, triggerFilterReload)
+watch(() => filters.value.endDate, triggerFilterReload)
 
 const loadLogs = async (page = 1) => {
   if (!hasActiveOrg.value || !canViewAudit.value) return
@@ -236,6 +279,7 @@ const loadLogs = async (page = 1) => {
       pageSize: '50'
     })
     
+    if (filters.value.moduleKey) params.append('moduleKey', filters.value.moduleKey)
     if (filters.value.eventType) params.append('eventType', filters.value.eventType)
     if (filters.value.startDate) params.append('startDate', filters.value.startDate)
     if (filters.value.endDate) params.append('endDate', filters.value.endDate)
@@ -253,6 +297,7 @@ const loadLogs = async (page = 1) => {
 const clearFilters = () => {
   const dates = getDefaultDates()
   filters.value = {
+    moduleKey: '',
     eventType: '',
     startDate: dates.startDate,
     endDate: dates.endDate
@@ -291,6 +336,7 @@ onMounted(async () => {
       loadEventTypes(),
       loadLogs()
     ])
+    isReady.value = true
   }
 })
 </script>
