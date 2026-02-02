@@ -1260,7 +1260,9 @@
       },
       "cname": {
         "title": "Step 1: Point your domain",
-        "description": "Create a CNAME record in your DNS that points your custom domain to the default address.",
+        "titleVerified": "DNS Configuration",
+        "description": "If you haven't already, create a CNAME record in your DNS that points your custom domain to the address below. This is required for traffic to be routed correctly.",
+        "descriptionVerified": "Your domain is verified and active. Keep this CNAME record in your DNS — it routes traffic from your custom domain to the portal.",
         "recordType": "Record type",
         "recordName": "Name/Host",
         "target": "Target/Value",
@@ -1602,6 +1604,30 @@
         "eventType": "Event Type",
         "requestId": "Request ID",
         "metadata": "Metadata"
+      }
+    },
+    "infrastructure": {
+      "traefik": {
+        "title": "Traefik Edge Server",
+        "category": "Infrastructure",
+        "sftpHost": "SFTP Host",
+        "domains": "Domains",
+        "tenants": "Tenants",
+        "orgs": "Organizations",
+        "testConnection": "Test connection",
+        "refresh": "Refresh",
+        "connectionSuccess": "Connection successful!",
+        "connectionFailed": "Connection failed.",
+        "status": {
+          "connected": "Connected",
+          "disconnected": "Disconnected",
+          "disabled": "Disabled",
+          "notConfigured": "Not configured",
+          "unknown": "Unknown"
+        },
+        "error": {
+          "fetchFailed": "Failed to fetch Traefik status."
+        }
       }
     },
     "sections": {
@@ -2146,7 +2172,9 @@
       },
       "cname": {
         "title": "Step 1: Point your domain",
-        "description": "Create a CNAME record in your DNS that points your custom domain to the default address.",
+        "titleVerified": "DNS Configuration",
+        "description": "If you haven't already, create a CNAME record in your DNS that points your custom domain to the address below. This is required for traffic to be routed correctly.",
+        "descriptionVerified": "Your domain is verified and active. Keep this CNAME record in your DNS — it routes traffic from your custom domain to the portal.",
         "recordType": "Record type",
         "recordName": "Name/Host",
         "target": "Target/Value",

@@ -149,21 +149,46 @@
           </div>
         </div>
 
-        <!-- CNAME Instructions (Step 1) -->
-        <div v-if="domainData?.customDomain && domainData.customDomainVerificationStatus !== 'verified' && domainData.cnameTarget" class="rounded-2xl border border-blue-200 bg-blue-50 p-6 shadow-card dark:border-blue-500/30 dark:bg-blue-500/10">
+        <!-- CNAME Instructions (always visible when custom domain is set) -->
+        <div 
+          v-if="domainData?.customDomain && domainData.cnameTarget" 
+          :class="[
+            'rounded-2xl border p-6 shadow-card',
+            domainData.customDomainVerificationStatus === 'verified'
+              ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10'
+              : 'border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10'
+          ]"
+        >
           <div class="flex items-center gap-3">
-            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white">
-              <span class="text-sm font-bold">1</span>
+            <div 
+              :class="[
+                'flex h-8 w-8 items-center justify-center rounded-full text-white',
+                domainData.customDomainVerificationStatus === 'verified' ? 'bg-emerald-500' : 'bg-blue-500'
+              ]"
+            >
+              <Icon v-if="domainData.customDomainVerificationStatus === 'verified'" icon="mdi:check" class="h-5 w-5" />
+              <span v-else class="text-sm font-bold">1</span>
             </div>
             <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {{ t('settings.domain.cname.title') }}
+              {{ domainData.customDomainVerificationStatus === 'verified' 
+                ? t('settings.domain.cname.titleVerified') 
+                : t('settings.domain.cname.title') }}
             </h2>
           </div>
           <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            {{ t('settings.domain.cname.description') }}
+            {{ domainData.customDomainVerificationStatus === 'verified'
+              ? t('settings.domain.cname.descriptionVerified')
+              : t('settings.domain.cname.description') }}
           </p>
 
-          <div class="mt-4 rounded-xl border border-blue-200 bg-white p-4 dark:border-blue-500/20 dark:bg-white/5">
+          <div 
+            :class="[
+              'mt-4 rounded-xl border bg-white p-4 dark:bg-white/5',
+              domainData.customDomainVerificationStatus === 'verified'
+                ? 'border-emerald-200 dark:border-emerald-500/20'
+                : 'border-blue-200 dark:border-blue-500/20'
+            ]"
+          >
             <div class="space-y-3">
               <div>
                 <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -206,7 +231,14 @@
             </div>
           </div>
 
-          <p class="mt-3 text-xs text-blue-700 dark:text-blue-300">
+          <p 
+            :class="[
+              'mt-3 text-xs',
+              domainData.customDomainVerificationStatus === 'verified'
+                ? 'text-emerald-700 dark:text-emerald-300'
+                : 'text-blue-700 dark:text-blue-300'
+            ]"
+          >
             {{ t('settings.domain.cname.example', { domain: domainData.customDomain, target: domainData.cnameTarget }) }}
           </p>
         </div>

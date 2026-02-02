@@ -14,6 +14,7 @@ import {
   buildVerificationRecordName,
   buildVerificationRecordValue
 } from '~~/server/utils/domain-verification'
+import { syncTraefikDomainsIfEnabled } from '~~/server/utils/traefik-domains-config'
 
 export default defineEventHandler(async (event) => {
   // Apply rate limiting for domain verification
@@ -83,6 +84,17 @@ export default defineEventHandler(async (event) => {
       customDomain: organization.customDomain,
       verifiedAt: verifiedAt.toISOString()
     }, organization.id)
+    
+    // Sync Traefik configuration (runs in background, errors are logged but don't fail the request)
+    syncTraefikDomainsIfEnabled().then(syncResult => {
+      if (syncResult.synced) {
+        console.log(`[domain-verify] Traefik synced after org domain verification: ${organization.customDomain}`)
+      } else if (syncResult.error) {
+        console.warn(`[domain-verify] Traefik sync warning: ${syncResult.error}`)
+      }
+    }).catch(err => {
+      console.error('[domain-verify] Traefik sync error:', err)
+    })
     
     return {
       organizationId: organization.id,

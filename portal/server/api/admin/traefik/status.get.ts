@@ -2,6 +2,7 @@
  * GET /api/admin/traefik/status
  * 
  * Get Traefik custom domains sync status and configuration info.
+ * Includes a quick connection test to show accurate status.
  */
 import { defineEventHandler, createError } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
@@ -11,7 +12,8 @@ import {
 } from '~~/server/utils/traefik-domains-config'
 import {
   getSftpConfigFromEnv,
-  isSftpConfigured
+  isSftpConfigured,
+  testSftpConnection
 } from '~~/layers/windows-dns-redirects/server/utils/sftp-client'
 
 export default defineEventHandler(async (event) => {
@@ -32,6 +34,28 @@ export default defineEventHandler(async (event) => {
   const domains = await fetchVerifiedCustomDomains()
   const stats = getConfigStats(domains)
   
+  // Test connection if configured
+  let connectionStatus: 'connected' | 'disconnected' | 'unconfigured' = 'unconfigured'
+  let connectionError: string | null = null
+  
+  if (sftpConfigured && sftpConfig) {
+    try {
+      const testResult = await testSftpConnection({
+        host: sftpConfig.host,
+        port: sftpConfig.port,
+        username: sftpConfig.username,
+        privateKeyPath: sftpConfig.privateKeyPath
+      })
+      connectionStatus = testResult.success ? 'connected' : 'disconnected'
+      if (!testResult.success) {
+        connectionError = testResult.error || 'Connection failed'
+      }
+    } catch (err: any) {
+      connectionStatus = 'disconnected'
+      connectionError = err.message || 'Connection test failed'
+    }
+  }
+  
   return {
     enabled,
     sftpConfigured,
@@ -39,6 +63,8 @@ export default defineEventHandler(async (event) => {
     sftpRemoteDir: sftpConfig?.remoteDir ?? null,
     portalBackendUrl: process.env.TRAEFIK_PORTAL_BACKEND_URL ?? null,
     defaultDomain: process.env.TRAEFIK_DEFAULT_DOMAIN ?? null,
+    connectionStatus,
+    connectionError,
     stats,
     domains: domains.map(d => ({
       type: d.type,

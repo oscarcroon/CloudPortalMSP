@@ -1255,7 +1255,9 @@
       },
       "cname": {
         "title": "Steg 1: Peka din domän",
-        "description": "Skapa en CNAME-post i din DNS som pekar din custom domain till standard-adressen.",
+        "titleVerified": "DNS-konfiguration",
+        "description": "Om du inte redan har gjort det, skapa en CNAME-post i din DNS som pekar din custom domain till adressen nedan. Detta är nödvändigt för att trafiken ska dirigeras rätt.",
+        "descriptionVerified": "Din domän är verifierad och aktiv. Behåll denna CNAME-post i din DNS — den dirigerar trafik från din custom domain till portalen.",
         "recordType": "Posttyp",
         "recordName": "Namn/Host",
         "target": "Mål/Värde",
@@ -1597,6 +1599,30 @@
         "eventType": "Event Type",
         "requestId": "Request ID",
         "metadata": "Metadata"
+      }
+    },
+    "infrastructure": {
+      "traefik": {
+        "title": "Traefik Edge Server",
+        "category": "Infrastruktur",
+        "sftpHost": "SFTP Host",
+        "domains": "Domäner",
+        "tenants": "Tenants",
+        "orgs": "Organisationer",
+        "testConnection": "Testa anslutning",
+        "refresh": "Uppdatera",
+        "connectionSuccess": "Anslutningen lyckades!",
+        "connectionFailed": "Anslutningen misslyckades.",
+        "status": {
+          "connected": "Ansluten",
+          "disconnected": "Ej ansluten",
+          "disabled": "Inaktiverad",
+          "notConfigured": "Ej konfigurerad",
+          "unknown": "Okänd"
+        },
+        "error": {
+          "fetchFailed": "Kunde inte hämta Traefik-status."
+        }
       }
     },
     "sections": {
@@ -2287,7 +2313,9 @@
       },
       "cname": {
         "title": "Steg 1: Peka din domän",
-        "description": "Skapa en CNAME-post i din DNS som pekar din custom domain till standard-adressen.",
+        "titleVerified": "DNS-konfiguration",
+        "description": "Om du inte redan har gjort det, skapa en CNAME-post i din DNS som pekar din custom domain till adressen nedan. Detta är nödvändigt för att trafiken ska dirigeras rätt.",
+        "descriptionVerified": "Din domän är verifierad och aktiv. Behåll denna CNAME-post i din DNS — den dirigerar trafik från din custom domain till portalen.",
         "recordType": "Posttyp",
         "recordName": "Namn/Host",
         "target": "Mål/Värde",

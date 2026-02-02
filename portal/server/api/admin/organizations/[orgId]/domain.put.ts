@@ -10,7 +10,12 @@ import {
   requireOrganizationByIdentifier,
   requireOrganizationManageAccess
 } from '../utils'
-import { generateDomainVerificationToken, normalizeDomain } from '~~/server/utils/domain-verification'
+import {
+  generateDomainVerificationToken,
+  normalizeDomain,
+  buildVerificationRecordName,
+  buildVerificationRecordValue
+} from '~~/server/utils/domain-verification'
 
 const payloadSchema = z.object({
   customDomain: z.string().max(255).optional().nullable()
@@ -28,6 +33,30 @@ export default defineEventHandler(async (event) => {
   
   const body = payloadSchema.parse(await readBody(event))
   const normalizedDomain = normalizeDomain(body.customDomain)
+  
+  // Store old values for comparison and audit
+  const oldDomain = organization.customDomain
+  const domainChanged = normalizedDomain !== oldDomain
+  
+  // If domain hasn't changed, return current status without modifying anything
+  if (!domainChanged) {
+    const existingToken = organization.customDomainVerificationToken
+    return {
+      organizationId: organization.id,
+      customDomain: organization.customDomain,
+      customDomainVerificationStatus: organization.customDomainVerificationStatus ?? 'unverified',
+      customDomainVerifiedAt: organization.customDomainVerifiedAt?.toISOString() ?? null,
+      verificationInstructions: (organization.customDomain && existingToken && organization.customDomainVerificationStatus !== 'verified') ? {
+        recordType: 'TXT',
+        recordName: buildVerificationRecordName(organization.customDomain),
+        recordValue: buildVerificationRecordValue(existingToken),
+        note: 'Lägg till denna TXT-post i din DNS för att verifiera domänägandeskap.'
+      } : null,
+      message: organization.customDomainVerificationStatus === 'verified' 
+        ? 'Domänen är redan verifierad.' 
+        : 'Domänen är oförändrad.'
+    }
+  }
   
   // Check if domain is already used by another organization
   if (normalizedDomain) {
@@ -64,10 +93,7 @@ export default defineEventHandler(async (event) => {
     }
   }
   
-  // Store old values for audit
-  const oldDomain = organization.customDomain
-  
-  // Generate verification token if setting a new domain
+  // Generate verification token only if setting a NEW domain
   const verificationToken = normalizedDomain ? generateDomainVerificationToken() : null
   
   await db
@@ -82,24 +108,21 @@ export default defineEventHandler(async (event) => {
     .where(eq(organizations.id, organization.id))
   
   // Log audit event
-  if (normalizedDomain !== oldDomain) {
-    await logOrganizationAction(event, 'ORGANIZATION_CUSTOM_DOMAIN_UPDATED', {
-      changedFields: {
-        customDomain: { old: oldDomain, new: normalizedDomain }
-      }
-    }, organization.id)
-  }
+  await logOrganizationAction(event, 'ORGANIZATION_CUSTOM_DOMAIN_UPDATED', {
+    changedFields: {
+      customDomain: { old: oldDomain, new: normalizedDomain }
+    }
+  }, organization.id)
   
   return {
     organizationId: organization.id,
     customDomain: normalizedDomain,
     customDomainVerificationStatus: normalizedDomain ? 'pending' : 'unverified',
     customDomainVerifiedAt: null,
-    verificationToken: verificationToken,
-    verificationInstructions: normalizedDomain ? {
+    verificationInstructions: normalizedDomain && verificationToken ? {
       recordType: 'TXT',
-      recordName: `_cloudportal-verify.${normalizedDomain}`,
-      recordValue: `cp-verify=${verificationToken}`,
+      recordName: buildVerificationRecordName(normalizedDomain),
+      recordValue: buildVerificationRecordValue(verificationToken),
       note: 'Lägg till denna TXT-post i din DNS för att verifiera domänägandeskap.'
     } : null
   }

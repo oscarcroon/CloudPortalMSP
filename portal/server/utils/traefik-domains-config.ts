@@ -317,3 +317,88 @@ export function buildCustomDomainsRemotePath(remoteDir: string): string {
   const dir = remoteDir.replace(/\/+$/, '')
   return `${dir}/custom-domains.yml`
 }
+
+/**
+ * Sync Traefik custom domains configuration if enabled.
+ * This function is safe to call from anywhere - it will only sync if:
+ * - TRAEFIK_DOMAINS_ENABLED is true
+ * - SFTP is properly configured
+ * 
+ * @returns Object with success status and message
+ */
+export async function syncTraefikDomainsIfEnabled(): Promise<{
+  synced: boolean
+  message: string
+  error?: string
+}> {
+  // Check if Traefik domains sync is enabled
+  if (process.env.TRAEFIK_DOMAINS_ENABLED !== 'true') {
+    return {
+      synced: false,
+      message: 'Traefik sync är inte aktiverat.'
+    }
+  }
+  
+  // Dynamic import to avoid circular dependencies
+  const { getSftpConfigFromEnv, uploadTraefikConfig } = await import(
+    '~~/layers/windows-dns-redirects/server/utils/sftp-client'
+  )
+  
+  const sftpConfig = getSftpConfigFromEnv()
+  if (!sftpConfig) {
+    return {
+      synced: false,
+      message: 'SFTP är inte konfigurerat.'
+    }
+  }
+  
+  try {
+    // Fetch all verified custom domains
+    const domains = await fetchVerifiedCustomDomains()
+    const stats = getConfigStats(domains)
+    
+    // Generate Traefik YAML configuration
+    const yamlContent = generateTraefikDomainsYaml(domains, {
+      portalBackendUrl: process.env.TRAEFIK_PORTAL_BACKEND_URL,
+      defaultDomain: process.env.TRAEFIK_DEFAULT_DOMAIN
+    })
+    
+    // Build remote path
+    const remotePath = buildCustomDomainsRemotePath(sftpConfig.remoteDir)
+    
+    // Upload via SFTP
+    const result = await uploadTraefikConfig(
+      {
+        host: sftpConfig.host,
+        port: sftpConfig.port,
+        username: sftpConfig.username,
+        privateKeyPath: sftpConfig.privateKeyPath
+      },
+      remotePath,
+      yamlContent
+    )
+    
+    if (!result.success) {
+      console.error('[traefik-sync] Auto-sync failed:', result.error)
+      return {
+        synced: false,
+        message: 'SFTP upload misslyckades.',
+        error: result.error
+      }
+    }
+    
+    console.log(`[traefik-sync] Auto-synced ${stats.totalDomains} domains to ${sftpConfig.host}:${remotePath}`)
+    
+    return {
+      synced: true,
+      message: `Traefik-konfiguration synkroniserad: ${stats.totalDomains} domäner.`
+    }
+  } catch (error: any) {
+    console.error('[traefik-sync] Auto-sync error:', error)
+    return {
+      synced: false,
+      message: 'Synkronisering misslyckades.',
+      error: error.message
+    }
+  }
+}

@@ -32,6 +32,30 @@ export default defineEventHandler(async (event) => {
 
   const db = getDb()
   
+  // Store old values for comparison
+  const oldDomain = tenant.customDomain
+  const domainChanged = normalizedDomain !== oldDomain
+  
+  // If domain hasn't changed, return current status without modifying anything
+  if (!domainChanged) {
+    const existingToken = tenant.customDomainVerificationToken
+    return {
+      tenantId: tenant.id,
+      customDomain: tenant.customDomain,
+      customDomainVerificationStatus: tenant.customDomainVerificationStatus ?? 'unverified',
+      customDomainVerifiedAt: tenant.customDomainVerifiedAt?.toISOString() ?? null,
+      verificationInstructions: (tenant.customDomain && existingToken && tenant.customDomainVerificationStatus !== 'verified') ? {
+        recordType: 'TXT',
+        recordName: buildVerificationRecordName(tenant.customDomain),
+        recordValue: buildVerificationRecordValue(existingToken),
+        note: 'Lägg till denna TXT-post i din DNS för att verifiera domänägandeskap.'
+      } : null,
+      message: tenant.customDomainVerificationStatus === 'verified' 
+        ? 'Domänen är redan verifierad.' 
+        : 'Domänen är oförändrad.'
+    }
+  }
+  
   // Check if domain is already used by another tenant
   if (normalizedDomain) {
     const [existingTenant] = await db
@@ -67,7 +91,7 @@ export default defineEventHandler(async (event) => {
     }
   }
   
-  // Generate verification token if setting a new domain
+  // Generate verification token only if setting a NEW domain
   const verificationToken = normalizedDomain ? generateDomainVerificationToken() : null
   
   await db
@@ -86,11 +110,10 @@ export default defineEventHandler(async (event) => {
     customDomain: normalizedDomain,
     customDomainVerificationStatus: normalizedDomain ? 'pending' : 'unverified',
     customDomainVerifiedAt: null,
-    verificationToken: verificationToken,
-    verificationInstructions: normalizedDomain ? {
+    verificationInstructions: normalizedDomain && verificationToken ? {
       recordType: 'TXT',
       recordName: buildVerificationRecordName(normalizedDomain),
-      recordValue: buildVerificationRecordValue(verificationToken!),
+      recordValue: buildVerificationRecordValue(verificationToken),
       note: 'Lägg till denna TXT-post i din DNS för att verifiera domänägandeskap.'
     } : null
   }
