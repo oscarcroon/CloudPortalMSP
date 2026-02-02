@@ -1,0 +1,47 @@
+# Docker Compose for Traefik Edge Server
+# Deploy to: 192.168.2.130
+#
+# Usage:
+#   docker-compose up -d
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - TRAEFIK_ACME_EMAIL=${TRAEFIK_ACME_EMAIL:-admin@example.com}
+    volumes:
+      # Static configuration
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      # Dynamic configuration directory (updated via SFTP)
+      - ./dynamic:/etc/traefik/dynamic:ro
+      # Certificate storage
+      - ./acme.json:/etc/traefik/acme.json
+      # Logs
+      - ./logs:/var/log/traefik
+    networks:
+      - traefik-net
+    labels:
+      # Dashboard (optional - enable if needed)
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${TRAEFIK_DEFAULT_DOMAIN:-localhost}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      # Dashboard auth middleware (generate htpasswd: htpasswd -nb admin password)
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH:-admin:$$apr1$$xyz$$hash}"
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  traefik-net:
+    driver: bridge

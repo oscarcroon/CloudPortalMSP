@@ -1,10 +1,14 @@
-import { createError, defineEventHandler, getRouterParam } from 'h3'
+import { createError, defineEventHandler } from 'h3'
 import { eq } from 'drizzle-orm'
-import { tenants } from '~~/server/database/schema'
+import { organizations } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
-import { requireTenantPermission } from '~~/server/utils/rbac'
+import { logOrganizationAction } from '~~/server/utils/audit'
 import { rateLimiters } from '~~/server/utils/rateLimit'
-import { ensureBrandableTenant } from '../branding/utils'
+import {
+  parseOrgParam,
+  requireOrganizationByIdentifier,
+  requireOrganizationManageAccess
+} from '../../utils'
 import {
   verifyDomainOwnership,
   buildVerificationRecordName,
@@ -14,36 +18,23 @@ import {
 export default defineEventHandler(async (event) => {
   // Apply rate limiting for domain verification
   await rateLimiters.domainVerification(event)
-  
-  const tenantId = getRouterParam(event, 'id')
-  if (!tenantId) {
-    throw createError({ statusCode: 400, message: 'Tenant-id krävs.' })
-  }
-  await requireTenantPermission(event, 'tenants:manage', tenantId)
-  const tenant = await ensureBrandableTenant(tenantId)
-
+  const orgParam = parseOrgParam(event)
   const db = getDb()
-  const rows = await db
-    .select({
-      customDomain: tenants.customDomain,
-      customDomainVerificationToken: tenants.customDomainVerificationToken,
-      customDomainVerificationStatus: tenants.customDomainVerificationStatus,
-      customDomainVerifiedAt: tenants.customDomainVerifiedAt
-    })
-    .from(tenants)
-    .where(eq(tenants.id, tenant.id))
-    .limit(1)
-
-  const record = rows[0]
-  if (!record?.customDomain) {
+  const organization = await requireOrganizationByIdentifier(db, orgParam)
+  
+  // Validate access - requires tenants:manage permission or super admin
+  await requireOrganizationManageAccess(event, organization)
+  
+  // Check that a domain is configured
+  if (!organization.customDomain) {
     throw createError({
       statusCode: 400,
-      message: 'Ingen custom domain är konfigurerad för denna tenant.'
+      message: 'Ingen custom domain är konfigurerad för denna organisation.'
     })
   }
   
   // Check that there's a verification token
-  if (!record.customDomainVerificationToken) {
+  if (!organization.customDomainVerificationToken) {
     throw createError({
       statusCode: 400,
       message: 'Ingen verifieringstoken finns. Konfigurera om domänen för att generera en ny token.'
@@ -51,45 +42,51 @@ export default defineEventHandler(async (event) => {
   }
   
   // Already verified?
-  if (record.customDomainVerificationStatus === 'verified') {
+  if (organization.customDomainVerificationStatus === 'verified') {
     return {
-      tenantId: tenant.id,
-      customDomain: record.customDomain,
+      organizationId: organization.id,
+      customDomain: organization.customDomain,
       customDomainVerificationStatus: 'verified',
-      customDomainVerifiedAt: record.customDomainVerifiedAt?.toISOString() ?? null,
+      customDomainVerifiedAt: organization.customDomainVerifiedAt?.toISOString() ?? null,
       message: 'Domänen är redan verifierad.'
     }
   }
   
   // Update status to verifying
   await db
-    .update(tenants)
+    .update(organizations)
     .set({
       customDomainVerificationStatus: 'verifying',
       updatedAt: new Date()
     })
-    .where(eq(tenants.id, tenant.id))
+    .where(eq(organizations.id, organization.id))
   
   // Perform DNS verification
   const result = await verifyDomainOwnership(
-    record.customDomain,
-    record.customDomainVerificationToken
+    organization.customDomain,
+    organization.customDomainVerificationToken
   )
   
   if (result.verified) {
     const verifiedAt = new Date()
     await db
-      .update(tenants)
+      .update(organizations)
       .set({
         customDomainVerificationStatus: 'verified',
         customDomainVerifiedAt: verifiedAt,
         updatedAt: verifiedAt
       })
-      .where(eq(tenants.id, tenant.id))
-
+      .where(eq(organizations.id, organization.id))
+    
+    // Log audit event
+    await logOrganizationAction(event, 'ORGANIZATION_CUSTOM_DOMAIN_VERIFIED', {
+      customDomain: organization.customDomain,
+      verifiedAt: verifiedAt.toISOString()
+    }, organization.id)
+    
     return {
-      tenantId: tenant.id,
-      customDomain: record.customDomain,
+      organizationId: organization.id,
+      customDomain: organization.customDomain,
       customDomainVerificationStatus: 'verified',
       customDomainVerifiedAt: verifiedAt.toISOString(),
       message: 'Domänen har verifierats!'
@@ -97,27 +94,26 @@ export default defineEventHandler(async (event) => {
   } else {
     // Verification failed - update status back to pending
     await db
-      .update(tenants)
+      .update(organizations)
       .set({
         customDomainVerificationStatus: 'pending',
         updatedAt: new Date()
       })
-      .where(eq(tenants.id, tenant.id))
+      .where(eq(organizations.id, organization.id))
     
     return {
-      tenantId: tenant.id,
-      customDomain: record.customDomain,
+      organizationId: organization.id,
+      customDomain: organization.customDomain,
       customDomainVerificationStatus: 'pending',
       customDomainVerifiedAt: null,
       verified: false,
       error: result.error,
       foundRecords: result.foundRecords,
       expected: {
-        recordName: buildVerificationRecordName(record.customDomain),
-        recordValue: buildVerificationRecordValue(record.customDomainVerificationToken)
+        recordName: buildVerificationRecordName(organization.customDomain),
+        recordValue: buildVerificationRecordValue(organization.customDomainVerificationToken)
       },
       message: 'Verifiering misslyckades. Kontrollera att DNS TXT-posten är korrekt konfigurerad.'
     }
   }
 })
-

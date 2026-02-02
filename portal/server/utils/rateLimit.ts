@@ -179,6 +179,46 @@ export const rateLimiters = {
       }
       return `mfa:ip:${ip}`
     }
+  }),
+
+  domainRegistration: rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    maxRequests: 5, // 5 domain registrations per day per org
+    keyGenerator: async (event) => {
+      const ip = getClientIP(event) || 'unknown'
+      try {
+        const auth = await ensureAuthState(event)
+        if (auth?.currentOrgId) {
+          return `domain-reg:org:${auth.currentOrgId}`
+        }
+        if (auth?.user.id) {
+          return `domain-reg:user:${auth.user.id}`
+        }
+      } catch {
+        // Not authenticated
+      }
+      return `domain-reg:ip:${ip}`
+    }
+  }),
+
+  domainVerification: rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    maxRequests: 10, // 10 verification attempts per 5 minutes
+    keyGenerator: async (event) => {
+      const ip = getClientIP(event) || 'unknown'
+      try {
+        const auth = await ensureAuthState(event)
+        if (auth?.currentOrgId) {
+          return `domain-verify:org:${auth.currentOrgId}`
+        }
+        if (auth?.user.id) {
+          return `domain-verify:user:${auth.user.id}`
+        }
+      } catch {
+        // Not authenticated
+      }
+      return `domain-verify:ip:${ip}`
+    }
   })
 }
 

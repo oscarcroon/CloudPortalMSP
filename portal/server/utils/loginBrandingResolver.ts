@@ -30,6 +30,7 @@ interface OrganizationRecord {
   id: string
   slug: string
   tenantId: string | null
+  customDomainVerificationStatus?: string
 }
 
 export async function resolveLoginBrandingContext(event: H3Event): Promise<LoginBrandingContext> {
@@ -45,8 +46,10 @@ export async function resolveLoginBrandingContext(event: H3Event): Promise<Login
   const host = normalizeHost(getForwardedHost(event))
 
   let tenant: TenantRecord | null = null
+  let organization: OrganizationRecord | null = null
   let source: LoginBrandingSource = 'default'
 
+  // 1. Check if host matches a tenant custom domain
   if (host) {
     tenant = await findTenantByCustomDomain(db, host)
     const isVerified =
@@ -58,6 +61,25 @@ export async function resolveLoginBrandingContext(event: H3Event): Promise<Login
     }
   }
 
+  // 2. Check if host matches an organization custom domain
+  if (!tenant && !organization && host) {
+    organization = await findOrganizationByCustomDomain(db, host)
+    if (organization) {
+      const isVerified =
+        organization.customDomainVerificationStatus === 'verified' || allowUnverifiedCustomDomains
+      if (isVerified) {
+        source = 'custom-domain'
+        // If organization has a tenant, load it for branding
+        if (organization.tenantId) {
+          tenant = await findTenantById(db, organization.tenantId)
+        }
+      } else {
+        organization = null
+      }
+    }
+  }
+
+  // 3. Check if host matches tenant slug pattern
   if (!tenant && host) {
     const slugCandidate = extractSlugFromHost(host, slugSuffixes)
     if (slugCandidate) {
@@ -68,6 +90,7 @@ export async function resolveLoginBrandingContext(event: H3Event): Promise<Login
     }
   }
 
+  // 4. Check query parameters for tenant
   const query = getQuery(event)
   const tenantSlugFromQuery =
     typeof query.tenant === 'string' ? sanitizeSlug(query.tenant) : null
@@ -78,10 +101,10 @@ export async function resolveLoginBrandingContext(event: H3Event): Promise<Login
     }
   }
 
+  // 5. Check query parameters for organization
   const orgSlug = typeof query.org === 'string' ? sanitizeSlug(query.org) : null
-  let organization: OrganizationRecord | null = null
 
-  if (orgSlug) {
+  if (orgSlug && !organization) {
     organization = await findOrganizationBySlug(db, orgSlug)
     if (organization) {
       if (tenant && organization.tenantId && tenant.id !== organization.tenantId) {
@@ -230,6 +253,24 @@ async function findOrganizationBySlug(db: DrizzleDb, slug: string) {
     })
     .from(organizations)
     .where(eq(organizations.slug, slug))
+    .limit(1)
+
+  return rows[0] ?? null
+}
+
+async function findOrganizationByCustomDomain(db: DrizzleDb, domain: string): Promise<OrganizationRecord | null> {
+  if (!domain) {
+    return null
+  }
+  const rows = await db
+    .select({
+      id: organizations.id,
+      slug: organizations.slug,
+      tenantId: organizations.tenantId,
+      customDomainVerificationStatus: organizations.customDomainVerificationStatus
+    })
+    .from(organizations)
+    .where(eq(organizations.customDomain, domain))
     .limit(1)
 
   return rows[0] ?? null

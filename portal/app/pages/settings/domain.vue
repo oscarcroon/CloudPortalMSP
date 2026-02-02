@@ -1,0 +1,407 @@
+<template>
+  <section class="space-y-8">
+    <header class="space-y-2">
+      <NuxtLink
+        to="/settings"
+        class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
+      >
+        ← {{ t('settings.domain.backToSettings') }}
+      </NuxtLink>
+      <div>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">
+          {{ t('settings.domain.title') }}
+        </h1>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+          {{ t('settings.domain.description') }}
+        </p>
+      </div>
+    </header>
+
+    <ClientOnly>
+      <div v-if="!currentOrgId" class="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
+        {{ t('settings.domain.noOrgSelected') }}
+      </div>
+
+      <div v-else class="space-y-6">
+        <!-- Current Domain Status -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#0c1524]">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-3">
+                <Icon icon="mdi:web" class="h-6 w-6 text-brand" />
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {{ t('settings.domain.currentDomain.title') }}
+                </h2>
+              </div>
+              <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {{ t('settings.domain.currentDomain.description') }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Loading state -->
+          <div v-if="loading" class="mt-6 flex items-center justify-center py-8">
+            <div class="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
+          </div>
+
+          <div v-else class="mt-6 space-y-6">
+            <!-- Domain Status Display -->
+            <div v-if="domainData?.customDomain" class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ t('settings.domain.currentDomain.label') }}
+                  </p>
+                  <p class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {{ domainData.customDomain }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span
+                    :class="[
+                      'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
+                      statusClasses
+                    ]"
+                  >
+                    <span class="h-2 w-2 rounded-full" :class="statusDotClass" />
+                    {{ statusLabel }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Verification info when verified -->
+              <div v-if="domainData.customDomainVerificationStatus === 'verified'" class="mt-3 text-xs text-emerald-600 dark:text-emerald-400">
+                <Icon icon="mdi:check-circle" class="inline-block h-4 w-4" />
+                {{ t('settings.domain.verification.verifiedAt', { date: formatDate(domainData.customDomainVerifiedAt) }) }}
+              </div>
+            </div>
+
+            <div v-else class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-white/10 dark:bg-white/5">
+              <Icon icon="mdi:web-off" class="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
+              <p class="mt-2 text-sm font-medium text-slate-900 dark:text-slate-100">
+                {{ t('settings.domain.currentDomain.noDomain') }}
+              </p>
+              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {{ t('settings.domain.currentDomain.noDomainHint') }}
+              </p>
+            </div>
+
+            <!-- Domain Input Form -->
+            <div class="space-y-4">
+              <div>
+                <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {{ t('settings.domain.form.domainLabel') }}
+                </label>
+                <div class="flex gap-3">
+                  <input
+                    v-model="form.customDomain"
+                    type="text"
+                    :placeholder="t('settings.domain.form.domainPlaceholder')"
+                    class="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                  />
+                  <button
+                    class="inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50"
+                    :disabled="saving || !form.customDomain"
+                    @click="saveDomain"
+                  >
+                    <Icon v-if="saving" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+                    {{ saving ? t('settings.domain.form.saving') : t('settings.domain.form.save') }}
+                  </button>
+                </div>
+                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  {{ t('settings.domain.form.hint') }}
+                </p>
+              </div>
+
+              <div v-if="domainData?.customDomain" class="flex gap-3">
+                <button
+                  class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+                  :disabled="verifying || domainData.customDomainVerificationStatus === 'verified'"
+                  @click="verifyDomain"
+                >
+                  <Icon v-if="verifying" icon="mdi:loading" class="h-4 w-4 animate-spin" />
+                  <Icon v-else icon="mdi:check-decagram" class="h-4 w-4" />
+                  {{ verifying ? t('settings.domain.verification.checking') : t('settings.domain.verification.verify') }}
+                </button>
+                <button
+                  class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"
+                  :disabled="saving"
+                  @click="removeDomain"
+                >
+                  <Icon icon="mdi:delete-outline" class="h-4 w-4" />
+                  {{ t('settings.domain.form.remove') }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div v-if="errorMessage" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/5 dark:text-red-200">
+              {{ errorMessage }}
+            </div>
+
+            <div v-if="successMessage" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/5 dark:text-emerald-200">
+              {{ successMessage }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Verification Instructions -->
+        <div v-if="domainData?.customDomain && domainData.customDomainVerificationStatus !== 'verified' && verificationInstructions" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#0c1524]">
+          <div class="flex items-center gap-3">
+            <Icon icon="mdi:dns" class="h-6 w-6 text-amber-500" />
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {{ t('settings.domain.verification.title') }}
+            </h2>
+          </div>
+          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {{ t('settings.domain.verification.instructions') }}
+          </p>
+
+          <div class="mt-4 space-y-4">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+              <div class="space-y-3">
+                <div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ t('settings.domain.verification.recordType') }}
+                  </p>
+                  <p class="font-mono text-sm text-slate-900 dark:text-slate-100">{{ verificationInstructions.recordType }}</p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ t('settings.domain.verification.recordName') }}
+                  </p>
+                  <div class="flex items-center gap-2">
+                    <code class="flex-1 rounded bg-slate-200 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
+                      {{ verificationInstructions.recordName }}
+                    </code>
+                    <button
+                      class="rounded p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                      @click="copyToClipboard(verificationInstructions.recordName)"
+                    >
+                      <Icon icon="mdi:content-copy" class="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ t('settings.domain.verification.recordValue') }}
+                  </p>
+                  <div class="flex items-center gap-2">
+                    <code class="flex-1 rounded bg-slate-200 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
+                      {{ verificationInstructions.recordValue }}
+                    </code>
+                    <button
+                      class="rounded p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                      @click="copyToClipboard(verificationInstructions.recordValue)"
+                    >
+                      <Icon icon="mdi:content-copy" class="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              {{ t('settings.domain.verification.note') }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </ClientOnly>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { Icon } from '@iconify/vue'
+
+const { t } = useI18n()
+const { currentOrgId } = storeToRefs(useContextStore())
+
+interface DomainData {
+  organizationId: string
+  customDomain: string | null
+  customDomainVerificationStatus: string
+  customDomainVerifiedAt: string | null
+  verificationInstructions?: {
+    recordType: string
+    recordName: string
+    recordValue: string
+    note: string
+  } | null
+}
+
+const domainData = ref<DomainData | null>(null)
+const verificationInstructions = ref<DomainData['verificationInstructions']>(null)
+const loading = ref(true)
+const saving = ref(false)
+const verifying = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
+const form = reactive({
+  customDomain: ''
+})
+
+const statusClasses = computed(() => {
+  const status = domainData.value?.customDomainVerificationStatus
+  switch (status) {
+    case 'verified':
+      return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+    case 'pending':
+    case 'verifying':
+      return 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+    default:
+      return 'bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-400'
+  }
+})
+
+const statusDotClass = computed(() => {
+  const status = domainData.value?.customDomainVerificationStatus
+  switch (status) {
+    case 'verified':
+      return 'bg-emerald-500'
+    case 'pending':
+    case 'verifying':
+      return 'bg-amber-500'
+    default:
+      return 'bg-slate-400'
+  }
+})
+
+const statusLabel = computed(() => {
+  const status = domainData.value?.customDomainVerificationStatus
+  switch (status) {
+    case 'verified':
+      return t('settings.domain.status.verified')
+    case 'pending':
+      return t('settings.domain.status.pending')
+    case 'verifying':
+      return t('settings.domain.status.verifying')
+    default:
+      return t('settings.domain.status.unverified')
+  }
+})
+
+async function fetchDomainData() {
+  if (!currentOrgId.value) return
+  
+  loading.value = true
+  errorMessage.value = ''
+  
+  try {
+    const response = await $fetch(`/api/admin/organizations/${currentOrgId.value}/domain`)
+    domainData.value = response as DomainData
+    form.customDomain = response.customDomain || ''
+    verificationInstructions.value = response.verificationInstructions || null
+  } catch (error: any) {
+    errorMessage.value = error.data?.message || t('settings.domain.error.fetchFailed')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function saveDomain() {
+  if (!currentOrgId.value || !form.customDomain) return
+  
+  saving.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  
+  try {
+    const response = await $fetch(`/api/admin/organizations/${currentOrgId.value}/domain`, {
+      method: 'PUT',
+      body: { customDomain: form.customDomain }
+    })
+    
+    domainData.value = response as DomainData
+    verificationInstructions.value = response.verificationInstructions || null
+    successMessage.value = t('settings.domain.success.saved')
+    
+    setTimeout(() => { successMessage.value = '' }, 5000)
+  } catch (error: any) {
+    errorMessage.value = error.data?.message || t('settings.domain.error.saveFailed')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removeDomain() {
+  if (!currentOrgId.value) return
+  
+  if (!confirm(t('settings.domain.confirm.remove'))) return
+  
+  saving.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  
+  try {
+    const response = await $fetch(`/api/admin/organizations/${currentOrgId.value}/domain`, {
+      method: 'PUT',
+      body: { customDomain: null }
+    })
+    
+    domainData.value = response as DomainData
+    verificationInstructions.value = null
+    form.customDomain = ''
+    successMessage.value = t('settings.domain.success.removed')
+    
+    setTimeout(() => { successMessage.value = '' }, 5000)
+  } catch (error: any) {
+    errorMessage.value = error.data?.message || t('settings.domain.error.removeFailed')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function verifyDomain() {
+  if (!currentOrgId.value) return
+  
+  verifying.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  
+  try {
+    const response = await $fetch(`/api/admin/organizations/${currentOrgId.value}/domain/verify`, {
+      method: 'POST'
+    })
+    
+    if (response.customDomainVerificationStatus === 'verified') {
+      domainData.value = response as DomainData
+      successMessage.value = t('settings.domain.success.verified')
+    } else {
+      errorMessage.value = response.error || t('settings.domain.error.verificationFailed')
+    }
+    
+    setTimeout(() => { successMessage.value = '' }, 5000)
+  } catch (error: any) {
+    errorMessage.value = error.data?.message || t('settings.domain.error.verificationFailed')
+  } finally {
+    verifying.value = false
+  }
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('sv-SE', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    successMessage.value = t('settings.domain.success.copied')
+    setTimeout(() => { successMessage.value = '' }, 2000)
+  } catch {
+    errorMessage.value = t('settings.domain.error.copyFailed')
+  }
+}
+
+watch(currentOrgId, () => {
+  fetchDomainData()
+}, { immediate: true })
+</script>

@@ -1282,6 +1282,60 @@
         "scopes": "Restrict access with scopes (e.g., dns:read, org:write)",
         "revoke": "Revoke keys when needed"
       }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Configure a custom domain to access the portal via your own web address.",
+      "backToSettings": "Back to settings",
+      "noOrgSelected": "Select an organization first to manage custom domain.",
+      "currentDomain": {
+        "title": "Current Domain",
+        "description": "Your custom domain for accessing the portal.",
+        "label": "Domain",
+        "noDomain": "No custom domain configured",
+        "noDomainHint": "Add a custom domain to access the portal via your own web address."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "hint": "Enter the domain name without protocol (https://). Only subdomains are supported.",
+        "save": "Save domain",
+        "saving": "Saving...",
+        "remove": "Remove"
+      },
+      "status": {
+        "verified": "Verified",
+        "pending": "Pending verification",
+        "verifying": "Verifying...",
+        "unverified": "Unverified"
+      },
+      "verification": {
+        "title": "DNS Verification",
+        "instructions": "To verify that you own the domain, add the following TXT record to your DNS:",
+        "recordType": "Record Type",
+        "recordName": "Name/Host",
+        "recordValue": "Value",
+        "note": "DNS changes can take up to 24 hours to propagate. You can try to verify at any time.",
+        "verify": "Verify now",
+        "checking": "Verifying...",
+        "verifiedAt": "Verified {date}"
+      },
+      "success": {
+        "saved": "Custom domain has been saved. Add the DNS record to verify.",
+        "removed": "Custom domain has been removed.",
+        "verified": "Domain has been verified!",
+        "copied": "Copied to clipboard!"
+      },
+      "error": {
+        "fetchFailed": "Failed to fetch domain information.",
+        "saveFailed": "Failed to save custom domain.",
+        "removeFailed": "Failed to remove custom domain.",
+        "verificationFailed": "Verification failed. Check that the DNS record is correctly configured.",
+        "copyFailed": "Failed to copy to clipboard."
+      },
+      "confirm": {
+        "remove": "Are you sure you want to remove the custom domain? Users will no longer be able to access the portal via this address."
+      }
     }
   },
   "admin": {

@@ -90,6 +90,7 @@ export const tenants = sqliteTable(
       .notNull()
       .default('unverified'),
     customDomainVerifiedAt: integer('custom_domain_verified_at', { mode: 'timestamp_ms' }),
+    customDomainVerificationToken: text('custom_domain_verification_token'),
     type: text('type').notNull().$type<'provider' | 'distributor' | 'organization'>(),
     parentTenantId: text('parent_tenant_id'),
     status: text('status').notNull().default('active'),
@@ -117,6 +118,13 @@ export const organizations = sqliteTable(
     billingEmail: text('billing_email'),
     coreId: text('core_id'),
     emailDisclaimerMarkdown: text('email_disclaimer_markdown'),
+    // Custom domain fields - allows organizations to use their own domain
+    customDomain: text('custom_domain'),
+    customDomainVerificationStatus: text('custom_domain_verification_status')
+      .notNull()
+      .default('unverified'),
+    customDomainVerifiedAt: integer('custom_domain_verified_at', { mode: 'timestamp_ms' }),
+    customDomainVerificationToken: text('custom_domain_verification_token'),
     // Setup wizard fields - controls onboarding flow for new organizations
     setupStatus: text('setup_status')
       .$type<'pending' | 'complete'>()
@@ -127,7 +135,8 @@ export const organizations = sqliteTable(
     ...timestampColumns()
   },
   table => ({
-    slugIdx: uniqueIndex('organizations_slug_idx').on(table.slug)
+    slugIdx: uniqueIndex('organizations_slug_idx').on(table.slug),
+    customDomainIdx: uniqueIndex('organizations_custom_domain_idx').on(table.customDomain)
   })
 )
 

@@ -1277,6 +1277,60 @@
         "scopes": "Begränsa åtkomst med scopes (t.ex. dns:read, org:write)",
         "revoke": "Återkalla nycklar vid behov"
       }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Konfigurera en egen domän för att nå portalen via din egen webbadress.",
+      "backToSettings": "Tillbaka till inställningar",
+      "noOrgSelected": "Välj en organisation först för att hantera custom domain.",
+      "currentDomain": {
+        "title": "Nuvarande domän",
+        "description": "Din custom domain för att nå portalen.",
+        "label": "Domän",
+        "noDomain": "Ingen custom domain konfigurerad",
+        "noDomainHint": "Lägg till en egen domän för att nå portalen via din egen webbadress."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "hint": "Ange domännamnet utan protokoll (https://). Endast subdomäner stöds.",
+        "save": "Spara domän",
+        "saving": "Sparar...",
+        "remove": "Ta bort"
+      },
+      "status": {
+        "verified": "Verifierad",
+        "pending": "Väntar på verifiering",
+        "verifying": "Verifierar...",
+        "unverified": "Ej verifierad"
+      },
+      "verification": {
+        "title": "DNS-verifiering",
+        "instructions": "För att verifiera att du äger domänen, lägg till följande TXT-post i din DNS:",
+        "recordType": "Posttyp",
+        "recordName": "Namn/Host",
+        "recordValue": "Värde",
+        "note": "DNS-ändringar kan ta upp till 24 timmar att propagera. Du kan försöka verifiera när som helst.",
+        "verify": "Verifiera nu",
+        "checking": "Verifierar...",
+        "verifiedAt": "Verifierad {date}"
+      },
+      "success": {
+        "saved": "Custom domain har sparats. Lägg till DNS-posten för att verifiera.",
+        "removed": "Custom domain har tagits bort.",
+        "verified": "Domänen har verifierats!",
+        "copied": "Kopierat till urklipp!"
+      },
+      "error": {
+        "fetchFailed": "Kunde inte hämta domäninformation.",
+        "saveFailed": "Kunde inte spara custom domain.",
+        "removeFailed": "Kunde inte ta bort custom domain.",
+        "verificationFailed": "Verifiering misslyckades. Kontrollera att DNS-posten är korrekt konfigurerad.",
+        "copyFailed": "Kunde inte kopiera till urklipp."
+      },
+      "confirm": {
+        "remove": "Är du säker på att du vill ta bort custom domain? Användare kommer inte längre kunna nå portalen via denna adress."
+      }
     }
   },
   "admin": {
