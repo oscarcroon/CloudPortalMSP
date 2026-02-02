@@ -323,6 +323,65 @@
         <p class="text-xs text-slate-500 dark:text-slate-400">
           {{ t('adminTenants.branding.loginDomain.cnameHint', { domain: suggestedLoginDomain || 'login.<slug>' }) }}
         </p>
+
+        <!-- DNS Verification Instructions -->
+        <div
+          v-if="tenantInfo?.customDomain && tenantInfo?.customDomainVerificationStatus !== 'verified' && tenantInfo?.verificationInstructions"
+          class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10"
+        >
+          <div class="flex items-center gap-2 text-amber-700 dark:text-amber-200">
+            <Icon icon="mdi:dns" class="h-5 w-5" />
+            <h3 class="text-sm font-semibold">{{ t('adminTenants.branding.loginDomain.verificationRequired') }}</h3>
+          </div>
+          <p class="mt-2 text-xs text-amber-600 dark:text-amber-300">
+            {{ t('adminTenants.branding.loginDomain.verificationInstructions') }}
+          </p>
+          <div class="mt-3 space-y-2 rounded-lg bg-white/60 p-3 dark:bg-black/20">
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {{ t('adminTenants.branding.loginDomain.recordType') }}
+              </p>
+              <p class="font-mono text-sm text-slate-900 dark:text-slate-100">{{ tenantInfo.verificationInstructions.recordType }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {{ t('adminTenants.branding.loginDomain.recordName') }}
+              </p>
+              <div class="flex items-center gap-2">
+                <code class="flex-1 overflow-x-auto rounded bg-slate-200 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
+                  {{ tenantInfo.verificationInstructions.recordName }}
+                </code>
+                <button
+                  class="shrink-0 rounded p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                  type="button"
+                  @click="copyToClipboard(tenantInfo.verificationInstructions.recordName)"
+                >
+                  <Icon icon="mdi:content-copy" class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {{ t('adminTenants.branding.loginDomain.recordValue') }}
+              </p>
+              <div class="flex items-center gap-2">
+                <code class="flex-1 overflow-x-auto rounded bg-slate-200 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
+                  {{ tenantInfo.verificationInstructions.recordValue }}
+                </code>
+                <button
+                  class="shrink-0 rounded p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                  type="button"
+                  @click="copyToClipboard(tenantInfo.verificationInstructions.recordValue)"
+                >
+                  <Icon icon="mdi:content-copy" class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="mt-2 text-xs text-amber-600 dark:text-amber-300">
+            {{ t('adminTenants.branding.loginDomain.verificationNote') }}
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -361,6 +420,12 @@ const tenantInfo = ref<{
   customDomain: string | null
   customDomainVerificationStatus: string
   customDomainVerifiedAt: number | null
+  verificationInstructions?: {
+    recordType: string
+    recordName: string
+    recordValue: string
+    note: string
+  } | null
 } | null>(null)
 const brandingLoading = ref(false)
 const brandingError = ref<string | null>(null)
@@ -806,6 +871,24 @@ function scheduleNavStatusClear() {
 async function applyNavPreset(hex: string) {
   navColor.value = hex
   await saveNavigationColor()
+}
+
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    customDomainStatus.value = {
+      type: 'success',
+      text: t('adminTenants.branding.loginDomain.copied')
+    }
+    setTimeout(() => {
+      customDomainStatus.value = null
+    }, 2000)
+  } catch {
+    customDomainStatus.value = {
+      type: 'error',
+      text: t('adminTenants.branding.loginDomain.copyFailed')
+    }
+  }
 }
 
 function formatSource(source?: BrandingThemeSource | null) {

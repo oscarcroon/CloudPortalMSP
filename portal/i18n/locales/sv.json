@@ -1223,6 +1223,78 @@
         "login": "Hantera login-branding och custom domains (CNAME)"
       }
     },
+    "customDomain": {
+      "title": "Custom domain",
+      "description": "Koppla en egen domän till portalen för din organisation.",
+      "features": {
+        "own": "Använd din egen domän istället för standardadressen",
+        "ssl": "Automatiskt SSL-certifikat via Let's Encrypt",
+        "verify": "DNS-verifiering säkerställer domänägandeskap"
+      }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Koppla en egen domän till portalen för din organisation.",
+      "backToSettings": "Inställningar",
+      "noOrgSelected": "Välj en organisation för att hantera custom domain.",
+      "currentDomain": {
+        "title": "Nuvarande domän",
+        "description": "Din organisations inloggningsdomän för portalen.",
+        "default": "Standard:",
+        "label": "Domän",
+        "noDomain": "Ingen custom domain konfigurerad",
+        "noDomainHint": "Lägg till en egen domän nedan för att använda den för inloggning."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "remove": "Ta bort",
+        "hint": "Ange domänen utan protokoll (https://)"
+      },
+      "cname": {
+        "title": "Steg 1: Peka din domän",
+        "description": "Skapa en CNAME-post i din DNS som pekar din custom domain till standard-adressen.",
+        "recordType": "Posttyp",
+        "recordName": "Namn/Host",
+        "target": "Mål/Värde",
+        "example": "Exempel: {domain} → CNAME → {target}"
+      },
+      "verification": {
+        "title": "Steg 2: Verifiera ägandeskap",
+        "instructions": "Lägg till följande TXT-post hos din DNS-leverantör för att verifiera domänägandeskap:",
+        "recordType": "Posttyp",
+        "recordName": "Postnamn",
+        "recordValue": "Värde",
+        "note": "Det kan ta upp till 24 timmar för DNS-ändringar att spridas. Klicka på \"Verifiera\" när du lagt till posten.",
+        "verify": "Verifiera domän",
+        "checking": "Kontrollerar...",
+        "verifiedAt": "Verifierad: {date}"
+      },
+      "status": {
+        "verified": "Verifierad",
+        "pending": "Väntar på verifiering",
+        "verifying": "Verifierar...",
+        "unverified": "Overifierad"
+      },
+      "success": {
+        "saved": "Domäninställningarna sparades.",
+        "removed": "Domänen togs bort.",
+        "verified": "Domänen verifierades!",
+        "copied": "Kopierat till urklipp."
+      },
+      "error": {
+        "fetchFailed": "Kunde inte hämta domäninformation.",
+        "saveFailed": "Kunde inte spara domänen.",
+        "removeFailed": "Kunde inte ta bort domänen.",
+        "verificationFailed": "DNS-verifieringen misslyckades. Kontrollera att TXT-posten finns och försök igen.",
+        "copyFailed": "Kunde inte kopiera till urklipp."
+      },
+      "confirm": {
+        "remove": "Vill du ta bort custom domain? Organisationen kommer använda standardadressen för inloggning."
+      }
+    },
     "audit": {
       "title": "Audit Loggar",
       "description": "Visa säkerhetshändelser och administrativa aktiviteter för organisationen.",
@@ -1276,60 +1348,6 @@
         "create": "Skapa nya API-nycklar med anpassade behörigheter",
         "scopes": "Begränsa åtkomst med scopes (t.ex. dns:read, org:write)",
         "revoke": "Återkalla nycklar vid behov"
-      }
-    },
-    "domain": {
-      "title": "Custom Domain",
-      "description": "Konfigurera en egen domän för att nå portalen via din egen webbadress.",
-      "backToSettings": "Tillbaka till inställningar",
-      "noOrgSelected": "Välj en organisation först för att hantera custom domain.",
-      "currentDomain": {
-        "title": "Nuvarande domän",
-        "description": "Din custom domain för att nå portalen.",
-        "label": "Domän",
-        "noDomain": "Ingen custom domain konfigurerad",
-        "noDomainHint": "Lägg till en egen domän för att nå portalen via din egen webbadress."
-      },
-      "form": {
-        "domainLabel": "Custom domain",
-        "domainPlaceholder": "portal.example.com",
-        "hint": "Ange domännamnet utan protokoll (https://). Endast subdomäner stöds.",
-        "save": "Spara domän",
-        "saving": "Sparar...",
-        "remove": "Ta bort"
-      },
-      "status": {
-        "verified": "Verifierad",
-        "pending": "Väntar på verifiering",
-        "verifying": "Verifierar...",
-        "unverified": "Ej verifierad"
-      },
-      "verification": {
-        "title": "DNS-verifiering",
-        "instructions": "För att verifiera att du äger domänen, lägg till följande TXT-post i din DNS:",
-        "recordType": "Posttyp",
-        "recordName": "Namn/Host",
-        "recordValue": "Värde",
-        "note": "DNS-ändringar kan ta upp till 24 timmar att propagera. Du kan försöka verifiera när som helst.",
-        "verify": "Verifiera nu",
-        "checking": "Verifierar...",
-        "verifiedAt": "Verifierad {date}"
-      },
-      "success": {
-        "saved": "Custom domain har sparats. Lägg till DNS-posten för att verifiera.",
-        "removed": "Custom domain har tagits bort.",
-        "verified": "Domänen har verifierats!",
-        "copied": "Kopierat till urklipp!"
-      },
-      "error": {
-        "fetchFailed": "Kunde inte hämta domäninformation.",
-        "saveFailed": "Kunde inte spara custom domain.",
-        "removeFailed": "Kunde inte ta bort custom domain.",
-        "verificationFailed": "Verifiering misslyckades. Kontrollera att DNS-posten är korrekt konfigurerad.",
-        "copyFailed": "Kunde inte kopiera till urklipp."
-      },
-      "confirm": {
-        "remove": "Är du säker på att du vill ta bort custom domain? Användare kommer inte längre kunna nå portalen via denna adress."
       }
     }
   },
@@ -1519,6 +1537,8 @@
         "mspRolesDesc": "Hantera roller för MSP-användare",
         "roleTemplates": "MSP-rollmallar",
         "roleTemplatesDesc": "Hantera MSP-rollmallar för leverantörer",
+        "customDomain": "Custom domain",
+        "customDomainDesc": "Konfigurera login-domän",
         "branding": "Branding",
         "brandingDesc": "Anpassa tenant-branding",
         "auditLogs": "Audit loggar",
@@ -2215,6 +2235,14 @@
         "saveError": "Kunde inte spara domänen.",
         "verifyError": "Verifieringen misslyckades.",
         "cnameHint": "Peka ett CNAME till {domain} och verifiera domänen innan den tas i bruk.",
+        "verificationRequired": "DNS-verifiering krävs",
+        "verificationInstructions": "Lägg till följande TXT-post i din DNS för att verifiera ägandeskap av domänen.",
+        "recordType": "Posttyp",
+        "recordName": "Postnamn",
+        "recordValue": "Värde",
+        "verificationNote": "Det kan ta upp till 24 timmar för DNS-ändringar att spridas. Klicka på \"Verifiera\" när du lagt till posten.",
+        "copied": "Kopierat till urklipp!",
+        "copyFailed": "Kunde inte kopiera till urklipp.",
         "status": {
           "notConfigured": "Ej konfigurerad",
           "verified": "Verifierad",
@@ -2231,6 +2259,72 @@
       },
       "errors": {
         "loadFailed": "Kunde inte hämta brandinginformation."
+      }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Konfigurera egen domän för login-sidan för {name}.",
+      "backToTenant": "Tillbaka",
+      "types": {
+        "provider": "Leverantör",
+        "distributor": "Distributör"
+      },
+      "currentDomain": {
+        "title": "Nuvarande domän",
+        "description": "Din login-domän för portalen.",
+        "default": "Standard:",
+        "label": "Domän",
+        "noDomain": "Ingen custom domain konfigurerad",
+        "noDomainHint": "Lägg till en egen domän nedan för att använda den för inloggning."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "remove": "Ta bort",
+        "hint": "Ange domänen utan protokoll (https://)"
+      },
+      "cname": {
+        "title": "Steg 1: Peka din domän",
+        "description": "Skapa en CNAME-post i din DNS som pekar din custom domain till standard-adressen.",
+        "recordType": "Posttyp",
+        "recordName": "Namn/Host",
+        "target": "Mål/Värde",
+        "example": "Exempel: {domain} → CNAME → {target}"
+      },
+      "verification": {
+        "title": "Steg 2: Verifiera ägandeskap",
+        "instructions": "Lägg till följande TXT-post hos din DNS-leverantör för att verifiera domänägandeskap:",
+        "recordType": "Posttyp",
+        "recordName": "Postnamn",
+        "recordValue": "Värde",
+        "note": "Det kan ta upp till 24 timmar för DNS-ändringar att spridas. Klicka på \"Verifiera\" när du lagt till posten.",
+        "verify": "Verifiera domän",
+        "checking": "Kontrollerar...",
+        "verifiedAt": "Verifierad: {date}"
+      },
+      "status": {
+        "verified": "Verifierad",
+        "pending": "Väntar på verifiering",
+        "verifying": "Verifierar...",
+        "unverified": "Overifierad"
+      },
+      "success": {
+        "saved": "Domäninställningarna sparades.",
+        "removed": "Domänen togs bort.",
+        "verified": "Domänen verifierades!",
+        "copied": "Kopierat till urklipp."
+      },
+      "error": {
+        "fetchFailed": "Kunde inte hämta domäninformation.",
+        "saveFailed": "Kunde inte spara domänen.",
+        "removeFailed": "Kunde inte ta bort domänen.",
+        "verificationFailed": "DNS-verifieringen misslyckades. Kontrollera att TXT-posten finns och försök igen.",
+        "copyFailed": "Kunde inte kopiera till urklipp."
+      },
+      "confirm": {
+        "remove": "Vill du ta bort custom domain? Standardadressen kommer användas för inloggning."
       }
     },
     "detail": {
@@ -2264,6 +2358,24 @@
         },
         "dangerZone": {
           "title": "Danger zone"
+        }
+      },
+      "quickLinks": {
+        "domain": {
+          "title": "Custom domain",
+          "description": "Konfigurera egen login-domän"
+        },
+        "branding": {
+          "title": "Branding",
+          "description": "Logotyper och accentfärger"
+        },
+        "members": {
+          "title": "Medlemmar",
+          "description": "Hantera användare och roller"
+        },
+        "modules": {
+          "title": "Moduler",
+          "description": "Aktivera och konfigurera"
         }
       },
       "fields": {

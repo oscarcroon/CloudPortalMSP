@@ -277,63 +277,6 @@
         </div>
       </div>
     </div>
-
-    <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-3">
-            <Icon icon="mdi:earth" class="h-6 w-6 text-brand" />
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('adminTenants.branding.loginDomain.title') }}</h2>
-          </div>
-          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {{ t('adminTenants.branding.loginDomain.description') }}
-          </p>
-          <p v-if="suggestedLoginDomain" class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            {{ t('adminTenants.branding.loginDomain.default') }} <code class="rounded bg-slate-100 px-2 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-100">https://{{ suggestedLoginDomain }}</code>
-          </p>
-        </div>
-        <span
-          class="rounded-full px-3 py-1 text-xs font-semibold"
-          :class="domainVerificationMeta.class"
-        >
-          {{ domainVerificationMeta.label }}
-        </span>
-      </div>
-      <div class="mt-4 space-y-3">
-        <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ t('adminTenants.branding.loginDomain.customDomain') }}</label>
-        <input
-          v-model="customDomainForm.value"
-          type="text"
-          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-transparent dark:text-slate-100"
-          :placeholder="t('adminTenants.branding.loginDomain.placeholder')"
-        />
-        <div class="flex flex-wrap items-center gap-3">
-          <button
-            class="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:bg-brand/40"
-            type="button"
-            :disabled="customDomainSaving"
-            @click="saveCustomDomain"
-          >
-            {{ customDomainSaving ? t('adminTenants.branding.loginDomain.saving') : t('adminTenants.branding.loginDomain.save') }}
-          </button>
-          <button
-            v-if="tenantInfo?.customDomain"
-            class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
-            type="button"
-            :disabled="verifyDomainLoading"
-            @click="verifyCustomDomain"
-          >
-            {{ verifyDomainLoading ? t('adminTenants.branding.loginDomain.verifying') : t('adminTenants.branding.loginDomain.verify') }}
-          </button>
-        </div>
-        <p v-if="customDomainStatus" class="text-xs font-semibold" :class="customDomainStatus.type === 'success' ? 'text-emerald-600' : 'text-red-600'">
-          {{ customDomainStatus.text }}
-        </p>
-        <p class="text-xs text-slate-500 dark:text-slate-400">
-          {{ t('adminTenants.branding.loginDomain.cnameHint', { domain: suggestedLoginDomain || 'login.<slug>' }) }}
-        </p>
-      </div>
-    </div>
   </section>
 </template>
 
@@ -371,6 +314,12 @@ const tenantInfo = ref<{
   customDomain: string | null
   customDomainVerificationStatus: string
   customDomainVerifiedAt: number | null
+  verificationInstructions?: {
+    recordType: string
+    recordName: string
+    recordValue: string
+    note: string
+  } | null
 } | null>(null)
 const brandingLoading = ref(false)
 const brandingError = ref<string | null>(null)
@@ -385,15 +334,6 @@ const accentForm = reactive({
 const allowedExtensions = ['jpg', 'jpeg', 'png', 'svg', 'webp']
 const maxLogoBytes = 2 * 1024 * 1024
 const paletteOptions = BRANDING_PALETTE
-const runtimeConfig = useRuntimeConfig()
-const slugSuffixes = runtimeConfig.public.loginBranding?.slugSuffixes ?? []
-const defaultSlugSuffix = computed(() => slugSuffixes[0] ?? '')
-const customDomainForm = reactive({
-  value: ''
-})
-const customDomainSaving = ref(false)
-const customDomainStatus = ref<{ type: 'success' | 'error'; text: string } | null>(null)
-const verifyDomainLoading = ref(false)
 
 watch(
   () => tenantId.value,
@@ -436,16 +376,6 @@ const navColorInput = computed({
 })
 const navigationPreviewColor = computed(() => navColor.value || activeNavBackgroundColor.value)
 
-const suggestedLoginDomain = computed(() => {
-  if (!tenantInfo.value?.slug || !defaultSlugSuffix.value) {
-    return ''
-  }
-  const suffix = defaultSlugSuffix.value.startsWith('.')
-    ? defaultSlugSuffix.value
-    : `.${defaultSlugSuffix.value}`
-  return `${tenantInfo.value.slug}${suffix}`
-})
-
 const hasCustomLogo = computed(() => Boolean(brandingDetails.value?.tenantTheme?.logoUrl))
 const logoSourceLabel = computed(() => formatSource(brandingDetails.value?.activeTheme.logoSource))
 const tenantHasCustomAccent = computed(() =>
@@ -478,37 +408,6 @@ const brandingLayers = computed(() => {
     })
   }
   return layers
-})
-
-const domainVerificationMeta = computed(() => {
-  if (!tenantInfo.value?.customDomain) {
-    return {
-      label: t('adminTenants.branding.loginDomain.status.notConfigured'),
-      class: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-    }
-  }
-  switch (tenantInfo.value.customDomainVerificationStatus) {
-    case 'verified':
-      return {
-        label: t('adminTenants.branding.loginDomain.status.verified'),
-        class: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-100'
-      }
-    case 'pending':
-      return {
-        label: t('adminTenants.branding.loginDomain.status.pending'),
-        class: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-100'
-      }
-    case 'failed':
-      return {
-        label: t('adminTenants.branding.loginDomain.status.failed'),
-        class: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-100'
-      }
-    default:
-      return {
-        label: t('adminTenants.branding.loginDomain.status.unverified'),
-        class: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-      }
-  }
 })
 
 function triggerFilePicker() {
@@ -605,53 +504,6 @@ function scheduleUploadStatusClear() {
   }
 }
 
-async function saveCustomDomain() {
-  if (!tenantId.value) return
-  customDomainSaving.value = true
-  customDomainStatus.value = null
-  try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/domain`, {
-      method: 'PUT',
-      credentials: 'include',
-      body: {
-        customDomain: customDomainForm.value.trim() || null
-      }
-    })
-    customDomainStatus.value = { type: 'success', text: t('adminTenants.branding.loginDomain.updated') }
-    await fetchBranding()
-  } catch (error: any) {
-    customDomainStatus.value = {
-      type: 'error',
-      text: error?.data?.message || error?.message || t('adminTenants.branding.loginDomain.saveError')
-    }
-  } finally {
-    customDomainSaving.value = false
-  }
-}
-
-async function verifyCustomDomain() {
-  if (!tenantId.value || !tenantInfo.value?.customDomain) {
-    return
-  }
-  verifyDomainLoading.value = true
-  customDomainStatus.value = null
-  try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/domain/verify`, {
-      method: 'POST',
-      credentials: 'include'
-    })
-    customDomainStatus.value = { type: 'success', text: t('adminTenants.branding.loginDomain.verified') }
-    await fetchBranding()
-  } catch (error: any) {
-    customDomainStatus.value = {
-      type: 'error',
-      text: error?.data?.message || error?.message || t('adminTenants.branding.loginDomain.verifyError')
-    }
-  } finally {
-    verifyDomainLoading.value = false
-  }
-}
-
 async function fetchBranding() {
   if (!tenantId.value) return
   brandingLoading.value = true
@@ -678,7 +530,6 @@ async function fetchBranding() {
     const theme = brandingDetails.value?.tenantTheme
     accentForm.customColor = theme?.accentColor ?? ''
     navColor.value = theme?.navigationBackgroundColor ?? ''
-    customDomainForm.value = tenantInfo.value?.customDomain ?? ''
   } catch (error: any) {
     brandingError.value =
       error?.data?.message || error?.message || t('adminTenants.branding.errors.loadFailed')

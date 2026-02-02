@@ -1228,6 +1228,78 @@
         "login": "Manage login branding and custom domains (CNAME)"
       }
     },
+    "customDomain": {
+      "title": "Custom domain",
+      "description": "Link a custom domain to the portal for your organization.",
+      "features": {
+        "own": "Use your own domain instead of the default address",
+        "ssl": "Automatic SSL certificate via Let's Encrypt",
+        "verify": "DNS verification ensures domain ownership"
+      }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Link a custom domain to the portal for your organization.",
+      "backToSettings": "Settings",
+      "noOrgSelected": "Select an organization to manage custom domain.",
+      "currentDomain": {
+        "title": "Current domain",
+        "description": "Your organization's login domain for the portal.",
+        "default": "Default:",
+        "label": "Domain",
+        "noDomain": "No custom domain configured",
+        "noDomainHint": "Add a custom domain below to use it for login."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "save": "Save",
+        "saving": "Saving...",
+        "remove": "Remove",
+        "hint": "Enter the domain without protocol (https://)"
+      },
+      "cname": {
+        "title": "Step 1: Point your domain",
+        "description": "Create a CNAME record in your DNS that points your custom domain to the default address.",
+        "recordType": "Record type",
+        "recordName": "Name/Host",
+        "target": "Target/Value",
+        "example": "Example: {domain} → CNAME → {target}"
+      },
+      "verification": {
+        "title": "Step 2: Verify ownership",
+        "instructions": "Add the following TXT record with your DNS provider to verify domain ownership:",
+        "recordType": "Record type",
+        "recordName": "Record name",
+        "recordValue": "Value",
+        "note": "It can take up to 24 hours for DNS changes to propagate. Click \"Verify\" after adding the record.",
+        "verify": "Verify domain",
+        "checking": "Checking...",
+        "verifiedAt": "Verified: {date}"
+      },
+      "status": {
+        "verified": "Verified",
+        "pending": "Pending verification",
+        "verifying": "Verifying...",
+        "unverified": "Unverified"
+      },
+      "success": {
+        "saved": "Domain settings saved.",
+        "removed": "Domain removed.",
+        "verified": "Domain verified!",
+        "copied": "Copied to clipboard."
+      },
+      "error": {
+        "fetchFailed": "Could not fetch domain information.",
+        "saveFailed": "Could not save domain.",
+        "removeFailed": "Could not remove domain.",
+        "verificationFailed": "DNS verification failed. Check that the TXT record exists and try again.",
+        "copyFailed": "Could not copy to clipboard."
+      },
+      "confirm": {
+        "remove": "Do you want to remove the custom domain? The organization will use the default address for login."
+      }
+    },
     "audit": {
       "title": "Audit Logs",
       "description": "View security events and administrative activities for the organization.",
@@ -1281,60 +1353,6 @@
         "create": "Create new API keys with custom permissions",
         "scopes": "Restrict access with scopes (e.g., dns:read, org:write)",
         "revoke": "Revoke keys when needed"
-      }
-    },
-    "domain": {
-      "title": "Custom Domain",
-      "description": "Configure a custom domain to access the portal via your own web address.",
-      "backToSettings": "Back to settings",
-      "noOrgSelected": "Select an organization first to manage custom domain.",
-      "currentDomain": {
-        "title": "Current Domain",
-        "description": "Your custom domain for accessing the portal.",
-        "label": "Domain",
-        "noDomain": "No custom domain configured",
-        "noDomainHint": "Add a custom domain to access the portal via your own web address."
-      },
-      "form": {
-        "domainLabel": "Custom domain",
-        "domainPlaceholder": "portal.example.com",
-        "hint": "Enter the domain name without protocol (https://). Only subdomains are supported.",
-        "save": "Save domain",
-        "saving": "Saving...",
-        "remove": "Remove"
-      },
-      "status": {
-        "verified": "Verified",
-        "pending": "Pending verification",
-        "verifying": "Verifying...",
-        "unverified": "Unverified"
-      },
-      "verification": {
-        "title": "DNS Verification",
-        "instructions": "To verify that you own the domain, add the following TXT record to your DNS:",
-        "recordType": "Record Type",
-        "recordName": "Name/Host",
-        "recordValue": "Value",
-        "note": "DNS changes can take up to 24 hours to propagate. You can try to verify at any time.",
-        "verify": "Verify now",
-        "checking": "Verifying...",
-        "verifiedAt": "Verified {date}"
-      },
-      "success": {
-        "saved": "Custom domain has been saved. Add the DNS record to verify.",
-        "removed": "Custom domain has been removed.",
-        "verified": "Domain has been verified!",
-        "copied": "Copied to clipboard!"
-      },
-      "error": {
-        "fetchFailed": "Failed to fetch domain information.",
-        "saveFailed": "Failed to save custom domain.",
-        "removeFailed": "Failed to remove custom domain.",
-        "verificationFailed": "Verification failed. Check that the DNS record is correctly configured.",
-        "copyFailed": "Failed to copy to clipboard."
-      },
-      "confirm": {
-        "remove": "Are you sure you want to remove the custom domain? Users will no longer be able to access the portal via this address."
       }
     }
   },
@@ -1524,6 +1542,8 @@
         "mspRolesDesc": "Manage roles for MSP users",
         "roleTemplates": "MSP role templates",
         "roleTemplatesDesc": "Manage MSP role templates for providers",
+        "customDomain": "Custom domain",
+        "customDomainDesc": "Configure login domain",
         "branding": "Branding",
         "brandingDesc": "Customize tenant branding",
         "auditLogs": "Audit logs",
@@ -2074,6 +2094,14 @@
         "saveError": "Could not save domain.",
         "verifyError": "Verification failed.",
         "cnameHint": "Point a CNAME to {domain} and verify the domain before it is put into use.",
+        "verificationRequired": "DNS verification required",
+        "verificationInstructions": "Add the following TXT record to your DNS to verify domain ownership.",
+        "recordType": "Record type",
+        "recordName": "Record name",
+        "recordValue": "Value",
+        "verificationNote": "It can take up to 24 hours for DNS changes to propagate. Click \"Verify\" after adding the record.",
+        "copied": "Copied to clipboard!",
+        "copyFailed": "Could not copy to clipboard.",
         "status": {
           "notConfigured": "Not configured",
           "verified": "Verified",
@@ -2090,6 +2118,72 @@
       },
       "errors": {
         "loadFailed": "Could not load branding information."
+      }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Configure custom domain for login page for {name}.",
+      "backToTenant": "Back",
+      "types": {
+        "provider": "Provider",
+        "distributor": "Distributor"
+      },
+      "currentDomain": {
+        "title": "Current domain",
+        "description": "Your login domain for the portal.",
+        "default": "Default:",
+        "label": "Domain",
+        "noDomain": "No custom domain configured",
+        "noDomainHint": "Add a custom domain below to use it for login."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "save": "Save",
+        "saving": "Saving...",
+        "remove": "Remove",
+        "hint": "Enter the domain without protocol (https://)"
+      },
+      "cname": {
+        "title": "Step 1: Point your domain",
+        "description": "Create a CNAME record in your DNS that points your custom domain to the default address.",
+        "recordType": "Record type",
+        "recordName": "Name/Host",
+        "target": "Target/Value",
+        "example": "Example: {domain} → CNAME → {target}"
+      },
+      "verification": {
+        "title": "Step 2: Verify ownership",
+        "instructions": "Add the following TXT record with your DNS provider to verify domain ownership:",
+        "recordType": "Record type",
+        "recordName": "Record name",
+        "recordValue": "Value",
+        "note": "It can take up to 24 hours for DNS changes to propagate. Click \"Verify\" after adding the record.",
+        "verify": "Verify domain",
+        "checking": "Checking...",
+        "verifiedAt": "Verified: {date}"
+      },
+      "status": {
+        "verified": "Verified",
+        "pending": "Pending verification",
+        "verifying": "Verifying...",
+        "unverified": "Unverified"
+      },
+      "success": {
+        "saved": "Domain settings saved.",
+        "removed": "Domain removed.",
+        "verified": "Domain verified!",
+        "copied": "Copied to clipboard."
+      },
+      "error": {
+        "fetchFailed": "Could not fetch domain information.",
+        "saveFailed": "Could not save domain.",
+        "removeFailed": "Could not remove domain.",
+        "verificationFailed": "DNS verification failed. Check that the TXT record exists and try again.",
+        "copyFailed": "Could not copy to clipboard."
+      },
+      "confirm": {
+        "remove": "Do you want to remove the custom domain? The default address will be used for login."
       }
     },
     "detail": {
@@ -2123,6 +2217,24 @@
         },
         "dangerZone": {
           "title": "Danger zone"
+        }
+      },
+      "quickLinks": {
+        "domain": {
+          "title": "Custom domain",
+          "description": "Configure custom login domain"
+        },
+        "branding": {
+          "title": "Branding",
+          "description": "Logos and accent colors"
+        },
+        "members": {
+          "title": "Members",
+          "description": "Manage users and roles"
+        },
+        "modules": {
+          "title": "Modules",
+          "description": "Enable and configure"
         }
       },
       "fields": {

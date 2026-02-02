@@ -36,6 +36,10 @@
               <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {{ t('settings.domain.currentDomain.description') }}
               </p>
+              <p v-if="domainData?.defaultDomain" class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                {{ t('settings.domain.currentDomain.default') }}
+                <code class="rounded bg-slate-100 px-2 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-100">{{ domainData.defaultDomain }}</code>
+              </p>
             </div>
           </div>
 
@@ -145,20 +149,84 @@
           </div>
         </div>
 
-        <!-- Verification Instructions -->
-        <div v-if="domainData?.customDomain && domainData.customDomainVerificationStatus !== 'verified' && verificationInstructions" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#0c1524]">
+        <!-- CNAME Instructions (Step 1) -->
+        <div v-if="domainData?.customDomain && domainData.customDomainVerificationStatus !== 'verified' && domainData.cnameTarget" class="rounded-2xl border border-blue-200 bg-blue-50 p-6 shadow-card dark:border-blue-500/30 dark:bg-blue-500/10">
           <div class="flex items-center gap-3">
-            <Icon icon="mdi:dns" class="h-6 w-6 text-amber-500" />
+            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white">
+              <span class="text-sm font-bold">1</span>
+            </div>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {{ t('settings.domain.cname.title') }}
+            </h2>
+          </div>
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            {{ t('settings.domain.cname.description') }}
+          </p>
+
+          <div class="mt-4 rounded-xl border border-blue-200 bg-white p-4 dark:border-blue-500/20 dark:bg-white/5">
+            <div class="space-y-3">
+              <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {{ t('settings.domain.cname.recordType') }}
+                </p>
+                <p class="font-mono text-sm text-slate-900 dark:text-slate-100">CNAME</p>
+              </div>
+              <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {{ t('settings.domain.cname.recordName') }}
+                </p>
+                <div class="flex items-center gap-2">
+                  <code class="flex-1 rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
+                    {{ domainData.customDomain }}
+                  </code>
+                  <button
+                    class="rounded p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                    @click="copyToClipboard(domainData.customDomain!)"
+                  >
+                    <Icon icon="mdi:content-copy" class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {{ t('settings.domain.cname.target') }}
+                </p>
+                <div class="flex items-center gap-2">
+                  <code class="flex-1 rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
+                    {{ domainData.cnameTarget }}
+                  </code>
+                  <button
+                    class="rounded p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                    @click="copyToClipboard(domainData.cnameTarget!)"
+                  >
+                    <Icon icon="mdi:content-copy" class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="mt-3 text-xs text-blue-700 dark:text-blue-300">
+            {{ t('settings.domain.cname.example', { domain: domainData.customDomain, target: domainData.cnameTarget }) }}
+          </p>
+        </div>
+
+        <!-- Verification Instructions (Step 2) -->
+        <div v-if="domainData?.customDomain && domainData.customDomainVerificationStatus !== 'verified' && verificationInstructions" class="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-card dark:border-amber-500/30 dark:bg-amber-500/10">
+          <div class="flex items-center gap-3">
+            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-white">
+              <span class="text-sm font-bold">2</span>
+            </div>
             <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
               {{ t('settings.domain.verification.title') }}
             </h2>
           </div>
-          <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
             {{ t('settings.domain.verification.instructions') }}
           </p>
 
           <div class="mt-4 space-y-4">
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div class="rounded-xl border border-amber-200 bg-white p-4 dark:border-amber-500/20 dark:bg-white/5">
               <div class="space-y-3">
                 <div>
                   <p class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -171,7 +239,7 @@
                     {{ t('settings.domain.verification.recordName') }}
                   </p>
                   <div class="flex items-center gap-2">
-                    <code class="flex-1 rounded bg-slate-200 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
+                    <code class="flex-1 rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
                       {{ verificationInstructions.recordName }}
                     </code>
                     <button
@@ -187,7 +255,7 @@
                     {{ t('settings.domain.verification.recordValue') }}
                   </p>
                   <div class="flex items-center gap-2">
-                    <code class="flex-1 rounded bg-slate-200 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
+                    <code class="flex-1 rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-900 dark:bg-white/10 dark:text-slate-100">
                       {{ verificationInstructions.recordValue }}
                     </code>
                     <button
@@ -201,7 +269,7 @@
               </div>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400">
+            <p class="text-xs text-amber-700 dark:text-amber-300">
               {{ t('settings.domain.verification.note') }}
             </p>
           </div>
@@ -215,13 +283,20 @@
 import { Icon } from '@iconify/vue'
 
 const { t } = useI18n()
-const { currentOrgId } = storeToRefs(useContextStore())
+const auth = useAuth()
+const currentOrgId = computed(() => auth.state.value.data?.currentOrgId ?? null)
 
 interface DomainData {
   organizationId: string
+  name: string | null
+  slug: string | null
   customDomain: string | null
   customDomainVerificationStatus: string
   customDomainVerifiedAt: string | null
+  cnameTarget: string | null
+  defaultDomain: string | null
+  tenantId: string | null
+  tenantSlug: string | null
   verificationInstructions?: {
     recordType: string
     recordName: string

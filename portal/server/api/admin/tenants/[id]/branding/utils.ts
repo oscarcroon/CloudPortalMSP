@@ -11,6 +11,7 @@ export interface BrandableTenant {
   customDomain: string | null
   customDomainVerificationStatus: string
   customDomainVerifiedAt: number | null
+  customDomainVerificationToken: string | null
 }
 
 export async function ensureBrandableTenant(tenantId: string): Promise<BrandableTenant> {
@@ -27,7 +28,8 @@ export async function ensureBrandableTenant(tenantId: string): Promise<Brandable
       slug: tenants.slug,
       customDomain: tenants.customDomain,
       customDomainVerificationStatus: tenants.customDomainVerificationStatus,
-      customDomainVerifiedAt: tenants.customDomainVerifiedAt
+      customDomainVerifiedAt: tenants.customDomainVerifiedAt,
+      customDomainVerificationToken: tenants.customDomainVerificationToken
     })
     .from(tenants)
     .where(eq(tenants.id, tenantId))

@@ -400,6 +400,143 @@ När allt är konfigurerat fungerar flödet så här:
 
 ---
 
+## Routing-arkitektur
+
+Portalen stödjer tre typer av åtkomst:
+
+### 1. Huvuddomän (Standard)
+
+```
+https://portal.coreit.cloud
+```
+
+- Konfigureras manuellt i `custom-domains.yml`
+- Wildcard-certifikat (`*.portal.coreit.cloud`) hanteras manuellt
+
+### 2. Slug-baserade subdomäner
+
+```
+https://{slug}.portal.coreit.cloud
+```
+
+Varje tenant (distributör/leverantör) och organisation har en unik `slug` i databasen:
+
+| Entity | Exempel slug | Resulterande URL |
+|--------|--------------|------------------|
+| Distributör | `gdm` | `gdm.portal.coreit.cloud` |
+| Leverantör | `acme-it` | `acme-it.portal.coreit.cloud` |
+| Organisation | `kundforetag` | `kundforetag.portal.coreit.cloud` |
+
+**Hur det fungerar:**
+
+1. **DNS**: Wildcard A-post (`*.portal.coreit.cloud`) pekar mot Traefik-servern
+2. **SSL**: Wildcard-certifikat täcker alla subdomäner (manuellt hanterat)
+3. **Traefik**: Routar all trafik till Nuxt-backend
+4. **Nuxt**: `loginBrandingResolver` extraherar slug från hostname och identifierar kunden
+
+### 3. Custom Domains
+
+```
+https://portal.kundforetag.se  →  CNAME  →  kundforetag.portal.coreit.cloud
+```
+
+Kunder kan använda sina egna domäner genom att:
+
+1. Skapa en **CNAME-post** som pekar till sin slug-subdomän
+2. Verifiera ägandeskap via **TXT-post**
+3. Få automatiskt **SSL-certifikat** via Let's Encrypt HTTP-01
+
+**Traefik-konfiguration (auto-genererad):**
+
+```yaml
+http:
+  routers:
+    custom-portal-kundforetag-se:
+      rule: "Host(`portal.kundforetag.se`)"
+      service: portal-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      priority: 10  # Högre än default-router
+```
+
+### DNS-krav för kunder
+
+| Steg | DNS-post | Namn | Värde |
+|------|----------|------|-------|
+| 1 | CNAME | `portal.kundforetag.se` | `{slug}.portal.coreit.cloud` |
+| 2 | TXT | `_cloudportal-verify.portal.kundforetag.se` | `cp-verify={token}` |
+
+**Viktigt:**
+- CNAME måste peka mot slug-subdomänen (inte direkt mot Traefik-IP)
+- TXT-posten verifierar domänägandeskap och krävs för att aktivera routingen
+- SSL-certifikat utfärdas automatiskt efter verifiering
+
+### Routing-flöde (diagram)
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │              KUNDENS DNS                │
+                    │                                         │
+                    │  portal.kund.se → CNAME → slug.portal.coreit.cloud
+                    │  _cloudportal-verify.portal.kund.se → TXT → cp-verify=...
+                    │                                         │
+                    └────────────────────┬────────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              COREIT DNS                                     │
+│                                                                             │
+│   *.portal.coreit.cloud  →  A  →  192.168.2.130 (Traefik)                  │
+│   portal.coreit.cloud    →  A  →  192.168.2.130 (Traefik)                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         TRAEFIK (192.168.2.130)                             │
+│                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  Routers (prioritetsordning):                                        │   │
+│   │                                                                      │   │
+│   │  1. Host(`portal.kund.se`)        → Custom domain (prio 10, Let's Encrypt)
+│   │  2. Host(`slug.portal.coreit.cloud`) → Slug-subdomän (wildcard cert) │   │
+│   │  3. Host(`portal.coreit.cloud`)   → Default (prio 1)                 │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                         │                                   │
+│                                         ▼                                   │
+│                               portal-service                                │
+│                          http://10.0.0.5:3000                               │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         NUXT APP (10.0.0.5:3000)                            │
+│                                                                             │
+│   loginBrandingResolver.ts:                                                 │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │  1. Kolla custom domain i DB (portal.kund.se)                        │   │
+│   │     → Hitta tenant/org med matching customDomain                     │   │
+│   │                                                                      │   │
+│   │  2. Om ej hittat: extrahera slug från host                           │   │
+│   │     → slug.portal.coreit.cloud → slug = "slug"                       │   │
+│   │     → Hitta tenant/org med matching slug                             │   │
+│   │                                                                      │   │
+│   │  3. Om ej hittat: query param (?tenant=slug)                         │   │
+│   │                                                                      │   │
+│   │  4. Om ej hittat: använd global branding                             │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│   → Ladda tenant/org branding (logotyp, färger, etc.)                       │
+│   → Visa anpassad login-sida                                                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Felsökning
 
 ### Traefik startar inte

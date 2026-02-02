@@ -935,6 +935,15 @@ const tenantActions = computed(() => {
     })
   }
 
+  // Custom Domain
+  actions.push({
+    to: `/tenant-admin/tenants/${tenantId}/domain`,
+    icon: 'mdi:web',
+    label: t('admin.tenantAdmin.tenantActions.customDomain'),
+    description: t('admin.tenantAdmin.tenantActions.customDomainDesc'),
+    disabled: false
+  })
+
   // Branding
   actions.push({
     to: `/tenant-admin/tenants/${tenantId}/branding`,

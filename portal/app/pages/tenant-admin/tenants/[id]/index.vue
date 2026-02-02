@@ -343,6 +343,73 @@
         </div>
       </div>
 
+      <!-- Quick Links (providers & distributors) -->
+      <div v-if="tenant.type === 'provider' || tenant.type === 'distributor'" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Custom Domain -->
+        <NuxtLink
+          :to="`/tenant-admin/tenants/${tenant.id}/domain`"
+          class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand hover:shadow-md dark:border-white/10 dark:bg-[#0c1524] dark:hover:border-brand"
+        >
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+            <Icon icon="mdi:web" class="h-5 w-5" />
+          </div>
+          <h3 class="mt-3 text-sm font-semibold text-slate-900 group-hover:text-brand dark:text-white">
+            {{ t('adminTenants.detail.quickLinks.domain.title') }}
+          </h3>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {{ t('adminTenants.detail.quickLinks.domain.description') }}
+          </p>
+        </NuxtLink>
+
+        <!-- Branding -->
+        <NuxtLink
+          :to="`/tenant-admin/tenants/${tenant.id}/branding`"
+          class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand hover:shadow-md dark:border-white/10 dark:bg-[#0c1524] dark:hover:border-brand"
+        >
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+            <Icon icon="mdi:palette-outline" class="h-5 w-5" />
+          </div>
+          <h3 class="mt-3 text-sm font-semibold text-slate-900 group-hover:text-brand dark:text-white">
+            {{ t('adminTenants.detail.quickLinks.branding.title') }}
+          </h3>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {{ t('adminTenants.detail.quickLinks.branding.description') }}
+          </p>
+        </NuxtLink>
+
+        <!-- Members -->
+        <NuxtLink
+          :to="`/tenant-admin/tenants/${tenant.id}/members`"
+          class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand hover:shadow-md dark:border-white/10 dark:bg-[#0c1524] dark:hover:border-brand"
+        >
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+            <Icon icon="mdi:account-group-outline" class="h-5 w-5" />
+          </div>
+          <h3 class="mt-3 text-sm font-semibold text-slate-900 group-hover:text-brand dark:text-white">
+            {{ t('adminTenants.detail.quickLinks.members.title') }}
+          </h3>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {{ t('adminTenants.detail.quickLinks.members.description') }}
+          </p>
+        </NuxtLink>
+
+        <!-- Modules -->
+        <NuxtLink
+          :to="`/tenant-admin/tenants/${tenant.id}/modules`"
+          class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand hover:shadow-md dark:border-white/10 dark:bg-[#0c1524] dark:hover:border-brand"
+        >
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <Icon icon="mdi:puzzle-outline" class="h-5 w-5" />
+          </div>
+          <h3 class="mt-3 text-sm font-semibold text-slate-900 group-hover:text-brand dark:text-white">
+            {{ t('adminTenants.detail.quickLinks.modules.title') }}
+          </h3>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {{ t('adminTenants.detail.quickLinks.modules.description') }}
+          </p>
+        </NuxtLink>
+      </div>
+
       <!-- Danger Zone (providers & distributors) -->
       <section
         v-if="showTenantDangerZone"
