@@ -1,23 +1,26 @@
 <template>
   <header
-    class="border-b border-[var(--surface-border)] bg-[var(--surface-topbar)] shadow-sm backdrop-blur transition-colors"
+    class="relative z-[60] border-b border-[var(--surface-border)] bg-[var(--surface-topbar)] shadow-sm backdrop-blur transition-colors"
   >
     <div
       class="relative mx-auto flex w-full flex-wrap items-center gap-4 px-4 py-2 text-sm text-slate-700 dark:text-slate-100 lg:max-w-6xl"
     >
       <!-- Desktop: Sökfält -->
-      <div class="hidden flex-1 md:block">
+      <div ref="desktopSearchContainer" class="relative hidden flex-1 md:block">
         <label class="sr-only" for="global-search">{{ t('topBar.searchLabel') }}</label>
           <input
             id="global-search"
-            v-model="search"
+            ref="desktopSearchInput"
+            v-model="globalSearch.query.value"
             type="search"
             :placeholder="t('topBar.searchPlaceholder')"
             class="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 transition placeholder:text-slate-400 focus:outline-none focus:ring-1 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:placeholder:text-slate-500"
             :style="{ '--tw-ring-color': accentColor }"
-            @focus="(e: FocusEvent) => { const el = e.target as HTMLInputElement; el.style.borderColor = accentColor; el.style.setProperty('--tw-ring-color', accentColor) }"
+            @focus="onDesktopSearchFocus"
             @blur="(e: FocusEvent) => { const el = e.target as HTMLInputElement; el.style.borderColor = '' }"
+            @keydown="onSearchKeydown"
           />
+        <GlobalSearchDropdown />
       </div>
 
       <!-- Mobil: Tre sektioner (vänster, mitten, höger) -->
@@ -164,7 +167,7 @@
         leave-from-class="translate-y-0 opacity-100"
         leave-to-class="-translate-y-2 opacity-0"
       >
-        <div v-if="mobileSearchOpen" id="mobile-search-panel" class="w-full md:hidden">
+        <div v-if="mobileSearchOpen" id="mobile-search-panel" ref="mobileSearchContainer" class="relative w-full md:hidden">
           <label class="sr-only" for="mobile-global-search">{{ t('topBar.searchLabel') }}</label>
           <div
             class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm dark:border-slate-700 dark:bg-slate-900/80"
@@ -172,11 +175,12 @@
             <input
               id="mobile-global-search"
               ref="mobileSearchInput"
-              v-model="search"
+              v-model="globalSearch.query.value"
               type="search"
               :placeholder="t('topBar.searchPlaceholder')"
               class="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-500"
-              @keyup.esc="closeMobileSearch"
+              @focus="globalSearch.open()"
+              @keydown="onSearchKeydown"
             />
             <button
               type="button"
@@ -192,6 +196,7 @@
               </svg>
             </button>
           </div>
+          <GlobalSearchDropdown />
         </div>
       </Transition>
     </div>
@@ -199,29 +204,94 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch, useI18n } from '#imports'
+import { computed, nextTick, ref, watch, onMounted, onBeforeUnmount, useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import ThemeToggle from '~/components/layout/ThemeToggle.vue'
 import LanguageSwitcher from '~/components/layout/LanguageSwitcher.vue'
+import GlobalSearchDropdown from '~/components/layout/GlobalSearchDropdown.vue'
 import { useAuth } from '~/composables/useAuth'
+import { useGlobalSearch } from '~/composables/useGlobalSearch'
 
 const auth = useAuth()
 const { t } = useI18n()
-const search = ref('')
+const globalSearch = useGlobalSearch()
+const router = useRouter()
 const currentUser = computed(() => auth.user.value)
 const mobileSearchOpen = ref(false)
 const mobileSearchInput = ref<HTMLInputElement | null>(null)
+const desktopSearchInput = ref<HTMLInputElement | null>(null)
+const desktopSearchContainer = ref<HTMLElement | null>(null)
+const mobileSearchContainer = ref<HTMLElement | null>(null)
 
 const accentColor = computed(() => {
   return auth.branding.value?.activeTheme.accentColor || '#1C6DD0'
 })
 
+const onDesktopSearchFocus = (e: FocusEvent) => {
+  const el = e.target as HTMLInputElement
+  el.style.borderColor = accentColor.value
+  el.style.setProperty('--tw-ring-color', accentColor.value)
+  globalSearch.open()
+}
+
+const onSearchKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    globalSearch.selectNext()
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    globalSearch.selectPrev()
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    const selected = globalSearch.selectedResult.value
+    if (selected) {
+      router.push(selected.route)
+      globalSearch.close()
+      globalSearch.query.value = ''
+      desktopSearchInput.value?.blur()
+      mobileSearchInput.value?.blur()
+    }
+  } else if (e.key === 'Escape') {
+    globalSearch.close()
+    desktopSearchInput.value?.blur()
+    mobileSearchInput.value?.blur()
+  }
+}
+
+const handleGlobalKeydown = (e: KeyboardEvent) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault()
+    globalSearch.open()
+    nextTick(() => {
+      desktopSearchInput.value?.focus()
+    })
+  }
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (!globalSearch.isOpen.value) return
+  const target = event.target as Node | null
+  if (!target) return
+
+  if (desktopSearchContainer.value?.contains(target)) return
+  if (mobileSearchContainer.value?.contains(target)) return
+
+  globalSearch.close()
+}
+
 const toggleMobileSearch = () => {
   mobileSearchOpen.value = !mobileSearchOpen.value
+  if (mobileSearchOpen.value) {
+    globalSearch.open()
+  } else {
+    globalSearch.close()
+  }
 }
 
 const closeMobileSearch = () => {
   mobileSearchOpen.value = false
+  globalSearch.close()
+  globalSearch.query.value = ''
 }
 
 watch(mobileSearchOpen, value => {
@@ -232,5 +302,14 @@ watch(mobileSearchOpen, value => {
   }
 })
 
-</script>
+onMounted(() => {
+  document.addEventListener('keydown', handleGlobalKeydown)
+  document.addEventListener('click', handleClickOutside)
+})
 
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleGlobalKeydown)
+  document.removeEventListener('click', handleClickOutside)
+})
+
+</script>

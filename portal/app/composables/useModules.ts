@@ -58,6 +58,7 @@ export const useModules = () => {
           return {
             ...m,
             id,
+            key: id,
             routePath,
             badge: m.badge || m.category,
             icon: m.icon,

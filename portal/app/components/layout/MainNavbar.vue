@@ -216,6 +216,7 @@ const { favoriteModules, nonFavoriteModules } = useFavorites()
 const { width } = useWindowSize()
 const { can } = usePermission()
 
+const mounted = ref(false)
 const overflowOpen = ref(false)
 const settingsOpen = ref(false)
 const overflowContainer = ref<HTMLElement>()
@@ -242,6 +243,7 @@ const handleGlobalClick = (event: MouseEvent) => {
 }
 
 onMounted(() => {
+  mounted.value = true
   document.addEventListener('click', handleGlobalClick)
 })
 
@@ -297,21 +299,23 @@ const primaryNavSource = computed(() => {
 })
 
 const maxPrimaryLinks = computed(() => {
-  // Use a consistent default width on server to avoid hydration mismatch
-  // On server, width.value will be undefined, so we use 0 to get the default (2)
-  // On client, use the actual width value
-  const currentWidth = process.client && width.value ? width.value : 0
+  // Use 0 until after mount so the initial client render matches the server output.
+  // After mount, use the real viewport width to show the correct number of links.
+  const currentWidth = mounted.value && width.value ? width.value : 0
   if (currentWidth >= 1600) return 6
   if (currentWidth >= 1360) return 5
   if (currentWidth >= 1100) return 4
   return 2
 })
 
-const visiblePrimaryModules = computed(() =>
-  primaryNavSource.value.slice(0, maxPrimaryLinks.value)
-)
+const visiblePrimaryModules = computed(() => {
+  // Return empty until mounted so SSR and client hydration match
+  if (!mounted.value) return []
+  return primaryNavSource.value.slice(0, maxPrimaryLinks.value)
+})
 
 const overflowNavModules = computed(() => {
+  if (!mounted.value) return []
   const overflowFromSource = primaryNavSource.value.slice(maxPrimaryLinks.value)
   if (favoriteModules.value.length === 0) {
     return overflowFromSource
@@ -322,6 +326,7 @@ const overflowNavModules = computed(() => {
 const hasOverflowModules = computed(() => overflowNavModules.value.length > 0)
 
 const mobileNavModules = computed(() => {
+  if (!mounted.value) return []
   // If no favorites, show all accessible modules
   if (favoriteModules.value.length === 0) {
     return accessibleModules.value
@@ -345,6 +350,7 @@ const getTenantTypeIcon = (type: string | undefined): string => {
 }
 
 const adminNavItems = computed(() => {
+  if (!mounted.value) return []
   const items = []
 
   if (canManageOrg.value) {

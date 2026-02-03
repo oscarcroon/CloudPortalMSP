@@ -2526,6 +2526,17 @@
       "switchOrg": "Switch Organization",
       "logout": "Log Out"
     }
+  },
+  "search": {
+    "noResults": "No results found.",
+    "navigate": "Navigate",
+    "select": "Open",
+    "close": "Close",
+    "hint": "Search...",
+    "categories": {
+      "modules": "Modules",
+      "pages": "Pages"
+    }
   }
 }
 

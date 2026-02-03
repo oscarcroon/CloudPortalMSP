@@ -2669,6 +2669,17 @@
       "switchOrg": "Byt organisation",
       "logout": "Logga ut"
     }
+  },
+  "search": {
+    "noResults": "Inga resultat hittades.",
+    "navigate": "Navigera",
+    "select": "Öppna",
+    "close": "Stäng",
+    "hint": "Sök...",
+    "categories": {
+      "modules": "Moduler",
+      "pages": "Sidor"
+    }
   }
 }
 
