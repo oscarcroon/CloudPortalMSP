@@ -139,7 +139,7 @@ const deleteLoading = ref(false)
 const actionMessage = ref('')
 const errorMessage = ref('')
 
-const { data, pending, refresh, error } = await useFetch<AdminUserDetail>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   () => `/api/admin/users/${userId.value}`,
   {
     watch: [userId]
@@ -159,7 +159,7 @@ const updateStatus = async (status: AdminUpdateUserStatusPayload['status']) => {
   actionMessage.value = ''
   errorMessage.value = ''
   try {
-    await $fetch(`/api/admin/users/${user.value.id}/status`, {
+    await ($fetch as any)(`/api/admin/users/${user.value.id}/status`, {
       method: 'PATCH',
       body: { status }
     })
@@ -179,7 +179,7 @@ const triggerReset = async () => {
   actionMessage.value = ''
   errorMessage.value = ''
   try {
-    await $fetch(`/api/admin/users/${user.value.id}/password-reset`, {
+    await ($fetch as any)(`/api/admin/users/${user.value.id}/password-reset`, {
       method: 'POST'
     })
     actionMessage.value = 'Återställningslänk skickades.'
@@ -204,7 +204,7 @@ const deleteUser = async () => {
   errorMessage.value = ''
   actionMessage.value = ''
   try {
-    await $fetch(`/api/admin/users/${user.value.id}/delete`, {
+    await ($fetch as any)(`/api/admin/users/${user.value.id}/delete`, {
       method: 'DELETE'
     })
     router.push('/platform-admin/users')

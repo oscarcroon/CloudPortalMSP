@@ -255,7 +255,7 @@ const route = useRoute()
 
 const slug = computed(() => route.params.slug as string)
 
-const { data, pending, error } = await useFetch<NewsResponse>(
+const { data, pending, error } = await (useFetch as any)(
   () => `/api/operations/news/${slug.value}`,
   {
     credentials: 'include'
@@ -266,7 +266,7 @@ const post = computed(() => data.value?.post ?? null)
 const navigation = computed(() => data.value?.navigation ?? { previous: null, next: null })
 
 // Fetch other news for the "More news" section
-const { data: newsListData } = await useFetch<NewsListResponse>(
+const { data: newsListData } = await (useFetch as any)(
   '/api/operations/news',
   {
     query: { limit: 4 },
@@ -277,7 +277,7 @@ const { data: newsListData } = await useFetch<NewsListResponse>(
 // Filter out current post and limit to 3
 const otherNews = computed(() => {
   const all = newsListData.value?.posts ?? []
-  return all.filter((n) => n.slug !== slug.value).slice(0, 3)
+  return all.filter((n: any) => n.slug !== slug.value).slice(0, 3)
 })
 
 const renderedBody = computed(() => {

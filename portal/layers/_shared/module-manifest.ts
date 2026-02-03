@@ -1,4 +1,4 @@
-import type { PluginModuleManifest } from '@/server/lib/plugin-registry/types'
+import type { PluginModuleManifest } from '~~/server/lib/plugin-registry/types'
 
 /**
  * Shared helper för layers så manifest får typstöd och enkel wrapper.

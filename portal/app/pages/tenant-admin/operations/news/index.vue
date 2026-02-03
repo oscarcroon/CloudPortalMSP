@@ -176,7 +176,7 @@ interface NewsResponse {
   tenantType: string
 }
 
-const { data, pending, refresh } = useFetch<NewsResponse>(
+const { data, pending, refresh } = (useFetch as any)(
   () => tenantId.value ? `/api/admin/tenants/${tenantId.value}/news?status=${filter.value}` : '',
   {
     immediate: !!tenantId.value,

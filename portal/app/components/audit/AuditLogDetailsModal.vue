@@ -86,7 +86,7 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 dark:divide-white/10">
-                <tr v-for="(change, field) in meta?.changes" :key="field" class="hover:bg-slate-50 dark:hover:bg-white/5">
+                <tr v-for="(change, field) in (meta?.changes as Record<string, FieldChange> | undefined)" :key="field" class="hover:bg-slate-50 dark:hover:bg-white/5">
                   <td class="px-3 py-2 text-sm font-medium text-slate-900 dark:text-white">
                     {{ field }}
                   </td>

@@ -52,7 +52,7 @@ function extractBearerToken(event: H3Event): string | null {
   const match = authHeader.match(/^Bearer\s+(.+)$/i)
   if (!match) return null
 
-  return match[1]
+  return match[1] ?? null
 }
 
 /**

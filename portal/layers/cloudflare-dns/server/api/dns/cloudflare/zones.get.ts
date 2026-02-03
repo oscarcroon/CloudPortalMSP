@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const forceRefresh =
-    query?.refresh === '1' || query?.refresh === 'true' || query?.refresh === true || query?.refresh === 'yes'
+    query?.refresh === '1' || query?.refresh === 'true' || query?.refresh === 'yes'
 
   // Always try cache first unless explicitly refreshed
   const cached = await getZoneCache(orgId)
@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  let zones = []
+  let zones: Array<{ id: string; name: string; status: string | null; plan: string | null; recordCount: number | null }> = []
   try {
     const client = await getClientForOrg(orgId)
     const res = await client.listZones()
@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
         } catch {
           // ignore count errors, keep null
         }
-        return { ...zone, recordCount }
+        return { id: zone.id, name: zone.name, status: zone.status ?? null, plan: zone.plan ?? null, recordCount }
       })
     )
 

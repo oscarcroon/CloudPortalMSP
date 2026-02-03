@@ -95,6 +95,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify provider is linked to the template's distributor
+  if (!template.tenantId) {
+    throw createError({ statusCode: 400, message: 'Mallen saknar distributörs-koppling.' })
+  }
+
   const [link] = await db
     .select({ id: distributorProviders.id })
     .from(distributorProviders)
@@ -281,6 +285,10 @@ export default defineEventHandler(async (event) => {
     .from(mspRoles)
     .where(eq(mspRoles.id, roleId))
     .limit(1)
+
+  if (!createdRole) {
+    throw createError({ statusCode: 500, message: 'Rollen kunde inte hittas efter skapande.' })
+  }
 
   return {
     role: {

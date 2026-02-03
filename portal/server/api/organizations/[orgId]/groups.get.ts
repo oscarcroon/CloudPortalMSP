@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
         if (!membersByGroup[row.groupId]) {
           membersByGroup[row.groupId] = []
         }
-        membersByGroup[row.groupId].push({
+        membersByGroup[row.groupId]!.push({
           userId: row.userId,
           email: row.email ?? null,
           fullName: row.fullName ?? null

@@ -5,7 +5,7 @@
     <div class="flex items-start justify-between gap-3">
       <div class="flex items-center gap-3">
         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
-          <Icon :icon="icon" class="h-5 w-5" />
+          <Icon :icon="icon ?? 'mdi:puzzle'" class="h-5 w-5" />
         </div>
         <div>
           <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ badge }}</p>

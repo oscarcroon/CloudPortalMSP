@@ -209,7 +209,7 @@ const loadEventTypes = async () => {
   try {
     const orgId = auth.state.value.data?.currentOrgId
     const { locale } = useI18n()
-    const response = await $fetch<{ groups: EventTypeGroup[] }>(
+    const response = await ($fetch as any)(
       `/api/organizations/${orgId}/audit-logs/event-types?locale=${locale.value}`
     )
     auditModules.value = response.groups || []
@@ -284,7 +284,7 @@ const loadLogs = async (page = 1) => {
     if (filters.value.startDate) params.append('startDate', filters.value.startDate)
     if (filters.value.endDate) params.append('endDate', filters.value.endDate)
     
-    const response = await $fetch<{ logs: AuditLog[]; pagination: any }>(`/api/organizations/${orgId}/audit-logs?${params}`)
+    const response = await ($fetch as any)(`/api/organizations/${orgId}/audit-logs?${params}`)
     logs.value = response.logs
     pagination.value = response.pagination
   } catch (error) {

@@ -332,7 +332,7 @@ const fetchGroups = async () => {
   errorMessage.value = ''
   
   try {
-    const res = await $fetch<{ groups: GroupBasic[] }>(`/api/organizations/${currentOrgId.value}/groups`)
+    const res = await ($fetch as any)(`/api/organizations/${currentOrgId.value}/groups`)
     groups.value = res.groups
   } catch (error: any) {
     errorMessage.value = error?.data?.message || error?.message || 'Could not load groups'
@@ -347,7 +347,7 @@ const fetchGroupPermissions = async (groupId: string) => {
   loadingPermissions[groupId] = true
   
   try {
-    const res = await $fetch<GroupPermissionsData>(
+    const res = await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/groups/${groupId}/permissions`
     )
     groupPermissions[groupId] = res
@@ -451,7 +451,7 @@ const getEffectiveEffect = (groupId: string, permKey: string, originalEffect: 'g
 // Format permission key for display
 const formatPermissionKey = (key: string): string => {
   const parts = key.split(':')
-  return parts[parts.length - 1]
+  return (parts[parts.length - 1] ?? key)
     .replace(/-/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase())
 }
@@ -535,13 +535,13 @@ const savePermissions = async (groupId: string) => {
           permissions.push({
             moduleKey: module.id,
             permissionKey: perm.key,
-            effect: changes[perm.key]
+            effect: changes[perm.key]!
           })
         }
       }
     }
     
-    await $fetch(`/api/organizations/${currentOrgId.value}/groups/${groupId}/permissions`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/groups/${groupId}/permissions`, {
       method: 'PUT',
       body: { permissions }
     })

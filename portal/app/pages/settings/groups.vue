@@ -64,7 +64,7 @@
             <button
               class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
               :disabled="pending"
-              @click="refreshGroups"
+              @click="() => refreshGroups()"
             >
               <Icon icon="mdi:refresh" class="h-4 w-4" />
               {{ t('common.refresh') ?? 'Refresh' }}
@@ -216,11 +216,11 @@ const {
   data,
   pending,
   refresh: refreshGroups
-} = await useFetch<{ organizationId: string; groups: GroupItem[] }>(() =>
-  currentOrgId.value ? `/api/organizations/${currentOrgId.value}/groups` : null
+} = await (useFetch as any)(() =>
+  currentOrgId.value ? `/api/organizations/${currentOrgId.value}/groups` : (null as unknown as string)
 )
 
-const groups = computed(() => data.value?.groups ?? [])
+const groups = computed(() => (data.value as { groups: GroupItem[] } | null)?.groups ?? [])
 
 const memberSearch = ref('')
 const memberResults = ref<AdminUsersResponse['users']>([])
@@ -233,7 +233,7 @@ const searchMembers = async () => {
   }
   searchingMembers.value = true
   try {
-    const res = await $fetch<AdminUsersResponse>('/api/admin/users', {
+    const res = await ($fetch as any)('/api/admin/users', {
       query: { q: memberSearch.value.trim() }
     })
     memberResults.value = res.users ?? []
@@ -272,7 +272,7 @@ const createGroup = async () => {
   creating.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/groups`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/groups`, {
       method: 'POST',
       body: {
         name: form.value.name.trim(),
@@ -298,7 +298,7 @@ const deleteGroup = async (groupId: string, groupName?: string) => {
   )
   if (!confirmed) return
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/groups/${groupId}/delete`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/groups/${groupId}/delete`, {
       method: 'DELETE'
     })
     await refreshGroups()
@@ -317,7 +317,7 @@ const toggleExpanded = (groupId: string) => {
   })
   expanded.value[groupId] = !wasExpanded
   if (expanded.value[groupId]) {
-    const group = groups.value.find((g) => g.id === groupId)
+    const group = groups.value.find((g: GroupItem) => g.id === groupId)
     resetMembersInput(group)
     // Clear search when opening a new group
     memberSearch.value = ''
@@ -362,7 +362,7 @@ const saveMembers = async (groupId: string) => {
   const memberIds = parseMemberIds(raw)
   savingMembers.value[groupId] = true
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/groups/${groupId}/members`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/groups/${groupId}/members`, {
       method: 'PUT',
       body: { memberIds }
     })

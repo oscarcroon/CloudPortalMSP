@@ -88,7 +88,7 @@ export default defineEventHandler(async (event) => {
 
   const hasMore = posts.length > limit
   const items = hasMore ? posts.slice(0, limit) : posts
-  const nextCursor = hasMore && items.length > 0 ? items[items.length - 1].id : null
+  const nextCursor = hasMore && items.length > 0 ? items[items.length - 1]!.id : null
 
   return {
     posts: items.map((post) => ({

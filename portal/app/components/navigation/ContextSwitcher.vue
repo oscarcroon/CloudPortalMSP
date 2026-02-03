@@ -397,11 +397,11 @@ function toggle() {
 
 async function loadContextOptions() {
   try {
-    const data = await $fetch<{
+    const data = await ($fetch as any)('/api/auth/context-options', { credentials: 'include' }) as {
       tenants: AuthTenant[]
       organizations: AuthOrganization[]
       tenantOrganizations: Record<string, AuthOrganization[]>
-    }>('/api/auth/context-options', { credentials: 'include' })
+    }
     
     contextTenants.value = data.tenants
     contextOrganizations.value = data.organizations
@@ -589,7 +589,7 @@ function mixColor(baseHex: string, targetHex: string, amount: number) {
   const base = hexToRgbArray(baseHex)
   const target = hexToRgbArray(targetHex)
   const mixed = base.map((channel, index) =>
-    Math.round(channel + (target[index] - channel) * amount)
+    Math.round(channel + ((target[index] ?? channel) - channel) * amount)
   )
   return `rgb(${mixed.join(', ')})`
 }
@@ -635,12 +635,12 @@ function buildTenantOrgMapFromOrganizations(orgs: AuthOrganization[]) {
       if (!map[org.tenantId]) {
         map[org.tenantId] = []
       }
-      map[org.tenantId].push(org)
+      map[org.tenantId]!.push(org)
     }
     // If user doesn't have membership in the tenant, the organization will be shown as standalone
   }
   for (const tenantId of Object.keys(map)) {
-    map[tenantId] = dedupeOrganizations(map[tenantId]).sort((a, b) =>
+    map[tenantId] = dedupeOrganizations(map[tenantId]!).sort((a, b) =>
       a.name.localeCompare(b.name)
     )
   }

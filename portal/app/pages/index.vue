@@ -31,7 +31,7 @@
         :badge="module.badge || t('dashboard.module')"
         :icon="module.icon"
         :disabled="module.disabled || false"
-        :coming-soon-message="module.comingSoonMessage || null"
+        :coming-soon-message="module.comingSoonMessage || undefined"
         :is-favorite="isFavorite(module.id)"
         :favorite-disabled="module.disabled || favoritesPending"
         @select="!module.disabled && navigateTo(module.routePath)"
@@ -277,9 +277,9 @@ function normalizeColorToHex(color: string): string {
   // If rgb format, convert to hex
   const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
   if (rgbMatch) {
-    const r = Number.parseInt(rgbMatch[1], 10)
-    const g = Number.parseInt(rgbMatch[2], 10)
-    const b = Number.parseInt(rgbMatch[3], 10)
+    const r = Number.parseInt(rgbMatch[1]!, 10)
+    const g = Number.parseInt(rgbMatch[2]!, 10)
+    const b = Number.parseInt(rgbMatch[3]!, 10)
     return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`
   }
   

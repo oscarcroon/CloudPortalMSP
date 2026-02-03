@@ -404,7 +404,7 @@ async function handleSubmit() {
       payload.endsAt = new Date(form.value.endsAt).toISOString()
     }
 
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents`, {
       method: 'POST',
       body: payload,
       credentials: 'include'

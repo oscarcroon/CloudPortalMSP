@@ -6,7 +6,7 @@ import { getDb } from '../../../../utils/db'
 import { requireSuperAdmin } from '../../../../utils/rbac'
 import { parseOrgParam, requireOrganizationByIdentifier } from '../utils'
 import { logOrganizationAction } from '../../../../utils/audit'
-import { deleteAllWindowsDnsData } from '@windows-dns/server/lib/windows-dns/org-config'
+import { deleteAllWindowsDnsData } from '~~/layers/windows-dns/server/lib/windows-dns/org-config'
 
 export const deleteSchema = z.object({
   confirmSlug: z.string().min(1, 'Ange sluggen för att bekräfta.'),

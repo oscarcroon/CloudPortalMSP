@@ -54,8 +54,8 @@ export default defineEventHandler(async (event) => {
 
   // Build changes diff and log audit event only if there are actual changes
   const { changes } = buildChanges(
-    existingRecord,
-    record,
+    existingRecord as unknown as Record<string, unknown>,
+    record as unknown as Record<string, unknown>,
     { entityType: 'cloudflare_dns_record' }
   )
   
@@ -68,8 +68,8 @@ export default defineEventHandler(async (event) => {
       recordType: record.type,
       recordName: record.name,
       operation: 'update',
-      before: existingRecord,
-      after: record
+      before: existingRecord as unknown as Record<string, unknown>,
+      after: record as unknown as Record<string, unknown>
     })
     await logAuditEvent(event, 'CLOUDFLARE_DNS_RECORD_UPDATED', auditMeta)
   }

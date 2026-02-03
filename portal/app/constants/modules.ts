@@ -9,7 +9,7 @@ import {
 
 export type ModuleId = ModuleMeta['key']
 export type ModuleCategory = ModuleMeta['category']
-export { ModuleScope, ModuleRoleMeta as ModuleRoleDefinition, ModuleVisibilityMode }
+export type { ModuleScope, ModuleRoleMeta as ModuleRoleDefinition, ModuleVisibilityMode }
 
 export type ModuleRoleKey = string
 
@@ -26,7 +26,7 @@ export interface ModuleDefinition extends ModuleMeta {
 const metaToDefinition = (meta: ModuleMeta): ModuleDefinition => ({
   ...meta,
   id: meta.key as ModuleId,
-  permissions: meta.requiredPermissions,
+  permissions: meta.requiredPermissions ?? [],
   routePath: meta.rootRoute
 })
 

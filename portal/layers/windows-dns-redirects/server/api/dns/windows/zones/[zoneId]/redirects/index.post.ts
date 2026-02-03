@@ -18,7 +18,7 @@ import {
   trackManagedRecord
 } from '@windows-dns-redirects/server/utils/dnsPlanRedirectRecords'
 import { logAuditEvent } from '~~/server/utils/audit'
-import type { WindowsDnsRedirectCreateInput } from '../../../../types'
+import type { WindowsDnsRedirectCreateInput } from '@windows-dns-redirects/types'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -59,7 +59,10 @@ export default defineEventHandler(async (event) => {
 
   const zoneName = allowedZone.zoneName || ''
   const body = await readBody<WindowsDnsRedirectCreateInput>(event)
-  const applyDnsChanges = body?.applyDnsChanges === true
+  if (!body) {
+    throw createError({ statusCode: 400, message: 'Request body is required.' })
+  }
+  const applyDnsChanges = body.applyDnsChanges === true
 
   // Validate required fields
   if (!body.sourcePath) {
@@ -156,7 +159,7 @@ export default defineEventHandler(async (event) => {
         data: {
           code: 'DNS_RECORD_CONFLICT',
           recordName: plan.recordName,
-          before: plan.conflicts.map(c => c.existing).filter(Boolean),
+          before: plan.conflicts.map(c => c.existing).filter((e): e is NonNullable<typeof e> => !!e),
           after: plan.entries
             .filter(e => e.action === 'create')
             .map(e => ({
@@ -248,7 +251,11 @@ export default defineEventHandler(async (event) => {
       isActive: body.isActive !== false,
       createdBy: auth.user.id
     })
-    .returning()
+    .returning() as any[]
+
+  if (!redirect) {
+    throw createError({ statusCode: 500, message: 'Failed to create redirect.' })
+  }
 
   // Update managed record with redirect ID for CNAME (subdomain) records
   if (isDnsIntegrationEnabled()) {

@@ -380,7 +380,7 @@ const distributorId = computed(() => route.params.id as string)
 const showUnpublished = ref(true)
 
 // Fetch templates
-const { data, pending, refresh, error } = await useFetch<{ templates: MspTemplate[] }>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   () => `/api/admin/distributors/${distributorId.value}/msp-role-templates?includeUnpublished=${showUnpublished.value}`,
   {
     watch: [distributorId, showUnpublished]
@@ -388,15 +388,15 @@ const { data, pending, refresh, error } = await useFetch<{ templates: MspTemplat
 )
 
 // Fetch available permissions (using the tenant endpoint since permissions are global)
-const { data: availablePermissionsData, pending: availablePermissionsLoading } = await useFetch<{ permissions: AvailablePermission[] }>(
+const { data: availablePermissionsData, pending: availablePermissionsLoading } = await (useFetch as any)(
   () => `/api/admin/tenants/${distributorId.value}/msp-roles/available-permissions`,
   {
     watch: [distributorId]
   }
 )
 
-const templates = computed(() => data.value?.templates ?? [])
-const availablePermissions = computed(() => availablePermissionsData.value?.permissions ?? [])
+const templates = computed(() => (data.value as { templates: MspTemplate[] } | null)?.templates ?? [])
+const availablePermissions = computed(() => (availablePermissionsData.value as { permissions: AvailablePermission[] } | null)?.permissions ?? [])
 const distributorName = computed(() => route.query.name as string || 'Distributör')
 
 // Filter modules based on search query
@@ -419,7 +419,7 @@ const filteredModuleList = computed(() => {
       
       const nameMatches = module.moduleName.toLowerCase().includes(query) || module.moduleKey.toLowerCase().includes(query)
       const modulePermissions = Array.isArray(module.permissions) ? module.permissions : []
-      const matchingPermissions = modulePermissions.filter((perm) => {
+      const matchingPermissions = modulePermissions.filter((perm: any) => {
         if (!perm || !perm.key) return false
         const keyMatches = perm.key.toLowerCase().includes(query)
         const labelMatches = perm.description?.toLowerCase().includes(query) ?? false
@@ -475,7 +475,7 @@ const isModuleFullySelected = (module: AvailablePermission): boolean => {
 }
 
 const toggleModule = (moduleKey: string) => {
-  const module = availablePermissions.value.find((m) => m.moduleKey === moduleKey)
+  const module = availablePermissions.value.find((m: AvailablePermission) => m.moduleKey === moduleKey)
   if (!module) return
 
   const allSelected = isModuleFullySelected(module)
@@ -528,7 +528,7 @@ const saveTemplate = async () => {
 
   try {
     if (editingTemplate.value) {
-      await $fetch(`/api/admin/distributors/${distributorId.value}/msp-role-templates/${editingTemplate.value.id}`, {
+      await ($fetch as any)(`/api/admin/distributors/${distributorId.value}/msp-role-templates/${editingTemplate.value.id}`, {
         method: 'PUT',
         body: {
           name: form.name,
@@ -538,7 +538,7 @@ const saveTemplate = async () => {
       })
       successMessage.value = t('adminDistributors.templates.messages.updated')
     } else {
-      await $fetch(`/api/admin/distributors/${distributorId.value}/msp-role-templates`, {
+      await ($fetch as any)(`/api/admin/distributors/${distributorId.value}/msp-role-templates`, {
         method: 'POST',
         body: {
           key: form.key,
@@ -567,7 +567,7 @@ const publishTemplate = async (template: MspTemplate) => {
   successMessage.value = ''
 
   try {
-    await $fetch(`/api/admin/distributors/${distributorId.value}/msp-role-templates/${template.id}/publish`, {
+    await ($fetch as any)(`/api/admin/distributors/${distributorId.value}/msp-role-templates/${template.id}/publish`, {
       method: 'POST'
     })
     successMessage.value = t('adminDistributors.templates.messages.published')
@@ -585,7 +585,7 @@ const unpublishTemplate = async (template: MspTemplate) => {
   successMessage.value = ''
 
   try {
-    await $fetch(`/api/admin/distributors/${distributorId.value}/msp-role-templates/${template.id}/unpublish`, {
+    await ($fetch as any)(`/api/admin/distributors/${distributorId.value}/msp-role-templates/${template.id}/unpublish`, {
       method: 'POST'
     })
     successMessage.value = t('adminDistributors.templates.messages.unpublished')
@@ -607,7 +607,7 @@ const deleteTemplate = async (template: MspTemplate) => {
   successMessage.value = ''
 
   try {
-    await $fetch(`/api/admin/distributors/${distributorId.value}/msp-role-templates/${template.id}`, {
+    await ($fetch as any)(`/api/admin/distributors/${distributorId.value}/msp-role-templates/${template.id}`, {
       method: 'DELETE'
     })
     successMessage.value = t('adminDistributors.templates.messages.deleted')

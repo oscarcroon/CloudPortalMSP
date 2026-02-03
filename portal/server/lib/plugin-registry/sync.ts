@@ -1,4 +1,4 @@
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray, sql } from 'drizzle-orm'
 import { manifests } from '../../../layers/plugin-manifests'
 import { modules, modulePermissions } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
@@ -19,14 +19,14 @@ export async function syncPluginRegistry(): Promise<SyncResult> {
   let hasEnabledColumn = false
   let hasLifecycleColumns = false
   try {
-    await db.execute('SELECT enabled FROM modules LIMIT 1')
+    db.all(sql`SELECT enabled FROM modules LIMIT 1`)
     hasEnabledColumn = true
   } catch {
     hasEnabledColumn = false
   }
 
   try {
-    await db.execute('SELECT is_active, status, removed_at FROM module_permissions LIMIT 1')
+    db.all(sql`SELECT is_active, status, removed_at FROM module_permissions LIMIT 1`)
     hasLifecycleColumns = true
   } catch {
     hasLifecycleColumns = false

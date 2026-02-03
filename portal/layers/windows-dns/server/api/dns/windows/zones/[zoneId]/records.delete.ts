@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     let existingRecord: Record<string, unknown> | null = null
     if (body.recordId) {
       const records = await client.listRecordsForZone(zoneId)
-      existingRecord = (records.find((r: any) => r.id === body.recordId) as Record<string, unknown>) || null
+      existingRecord = (records.find((r: any) => r.id === body.recordId) as unknown as Record<string, unknown>) || null
     }
     
     await client.deleteRecord(zoneId, {

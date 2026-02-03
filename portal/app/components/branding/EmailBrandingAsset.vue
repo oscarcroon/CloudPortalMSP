@@ -202,6 +202,7 @@ async function handleFileSelection(event: Event) {
   if (!target.files?.length) return
 
   const file = target.files[0]
+  if (!file) return
   uploadError.value = null
   uploadSuccess.value = null
 
@@ -216,7 +217,7 @@ async function handleFileSelection(event: Event) {
   try {
     const formData = new FormData()
     formData.append('logo', file)
-    await $fetch(`${basePath.value}?variant=email-logo`, {
+    await ($fetch as any)(`${basePath.value}?variant=email-logo`, {
       method: 'POST',
       body: formData,
       credentials: 'include'
@@ -241,7 +242,7 @@ async function removeLogo() {
   uploadError.value = null
   uploadSuccess.value = null
   try {
-    await $fetch(`${basePath.value}?variant=email-logo`, {
+    await ($fetch as any)(`${basePath.value}?variant=email-logo`, {
       method: 'DELETE',
       credentials: 'include'
     })

@@ -34,10 +34,10 @@ export const useModules = () => {
       }
 
       try {
-        const response = await $fetch<{ modules: VisibleModule[] }>(`/api/organizations/${orgId}/modules/visible`, {
+        const response = await ($fetch as any)(`/api/organizations/${orgId}/modules/visible`, {
           credentials: 'include',
           headers: import.meta.server ? headers : undefined
-        })
+        }) as { modules: VisibleModule[] }
         const modules = response.modules || []
         // Mappa API-svar till VisibleModule shape
         // /modules/visible returnerar redan id och routePath direkt

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { eq, and } from 'drizzle-orm'
 import { requireTenantPermission } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
-import { mspRoles, mspRolePermissions, tenants } from '~~/server/database/schema'
+import { mspRoles, mspRolePermissions, tenants, modulePermissions } from '~~/server/database/schema'
 import { ensureAuthState } from '~~/server/utils/session'
 import { logTenantAction } from '~~/server/utils/audit'
 
@@ -52,6 +52,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'MSP-rollen kunde inte hittas.' })
   }
 
+  const payload = updateMspRoleSchema.parse(await readBody(event))
+
   // Block editing system roles (except name/description)
   if (role.isSystem && payload.permissions !== undefined) {
     throw createError({
@@ -59,8 +61,6 @@ export default defineEventHandler(async (event) => {
       message: 'Kan inte ändra permissions för systemroller. Klona rollen för att skapa en anpassad version.'
     })
   }
-
-  const payload = updateMspRoleSchema.parse(await readBody(event))
   const updates: Partial<typeof role> = {
     updatedAt: new Date()
   }
@@ -163,6 +163,10 @@ export default defineEventHandler(async (event) => {
     .from(mspRoles)
     .where(eq(mspRoles.id, roleId))
     .limit(1)
+
+  if (!updatedRole) {
+    throw createError({ statusCode: 404, message: 'Uppdaterad roll kunde inte hittas.' })
+  }
 
   const permissions = await db
     .select({

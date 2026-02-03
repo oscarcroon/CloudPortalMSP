@@ -32,9 +32,9 @@ const dateRangeOptions = [
 async function fetchStats() {
   isLoading.value = true
   try {
-    const response = await $fetch<{ stats: typeof stats.value }>(`/api/dns/windows/zones/${props.zoneId}/redirects/stats`, {
+    const response = await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/redirects/stats`, {
       query: { range: dateRange.value }
-    })
+    }) as { stats: typeof stats.value }
     stats.value = response.stats
   } catch (error) {
     console.error('Failed to fetch stats:', error)

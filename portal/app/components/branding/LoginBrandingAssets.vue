@@ -13,7 +13,7 @@
         >
           <img
             v-if="asset.type !== 'background' && previewUrl(asset.key)"
-            :src="previewUrl(asset.key)"
+            :src="previewUrl(asset.key) ?? undefined"
             class="max-h-20 w-auto object-contain drop-shadow"
             :alt="asset.title"
           />
@@ -361,7 +361,7 @@ function formatSource(source?: BrandingThemeSource | null) {
   if (source.targetType === 'default') {
     return t('settings.branding.sourceLabels.global')
   }
-  if (source.targetType === 'global') {
+  if ((source.targetType as string) === 'global') {
     return t('settings.branding.sourceLabels.global')
   }
   const label = t(`settings.branding.sourceLabels.${source.targetType}`)
@@ -406,6 +406,7 @@ async function handleSelection(variant: AssetVariant, event: Event) {
   const input = event.target as HTMLInputElement
   if (!input.files?.length) return
   const file = input.files[0]
+  if (!file) return
   assetStates[variant].error = null
   assetStates[variant].success = null
 
@@ -420,7 +421,7 @@ async function handleSelection(variant: AssetVariant, event: Event) {
   try {
     const formData = new FormData()
     formData.append('logo', file)
-    await $fetch(`${baseLogoPath.value}?variant=${variant}`, {
+    await ($fetch as any)(`${baseLogoPath.value}?variant=${variant}`, {
       method: 'POST',
       body: formData,
       credentials: 'include'
@@ -445,7 +446,7 @@ async function removeAsset(variant: AssetVariant) {
   assetStates[variant].error = null
   assetStates[variant].success = null
   try {
-    await $fetch(`${baseLogoPath.value}?variant=${variant}`, {
+    await ($fetch as any)(`${baseLogoPath.value}?variant=${variant}`, {
       method: 'DELETE',
       credentials: 'include'
     })
@@ -488,7 +489,7 @@ async function saveBackgroundTint() {
   tintSaving.value = true
   tintStatus.value = null
   try {
-    await $fetch(brandingUpdatePath.value, {
+    await ($fetch as any)(brandingUpdatePath.value, {
       method: 'PUT',
       body: {
         loginBackgroundTint: backgroundTint.value || null,

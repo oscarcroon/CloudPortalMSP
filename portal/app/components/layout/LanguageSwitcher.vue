@@ -162,7 +162,7 @@ const selectLocale = async (newLocale: SupportedLocaleCode) => {
     // Update in database if user is logged in
     if (auth.user.value) {
       try {
-        await $fetch('/api/profile/locale', {
+        await ($fetch as any)('/api/profile/locale', {
           method: 'PATCH',
           body: { locale: newLocale }
         })

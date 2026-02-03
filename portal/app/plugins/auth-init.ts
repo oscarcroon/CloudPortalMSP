@@ -5,7 +5,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
   if (import.meta.server) {
     const serverAuth = nuxtApp.ssrContext?.event?.context.auth ?? null
-    auth.state.value.data = serverAuth
+    auth.state.value.data = serverAuth as any
     auth.state.value.initialized = true
     auth.state.value.loading = false
     auth.state.value.error = null

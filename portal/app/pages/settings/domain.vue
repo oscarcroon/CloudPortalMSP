@@ -396,7 +396,7 @@ async function fetchDomainData() {
   errorMessage.value = ''
   
   try {
-    const response = await $fetch(`/api/admin/organizations/${currentOrgId.value}/domain`)
+    const response = await ($fetch as any)(`/api/admin/organizations/${currentOrgId.value}/domain`)
     domainData.value = response as DomainData
     form.customDomain = response.customDomain || ''
     verificationInstructions.value = response.verificationInstructions || null
@@ -415,7 +415,7 @@ async function saveDomain() {
   successMessage.value = ''
   
   try {
-    const response = await $fetch(`/api/admin/organizations/${currentOrgId.value}/domain`, {
+    const response = await ($fetch as any)(`/api/admin/organizations/${currentOrgId.value}/domain`, {
       method: 'PUT',
       body: { customDomain: form.customDomain }
     })
@@ -442,7 +442,7 @@ async function removeDomain() {
   successMessage.value = ''
   
   try {
-    const response = await $fetch(`/api/admin/organizations/${currentOrgId.value}/domain`, {
+    const response = await ($fetch as any)(`/api/admin/organizations/${currentOrgId.value}/domain`, {
       method: 'PUT',
       body: { customDomain: null }
     })
@@ -468,15 +468,15 @@ async function verifyDomain() {
   successMessage.value = ''
   
   try {
-    const response = await $fetch(`/api/admin/organizations/${currentOrgId.value}/domain/verify`, {
+    const response = await ($fetch as any)(`/api/admin/organizations/${currentOrgId.value}/domain/verify`, {
       method: 'POST'
     })
     
     if (response.customDomainVerificationStatus === 'verified') {
-      domainData.value = response as DomainData
+      domainData.value = response as unknown as DomainData
       successMessage.value = t('settings.domain.success.verified')
     } else {
-      errorMessage.value = response.error || t('settings.domain.error.verificationFailed')
+      errorMessage.value = (response as any).error || t('settings.domain.error.verificationFailed')
     }
     
     setTimeout(() => { successMessage.value = '' }, 5000)

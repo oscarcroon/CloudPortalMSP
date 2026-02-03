@@ -285,7 +285,7 @@ interface TenantsResponse {
   distributorProviderLinks?: any[]
 }
 
-const { data: distributorsData, pending: distributorsPending } = await useFetch<TenantsResponse>('/api/admin/tenants', {
+const { data: distributorsData, pending: distributorsPending } = await (useFetch as any)('/api/admin/tenants', {
   query: { type: 'distributor' }
 })
 
@@ -311,9 +311,9 @@ watch(
 
 watch(
   () => form.ownerEmail,
-  async (newEmail, oldEmail) => {
+  async (newEmail: string, oldEmail: string | undefined) => {
     if (newEmail === oldEmail || tenantType.value !== 'provider') return
-    
+
     const trimmed = newEmail?.trim() ?? ''
     
     // Reset state when email is empty
@@ -349,7 +349,7 @@ watch(
     checkingOwnerEmail.value = true
     
     try {
-      const result = await $fetch<{ exists: boolean; user?: { email: string; fullName: string | null; status: string } }>(
+      const result = await ($fetch as any)(
         '/api/admin/users/check-email',
         {
           method: 'POST',
@@ -372,7 +372,7 @@ watch(
       checkingOwnerEmail.value = false
     }
   },
-  { debounce: 500 }
+  { debounce: 500 } as any
 )
 
 const handleSubmit = async () => {
@@ -422,7 +422,7 @@ const handleSubmit = async () => {
       }
     }
 
-    const response = await $fetch<AdminCreateTenantResponse>('/api/admin/tenants', {
+    const response = await ($fetch as any)('/api/admin/tenants', {
       method: 'POST',
       body: payload
     })

@@ -22,7 +22,7 @@ export function normalizeLogoUrl(logoUrl: string | null | undefined): string | n
       // Om URL-parsing misslyckas, försök extrahera sökväg manuellt
       const match = normalized.match(/https?:\/\/[^/]+(\/.*)/)
       if (match) {
-        normalized = match[1]
+        normalized = match[1]!
       }
     }
     // Normalisera sökvägsformatet

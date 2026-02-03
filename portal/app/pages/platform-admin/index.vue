@@ -235,7 +235,7 @@ async function refreshTraefikStatus() {
   connectionTestResult.value = null
   
   try {
-    const response = await $fetch<TraefikData>('/api/admin/traefik/status')
+    const response = await ($fetch as any)('/api/admin/traefik/status')
     traefikData.value = response
   } catch (err: any) {
     traefikError.value = err.data?.message || err.message || t('admin.infrastructure.traefik.error.fetchFailed')
@@ -249,7 +249,7 @@ async function testTraefikConnection() {
   connectionTestResult.value = null
   
   try {
-    const response = await $fetch<{ success: boolean; message?: string; error?: string }>('/api/admin/traefik/test-connection', {
+    const response = await ($fetch as any)('/api/admin/traefik/test-connection', {
       method: 'POST'
     })
     connectionTestResult.value = {

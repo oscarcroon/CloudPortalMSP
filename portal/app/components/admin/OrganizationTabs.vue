@@ -50,7 +50,7 @@ const hasTenantManageAccess = computed(() => {
   // Check tenant roles for admin/owner with manage permissions
   const tenantRoles = auth.tenantRoles.value
   for (const role of Object.values(tenantRoles)) {
-    if (role === 'owner' || role === 'admin') {
+    if ((role as string) === 'owner' || role === 'admin') {
       return true
     }
   }

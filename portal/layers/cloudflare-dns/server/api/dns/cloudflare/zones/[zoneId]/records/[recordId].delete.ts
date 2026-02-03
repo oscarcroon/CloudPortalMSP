@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     recordType: existingRecord?.type,
     recordName: existingRecord?.name,
     operation: 'delete',
-    before: existingRecord,
+    before: existingRecord as unknown as Record<string, unknown> | null,
     after: null
   })
   await logAuditEvent(event, 'CLOUDFLARE_DNS_RECORD_DELETED', auditMeta)

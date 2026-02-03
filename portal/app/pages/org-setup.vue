@@ -271,7 +271,7 @@ import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({
   layout: false,
-  middleware: ['auth']
+  middleware: ['auth'] as any
 })
 
 const { t } = useI18n()
@@ -375,7 +375,7 @@ async function loadSetupData() {
   error.value = null
 
   try {
-    const response = await $fetch<{
+    const response = await ($fetch as any)(`/api/organizations/${currentOrgId.value}/setup`) as {
       setupStatus: string
       availableModules: Array<{
         id: string
@@ -388,7 +388,7 @@ async function loadSetupData() {
       templates: SetupTemplate[]
       groups: SetupGroup[]
       defaultGroupId?: string
-    }>(`/api/organizations/${currentOrgId.value}/setup`)
+    }
 
     // If setup is already complete, redirect to home
     if (response.setupStatus === 'complete') {
@@ -409,7 +409,7 @@ async function loadSetupData() {
     } else if (response.groups.length > 0) {
       // Default to 'members' group if it exists
       const membersGroup = response.groups.find(g => g.name.toLowerCase().includes('member'))
-      selectedDefaultGroup.value = membersGroup?.id ?? response.groups[0].id
+      selectedDefaultGroup.value = membersGroup?.id ?? response.groups[0]!.id
     }
   } catch (e: any) {
     console.error('Failed to load setup data', e)
@@ -428,7 +428,7 @@ async function saveModules() {
 
   // Enable each module
   for (const moduleId of enabledModuleIds) {
-    await $fetch(`/api/organizations/${currentOrgId.value}/modules`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/modules`, {
       method: 'PUT',
       body: {
         moduleKey: moduleId,
@@ -443,7 +443,7 @@ async function saveModules() {
 async function applyTemplate() {
   if (!currentOrgId.value || !selectedTemplate.value) return
 
-  await $fetch(`/api/organizations/${currentOrgId.value}/setup/apply-template`, {
+  await ($fetch as any)(`/api/organizations/${currentOrgId.value}/setup/apply-template`, {
     method: 'POST',
     body: {
       templateId: selectedTemplate.value
@@ -454,7 +454,7 @@ async function applyTemplate() {
 async function setDefaultGroup() {
   if (!currentOrgId.value || !selectedDefaultGroup.value) return
 
-  await $fetch(`/api/organizations/${currentOrgId.value}/setup/set-default-group`, {
+  await ($fetch as any)(`/api/organizations/${currentOrgId.value}/setup/set-default-group`, {
     method: 'POST',
     body: {
       groupId: selectedDefaultGroup.value
@@ -465,7 +465,7 @@ async function setDefaultGroup() {
 async function completeSetup() {
   if (!currentOrgId.value) return
 
-  await $fetch(`/api/organizations/${currentOrgId.value}/setup/complete`, {
+  await ($fetch as any)(`/api/organizations/${currentOrgId.value}/setup/complete`, {
     method: 'POST'
   })
 

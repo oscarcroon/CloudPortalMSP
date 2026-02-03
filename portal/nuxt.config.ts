@@ -68,6 +68,13 @@ export default defineNuxtConfig({
       '/api/uploads/logos/**': {
         headers: { 'cache-control': 'public, max-age=31536000' }
       }
+    },
+    typescript: {
+      tsConfig: {
+        include: [
+          '../layers/*/server/**/*'
+        ]
+      }
     }
   },
   pinia: {},

@@ -349,7 +349,7 @@ async function handleLogoSelection(event: Event) {
   const target = event.target as HTMLInputElement
   if (!target.files?.length) return
 
-  const file = target.files[0]
+  const file = target.files[0]!
   uploadError.value = null
   uploadSuccessMessage.value = null
 
@@ -364,7 +364,7 @@ async function handleLogoSelection(event: Event) {
   try {
     const formData = new FormData()
     formData.append('logo', file)
-    const result = await $fetch<{ logoUrl?: string }>(`/api/admin/branding/logo`, {
+    const result = await ($fetch as any)(`/api/admin/branding/logo`, {
       method: 'POST',
       body: formData,
       credentials: 'include'
@@ -392,7 +392,7 @@ async function removeLogo() {
   uploadError.value = null
   uploadSuccessMessage.value = null
   try {
-    await $fetch(`/api/admin/branding/logo`, {
+    await ($fetch as any)(`/api/admin/branding/logo`, {
       method: 'DELETE',
       credentials: 'include'
     })
@@ -423,9 +423,9 @@ async function fetchBranding() {
   brandingLoading.value = true
   brandingError.value = null
   try {
-    brandingDetails.value = await $fetch<BrandingState>(`/api/admin/branding`, {
+    brandingDetails.value = await ($fetch as any)(`/api/admin/branding`, {
       credentials: 'include'
-    })
+    }) as BrandingState
     accentForm.customColor = globalTheme.value?.accentColor ?? ''
   } catch (error: any) {
     brandingError.value =
@@ -454,7 +454,7 @@ async function saveCustomAccent() {
   accentSaving.value = true
   accentStatus.value = null
   try {
-    await $fetch('/api/admin/branding', {
+    await ($fetch as any)('/api/admin/branding', {
       method: 'PUT',
       credentials: 'include',
       body: { accentColor: normalized }
@@ -479,7 +479,7 @@ async function resetAccent() {
   accentSaving.value = true
   accentStatus.value = null
   try {
-    await $fetch('/api/admin/branding', {
+    await ($fetch as any)('/api/admin/branding', {
       method: 'PUT',
       credentials: 'include',
       body: { accentColor: null }
@@ -519,7 +519,7 @@ async function saveNavigationColor() {
   navSaving.value = true
   navStatus.value = null
   try {
-    await $fetch('/api/admin/branding', {
+    await ($fetch as any)('/api/admin/branding', {
       method: 'PUT',
       credentials: 'include',
       body: { navigationBackgroundColor: navColor.value || null }

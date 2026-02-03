@@ -387,11 +387,11 @@ export async function syncTraefikDomainsIfEnabled(): Promise<{
       }
     }
     
-    console.log(`[traefik-sync] Auto-synced ${stats.totalDomains} domains to ${sftpConfig.host}:${remotePath}`)
+    console.log(`[traefik-sync] Auto-synced ${stats.total} domains to ${sftpConfig.host}:${remotePath}`)
     
     return {
       synced: true,
-      message: `Traefik-konfiguration synkroniserad: ${stats.totalDomains} domäner.`
+      message: `Traefik-konfiguration synkroniserad: ${stats.total} domäner.`
     }
   } catch (error: any) {
     console.error('[traefik-sync] Auto-sync error:', error)

@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
     return fetchMemberPayload(db, membership.id)
   }
 
-  await db.update(organizationMemberships).set(updates).where(eq(organizationMemberships.id, membership.id))
+  await db.update(organizationMemberships).set(updates as any).where(eq(organizationMemberships.id, membership.id))
 
   if (updates.role) {
     await logUserAction(event, 'ROLE_CHANGED', { targetUserId: membership.userId, organizationId: organization.id, oldRole, newRole: updates.role }, membership.userId)

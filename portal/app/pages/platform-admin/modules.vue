@@ -252,7 +252,7 @@ type ModuleWithEnabled = ModuleMeta & {
 
 type ModuleStatusValue = 'active' | 'disabled' | 'hidden' | 'coming-soon'
 
-const { data, pending, refresh } = await useFetch<{ modules: ModuleWithEnabled[] }>('/api/admin/modules')
+const { data, pending, refresh } = await (useFetch as any)('/api/admin/modules')
 const modules = computed(() => data.value?.modules ?? [])
 const searchInput = ref('')
 const categoryFilter = ref<string>('all')
@@ -381,7 +381,7 @@ const onStatusChange = async (module: ModuleWithEnabled, newStatus: ModuleStatus
 
   module.updating = true
   try {
-    await $fetch(`/api/admin/modules/${module.key}/enable`, {
+    await ($fetch as any)(`/api/admin/modules/${module.key}/enable`, {
       method: 'PUT',
       body: {
         enabled,
@@ -408,7 +408,7 @@ const onComingSoonMessageChange = async (module: ModuleWithEnabled, message: str
 
   module.updating = true
   try {
-    await $fetch(`/api/admin/modules/${module.key}/enable`, {
+    await ($fetch as any)(`/api/admin/modules/${module.key}/enable`, {
       method: 'PUT',
       body: {
         enabled: true,

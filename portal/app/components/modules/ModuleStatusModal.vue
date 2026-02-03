@@ -206,7 +206,7 @@ watch(
     if (open) {
       if (message && disabled) {
         status.value = 'coming-soon'
-        comingSoonMessage.value = message
+        comingSoonMessage.value = String(message)
       } else if (disabled) {
         status.value = 'disabled'
         comingSoonMessage.value = ''

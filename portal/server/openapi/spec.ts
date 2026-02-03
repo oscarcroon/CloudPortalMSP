@@ -178,11 +178,11 @@ function extractPathParameters(path: string): OpenAPIV3.ParameterObject[] {
 
   for (const match of matches) {
     params.push({
-      name: match[1],
+      name: match[1] ?? '',
       in: 'path',
       required: true,
       schema: { type: 'string' },
-      description: `The ${match[1]} parameter`,
+      description: `The ${match[1] ?? ''} parameter`,
     })
   }
 

@@ -78,7 +78,7 @@
                 {{ $t('windowsDns.zoneInfo.ttl') }}
               </span>
               <span class="font-mono text-sm text-slate-900 dark:text-slate-50">
-                {{ formatDuration(soaRecord.ttl) }}
+                {{ formatDuration(soaRecord.ttl ?? 0) }}
               </span>
             </div>
           </div>

@@ -120,6 +120,7 @@ const syncRoleMappings = async () => {
 
   for (const [rbacRole, defaults] of Object.entries(rbacModuleRoleDefaults)) {
     for (const [moduleId, roleKeys] of Object.entries(defaults)) {
+      if (!roleKeys) continue
       for (const roleKey of roleKeys) {
         desiredKeys.add(`${rbacRole}:${moduleId}:${roleKey}`)
       }

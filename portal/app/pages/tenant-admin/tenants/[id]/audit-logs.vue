@@ -308,7 +308,7 @@ const filteredEventTypes = computed(() => {
 
 const loadAuditModules = async () => {
   try {
-    const response = await $fetch<{ modules: AuditModule[] }>('/api/admin/audit-logs/event-types?locale=sv')
+    const response = await ($fetch as any)('/api/admin/audit-logs/event-types?locale=sv')
     auditModules.value = response.modules || []
   } catch (error) {
     console.error('Failed to load audit modules', error)
@@ -420,13 +420,9 @@ watch(contextScope, triggerFilterReload)
 const loadTenant = async () => {
   tenantLoading.value = true
   try {
-    const data = await $fetch<{
-      tenant: TenantSummary
-      linkedTenants?: { id: string; type: TenantSummary['type'] }[]
-      organizations?: { id: string }[]
-    }>(`/api/admin/tenants/${tenantId}`)
+    const data = await ($fetch as any)(`/api/admin/tenants/${tenantId}`)
     tenant.value = data.tenant
-    hasProviders.value = (data.linkedTenants ?? []).some(link => link.type === 'provider')
+    hasProviders.value = (data.linkedTenants ?? []).some((link: any) => link.type === 'provider')
     hasOrganizations.value =
       data.tenant.type === 'distributor'
         ? hasProviders.value
@@ -470,7 +466,7 @@ const loadLogs = async (page = 1) => {
     if (filters.value.endDate) params.append('endDate', filters.value.endDate)
     syncRouteContextScope()
     
-    const response = await $fetch<{ logs: AuditLog[]; pagination: any }>(`/api/admin/tenants/${tenantId}/audit-logs?${params}`)
+    const response = await ($fetch as any)(`/api/admin/tenants/${tenantId}/audit-logs?${params}`)
     logs.value = response.logs
     pagination.value = response.pagination
   } catch (error: any) {

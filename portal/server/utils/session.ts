@@ -98,6 +98,7 @@ const extractBearerJwt = (event: H3Event): string | null => {
   if (!match) return null
 
   const token = match[1]
+  if (!token) return null
 
   // Ignore PAT tokens (they start with known prefixes)
   if (token.startsWith('msp_pat.') || token.startsWith('msp_org.')) {

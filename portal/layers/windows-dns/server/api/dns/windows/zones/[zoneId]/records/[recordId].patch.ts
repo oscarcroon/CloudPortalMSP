@@ -169,7 +169,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Guard: Block modification of reserved _coreid marker record
-    if (existingRecord?.name && isCoreIdMarkerRecord(existingRecord.name, zoneName)) {
+    if (existingRecord?.name && isCoreIdMarkerRecord(existingRecord.name as string, zoneName)) {
       throw createError({
         statusCode: 403,
         message: 'Kan inte ändra _coreid-markörposten. Denna post hanteras av systemet.'
@@ -185,7 +185,7 @@ export default defineEventHandler(async (event) => {
 
     // Check for redirect conflicts if name is being changed
     if (zoneName && body?.name !== undefined) {
-      const effectiveType = body?.type ?? existingRecord?.type ?? ''
+      const effectiveType = body?.type ?? (existingRecord?.type as string) ?? ''
       const conflictingHost = await checkRedirectConflict(orgId, zoneId, zoneName, body.name, effectiveType)
       if (conflictingHost) {
         throw createError({
@@ -213,7 +213,7 @@ export default defineEventHandler(async (event) => {
     // Build changes diff and log audit event only if there are actual changes
     const { changes } = buildChanges(
       existingRecord,
-      record as Record<string, unknown>,
+      record as unknown as Record<string, unknown>,
       { entityType: 'windows_dns_record' }
     )
     
@@ -228,7 +228,7 @@ export default defineEventHandler(async (event) => {
         recordName: record.name,
         operation: 'update',
         before: existingRecord,
-        after: record as Record<string, unknown>
+        after: record as unknown as Record<string, unknown>
       })
       await logAuditEvent(event, 'WINDOWS_DNS_RECORD_UPDATED', auditMeta)
     }

@@ -17,7 +17,7 @@
         <button
           class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
           :disabled="pending"
-          @click="refresh"
+          @click="() => refresh()"
         >
           <Icon icon="mdi:refresh" class="h-4 w-4" :class="{ 'animate-spin': pending }" />
           {{ pending ? t('adminTenants.members.refreshing') : t('adminTenants.members.refresh') }}
@@ -648,7 +648,7 @@ const { t } = useI18n()
 const auth = useAuth()
 const standardRoleOptions = [...standardTenantRoles]
 // Fetch DB-based MSP roles for this tenant
-const { data: mspRolesData } = await useFetch<{ roles: Array<{ id: string; key: string; name: string }> }>(
+const { data: mspRolesData } = await (useFetch as any)(
   () => `/api/admin/tenants/${tenantId.value}/msp-roles`,
   {
     watch: [tenantId],
@@ -658,7 +658,7 @@ const { data: mspRolesData } = await useFetch<{ roles: Array<{ id: string; key: 
 
 // Use only DB-based MSP roles
 const mspRoleOptions = computed(() => {
-  return mspRolesData.value?.roles.map((r) => r.key) || []
+  return mspRolesData.value?.roles.map((r: any) => r.key) || []
 })
 
 // Map role keys to IDs for DB-based roles
@@ -686,7 +686,7 @@ const mspRoleKeyToName = computed(() => {
 const mspRoleKeyToDescription = computed(() => {
   const map: Record<string, string | null> = {}
   for (const role of mspRolesData.value?.roles || []) {
-    map[role.key] = role.description
+    map[role.key] = role.description ?? null
   }
   return map
 })
@@ -770,7 +770,7 @@ const inviteForm = reactive({
   includeChildren: false
 })
 
-const { data, pending, refresh, error } = await useFetch<AdminTenantMembersResponse>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   `/api/admin/tenants/${tenantId.value}/members`,
   {
     watch: [tenantId]
@@ -778,7 +778,7 @@ const { data, pending, refresh, error } = await useFetch<AdminTenantMembersRespo
 )
 
 // Fetch organizations for tenant
-const { data: orgsData } = await useFetch<{ organizations: Array<{ id: string; name: string; slug: string }> }>(
+const { data: orgsData } = await (useFetch as any)(
   `/api/admin/tenants/${tenantId.value}/organizations`,
   {
     watch: [tenantId]
@@ -832,7 +832,7 @@ const memberHasMspRole = (member: AdminTenantMember) => {
 
 const loadOrgScopeCount = async (member: AdminTenantMember) => {
   try {
-    const scope = await $fetch<{ orgIds: Array<{ id: string }> }>(
+    const scope = await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/msp-org-scope`
     )
     memberOrgScopeCount[member.membershipId] = scope.orgIds.length
@@ -886,7 +886,7 @@ const isStandardRole = (role: string | TenantRole) =>
 const tenantRoleLabel = (role: string | TenantRole) => getTenantRoleLabel(role)
 
 const mspRoleDropdownOptions = computed(() =>
-  (mspRoleOptions.value || []).map((role) => ({
+  (mspRoleOptions.value || []).map((role: string) => ({
     value: role,
     label: getMspRoleName(role),
     description: undefined
@@ -981,7 +981,7 @@ const checkUserExists = async () => {
   }
   checkingUser.value = true
   try {
-    const response = await $fetch<{ exists: boolean }>(`/api/admin/users/check-email`, {
+    const response = await ($fetch as any)(`/api/admin/users/check-email`, {
       method: 'POST',
       body: { email: inviteForm.email.trim() }
     }).catch(() => ({ exists: false }))
@@ -1019,7 +1019,7 @@ const submitInvite = async () => {
       includeChildren: inviteForm.includeChildren
     }
     
-    await $fetch(`/api/admin/tenants/${tenantId.value}/members/invite`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/members/invite`, {
       method: 'POST',
       body: payload
     })
@@ -1044,7 +1044,7 @@ const cancelInvite = async (inviteId: string) => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/invitations/${inviteId}/cancel`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/invitations/${inviteId}/cancel`, {
       method: 'DELETE'
     })
     await refresh()
@@ -1064,7 +1064,7 @@ const resendInvite = async (invite: AdminTenantInvite) => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/invitations/${invite.id}/resend`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/invitations/${invite.id}/resend`, {
       method: 'POST'
     })
     await refresh()
@@ -1094,7 +1094,7 @@ const handleRoleChange = async (member: AdminTenantMember, roleValue: string) =>
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/role`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/role`, {
       method: 'PATCH',
       body: { role: roleValue }
     })
@@ -1124,7 +1124,7 @@ const setMemberStatus = async (
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/status`,
       {
         method: 'PATCH',
@@ -1169,7 +1169,7 @@ const toggleMemberIncludeChildren = async (member: AdminTenantMember, nextValue:
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/include-children`,
       {
         method: 'PATCH',
@@ -1214,7 +1214,7 @@ const handleMspRolesChange = async (member: AdminTenantMember, selectedRoles: st
     }
 
     // Update DB-based roles
-    await $fetch(
+    await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/msp-roles`,
       {
         method: 'PUT',
@@ -1273,13 +1273,13 @@ const toggleMspRolePreview = (membershipId: string) => {
 // Helper function to get MSP role name, prioritizing database names
 const getMspRoleName = (roleKey: string): string => {
   // First, try to find the role in the database
-  const dbRole = mspRolesData.value?.roles?.find(r => r.key === roleKey)
+  const dbRole = mspRolesData.value?.roles?.find((r: any) => r.key === roleKey)
   if (dbRole?.name) {
     return dbRole.name
   }
   // Fallback to computed map
   if (mspRoleKeyToName.value?.[roleKey]) {
-    return mspRoleKeyToName.value[roleKey]
+    return mspRoleKeyToName.value[roleKey]!
   }
   // Last resort: use legacy label
   return getTenantRoleLabel(roleKey)
@@ -1287,13 +1287,13 @@ const getMspRoleName = (roleKey: string): string => {
 
 const getMspRoleDescription = (role: TenantRole): string => {
   // First, try to find the role in the database
-  const dbRole = mspRolesData.value?.roles?.find(r => r.key === role)
+  const dbRole = mspRolesData.value?.roles?.find((r: any) => r.key === role)
   if (dbRole?.description) {
     return dbRole.description
   }
   // Fallback to computed map
   if (mspRoleKeyToDescription.value?.[role]) {
-    return mspRoleKeyToDescription.value[role] || ''
+    return mspRoleKeyToDescription.value[role] ?? ''
   }
   // Last resort: use legacy descriptions
   const descriptions: Record<string, string> = {
@@ -1310,7 +1310,7 @@ const getMspRoleDescription = (role: TenantRole): string => {
     'msp-infrastructure-admin': t('adminTenants.members.mspRoles.descriptions.infrastructureAdmin'),
     'msp-full-admin': t('adminTenants.members.mspRoles.descriptions.fullAdmin')
   }
-  return descriptions[role] || t('adminTenants.members.mspRoles.descriptions.default')
+  return descriptions[role] ?? t('adminTenants.members.mspRoles.descriptions.default')
 }
 
 const openOrgScopeModal = async (member: AdminTenantMember) => {
@@ -1323,17 +1323,18 @@ const openOrgScopeModal = async (member: AdminTenantMember) => {
 
   // Load current org scope for this member
   try {
-    const scope = await $fetch<{ orgIds: Array<{ id: string; expiresAt?: string | null; note?: string | null }> }>(
+    const scope = await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/members/${member.membershipId}/msp-org-scope`
     )
-    selectedOrgIds.value = scope.orgIds.map((o) => o.id)
+    selectedOrgIds.value = scope.orgIds.map((o: any) => o.id)
     // Use first delegation's expiry/note if available (they should be the same for all)
-    if (scope.orgIds.length > 0 && scope.orgIds[0].expiresAt) {
-      const date = new Date(scope.orgIds[0].expiresAt)
+    const firstOrgId = scope.orgIds[0]
+    if (firstOrgId?.expiresAt) {
+      const date = new Date(firstOrgId.expiresAt)
       orgScopeExpiresAt.value = date.toISOString().slice(0, 16) // Format for datetime-local input
     }
-    if (scope.orgIds.length > 0 && scope.orgIds[0].note) {
-      orgScopeNote.value = scope.orgIds[0].note
+    if (firstOrgId?.note) {
+      orgScopeNote.value = firstOrgId.note
     }
   } catch (err) {
     console.error('Failed to load org scope:', err)
@@ -1377,7 +1378,7 @@ const saveOrgScope = async () => {
       payload.note = null
     }
 
-    await $fetch(
+    await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/members/${selectedMemberForOrgScope.value.membershipId}/msp-org-scope`,
       {
         method: 'PUT',
@@ -1416,7 +1417,7 @@ const deleteMember = async (member: AdminTenantMember) => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/members/${member.membershipId}`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/members/${member.membershipId}`, {
       method: 'DELETE'
     })
     await refresh()

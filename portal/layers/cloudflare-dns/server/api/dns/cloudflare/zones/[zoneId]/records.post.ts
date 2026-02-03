@@ -60,7 +60,7 @@ export default defineEventHandler(async (event) => {
     recordName: record.name,
     operation: 'create',
     before: null,
-    after: record
+    after: record as unknown as Record<string, unknown>
   })
   await logAuditEvent(event, 'CLOUDFLARE_DNS_RECORD_CREATED', auditMeta)
 

@@ -83,7 +83,7 @@ const handleSubmit = async () => {
   submitting.value = true
   errorMessage.value = ''
   try {
-    await $fetch('/api/auth/password/forgot', {
+    await ($fetch as any)('/api/auth/password/forgot', {
       method: 'POST',
       body: { email: email.value.trim() }
     })

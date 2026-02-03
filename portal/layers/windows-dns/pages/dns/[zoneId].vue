@@ -252,7 +252,7 @@ const fetchZone = async () => {
   zoneError.value = null
   try {
     // Fetch zone info from the zones list and find this zone
-    const res = await $fetch<{ zones: any[] }>('/api/dns/windows/zones')
+    const res = await ($fetch as any)('/api/dns/windows/zones')
     const zone = res.zones.find(z => z.id === zoneId.value)
     if (zone) {
       zoneData.value = { zone }
@@ -282,7 +282,7 @@ const fetchRecords = async () => {
 
   recordsPending.value = true
   try {
-    const res = await $fetch<{ records: any[]; access: { canEditRecords: boolean } }>(
+    const res = await ($fetch as any)(
       `/api/dns/windows/zones/${zoneId.value}/records`
     )
     recordsData.value = res
@@ -310,7 +310,7 @@ const exportZone = async () => {
   
   exporting.value = true
   try {
-    const content = await $fetch<string>(`/api/dns/windows/zones/${zoneId.value}/export`, {
+    const content = await ($fetch as any)(`/api/dns/windows/zones/${zoneId.value}/export`, {
       responseType: 'text'
     })
     

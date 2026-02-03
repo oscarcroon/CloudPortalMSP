@@ -15,10 +15,10 @@ export default defineNuxtPlugin(() => {
       try {
         const q = query.toLowerCase()
         const category = t('cloudflareDns.title')
-        const response = await $fetch<{ zones: Array<{ id: string; name: string; status: string | null }> }>(
+        const response = await ($fetch as any)(
           '/api/dns/cloudflare/zones',
           { credentials: 'include' }
-        )
+        ) as { zones: Array<{ id: string; name: string; status: string | null }> }
 
         return (response.zones || [])
           .filter(z => z.name.toLowerCase().includes(q))

@@ -148,7 +148,7 @@ async function handleMuteIncident(incident: { id: string }) {
       await feedInstance.muteIncidentForUser(incident.id)
     } else {
       // Fallback if feed not loaded yet - use new user mute endpoint
-      await $fetch(`/api/operations/incidents/${incident.id}/mute`, {
+      await ($fetch as any)(`/api/operations/incidents/${incident.id}/mute`, {
         method: 'POST',
         credentials: 'include'
       })

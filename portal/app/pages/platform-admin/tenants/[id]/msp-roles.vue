@@ -709,14 +709,14 @@ interface AvailablePermission {
 const route = useRoute()
 const tenantId = computed(() => route.params.id as string)
 
-const { data, pending, refresh, error } = await useFetch<{ roles: MspRole[] }>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   `/api/admin/tenants/${tenantId.value}/msp-roles`,
   {
     watch: [tenantId]
   }
 )
 
-const { data: availablePermissionsData, pending: availablePermissionsLoading } = await useFetch<{ permissions: AvailablePermission[] }>(
+const { data: availablePermissionsData, pending: availablePermissionsLoading } = await (useFetch as any)(
   `/api/admin/tenants/${tenantId.value}/msp-roles/available-permissions`,
   {
     watch: [tenantId]
@@ -750,7 +750,7 @@ const filteredModuleList = computed(() => {
       
       // Filter permissions that match
       const modulePermissions = Array.isArray(module.permissions) ? module.permissions : []
-      const matchingPermissions = modulePermissions.filter((perm) => {
+      const matchingPermissions = modulePermissions.filter((perm: any) => {
         if (!perm || !perm.key) return false
         const keyMatches = perm.key.toLowerCase().includes(query)
         const labelMatches = perm.description?.toLowerCase().includes(query) ?? false
@@ -789,7 +789,7 @@ const groupedPermissions = (permissions: Array<{ moduleKey: string; permissionKe
     if (!grouped[perm.moduleKey]) {
       grouped[perm.moduleKey] = []
     }
-    grouped[perm.moduleKey].push(perm.permissionKey)
+    grouped[perm.moduleKey]!.push(perm.permissionKey)
   }
   return grouped
 }
@@ -818,7 +818,7 @@ const isModuleFullySelected = (module: AvailablePermission): boolean => {
 }
 
 const toggleModule = (moduleKey: string) => {
-  const module = availablePermissions.value.find((m) => m.moduleKey === moduleKey)
+  const module = availablePermissions.value.find((m: AvailablePermission) => m.moduleKey === moduleKey)
   if (!module) return
 
   const allSelected = isModuleFullySelected(module)
@@ -871,7 +871,7 @@ const saveRole = async () => {
   try {
     if (editingRole.value) {
       // Update
-      await $fetch(`/api/admin/tenants/${tenantId.value}/msp-roles/${editingRole.value.id}`, {
+      await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/msp-roles/${editingRole.value.id}`, {
         method: 'PUT',
         body: {
           name: form.name,
@@ -882,7 +882,7 @@ const saveRole = async () => {
       successMessage.value = t('adminTenants.mspRoles.messages.updated')
     } else {
       // Create - key will be auto-generated from name
-      await $fetch(`/api/admin/tenants/${tenantId.value}/msp-roles`, {
+      await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/msp-roles`, {
         method: 'POST',
         body: {
           name: form.name,
@@ -910,7 +910,7 @@ const cloneRole = async (role: MspRole) => {
   successMessage.value = ''
 
   try {
-    const result = await $fetch<{ role: MspRole }>(`/api/admin/tenants/${tenantId.value}/msp-roles/${role.id}/clone`, {
+    const result = await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/msp-roles/${role.id}/clone`, {
       method: 'POST'
     })
     successMessage.value = t('adminTenants.mspRoles.messages.cloned')
@@ -932,7 +932,7 @@ const deleteRole = async (role: MspRole) => {
   successMessage.value = ''
 
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/msp-roles/${role.id}`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/msp-roles/${role.id}`, {
       method: 'DELETE'
     })
     successMessage.value = t('adminTenants.mspRoles.messages.deleted')
@@ -949,7 +949,7 @@ const deleteRole = async (role: MspRole) => {
 // ===== Template functionality =====
 
 // Check if tenant is a provider (for showing template features)
-const { data: tenantData } = await useFetch<{ tenant: { type: string } }>(
+const { data: tenantData } = await (useFetch as any)(
   `/api/admin/tenants/${tenantId.value}`,
   { watch: [tenantId] }
 )
@@ -974,7 +974,7 @@ const linkedDistributors = ref<LinkedDistributor[]>([])
 const fetchLinkedDistributors = async () => {
   if (!isProvider.value) return
   try {
-    const result = await $fetch<{ distributors: LinkedDistributor[] }>(
+    const result = await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/distributors`
     )
     linkedDistributors.value = result.distributors || []
@@ -1053,7 +1053,7 @@ const openFromTemplateModal = async () => {
   templatesLoading.value = true
   
   try {
-    const result = await $fetch<{ templates: AvailableTemplate[] }>(
+    const result = await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/msp-role-templates/available`
     )
     availableTemplates.value = result.templates
@@ -1080,7 +1080,7 @@ const createFromTemplate = async () => {
   successMessage.value = ''
   
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/msp-roles/from-template`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/msp-roles/from-template`, {
       method: 'POST',
       body: {
         templateId: selectedTemplateId.value,
@@ -1111,7 +1111,7 @@ const openSyncModal = async (role: MspRole) => {
   syncLoading.value = true
   
   try {
-    const result = await $fetch<SyncPreview>(
+    const result = await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/msp-roles/${role.id}/sync-from-template`,
       {
         method: 'POST',
@@ -1146,7 +1146,7 @@ const applySync = async () => {
   successMessage.value = ''
   
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/msp-roles/${syncingRole.value.id}/sync-from-template`,
       {
         method: 'POST',
@@ -1177,7 +1177,7 @@ watch(syncStrategy, async (newStrategy) => {
   
   syncLoading.value = true
   try {
-    const result = await $fetch<SyncPreview>(
+    const result = await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/msp-roles/${syncingRole.value.id}/sync-from-template`,
       {
         method: 'POST',
@@ -1198,7 +1198,7 @@ watch(syncStrategy, async (newStrategy) => {
 // Promote to Template Modal functions
 const openPromoteModal = (role: MspRole) => {
   promotingRole.value = role
-  promoteForm.distributorId = linkedDistributors.value.length === 1 ? linkedDistributors.value[0].id : ''
+  promoteForm.distributorId = linkedDistributors.value.length === 1 ? linkedDistributors.value[0]!.id : ''
   promoteForm.name = ''
   showPromoteModal.value = true
 }
@@ -1218,7 +1218,7 @@ const promoteToTemplate = async () => {
   successMessage.value = ''
   
   try {
-    await $fetch(`/api/admin/distributors/${promoteForm.distributorId}/msp-role-templates/from-role`, {
+    await ($fetch as any)(`/api/admin/distributors/${promoteForm.distributorId}/msp-role-templates/from-role`, {
       method: 'POST',
       body: {
         roleId: promotingRole.value.id,

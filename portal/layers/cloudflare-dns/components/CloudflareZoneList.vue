@@ -198,10 +198,10 @@ const createZone = async () => {
   if (!zoneName.value) return
   creating.value = true
   try {
-    const res = await $fetch<{ zone?: { id?: string; name?: string; nameServers?: string[] } }>('/api/dns/cloudflare/zones', {
+    const res = await ($fetch as any)('/api/dns/cloudflare/zones', {
       method: 'POST',
       body: { name: zoneName.value }
-    })
+    }) as { zone?: { id?: string; name?: string; nameServers?: string[] } }
     createdNameServers.value = Array.isArray(res?.zone?.nameServers) ? res.zone?.nameServers ?? [] : []
     createdZoneId.value = res?.zone?.id ?? null
     createdZoneName.value = res?.zone?.name ?? null

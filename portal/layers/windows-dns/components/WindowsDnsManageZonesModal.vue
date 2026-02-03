@@ -362,7 +362,7 @@ const loadZones = async () => {
   selectedZoneIds.value = []
 
   try {
-    const res = await $fetch<ManageResponse>('/api/dns/windows/zones/manage')
+    const res = await ($fetch as any)('/api/dns/windows/zones/manage') as ManageResponse
     state.zones = res.zones
     state.coreId = res.coreId
   } catch (err: any) {
@@ -385,7 +385,7 @@ const hideSelected = async () => {
     const zoneNames: Record<string, string> = {}
     zonesToHide.forEach(z => { zoneNames[z.id] = z.zoneName })
 
-    await $fetch('/api/dns/windows/zones/block', {
+    await ($fetch as any)('/api/dns/windows/zones/block', {
       method: 'POST',
       body: { zoneIds, zoneNames }
     })
@@ -421,7 +421,7 @@ const showSelected = async () => {
 
     // Unblock blocked zones
     if (blockedZoneIds.length > 0) {
-      await $fetch('/api/dns/windows/zones/unblock', {
+      await ($fetch as any)('/api/dns/windows/zones/unblock', {
         method: 'POST',
         body: { zoneIds: blockedZoneIds, activate: true, zoneNames }
       })
@@ -429,7 +429,7 @@ const showSelected = async () => {
 
     // Activate available zones (not blocked) - use unblock with activate
     if (availableZoneIds.length > 0) {
-      await $fetch('/api/dns/windows/zones/unblock', {
+      await ($fetch as any)('/api/dns/windows/zones/unblock', {
         method: 'POST',
         body: { zoneIds: availableZoneIds, activate: true, zoneNames }
       })
@@ -474,7 +474,7 @@ const confirmDeleteZones = async () => {
   try {
     // Delete zones one by one
     const deletePromises = zonesToDelete.value.map(zone =>
-      $fetch(`/api/dns/windows/zones/${zone.id}`, { method: 'DELETE' })
+      ($fetch as any)(`/api/dns/windows/zones/${zone.id}`, { method: 'DELETE' })
     )
     
     await Promise.all(deletePromises)

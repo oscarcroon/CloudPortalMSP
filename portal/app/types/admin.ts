@@ -438,3 +438,24 @@ export interface AdminTenantMembersResponse {
   invites: AdminTenantInvite[]
 }
 
+export interface OrganizationAuthUpdatePayload {
+  requireSso: boolean
+  allowLocalLoginForOwners: boolean
+  idpType?: 'none' | 'saml' | 'oidc'
+  idpConfig?: {
+    entryPoint?: string
+    issuer?: string
+    certificate?: string
+    audience?: string
+    signRequest?: boolean
+    wantAssertionsSigned?: boolean
+    provider?: string
+    tenantId?: string
+    clientId?: string
+    clientSecret?: string
+    redirectUri?: string
+    scopes?: string
+    metadataUrl?: string
+  } | null
+}
+

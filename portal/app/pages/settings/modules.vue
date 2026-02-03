@@ -72,7 +72,7 @@
             type="button"
             class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
             :disabled="groupsPending"
-            @click="refreshGroups"
+            @click="() => refreshGroups()"
           >
             <Icon icon="mdi:refresh" class="h-4 w-4" />
             {{ t('common.refresh') }}
@@ -446,22 +446,23 @@ const modeOptions: { value: PolicyMode }[] = [
   { value: 'blocked' }
 ]
 
-const { data, pending, error, refresh } = await useFetch<{ modules: ModuleStatusDto[] }>(() =>
-  currentOrgId.value ? `/api/organizations/${currentOrgId.value}/modules` : null
+const { data, pending, error, refresh } = await (useFetch as any)(() =>
+  currentOrgId.value ? `/api/organizations/${currentOrgId.value}/modules` : (null as unknown as string)
 )
+type GroupsResponse = { organizationId: string; groups: Array<{ id: string; name: string; description: string | null }> }
 const {
   data: groupsData,
   pending: groupsPending,
   error: groupsError,
   refresh: refreshGroups
-} = await useFetch<{ organizationId: string; groups: Array<{ id: string; name: string; description: string | null }> }>(
-  () => (currentOrgId.value ? `/api/organizations/${currentOrgId.value}/groups` : null)
+} = await (useFetch as any)(
+  () => (currentOrgId.value ? `/api/organizations/${currentOrgId.value}/groups` : (null as unknown as string))
 )
 
-const modules = computed(() => data.value?.modules ?? [])
+const modules = computed(() => (data.value as { modules: ModuleStatusDto[] } | null)?.modules ?? [])
 const moduleRows = ref<UiModule[]>([])
 const modulesError = computed(() => error.value?.message ?? '')
-const groups = computed(() => groupsData.value?.groups ?? [])
+const groups = computed(() => (groupsData.value as GroupsResponse | null)?.groups ?? [])
 const expandedGroups = ref<Record<string, boolean>>({})
 const groupMembersInput = ref<Record<string, string>>({})
 const savingGroupMembers = ref<Record<string, boolean>>({})
@@ -503,7 +504,7 @@ const permissionState = (moduleKey: string) => {
   if (!permissionCache.value[moduleKey]) {
     permissionCache.value[moduleKey] = { loading: false, error: '', items: [] }
   }
-  return permissionCache.value[moduleKey]
+  return permissionCache.value[moduleKey]!
 }
 
 const loadModulePermissions = async (module: UiModule) => {
@@ -512,7 +513,7 @@ const loadModulePermissions = async (module: UiModule) => {
   state.loading = true
   state.error = ''
   try {
-    const res = await $fetch<{ permissions: { key: string; description?: string | null }[] }>(
+    const res = await ($fetch as any)(
       `/api/modules/${module.key}/permissions`
     )
     state.items = res.permissions ?? []
@@ -624,7 +625,7 @@ const updatePolicy = async (
   if (patch.comingSoonMessage !== undefined) payload.comingSoonMessage = patch.comingSoonMessage
 
   try {
-    const response = await $fetch<ModuleStatusDto>(
+    const response = await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/modules`,
       {
         method: 'PUT',
@@ -663,14 +664,12 @@ const openAclDialog = async (module: UiModule) => {
   }
 
   try {
-    const res = await $fetch<{
-      acl: Record<'create' | 'read' | 'update' | 'delete', { groupId: string }[]>
-    }>(`/api/organizations/${currentOrgId.value}/plugins/${module.key}/acl`)
+    const res = await ($fetch as any)(`/api/organizations/${currentOrgId.value}/plugins/${module.key}/acl`)
     aclDialog.value.operations = {
-      create: res.acl.create.map((item) => item.groupId),
-      read: res.acl.read.map((item) => item.groupId),
-      update: res.acl.update.map((item) => item.groupId),
-      delete: res.acl.delete.map((item) => item.groupId)
+      create: res.acl.create.map((item: any) => item.groupId),
+      read: res.acl.read.map((item: any) => item.groupId),
+      update: res.acl.update.map((item: any) => item.groupId),
+      delete: res.acl.delete.map((item: any) => item.groupId)
     }
   } catch (err: any) {
     aclDialog.value.error = err?.data?.message ?? err?.message ?? 'Kunde inte läsa ACL'
@@ -682,7 +681,7 @@ const saveAcl = async () => {
   aclDialog.value.saving = true
   aclDialog.value.error = null
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/plugins/${aclDialog.value.module.key}/acl`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/plugins/${aclDialog.value.module.key}/acl`, {
       method: 'PUT',
       body: { operations: aclDialog.value.operations }
     })

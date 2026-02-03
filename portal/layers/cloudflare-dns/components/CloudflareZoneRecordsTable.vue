@@ -615,7 +615,7 @@ const creating = ref(false)
 const createRecord = async () => {
   creating.value = true
   try {
-    await $fetch(`/api/dns/cloudflare/zones/${props.zoneId}/records`, {
+    await ($fetch as any)(`/api/dns/cloudflare/zones/${props.zoneId}/records`, {
       method: 'POST',
       body: {
         ...newRecord
@@ -814,7 +814,7 @@ const updateRecord = async () => {
   if (!editingId.value) return
   updating.value = true
   try {
-    await $fetch(`/api/dns/cloudflare/zones/${props.zoneId}/records/${editingId.value}`, {
+    await ($fetch as any)(`/api/dns/cloudflare/zones/${props.zoneId}/records/${editingId.value}`, {
       method: 'PATCH',
       body: {
         ...editForm
@@ -832,7 +832,7 @@ const updateRecord = async () => {
 const deleteRecord = async (recordId: string) => {
   if (!confirm('Ta bort record?')) return
   try {
-    await $fetch(`/api/dns/cloudflare/zones/${props.zoneId}/records/${recordId}`, {
+    await ($fetch as any)(`/api/dns/cloudflare/zones/${props.zoneId}/records/${recordId}`, {
       method: 'DELETE'
     })
     emit('refresh')

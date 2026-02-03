@@ -2,33 +2,33 @@
   <div v-if="visibleIncidents.length > 0" class="mx-auto max-w-6xl px-4">
     <!-- Single incident display -->
     <div
-      v-if="visibleIncidents.length === 1"
-      :class="bannerClasses(visibleIncidents[0].severity)"
+      v-if="visibleIncidents.length === 1 && firstIncident"
+      :class="bannerClasses(firstIncident.severity)"
       class="mb-4 flex items-start justify-between rounded-lg px-4 py-3 text-sm"
     >
       <div class="flex items-start gap-3 flex-1 min-w-0">
-        <Icon :icon="severityIconName(visibleIncidents[0].severity)" class="h-5 w-5 flex-shrink-0 mt-0.5" :class="severityIconClass(visibleIncidents[0].severity)" />
+        <Icon :icon="severityIconName(firstIncident.severity)" class="h-5 w-5 flex-shrink-0 mt-0.5" :class="severityIconClass(firstIncident.severity)" />
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 flex-wrap">
-            <span v-if="visibleIncidents[0].isPlanned" class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
+            <span v-if="firstIncident.isPlanned" class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-500/20 dark:text-blue-300">
               <Icon icon="mdi:clock-outline" class="h-3 w-3" />
               {{ t('operations.planned') }}
             </span>
             <button
               class="font-semibold hover:underline underline-offset-2 text-left cursor-pointer"
-              @click="openIncidentDetails(visibleIncidents[0])"
+              @click="openIncidentDetails(firstIncident)"
             >
-              {{ visibleIncidents[0].title }}
+              {{ firstIncident.title }}
             </button>
             <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="sourcePillClasses">
-              {{ t('operations.from') }} {{ visibleIncidents[0].sourceTenantName }}
+              {{ t('operations.from') }} {{ firstIncident.sourceTenantName }}
             </span>
-            <span v-if="visibleIncidents[0].isPlanned && visibleIncidents[0].startsAt" class="text-xs opacity-75">
-              {{ formatDate(visibleIncidents[0].startsAt) }}
+            <span v-if="firstIncident.isPlanned && firstIncident.startsAt" class="text-xs opacity-75">
+              {{ formatDate(firstIncident.startsAt) }}
             </span>
           </div>
-          <p v-if="visibleIncidents[0].bodyMarkdown" class="mt-1 text-sm opacity-90 line-clamp-2">
-            {{ stripMarkdown(visibleIncidents[0].bodyMarkdown) }}
+          <p v-if="firstIncident.bodyMarkdown" class="mt-1 text-sm opacity-90 line-clamp-2">
+            {{ stripMarkdown(firstIncident.bodyMarkdown) }}
           </p>
         </div>
       </div>
@@ -36,7 +36,7 @@
         <button
           v-if="showDetails"
           class="text-xs font-medium underline underline-offset-2 hover:opacity-80"
-          @click="openIncidentDetails(visibleIncidents[0])"
+          @click="openIncidentDetails(firstIncident)"
         >
           {{ t('operations.showDetails') }}
         </button>
@@ -50,7 +50,7 @@
           v-if="canMute"
           class="p-1 rounded-md opacity-60 hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition-opacity"
           :title="t('operations.hideForMe')"
-          @click="handleMuteIncident(visibleIncidents[0])"
+          @click="handleMuteIncident(firstIncident)"
         >
           <Icon icon="mdi:eye-off-outline" class="h-4 w-4" />
         </button>
@@ -234,6 +234,8 @@ const visibleIncidents = computed(() =>
   props.incidents.filter((i) => !i.isMuted)
 )
 
+const firstIncident = computed(() => visibleIncidents.value[0] as Incident | undefined)
+
 const highestSeverity = computed(() => {
   const severityOrder: Record<string, number> = { critical: 0, outage: 1, maintenance: 2, notice: 3, planned: 4 }
   return visibleIncidents.value.reduce((highest, incident) => {
@@ -337,7 +339,7 @@ function formatDate(date: Date | string | null): string {
 
 function openDetailsModal() {
   if (visibleIncidents.value.length === 1) {
-    selectedIncident.value = visibleIncidents.value[0]
+    selectedIncident.value = visibleIncidents.value[0] ?? null
     detailsModalOpen.value = true
   }
 }

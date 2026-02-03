@@ -289,7 +289,7 @@ const handleNameSave = async () => {
   nameError.value = ''
   nameSuccess.value = ''
   try {
-    await $fetch('/api/profile/name', {
+    await ($fetch as any)('/api/profile/name', {
       method: 'PATCH',
       body: {
         fullName: nameForm.fullName
@@ -324,7 +324,7 @@ const onLocaleChange = async () => {
   await setLocale(nextLocale)
 
   try {
-    await $fetch('/api/profile/locale', {
+    await ($fetch as any)('/api/profile/locale', {
       method: 'PATCH',
       body: { locale: nextLocale }
     })
@@ -351,7 +351,7 @@ const handlePasswordChange = async () => {
   passwordError.value = ''
   passwordSuccess.value = ''
   try {
-    await $fetch('/api/auth/password/change', {
+    await ($fetch as any)('/api/auth/password/change', {
       method: 'POST',
       body: {
         currentPassword: passwordForm.current,

@@ -389,7 +389,7 @@ const form = reactive({
   }
 })
 
-const { data, pending, refresh, error } = await useFetch<AdminOrganizationDetail>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   `/api/admin/organizations/${slug.value}`,
   {
     watch: [slug],
@@ -656,7 +656,7 @@ const handleSave = async () => {
   successMessage.value = ''
 
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}/auth`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}/auth`, {
       method: 'PATCH',
       body: buildPayload()
     })

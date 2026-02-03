@@ -272,7 +272,7 @@ interface IncidentsResponse {
   tenantType: string
 }
 
-const { data, pending, refresh } = useFetch<IncidentsResponse>(
+const { data, pending, refresh } = (useFetch as any)(
   () => tenantId.value ? `/api/admin/tenants/${tenantId.value}/incidents?filter=${filter.value}` : '',
   {
     immediate: !!tenantId.value,
@@ -288,7 +288,7 @@ async function resolveIncident(incidentId: string) {
   
   actionProcessingId.value = incidentId
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/resolve`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/resolve`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -305,7 +305,7 @@ async function archiveIncident(incidentId: string) {
   
   actionProcessingId.value = incidentId
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/archive`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/archive`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -322,7 +322,7 @@ async function unarchiveIncident(incidentId: string) {
   
   actionProcessingId.value = incidentId
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/unarchive`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/unarchive`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -344,7 +344,7 @@ async function deleteIncident() {
   const incidentId = deleteConfirmIncident.value.id
   actionProcessingId.value = incidentId
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}`, {
       method: 'DELETE',
       credentials: 'include'
     })

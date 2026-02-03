@@ -182,7 +182,7 @@ export async function requireModuleAccessAny(
       moduleKey: params.moduleKey,
       policy,
       permissions,
-      matchedPermission: params.requiredPermissions[0]
+      matchedPermission: params.requiredPermissions[0] ?? ''
     }
   }
 

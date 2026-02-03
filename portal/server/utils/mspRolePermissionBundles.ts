@@ -177,7 +177,7 @@ export async function getBundlesForMspRoles(
   // Build bundles from role mappings
   const bundleMap = new Map<string, Set<string>>()
 
-  for (const role of mspRoles) {
+  for (const role of mspRoleKeys) {
     const roleMapping = mspRoleToModulePermissions[role]
     if (!roleMapping) {
       continue

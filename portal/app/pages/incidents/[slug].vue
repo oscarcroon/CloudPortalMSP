@@ -202,7 +202,7 @@ const route = useRoute()
 
 const slug = computed(() => route.params.slug as string)
 
-const { data, pending, error } = await useFetch<IncidentResponse>(
+const { data, pending, error } = await (useFetch as any)(
   () => `/api/operations/incidents/${slug.value}`,
   {
     credentials: 'include'

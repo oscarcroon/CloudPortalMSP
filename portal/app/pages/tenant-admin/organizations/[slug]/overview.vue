@@ -199,7 +199,7 @@ const errorMessage = ref('')
 const showCreatedBanner = ref(route.query.created === '1')
 const statusLoading = ref(false)
 
-const { data, pending, refresh, error } = await useFetch<AdminOrganizationDetail>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   `/api/admin/organizations/${slug.value}`,
   {
     watch: [slug]
@@ -225,7 +225,7 @@ const form = reactive({
   slug: '',
   billingEmail: '',
   coreId: '',
-  defaultRole: roles[3],
+  defaultRole: 'member' as (typeof roles)[number],
   requireSso: false
 })
 
@@ -274,7 +274,7 @@ watch(
     form.slug = org.slug
     form.billingEmail = org.billingEmail ?? ''
     form.coreId = org.coreId ?? ''
-    form.defaultRole = org.defaultRole
+    form.defaultRole = org.defaultRole as (typeof roles)[number]
     form.requireSso = org.requireSso
   },
   { immediate: true }
@@ -316,7 +316,7 @@ const handleSave = async () => {
   payload.coreId = form.coreId.trim() ? form.coreId.trim().toUpperCase() : null
 
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}`, {
       method: 'PATCH',
       body: payload
     })
@@ -342,7 +342,7 @@ const toggleOrganizationStatus = async () => {
   statusLoading.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}/status`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}/status`, {
       method: 'PATCH',
       body: { status: newStatus }
     })

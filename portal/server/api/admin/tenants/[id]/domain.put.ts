@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       tenantId: tenant.id,
       customDomain: tenant.customDomain,
       customDomainVerificationStatus: tenant.customDomainVerificationStatus ?? 'unverified',
-      customDomainVerifiedAt: tenant.customDomainVerifiedAt?.toISOString() ?? null,
+      customDomainVerifiedAt: tenant.customDomainVerifiedAt ? new Date(tenant.customDomainVerifiedAt).toISOString() : null,
       verificationInstructions: (tenant.customDomain && existingToken && tenant.customDomainVerificationStatus !== 'verified') ? {
         recordType: 'TXT',
         recordName: buildVerificationRecordName(tenant.customDomain),

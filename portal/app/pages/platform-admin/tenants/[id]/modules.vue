@@ -314,12 +314,12 @@ const modeOptions: { value: PolicyMode }[] = [
   { value: 'blocked' }
 ]
 
-const { data: tenantResponse } = await useFetch<{ tenant: { name: string } }>(() =>
+const { data: tenantResponse } = await (useFetch as any)(() =>
   `/api/admin/tenants/${tenantId.value}`
 )
 
-const { data, pending, error, refresh } = await useFetch<{ modules: ModuleStatusDto[] }>(() =>
-  tenantId.value ? `/api/admin/tenants/${tenantId.value}/modules` : null
+const { data, pending, error, refresh } = await (useFetch as any)(() =>
+  tenantId.value ? `/api/admin/tenants/${tenantId.value}/modules` : (null as unknown as string)
 )
 
 const permissionCache = ref<
@@ -337,7 +337,7 @@ const permissionState = (moduleKey: string) => {
   if (!permissionCache.value[moduleKey]) {
     permissionCache.value[moduleKey] = { loading: false, error: '', items: [] }
   }
-  return permissionCache.value[moduleKey]
+  return permissionCache.value[moduleKey]!
 }
 
 const loadModulePermissions = async (module: UiModule) => {
@@ -346,7 +346,7 @@ const loadModulePermissions = async (module: UiModule) => {
   state.loading = true
   state.error = ''
   try {
-    const res = await $fetch<{ permissions: { key: string; description?: string | null }[] }>(
+    const res = await ($fetch as any)(
       `/api/modules/${module.key}/permissions`
     )
     state.items = res.permissions ?? []
@@ -364,12 +364,27 @@ const ensurePermissionsLoaded = (module: UiModule) => {
   }
 }
 
-const modules = computed(() => data.value?.modules ?? [])
+const modules = computed(() => (data.value as { modules: ModuleStatusDto[] } | null)?.modules ?? [])
 const moduleRows = ref<UiModule[]>([])
 const modulesError = computed(() => error.value?.message ?? '')
 const tenantName = computed(() => tenantResponse.value?.tenant?.name ?? '...')
 const resyncing = ref(false)
 const resyncMessage = ref('')
+
+const resyncModules = async () => {
+  if (resyncing.value) return
+  resyncing.value = true
+  resyncMessage.value = ''
+  try {
+    const result = await ($fetch as any)('/api/admin/modules/resync', { method: 'POST' })
+    resyncMessage.value = t('adminTenants.modules.resyncSuccess', { count: result.result?.modulesUpdated ?? 0 })
+    await refresh()
+  } catch (err: any) {
+    resyncMessage.value = err?.data?.message ?? err?.message ?? 'Resync failed'
+  } finally {
+    resyncing.value = false
+  }
+}
 
 watch(
   modules,
@@ -460,7 +475,7 @@ const updatePolicy = async (
   if (patch.comingSoonMessage !== undefined) payload.comingSoonMessage = patch.comingSoonMessage
 
   try {
-    const response = await $fetch<ModuleStatusDto>(`/api/admin/tenants/${tenantId.value}/modules`, {
+    const response = await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/modules`, {
       method: 'PUT',
       body: payload
     })

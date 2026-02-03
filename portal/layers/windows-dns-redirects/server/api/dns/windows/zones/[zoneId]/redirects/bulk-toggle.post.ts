@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ ids: string[]; isActive: boolean }>(event)
 
-  if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
+  if (!body?.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
     throw createError({ statusCode: 400, message: 'ids array is required.' })
   }
 

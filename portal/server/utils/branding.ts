@@ -183,7 +183,7 @@ export function normalizeStoredLogoUrl(logoUrl: string | null | undefined): stri
     } catch {
       // If URL parsing fails, try to extract path manually
       const match = normalized.match(/https?:\/\/[^/]+(\/.*)/)
-      if (match) {
+      if (match && match[1]) {
         normalized = match[1]
       }
     }

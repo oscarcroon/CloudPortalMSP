@@ -66,10 +66,7 @@ const testing = ref(false)
 const testMessage = ref('')
 const testVariant = ref<'success' | 'error'>('success')
 
-const { data, pending, refresh, error } = await useFetch<{
-  provider: AdminEmailProviderSummary | null
-  chain: EmailProviderChainEntry[]
-}>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   '/api/admin/email-provider'
 )
 
@@ -94,7 +91,7 @@ const handleSave = async (payload: AdminEmailProviderPayload) => {
   errorMessage.value = ''
   saving.value = true
   try {
-    await $fetch('/api/admin/email-provider', {
+    await ($fetch as any)('/api/admin/email-provider', {
       method: 'PUT',
       body: payload
     })
@@ -113,7 +110,7 @@ const handleTest = async (payload: AdminEmailProviderTestPayload) => {
   testMessage.value = ''
   testing.value = true
   try {
-    await $fetch('/api/admin/email-provider/test', {
+    await ($fetch as any)('/api/admin/email-provider/test', {
       method: 'POST',
       body: payload
     })

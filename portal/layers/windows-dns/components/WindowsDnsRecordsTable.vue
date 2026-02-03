@@ -633,13 +633,13 @@ const fetchAuditSummaries = async () => {
 
   loadingAuditSummaries.value = true
   try {
-    const response = await $fetch<{ summaries: Record<string, AuditSummary> }>(
+    const response = await ($fetch as any)(
       `/api/dns/windows/zones/${props.zoneId}/records/audit-summaries`,
       {
         method: 'POST',
         body: { recordIds }
       }
-    )
+    ) as { summaries: Record<string, AuditSummary> }
     auditSummaries.value = response.summaries || {}
   } catch (err) {
     console.warn('[windows-dns] Failed to fetch audit summaries:', err)
@@ -807,7 +807,7 @@ const parseContent = (type: string, content: string, record?: any) => {
     case 'MX': {
       // Priority may be stored separately (record.priority) or embedded in content (legacy)
       // Check if first part looks like a priority number
-      const firstPartIsNumber = parts.length > 0 && /^\d+$/.test(parts[0])
+      const firstPartIsNumber = parts.length > 0 && /^\d+$/.test(parts[0] ?? '')
       if (record?.priority !== undefined && record.priority !== null) {
         // Priority is stored separately - content is just the exchange
         return {
@@ -817,7 +817,7 @@ const parseContent = (type: string, content: string, record?: any) => {
       } else if (firstPartIsNumber && parts.length > 1) {
         // Legacy: priority embedded in content (e.g., "10 mail.example.com")
         return {
-          mxPriority: parseInt(parts[0], 10) || 10,
+          mxPriority: parseInt(parts[0] ?? '', 10) || 10,
           mxExchange: parts.slice(1).join(' ') || ''
         }
       } else {
@@ -830,22 +830,22 @@ const parseContent = (type: string, content: string, record?: any) => {
     }
     case 'SRV':
       return {
-        srvPriority: parseInt(parts[0], 10) || 0,
-        srvWeight: parseInt(parts[1], 10) || 0,
-        srvPort: parseInt(parts[2], 10) || 0,
+        srvPriority: parseInt(parts[0] ?? '', 10) || 0,
+        srvWeight: parseInt(parts[1] ?? '', 10) || 0,
+        srvPort: parseInt(parts[2] ?? '', 10) || 0,
         srvTarget: parts.slice(3).join(' ') || ''
       }
     case 'CAA':
       return {
-        caaFlags: parseInt(parts[0], 10) || 0,
+        caaFlags: parseInt(parts[0] ?? '', 10) || 0,
         caaTag: parts[1] || 'issue',
         caaValue: parts.slice(2).join(' ').replace(/^"|"$/g, '') || ''
       }
     case 'TLSA':
       return {
-        tlsaUsage: parseInt(parts[0], 10) || 3,
-        tlsaSelector: parseInt(parts[1], 10) || 1,
-        tlsaMatchingType: parseInt(parts[2], 10) || 1,
+        tlsaUsage: parseInt(parts[0] ?? '', 10) || 3,
+        tlsaSelector: parseInt(parts[1] ?? '', 10) || 1,
+        tlsaMatchingType: parseInt(parts[2] ?? '', 10) || 1,
         tlsaCertData: parts.slice(3).join('') || ''
       }
     default:
@@ -986,7 +986,7 @@ const createRecord = async () => {
       payload.comment = newRecord.comment.trim()
     }
 
-    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+    await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records`, {
       method: 'POST',
       body: payload
     })
@@ -1188,7 +1188,7 @@ const updateRecord = async () => {
 
       // 1) Delete old record first
       try {
-        await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+        await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records`, {
           method: 'DELETE',
           body: {
             name: original.name,
@@ -1208,7 +1208,7 @@ const updateRecord = async () => {
       }
 
       // 2) Create new record
-      await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+      await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records`, {
         method: 'POST',
         body: createPayload
       })
@@ -1240,7 +1240,7 @@ const updateRecord = async () => {
       payload.comment = editForm.comment?.trim() || null
     }
 
-    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records/${recordId}`, {
+    await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records/${recordId}`, {
       method: 'PATCH',
       body: payload
     })
@@ -1260,7 +1260,7 @@ const deleteRecord = async (record: any) => {
   const confirmMessage = $i18n.t('windowsDns.records.deleteConfirm', { type: record.type, name: record.name || '@' })
   if (!confirm(confirmMessage)) return
   try {
-    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+    await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records`, {
       method: 'DELETE',
       body: {
         name: record.name,

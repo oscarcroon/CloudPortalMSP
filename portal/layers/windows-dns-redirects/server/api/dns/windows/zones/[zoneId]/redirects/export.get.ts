@@ -109,7 +109,7 @@ export default defineEventHandler(async (event) => {
   // CSV rows
   for (const redirect of redirects) {
     const row = [
-      escapeCSV(redirect.host || allowedZone.zoneName), // Fallback for legacy redirects
+      escapeCSV(redirect.host || allowedZone.zoneName || ''), // Fallback for legacy redirects
       escapeCSV(redirect.sourcePath),
       escapeCSV(redirect.destinationUrl),
       redirect.redirectType,

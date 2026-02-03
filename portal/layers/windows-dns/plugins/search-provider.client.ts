@@ -15,10 +15,10 @@ export default defineNuxtPlugin(() => {
       try {
         const q = query.toLowerCase()
         const category = t('windowsDns.title')
-        const response = await $fetch<{ zones: Array<{ id: string; zoneName: string; serverName?: string }> }>(
+        const response = await ($fetch as any)(
           '/api/dns/windows/zones',
           { credentials: 'include' }
-        )
+        ) as { zones: Array<{ id: string; zoneName: string; serverName?: string }> }
 
         return (response.zones || [])
           .filter(z => z.zoneName.toLowerCase().includes(q))

@@ -198,7 +198,7 @@ const fetchZones = async (forceRefresh = false) => {
   state.autoSetupMessageType = 'success'
   state.needsAdminSetup = false
   try {
-    const res = await $fetch<ZonesResponse>('/api/dns/windows/zones', {
+    const res = await ($fetch as any)('/api/dns/windows/zones', {
       query: forceRefresh ? { refresh: 'true' } : undefined
     })
     state.data = res

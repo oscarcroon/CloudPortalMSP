@@ -446,7 +446,7 @@ async function handleSubmit() {
       payload.slug = form.value.slug.trim()
     }
 
-    const response = await $fetch<{ id: string; slug: string }>(`/api/admin/tenants/${tenantId.value}/news`, {
+    const response = await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/news`, {
       method: 'POST',
       body: payload,
       credentials: 'include'
@@ -457,7 +457,7 @@ async function handleSubmit() {
       const formData = new FormData()
       formData.append('heroImage', heroImageFile.value)
 
-      await $fetch(`/api/admin/tenants/${tenantId.value}/news/${response.id}/hero-image`, {
+      await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/news/${response.id}/hero-image`, {
         method: 'POST',
         body: formData,
         credentials: 'include'

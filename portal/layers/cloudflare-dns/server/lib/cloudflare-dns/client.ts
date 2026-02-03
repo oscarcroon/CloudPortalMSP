@@ -16,7 +16,7 @@ type CloudflareResponse<T> = {
 export class CloudflareClient {
   constructor(private apiToken: string, private accountId?: string | null) {}
 
-  private async request<T>(path: string, options?: { method?: string; body?: unknown; query?: Record<string, any> }) {
+  private async request<T>(path: string, options?: { method?: string; body?: Record<string, unknown>; query?: Record<string, any> }) {
     try {
       const res = await ofetch<CloudflareResponse<T>>(CF_API_BASE + path, {
         method: options?.method ?? 'GET',

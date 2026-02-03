@@ -133,7 +133,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       
       if (matchingModule) {
         try {
-          const response = await $fetch(`/api/organizations/${currentOrgId}/modules/visible`)
+          const response = await ($fetch as any)(`/api/organizations/${currentOrgId}/modules/visible`) as { modules: any[] }
           // /modules/visible returns 'id' not 'key', so check both for compatibility
           const module = (response.modules || []).find((m: any) => 
             m.id === matchingModule.id || m.key === matchingModule.id

@@ -129,7 +129,7 @@ const saving = ref(false)
 const save = async () => {
   saving.value = true
   try {
-    await $fetch(`/api/dns/cloudflare/zones/${props.zoneId}/acl`, {
+    await ($fetch as any)(`/api/dns/cloudflare/zones/${props.zoneId}/acl`, {
       method: 'PUT',
       body: { entries: localRows.value }
     })

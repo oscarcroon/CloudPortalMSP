@@ -578,8 +578,8 @@ const pendingAction = ref('')
 const expanded = ref<Set<string>>(new Set())
 const showRevoked = ref(false)
 
-const { data, pending, refresh, error } = await useFetch<AdminDelegationsResponse>(
-  () => currentOrgId.value ? `/api/organizations/${currentOrgId.value}/delegations` : null,
+const { data, pending, refresh, error } = await (useFetch as any)(
+  () => currentOrgId.value ? `/api/organizations/${currentOrgId.value}/delegations` : (null as unknown as string),
   {
     watch: [currentOrgId, showRevoked],
     query: computed(() => ({ revoked: showRevoked.value ? 'true' : 'false' }))
@@ -590,9 +590,9 @@ if (error.value) {
   errorMessage.value = error.value.message || 'Kunde inte hämta delegationer.'
 }
 
-const organization = computed(() => data.value?.organization ?? null)
-const delegations = computed(() => data.value?.delegations ?? [])
-const invitations = computed(() => data.value?.invitations ?? [])
+const organization = computed(() => (data.value as AdminDelegationsResponse | null)?.organization ?? null)
+const delegations = computed(() => (data.value as AdminDelegationsResponse | null)?.delegations ?? [])
+const invitations = computed(() => (data.value as AdminDelegationsResponse | null)?.invitations ?? [])
 
 const visibleDelegations = computed(() => {
   if (showRevoked.value) return delegations.value
@@ -609,15 +609,18 @@ const groupedDelegations = computed(() => {
     }
     groups.get(key)!.push(delegation)
   }
-  return Array.from(groups.entries()).map(([subjectId, delegs]) => ({
-    subjectId,
-    subjectName: delegs[0].subjectName,
-    subjectEmail: delegs[0].subjectEmail,
-    delegations: delegs,
-    activeCount: delegs.filter((d) => !d.revokedAt && !isExpired(d)).length,
-    revokedCount: delegs.filter((d) => d.revokedAt).length,
-    expiredCount: delegs.filter((d) => !d.revokedAt && isExpired(d)).length
-  }))
+  return Array.from(groups.entries()).map(([subjectId, delegs]) => {
+    const first = delegs[0]!
+    return {
+      subjectId,
+      subjectName: first.subjectName,
+      subjectEmail: first.subjectEmail,
+      delegations: delegs,
+      activeCount: delegs.filter((d) => !d.revokedAt && !isExpired(d)).length,
+      revokedCount: delegs.filter((d) => d.revokedAt).length,
+      expiredCount: delegs.filter((d) => !d.revokedAt && isExpired(d)).length
+    }
+  })
 })
 
 const moduleList = computed(() =>
@@ -705,7 +708,7 @@ const loadOrganizationMembers = async () => {
   if (!currentOrgId.value) return
   loadingMembers.value = true
   try {
-    const res = await fetchMembers()
+    const res = await fetchMembers() as any
     organizationMembers.value = res.members ?? []
   } catch (err) {
     console.error('Failed to load members:', err)
@@ -883,7 +886,7 @@ const createDelegation = async () => {
   creating.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/delegations`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/delegations`, {
       method: 'POST',
       body: {
         subjectId: selectedUserId.value,
@@ -909,7 +912,7 @@ const inviteAndCreateDelegation = async () => {
     // Get module keys from selected modules
     const moduleKeys = Array.from(selectedModules.value)
     
-    await $fetch(`/api/organizations/${currentOrgId.value}/delegations/invite`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/delegations/invite`, {
       method: 'POST',
       body: {
         email: inviteEmail.value.trim(),
@@ -934,7 +937,7 @@ const revokeDelegation = async (delegation: AdminDelegation) => {
   pendingAction.value = delegation.id
   errorMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/delegations/${delegation.id}/revoke`,
       { method: 'POST' }
     )
@@ -952,7 +955,7 @@ const cancelInvitation = async (invite: DelegationInvitation) => {
   pendingAction.value = invite.id
   errorMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/delegations/invitations/${invite.id}`,
       { method: 'DELETE' }
     )
@@ -969,7 +972,7 @@ const resendInvitation = async (invite: DelegationInvitation) => {
   pendingAction.value = `resend-${invite.id}`
   errorMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/delegations/invitations/${invite.id}/resend`,
       { method: 'POST' }
     )
@@ -981,7 +984,7 @@ const resendInvitation = async (invite: DelegationInvitation) => {
   }
 }
 
-const formatExpires = (value: number | null | undefined) => {
+const formatExpires = (value: number | Date | null | undefined) => {
   if (!value) return t('settings.delegations.list.noExpiry')
   const date = new Date(value)
   return date.toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })

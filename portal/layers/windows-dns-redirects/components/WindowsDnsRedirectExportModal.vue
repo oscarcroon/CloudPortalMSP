@@ -3,7 +3,7 @@
  * WindowsDnsRedirect Export Modal
  * Export redirects to CSV or TXT format
  */
-import type { WindowsDnsRedirectFilters } from '../../types'
+import type { WindowsDnsRedirectFilters } from '../types'
 
 const props = defineProps<{
   isOpen: boolean

@@ -431,7 +431,7 @@ async function handleLogoSelection(event: Event) {
   const target = event.target as HTMLInputElement
   if (!target.files?.length) return
 
-  const file = target.files[0]
+  const file = target.files[0]!
   uploadError.value = null
   uploadSuccessMessage.value = null
 
@@ -446,7 +446,7 @@ async function handleLogoSelection(event: Event) {
   try {
     const formData = new FormData()
     formData.append('logo', file)
-    const result = await $fetch<{ logoUrl: string }>(
+    const result = await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/branding/logo`,
       {
         method: 'POST',
@@ -477,7 +477,7 @@ async function removeLogo() {
   uploadError.value = null
   uploadSuccessMessage.value = null
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/branding/logo`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/branding/logo`, {
       method: 'DELETE',
       credentials: 'include'
     })
@@ -509,17 +509,7 @@ async function fetchBranding() {
   brandingLoading.value = true
   brandingError.value = null
   try {
-    const response = await $fetch<{
-      branding: BrandingState
-      tenant: {
-        name: string
-        type: 'provider' | 'distributor'
-        slug: string
-        customDomain: string | null
-        customDomainVerificationStatus: string
-        customDomainVerifiedAt: number | null
-      }
-    }>(
+    const response = await ($fetch as any)(
       `/api/admin/tenants/${tenantId.value}/branding`,
       {
         credentials: 'include'
@@ -554,7 +544,7 @@ async function saveCustomAccent() {
   accentStatus.value = null
   try {
     const currentNavColor = brandingDetails.value?.tenantTheme?.navigationBackgroundColor
-    await $fetch(`/api/admin/tenants/${tenantId.value}/branding`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/branding`, {
       method: 'PUT',
       credentials: 'include',
       body: { 
@@ -580,7 +570,7 @@ async function resetAccent() {
   accentStatus.value = null
   try {
     const currentNavColor = brandingDetails.value?.tenantTheme?.navigationBackgroundColor
-    await $fetch(`/api/admin/tenants/${tenantId.value}/branding`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/branding`, {
       method: 'PUT',
       credentials: 'include',
       body: { 
@@ -626,7 +616,7 @@ async function saveNavigationColor() {
   try {
     const currentAccentColor = brandingDetails.value?.tenantTheme?.accentColor
     const currentPaletteKey = brandingDetails.value?.tenantTheme?.paletteKey
-    await $fetch(`/api/admin/tenants/${tenantId.value}/branding`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/branding`, {
       method: 'PUT',
       credentials: 'include',
       body: { 

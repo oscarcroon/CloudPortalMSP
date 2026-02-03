@@ -213,7 +213,7 @@ const currentTenant = computed(() => auth.currentTenant.value)
 async function fetchIncidents() {
   loading.value = true
   try {
-    const response = await $fetch<IncidentsResponse>('/api/operations/incidents?includeMuted=1', {
+    const response = await ($fetch as any)('/api/operations/incidents?includeMuted=1', {
       credentials: 'include'
     })
     incidents.value = response.incidents
@@ -227,7 +227,7 @@ async function fetchIncidents() {
 async function hideForTenant(incidentId: string) {
   mutingId.value = incidentId
   try {
-    await $fetch(`/api/admin/incidents/${incidentId}/mute`, {
+    await ($fetch as any)(`/api/admin/incidents/${incidentId}/mute`, {
       method: 'POST',
       body: { targetType: 'tenant' },
       credentials: 'include'
@@ -243,7 +243,7 @@ async function hideForTenant(incidentId: string) {
 async function showForTenant(incidentId: string) {
   mutingId.value = incidentId
   try {
-    await $fetch(`/api/admin/incidents/${incidentId}/unmute`, {
+    await ($fetch as any)(`/api/admin/incidents/${incidentId}/unmute`, {
       method: 'POST',
       body: { targetType: 'tenant' },
       credentials: 'include'

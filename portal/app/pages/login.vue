@@ -172,9 +172,9 @@ const buildSsoUrl = (slug: string) => {
 const handleEmailSubmit = async () => {
   errorMessage.value = ''
   try {
-    const response = await $fetch<ProvidersResponse>('/api/auth/sso/providers', {
+    const response = await ($fetch as any)('/api/auth/sso/providers', {
       params: { email: email.value }
-    })
+    }) as ProvidersResponse
     providers.value.restrictSso = Boolean(response.requiresSso)
     providers.value.identityProviders = response.identityProviders ?? []
     step.value = 'password'
@@ -185,7 +185,7 @@ const handleEmailSubmit = async () => {
     
     if (status === 400 || status === 422) {
       errorMessage.value = t('auth.errors.invalidEmail')
-    } else if (status === 500 || status >= 500) {
+    } else if (status != null && status >= 500) {
       errorMessage.value = t('auth.errors.serverError')
     } else if (status === 404) {
       errorMessage.value = t('auth.errors.notFound')

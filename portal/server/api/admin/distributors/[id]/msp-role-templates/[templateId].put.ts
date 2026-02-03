@@ -160,6 +160,10 @@ export default defineEventHandler(async (event) => {
     .where(eq(mspRoles.id, templateId))
     .limit(1)
 
+  if (!updatedTemplate) {
+    throw createError({ statusCode: 404, message: 'Uppdaterad mall kunde inte hittas.' })
+  }
+
   const permissions = await db
     .select({
       moduleKey: mspRolePermissions.moduleKey,

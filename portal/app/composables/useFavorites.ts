@@ -1,7 +1,7 @@
 import { computed, useState } from '#imports'
 import type { ModuleId } from '~/constants/modules'
 import { useAuth } from './useAuth'
-import { useModules } from './useModules'
+import { useModules, type VisibleModule } from './useModules'
 
 const dedupeModuleIds = (ids: ModuleId[]): ModuleId[] => {
   const seen = new Set<ModuleId>()
@@ -28,7 +28,7 @@ export const useFavorites = () => {
   const favoriteIds = computed<ModuleId[]>(() => auth.state.value.data?.favoriteModules ?? [])
 
   const availableModuleMap = computed(() => {
-    const map = new Map<string, { key: string }>()
+    const map = new Map<string, VisibleModule>()
     for (const module of modules.value) {
       map.set(module.key, module)
     }
@@ -38,7 +38,7 @@ export const useFavorites = () => {
   const favoriteModules = computed(() => {
     return favoriteIds.value
       .map((id) => availableModuleMap.value.get(id))
-      .filter((module): module is { key: string } => Boolean(module))
+      .filter((module): module is VisibleModule => Boolean(module))
   })
 
   const nonFavoriteModules = computed(() => {
@@ -64,14 +64,14 @@ export const useFavorites = () => {
 
     pending.value = true
     try {
-      const response = await $fetch<{ favoriteModules: ModuleId[] }>(
+      const response = await ($fetch as any)(
         '/api/profile/favorites/modules',
         {
           method: 'PUT',
           body: { modules: normalized },
           credentials: 'include'
         }
-      )
+      ) as { favoriteModules: ModuleId[] }
       updateLocalState(response.favoriteModules)
       return response.favoriteModules
     } catch (error) {
@@ -99,12 +99,12 @@ export const useFavorites = () => {
     }
     pending.value = true
     try {
-      const response = await $fetch<{ favoriteModules: ModuleId[] }>(
+      const response = await ($fetch as any)(
         '/api/profile/favorites/modules',
         {
           credentials: 'include'
         }
-      )
+      ) as { favoriteModules: ModuleId[] }
       updateLocalState(response.favoriteModules)
       return response.favoriteModules
     } finally {

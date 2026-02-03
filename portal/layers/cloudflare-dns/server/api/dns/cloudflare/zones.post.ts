@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
       name: zone.name,
       status: zone.status ?? null,
       plan: zone.plan ?? null,
-      recordCount: zone.recordCount ?? null
+      recordCount: null
     }
   ])
 

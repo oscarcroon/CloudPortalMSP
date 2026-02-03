@@ -108,7 +108,7 @@ export const getBaselineModulePermissionsForUser = async (
 
   const userRole = membership?.role as RbacRole | undefined
   const rbacDefaults = manifest.rbacDefaults ?? {}
-  const list = rbacDefaults[userRole ?? ''] ?? []
+  const list = (userRole ? rbacDefaults[userRole] : undefined) ?? []
   const manifestPermissions = new Set<string>(manifest.permissions.map((p: { key: string }) => p.key))
   const result = new Set<PermissionKey>()
   for (const perm of list) {

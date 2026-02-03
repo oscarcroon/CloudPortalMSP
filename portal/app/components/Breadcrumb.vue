@@ -3,20 +3,20 @@
     <ol class="flex items-center gap-2 min-w-0 flex-1">
       <!-- First item - always visible -->
       <li
-        v-if="items.length > 0"
+        v-if="firstItem"
         class="flex items-center gap-2 flex-shrink-0"
       >
         <NuxtLink
-          v-if="items[0].to"
-          :to="items[0].to"
+          v-if="firstItem.to"
+          :to="firstItem.to"
           :class="[
             'inline-flex items-center gap-1.5 transition-colors text-slate-600 hover:text-brand dark:text-slate-300 dark:hover:text-brand cursor-pointer min-w-0',
             items.length === 1 && 'font-semibold'
           ]"
           :aria-current="items.length === 1 ? 'page' : undefined"
         >
-          <Icon v-if="items[0].icon" :icon="items[0].icon" class="h-4 w-4 flex-shrink-0" />
-          <span class="truncate">{{ items[0].label }}</span>
+          <Icon v-if="firstItem.icon" :icon="firstItem.icon" class="h-4 w-4 flex-shrink-0" />
+          <span class="truncate">{{ firstItem.label }}</span>
         </NuxtLink>
         <span
           v-else
@@ -26,8 +26,8 @@
           ]"
           :aria-current="items.length === 1 ? 'page' : undefined"
         >
-          <Icon v-if="items[0].icon" :icon="items[0].icon" class="h-4 w-4 flex-shrink-0" />
-          <span class="truncate">{{ items[0].label }}</span>
+          <Icon v-if="firstItem.icon" :icon="firstItem.icon" class="h-4 w-4 flex-shrink-0" />
+          <span class="truncate">{{ firstItem.label }}</span>
         </span>
       </li>
 
@@ -72,29 +72,29 @@
 
       <!-- Last item - always visible -->
       <li
-        v-if="items.length > 1"
+        v-if="lastItem"
         class="flex items-center gap-2 flex-shrink-0 min-w-0"
       >
         <Icon icon="mdi:chevron-right" class="h-4 w-4 text-slate-400 dark:text-slate-500 flex-shrink-0" />
         <NuxtLink
-          v-if="items[items.length - 1].to"
-          :to="items[items.length - 1].to"
+          v-if="lastItem.to"
+          :to="lastItem.to"
           :class="[
             'inline-flex items-center gap-1.5 transition-colors text-slate-600 hover:text-brand dark:text-slate-300 dark:hover:text-brand cursor-pointer min-w-0',
             'font-semibold'
           ]"
           aria-current="page"
         >
-          <Icon v-if="items[items.length - 1].icon" :icon="items[items.length - 1].icon" class="h-4 w-4 flex-shrink-0" />
-          <span class="truncate">{{ items[items.length - 1].label }}</span>
+          <Icon v-if="lastItem.icon" :icon="lastItem.icon" class="h-4 w-4 flex-shrink-0" />
+          <span class="truncate">{{ lastItem.label }}</span>
         </NuxtLink>
         <span
           v-else
           class="inline-flex items-center gap-1.5 text-slate-900 dark:text-slate-50 font-medium min-w-0 font-semibold"
           aria-current="page"
         >
-          <Icon v-if="items[items.length - 1].icon" :icon="items[items.length - 1].icon" class="h-4 w-4 flex-shrink-0" />
-          <span class="truncate">{{ items[items.length - 1].label }}</span>
+          <Icon v-if="lastItem.icon" :icon="lastItem.icon" class="h-4 w-4 flex-shrink-0" />
+          <span class="truncate">{{ lastItem.label }}</span>
         </span>
       </li>
     </ol>
@@ -116,6 +116,10 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
+
+// Computed first/last items to avoid array-index-undefined TS errors
+const firstItem = computed(() => props.items[0] as BreadcrumbItem | undefined)
+const lastItem = computed(() => props.items.length > 1 ? props.items[props.items.length - 1] as BreadcrumbItem | undefined : undefined)
 
 // Middle items are all items except first and last
 const middleItems = computed(() => {

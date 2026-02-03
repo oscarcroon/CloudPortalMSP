@@ -246,7 +246,7 @@ const filteredEventTypes = computed(() => {
 
 const loadAuditModules = async () => {
   try {
-    const response = await $fetch<{ modules: AuditModule[] }>('/api/admin/audit-logs/event-types?locale=sv')
+    const response = await ($fetch as any)('/api/admin/audit-logs/event-types?locale=sv')
     auditModules.value = response.modules || []
   } catch (error) {
     console.error('Failed to load audit modules', error)
@@ -261,8 +261,8 @@ const getDefaultDates = () => {
   yesterday.setDate(yesterday.getDate() - 1)
   
   return {
-    startDate: yesterday.toISOString().split('T')[0],
-    endDate: today.toISOString().split('T')[0]
+    startDate: yesterday.toISOString().split('T')[0]!,
+    endDate: today.toISOString().split('T')[0]!
   }
 }
 
@@ -295,7 +295,7 @@ const loadLogs = async (page = 1) => {
     if (filters.value.startDate) params.append('startDate', filters.value.startDate)
     if (filters.value.endDate) params.append('endDate', filters.value.endDate)
     
-    const response = await $fetch<{ logs: AuditLog[]; pagination: any }>(`/api/admin/audit-logs?${params}`)
+    const response = await ($fetch as any)(`/api/admin/audit-logs?${params}`)
     logs.value = response.logs
     pagination.value = response.pagination
   } catch (error) {

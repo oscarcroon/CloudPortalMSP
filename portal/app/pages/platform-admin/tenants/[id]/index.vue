@@ -570,13 +570,13 @@ const auth = useAuth()
 const tenantId = route.params.id as string
 type TenantRoleKey = keyof typeof tenantRolePermissionMap
 
-const { data, pending, error, refresh } = await useFetch<AdminTenantDetail>(`/api/admin/tenants/${tenantId}`)
+const { data, pending, error, refresh } = await (useFetch as any)(`/api/admin/tenants/${tenantId}`)
 
 const tenant = computed(() => data.value?.tenant)
 const childTenants = computed(() => data.value?.childTenants ?? [])
 const linkedTenants = computed<AdminTenantSummary[]>(() => data.value?.linkedTenants ?? [])
 const organizations = computed(() => data.value?.organizations ?? [])
-const invites = computed(() => data.value?.invites ?? [])
+const invites = computed(() => (data.value as any)?.invites ?? [])
 
 // Cache tenant name for breadcrumbs
 watch(() => tenant.value, (t) => {
@@ -714,7 +714,7 @@ const handleSave = async () => {
   updateError.value = ''
   
   try {
-    await $fetch(`/api/admin/tenants/${tenantId}`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId}`, {
       method: 'PUT',
       body: {
         name: editForm.value.name.trim(),
@@ -780,7 +780,7 @@ interface TenantsResponse {
   distributorProviderLinks?: any[]
 }
 
-const { data: distributorsData } = await useFetch<TenantsResponse>('/api/admin/tenants', {
+const { data: distributorsData } = await (useFetch as any)('/api/admin/tenants', {
   query: { type: 'distributor' }
 })
 
@@ -815,7 +815,7 @@ const handleSaveDistributors = async () => {
   editDistributorsError.value = ''
 
   try {
-    await $fetch(`/api/admin/tenants/${tenantId}/providers`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId}/providers`, {
       method: 'PUT',
       body: {
         distributorIds: editDistributorsForm.value.distributorIds
@@ -863,7 +863,7 @@ const submitDelete = async () => {
   deleteError.value = ''
   deleteLoading.value = true
   try {
-    await $fetch(`/api/admin/tenants/${tenantId}/delete`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId}/delete`, {
       method: 'POST',
       body: {
         confirmSlug: deleteForm.confirmSlug.trim(),
@@ -927,7 +927,7 @@ const cancelInvite = async (inviteId: string) => {
   inviteActionMessage.value = ''
   inviteActionError.value = ''
   try {
-    await $fetch(`/api/admin/tenants/${tenantId}/invitations/${inviteId}/cancel`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId}/invitations/${inviteId}/cancel`, {
       method: 'DELETE'
     })
     await refresh()
@@ -948,7 +948,7 @@ const resendInvite = async (inviteId: string) => {
   inviteActionMessage.value = ''
   inviteActionError.value = ''
   try {
-    await $fetch(`/api/admin/tenants/${tenantId}/invitations/${inviteId}/resend`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId}/invitations/${inviteId}/resend`, {
       method: 'POST'
     })
     await refresh()

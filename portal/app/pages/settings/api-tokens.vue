@@ -497,7 +497,7 @@ async function refreshTokens() {
   errorMessage.value = ''
 
   try {
-    const response = await $fetch<{ tokens: ApiToken[]; total: number }>(
+    const response = await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/api-tokens`
     )
     tokens.value = response.tokens
@@ -548,7 +548,7 @@ async function handleCreate() {
       payload.expiresAt = date.getTime()
     }
 
-    const response = await $fetch<CreateTokenResponse>(
+    const response = await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/api-tokens`,
       {
         method: 'POST',
@@ -605,7 +605,7 @@ async function handleRevoke() {
   revokingTokenId.value = tokenToRevoke.value.id
 
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/api-tokens/${tokenToRevoke.value.id}/revoke`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/api-tokens/${tokenToRevoke.value.id}/revoke`, {
       method: 'POST',
     })
 

@@ -98,9 +98,10 @@ function hexToRgb(hexColor: string) {
 }
 
 function mixRgb(base: number[], target: number[], amount: number) {
-  return base.map((channel, index) =>
-    Math.round(channel + (target[index] - channel) * amount)
-  )
+  return base.map((channel, index) => {
+    const targetVal = target[index] ?? 0
+    return Math.round(channel + (targetVal - channel) * amount)
+  })
 }
 </script>
 

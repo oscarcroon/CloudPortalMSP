@@ -71,9 +71,9 @@ export function useOperationsFeed() {
     error.value = null
 
     try {
-      const response = await $fetch<OperationsFeedResponse>('/api/operations/feed', {
+      const response = await ($fetch as any)('/api/operations/feed', {
         credentials: 'include'
-      })
+      }) as OperationsFeedResponse
       feed.value = response
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch operations feed'
@@ -88,7 +88,7 @@ export function useOperationsFeed() {
    */
   async function muteIncidentForUser(incidentId: string) {
     try {
-      await $fetch(`/api/operations/incidents/${incidentId}/mute`, {
+      await ($fetch as any)(`/api/operations/incidents/${incidentId}/mute`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -105,7 +105,7 @@ export function useOperationsFeed() {
    */
   async function unmuteIncidentForUser(incidentId: string) {
     try {
-      await $fetch(`/api/operations/incidents/${incidentId}/unmute`, {
+      await ($fetch as any)(`/api/operations/incidents/${incidentId}/unmute`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -122,7 +122,7 @@ export function useOperationsFeed() {
    */
   async function muteIncidentForScope(incidentId: string, targetType: 'organization' | 'tenant' = 'organization') {
     try {
-      await $fetch(`/api/admin/incidents/${incidentId}/mute`, {
+      await ($fetch as any)(`/api/admin/incidents/${incidentId}/mute`, {
         method: 'POST',
         body: { targetType },
         credentials: 'include'
@@ -140,7 +140,7 @@ export function useOperationsFeed() {
    */
   async function unmuteIncidentForScope(incidentId: string, targetType: 'organization' | 'tenant' = 'organization') {
     try {
-      await $fetch(`/api/admin/incidents/${incidentId}/unmute`, {
+      await ($fetch as any)(`/api/admin/incidents/${incidentId}/unmute`, {
         method: 'POST',
         body: { targetType },
         credentials: 'include'

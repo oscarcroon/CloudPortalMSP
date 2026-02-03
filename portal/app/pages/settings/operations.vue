@@ -541,7 +541,7 @@ const hiddenUpstreamIncidents = computed(() => upstreamIncidents.value.filter((i
 async function fetchUpstreamIncidents() {
   loadingUpstream.value = true
   try {
-    const response = await $fetch<{ incidents: UpstreamIncident[] }>('/api/operations/incidents?includeMuted=1', {
+    const response = await ($fetch as any)('/api/operations/incidents?includeMuted=1', {
       credentials: 'include'
     })
     upstreamIncidents.value = response.incidents
@@ -555,7 +555,7 @@ async function fetchUpstreamIncidents() {
 async function hideForMe(incidentId: string) {
   mutingId.value = incidentId
   try {
-    await $fetch(`/api/operations/incidents/${incidentId}/mute`, { method: 'POST', credentials: 'include' })
+    await ($fetch as any)(`/api/operations/incidents/${incidentId}/mute`, { method: 'POST', credentials: 'include' })
     await fetchUpstreamIncidents()
   } catch (err) {
     console.error('Failed to hide incident:', err)
@@ -567,7 +567,7 @@ async function hideForMe(incidentId: string) {
 async function showForMe(incidentId: string) {
   mutingId.value = incidentId
   try {
-    await $fetch(`/api/operations/incidents/${incidentId}/unmute`, { method: 'POST', credentials: 'include' })
+    await ($fetch as any)(`/api/operations/incidents/${incidentId}/unmute`, { method: 'POST', credentials: 'include' })
     await fetchUpstreamIncidents()
     await refreshOperationsFeed()
   } catch (err) {
@@ -580,7 +580,7 @@ async function showForMe(incidentId: string) {
 async function hideForOrg(incidentId: string) {
   mutingId.value = incidentId
   try {
-    await $fetch(`/api/admin/incidents/${incidentId}/mute`, {
+    await ($fetch as any)(`/api/admin/incidents/${incidentId}/mute`, {
       method: 'POST',
       body: { targetType: 'organization' },
       credentials: 'include'
@@ -596,7 +596,7 @@ async function hideForOrg(incidentId: string) {
 async function showForOrg(incidentId: string) {
   mutingId.value = incidentId
   try {
-    await $fetch(`/api/admin/incidents/${incidentId}/unmute`, {
+    await ($fetch as any)(`/api/admin/incidents/${incidentId}/unmute`, {
       method: 'POST',
       body: { targetType: 'organization' },
       credentials: 'include'
@@ -653,7 +653,7 @@ async function fetchInternalIncidents() {
   }
   loadingInternal.value = true
   try {
-    const response = await $fetch<{ incidents: InternalIncident[] }>(
+    const response = await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/incidents?filter=${internalFilter.value}`,
       { credentials: 'include' }
     )
@@ -731,13 +731,13 @@ async function handleSubmit() {
     }
 
     if (editingIncident.value) {
-      await $fetch(`/api/organizations/${currentOrgId.value}/incidents/${editingIncident.value.id}`, {
+      await ($fetch as any)(`/api/organizations/${currentOrgId.value}/incidents/${editingIncident.value.id}`, {
         method: 'PUT',
         body: payload,
         credentials: 'include'
       })
     } else {
-      await $fetch(`/api/organizations/${currentOrgId.value}/incidents`, {
+      await ($fetch as any)(`/api/organizations/${currentOrgId.value}/incidents`, {
         method: 'POST',
         body: payload,
         credentials: 'include'
@@ -758,7 +758,7 @@ async function archiveIncident(incidentId: string) {
   if (!currentOrgId.value) return
   actionLoading.value = incidentId
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/incidents/${incidentId}/archive`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/incidents/${incidentId}/archive`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -775,7 +775,7 @@ async function unarchiveIncident(incidentId: string) {
   if (!currentOrgId.value) return
   actionLoading.value = incidentId
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/incidents/${incidentId}/unarchive`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/incidents/${incidentId}/unarchive`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -796,7 +796,7 @@ async function deleteIncident(incidentId: string) {
   if (!currentOrgId.value) return
   actionLoading.value = incidentId
   try {
-    await $fetch(`/api/organizations/${currentOrgId.value}/incidents/${incidentId}`, {
+    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/incidents/${incidentId}`, {
       method: 'DELETE',
       credentials: 'include'
     })

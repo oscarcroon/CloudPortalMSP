@@ -43,6 +43,10 @@ export default defineEventHandler(async (event) => {
 
   const [updated] = await db.select().from(modules).where(eq(modules.key, moduleKey))
 
+  if (!updated) {
+    throw createError({ statusCode: 404, message: `Module ${moduleKey} not found after update` })
+  }
+
   return {
     key: updated.key,
     name: updated.name,

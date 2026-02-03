@@ -53,7 +53,7 @@ import { useAuth } from '~/composables/useAuth'
 type ThemePreference = 'system' | 'light' | 'dark'
 
 const { t } = useI18n()
-const colorMode = useColorMode<ThemePreference>()
+const colorMode = useColorMode()
 const auth = useAuth()
 
 const accentColor = computed(() => {

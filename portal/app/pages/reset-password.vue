@@ -102,7 +102,7 @@ const handleSubmit = async () => {
   errorMessages.value = []
 
   try {
-    await $fetch('/api/auth/password/reset', {
+    await ($fetch as any)('/api/auth/password/reset', {
       method: 'POST',
       body: {
         token: token.value.trim(),

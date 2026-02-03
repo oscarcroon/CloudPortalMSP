@@ -133,7 +133,7 @@ const hiddenIncidents = computed(() => incidents.value.filter((i) => i.isUserMut
 async function fetchIncidents() {
   loading.value = true
   try {
-    const response = await $fetch<IncidentsResponse>('/api/operations/incidents?includeMuted=1', {
+    const response = await ($fetch as any)('/api/operations/incidents?includeMuted=1', {
       credentials: 'include'
     })
     incidents.value = response.incidents
@@ -147,7 +147,7 @@ async function fetchIncidents() {
 async function showAgain(incidentId: string) {
   mutingId.value = incidentId
   try {
-    await $fetch(`/api/operations/incidents/${incidentId}/unmute`, {
+    await ($fetch as any)(`/api/operations/incidents/${incidentId}/unmute`, {
       method: 'POST',
       credentials: 'include'
     })

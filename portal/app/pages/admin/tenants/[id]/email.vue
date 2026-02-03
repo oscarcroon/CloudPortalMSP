@@ -85,17 +85,14 @@ const testMessage = ref('')
 const testVariant = ref<'success' | 'error'>('success')
 
 // Fetch tenant info
-const { data: tenantData } = await useFetch<{ tenant: { id: string; name: string; type: string } }>(
+const { data: tenantData } = await (useFetch as any)(
   `/api/admin/tenants/${tenantId}`
 )
 
 const tenant = computed(() => tenantData.value?.tenant)
 
 // Fetch email provider
-const { data, pending, refresh, error } = await useFetch<{
-  provider: AdminEmailProviderSummary | null
-  chain: EmailProviderChainEntry[]
-}>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   `/api/admin/tenants/${tenantId}/email-provider`
 )
 
@@ -120,7 +117,7 @@ const handleSave = async (payload: AdminEmailProviderPayload) => {
   errorMessage.value = ''
   saving.value = true
   try {
-    await $fetch(`/api/admin/tenants/${tenantId}/email-provider`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId}/email-provider`, {
       method: 'PUT',
       body: payload
     })
@@ -139,7 +136,7 @@ const handleTest = async (payload: AdminEmailProviderTestPayload) => {
   testMessage.value = ''
   testing.value = true
   try {
-    await $fetch(`/api/admin/tenants/${tenantId}/email-provider/test`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId}/email-provider/test`, {
       method: 'POST',
       body: payload
     })

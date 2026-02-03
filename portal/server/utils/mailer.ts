@@ -795,7 +795,7 @@ export const sendDistributorInvitationEmail = async (input: {
       intro: copyForLocale.intro,
       body: bodyLines,
       action: { label: copyForLocale.action, url: acceptUrl },
-      outro: copyForLocale.outro
+      outro: [...copyForLocale.outro] as string[]
     },
     branding
   )
@@ -895,9 +895,9 @@ export const sendDistributorConfirmationEmail = async (input: {
       pretitle: copyForLocale.pretitle,
       title: input.tenantName,
       intro: copyForLocale.intro,
-      body: copyForLocale.body,
+      body: [...copyForLocale.body] as string[],
       action: { label: copyForLocale.action, url: portalUrl },
-      outro: copyForLocale.outro
+      outro: [...copyForLocale.outro] as string[]
     },
     branding
   )

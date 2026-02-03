@@ -39,7 +39,7 @@ const isUsingMockData = computed(() => dataSource.value === 'mock')
 // Fetch zones on mount
 onMounted(async () => {
   try {
-    const response = await $fetch<ZoneResponse>('/api/dns/windows/redirects/zones')
+    const response = await ($fetch as any)('/api/dns/windows/redirects/zones')
     zones.value = response?.zones || []
     dataSource.value = response?.source || 'mock'
     apiError.value = response?.apiError || null

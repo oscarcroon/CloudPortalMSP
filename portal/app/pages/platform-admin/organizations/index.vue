@@ -216,7 +216,7 @@ if (deletedSlug.value) {
   router.replace({ query: updatedQuery })
 }
 
-const { data, pending, refresh, error } = await useFetch<{ organizations: AdminOrganizationSummary[] }>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   '/api/admin/organizations',
   {
     query: () => {
@@ -250,12 +250,12 @@ const organizations = computed(() => {
 
   // Filter by status
   if (statusFilter.value) {
-    filtered = filtered.filter((org) => org.status === statusFilter.value)
+    filtered = filtered.filter((org: any) => org.status === statusFilter.value)
   }
 
   // Filter by tenant
   if (tenantFilter.value) {
-    filtered = filtered.filter((org) => org.tenantId === tenantFilter.value)
+    filtered = filtered.filter((org: any) => org.tenantId === tenantFilter.value)
   }
 
   return filtered

@@ -288,7 +288,7 @@ const loadInvitation = async () => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    const response = await $fetch<DelegationInvitationResponse>(`/api/invite/delegation/${token.value}`)
+    const response = await ($fetch as any)(`/api/invite/delegation/${token.value}`)
     invitation.value = response.invitation
     inviteMeta.value = {
       emailExists: response.emailExists,
@@ -323,7 +323,7 @@ const submitRegistration = async () => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/invite/delegation/${token.value}/register`, {
+    await ($fetch as any)(`/api/invite/delegation/${token.value}/register`, {
       method: 'POST',
       body: {
         password: registrationForm.password,
@@ -362,7 +362,7 @@ const acceptInvitation = async () => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/invite/delegation/${token.value}/accept`, {
+    await ($fetch as any)(`/api/invite/delegation/${token.value}/accept`, {
       method: 'POST'
     })
     successMessage.value = t('invite.delegation.accessGranted')

@@ -555,7 +555,7 @@ interface NewsResponse {
 const tenantId = computed(() => currentTenant.value?.id)
 
 // Fetch incidents for current tenant
-const { data: incidentsData, pending: incidentsLoading, refresh: refreshIncidents } = useFetch<IncidentsResponse>(
+const { data: incidentsData, pending: incidentsLoading, refresh: refreshIncidents } = (useFetch as any)(
   () => `/api/admin/tenants/${tenantId.value}/incidents?filter=all`,
   {
     key: `tenant-incidents-${tenantId.value}`,
@@ -568,7 +568,7 @@ const { data: incidentsData, pending: incidentsLoading, refresh: refreshIncident
 )
 
 // Fetch news for current tenant
-const { data: newsData, pending: newsLoading, refresh: refreshNews } = useFetch<NewsResponse>(
+const { data: newsData, pending: newsLoading, refresh: refreshNews } = (useFetch as any)(
   () => `/api/admin/tenants/${tenantId.value}/news?status=all&limit=10`,
   {
     key: `tenant-news-${tenantId.value}`,
@@ -619,7 +619,7 @@ function isOngoing(incident: IncidentItem): boolean {
 // Categorized incident counts
 const ongoingCount = computed(() => incidentsList.value.filter(isOngoing).length)
 const scheduledCount = computed(() => incidentsList.value.filter(isScheduled).length)
-const resolvedCount = computed(() => incidentsList.value.filter(i => i.status === 'resolved').length)
+const resolvedCount = computed(() => incidentsList.value.filter((i: any) => i.status === 'resolved').length)
 
 // Filter options with counts
 const incidentFilters = computed(() => [
@@ -638,7 +638,7 @@ const filteredIncidents = computed(() => {
     case 'scheduled':
       return incidents.filter(isScheduled)
     case 'resolved':
-      return incidents.filter(i => i.status === 'resolved')
+      return incidents.filter((i: any) => i.status === 'resolved')
     default:
       return incidents
   }
@@ -662,7 +662,7 @@ async function resolveIncident(incidentId: string) {
   
   resolvingIncidentId.value = incidentId
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/resolve`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId}/resolve`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -741,7 +741,7 @@ interface ModulesResponse {
   modules: ModuleStatusDto[]
 }
 
-const { data: membersData } = useFetch<MembersResponse>(
+const { data: membersData } = (useFetch as any)(
   () => tenantId.value ? `/api/admin/tenants/${tenantId.value}/members` : '',
   {
     immediate: !!tenantId.value,
@@ -751,7 +751,7 @@ const { data: membersData } = useFetch<MembersResponse>(
 )
 
 // Fetch module status for active modules count
-const { data: modulesData } = useFetch<ModulesResponse>(
+const { data: modulesData } = (useFetch as any)(
   () => tenantId.value ? `/api/admin/tenants/${tenantId.value}/modules` : '',
   {
     immediate: !!tenantId.value,
@@ -765,7 +765,7 @@ interface OrganizationsResponse {
   organizations: { id: string; name: string; slug: string }[]
 }
 
-const { data: organizationsData } = useFetch<OrganizationsResponse>(
+const { data: organizationsData } = (useFetch as any)(
   () => tenantId.value ? `/api/admin/tenants/${tenantId.value}/organizations` : '',
   {
     immediate: !!tenantId.value,
@@ -782,7 +782,7 @@ interface ProvidersResponseItem {
   status: string
 }
 
-const { data: providersData, refresh: refreshProviders } = useFetch<ProvidersResponseItem[]>(
+const { data: providersData, refresh: refreshProviders } = (useFetch as any)(
   () => `/api/admin/tenants/${tenantId.value}/providers`,
   {
     immediate: false,
@@ -821,7 +821,7 @@ const memberCount = computed(() => {
 const activeModulesCount = computed(() => {
   if (!modulesData.value?.modules) return null
   // Count modules that are enabled at tenant level (tenantEnabled) and not disabled
-  return modulesData.value.modules.filter(m => m.tenantEnabled && !m.effectiveDisabled).length
+  return modulesData.value.modules.filter((m: any) => m.tenantEnabled && !m.effectiveDisabled).length
 })
 
 const tenantTypeIcon = computed(() => {

@@ -144,7 +144,7 @@ const { t } = useI18n()
 
 const loadZones = async (forceRefresh = false): Promise<ZonesResponse> => {
   try {
-    const res = await $fetch<ZonesResponse>('/api/dns/cloudflare/zones', {
+    const res = await ($fetch as any)('/api/dns/cloudflare/zones', {
       query: forceRefresh ? { refresh: 'true' } : undefined
     })
     return res

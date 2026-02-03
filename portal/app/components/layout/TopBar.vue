@@ -33,7 +33,7 @@
             :aria-pressed="mobileSearchOpen"
             :aria-label="mobileSearchOpen ? t('topBar.toggleSearchClose') : t('topBar.toggleSearchOpen')"
             aria-controls="mobile-search-panel"
-            @click="toggleMobileSearch"
+            @click.stop="toggleMobileSearch"
             @mouseenter="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = accentColor; el.style.color = accentColor }"
             @mouseleave="(e: MouseEvent) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = ''; el.style.color = '' }"
           >
@@ -178,7 +178,7 @@
               v-model="globalSearch.query.value"
               type="search"
               :placeholder="t('topBar.searchPlaceholder')"
-              class="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-500"
+              class="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-500 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
               @focus="globalSearch.open()"
               @keydown="onSearchKeydown"
             />
@@ -186,7 +186,7 @@
               type="button"
               class="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"
               :aria-label="t('topBar.toggleSearchClose')"
-              @click="closeMobileSearch"
+              @click.stop="closeMobileSearch"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
                 <path

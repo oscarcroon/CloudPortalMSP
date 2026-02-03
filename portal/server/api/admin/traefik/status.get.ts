@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
       })
       connectionStatus = testResult.success ? 'connected' : 'disconnected'
       if (!testResult.success) {
-        connectionError = testResult.error || 'Connection failed'
+        connectionError = testResult.message || 'Connection failed'
       }
     } catch (err: any) {
       connectionStatus = 'disconnected'

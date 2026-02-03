@@ -145,6 +145,10 @@ export default defineEventHandler(async (event) => {
     .where(eq(mspRoles.id, templateId))
     .limit(1)
 
+  if (!createdTemplate) {
+    throw createError({ statusCode: 500, message: 'Skapad mall kunde inte hittas.' })
+  }
+
   const permissions = await db
     .select({
       moduleKey: mspRolePermissions.moduleKey,
