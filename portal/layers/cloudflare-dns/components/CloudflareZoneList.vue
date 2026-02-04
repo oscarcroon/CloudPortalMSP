@@ -26,10 +26,11 @@
     </div>
 
     <div v-else class="grid gap-4 md:grid-cols-2">
-      <div
+      <NuxtLink
         v-for="zone in zones"
         :key="zone.id"
-        class="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
+        :to="`/cloudflare-dns/${zone.id}`"
+        class="group rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-[1px] dark:border-slate-700 dark:bg-slate-900"
       >
         <div class="flex items-center justify-between gap-3">
           <div>
@@ -42,28 +43,21 @@
               {{ zone.status ?? t('cloudflareDns.zoneList.statusUnknown') }}
             </p>
           </div>
-          <span
-            class="mod-cloudflare-dns-badge"
-            :class="zone.aclRestricted ? 'border-amber-200 text-amber-700 dark:border-amber-700' : ''"
-          >
-            <Icon icon="mdi:shield-check-outline" class="h-4 w-4" />
-            {{ zone.effectiveRole ?? 'module' }}
-          </span>
         </div>
 
         <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>{{ t('cloudflareDns.zoneList.recordCount', { count: zone.recordCount ?? '–' }) }}</span>
-          <div class="flex gap-2">
-            <NuxtLink
-              :to="`/cloudflare-dns/${zone.id}`"
-              class="inline-flex items-center gap-1 text-brand hover:underline"
-            >
-              {{ t('cloudflareDns.zoneList.view') }}
-              <Icon icon="mdi:arrow-right" class="h-4 w-4" />
-            </NuxtLink>
-          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 opacity-0 transition hover:border-brand hover:text-brand group-hover:opacity-100 dark:border-slate-700 dark:text-slate-400"
+            :title="t('cloudflareDns.zoneList.export')"
+            @click.stop.prevent="$emit('exportZone', zone.id, zone.name)"
+          >
+            <Icon icon="mdi:download" class="h-3.5 w-3.5" />
+            {{ t('cloudflareDns.zoneList.export') }}
+          </button>
         </div>
-      </div>
+      </NuxtLink>
     </div>
 
     <!-- Onboard modal -->
@@ -175,7 +169,7 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
-const emit = defineEmits<{ refresh: [] }>()
+const emit = defineEmits<{ refresh: []; exportZone: [zoneId: string, zoneName: string] }>()
 
 const { t } = useI18n()
 

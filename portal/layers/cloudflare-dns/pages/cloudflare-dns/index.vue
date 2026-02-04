@@ -82,6 +82,7 @@
       :module-rights="state.data?.moduleRights ?? { canManageZones: false }"
       :loading="state.pending"
       @refresh="() => fetchZones(true)"
+      @export-zone="handleExportZone"
     />
 
     <div
@@ -203,6 +204,24 @@ const pagedZones = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return filteredZones.value.slice(start, start + pageSize)
 })
+
+const handleExportZone = async (zoneId: string, zoneName: string) => {
+  try {
+    const content = await ($fetch as any)(`/api/dns/cloudflare/zones/${zoneId}/export`, {
+      responseType: 'text'
+    }) as string
+    const fileName = `${(zoneName || zoneId).replace(/\./g, '_')}.txt`
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    console.error('[cloudflare-dns] export failed', err)
+  }
+}
 
 if (process.client) {
   onMounted(() => {

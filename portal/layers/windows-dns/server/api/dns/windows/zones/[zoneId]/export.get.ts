@@ -2,7 +2,8 @@ import { createError, defineEventHandler, setHeader } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
-import { getAllowedZoneIds } from '@windows-dns/server/lib/windows-dns/org-config'
+import { getAllowedZones } from '@windows-dns/server/lib/windows-dns/org-config'
+import { formatBindZoneFile } from '@windows-dns/server/lib/windows-dns/format-bind'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -23,20 +24,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'No permission to view Windows DNS zones.' })
   }
 
-  // Verify the zone is in the org's allowed zones
-  const allowedZoneIds = await getAllowedZoneIds(orgId)
-  if (!allowedZoneIds.includes(zoneId)) {
+  // Verify the zone is in the org's allowed zones and get the zone name
+  const allowedZones = await getAllowedZones(orgId)
+  const zone = allowedZones.find(z => z.zoneId === zoneId)
+  if (!zone) {
     throw createError({ statusCode: 403, message: 'Zone is not accessible to this organization.' })
   }
 
   try {
     const client = await getClientForOrg(orgId)
-    const content = await client.exportZone(zoneId)
+    const records = await client.listRecordsForZone(zoneId)
 
-    // Set headers for file download
+    const zoneName = zone.zoneName ?? zoneId
+    const content = formatBindZoneFile(zoneName, records)
+
     setHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
-    // We'll let the frontend handle the filename since we don't have zoneName here easily
-    // The Content-Disposition header will be set by frontend or we can fetch zone info
 
     return content
   } catch (error: any) {
@@ -47,4 +49,3 @@ export default defineEventHandler(async (event) => {
     })
   }
 })
-

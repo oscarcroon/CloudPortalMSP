@@ -49,6 +49,7 @@
       "statusUnknown": "status unknown",
       "recordCount": "{count} records",
       "view": "View",
+      "export": "Export",
       "onboard": {
         "label": "Onboarding",
         "title": "Create DNS zone",
@@ -73,7 +74,7 @@
       "label": "Cloudflare",
       "title": "DNS zones",
       "subtitle": "Simplified UI for zones and DNS records. Permissions are controlled by module roles and zone ACL.",
-      "searchPlaceholder": "Search zones (domain, plan, status)…",
+      "searchPlaceholder": "Search zones...",
       "showing": "Showing {visible} of {filtered} zones (total {total})",
       "forceRefreshTitle": "Force refresh",
       "adminLink": "Admin",
@@ -123,6 +124,9 @@
       "label": "Cloudflare",
       "loadingZone": "Loading zone...",
       "back": "Back",
+      "export": "Export",
+      "import": "Import",
+      "exportError": "Could not export the zone",
       "loadingStatus": "Fetching status...",
       "unknown": "unknown",
       "statusLine": "Status: {status} · Plan: {plan}",
@@ -147,9 +151,25 @@
       }
     },
 
+    "zoneInfo": {
+      "title": "SOA information",
+      "primaryNs": "Primary name server",
+      "responsibleParty": "Responsible party",
+      "serial": "Serial",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "expire": "Expire",
+      "minimumTtl": "Minimum TTL",
+      "ttl": "TTL",
+      "details": "Details",
+      "notFound": "No SOA record found"
+    },
+
     "records": {
       "label": "DNS records",
       "title": "Records",
+      "lastChangedAt": "Last changed",
+      "showing": "Showing {shown} of {total} records",
       "searchPlaceholder": "Search records (type, name, content)…",
       "filter": {
         "all": "All"
@@ -193,6 +213,29 @@
         "actions": "Actions"
       },
       "pagination": "Page {page} / {pages} · showing {shown} of {total} records"
+    },
+
+    "import": {
+      "title": "Import DNS records",
+      "description": "Upload a BIND zone file to import records into this zone.",
+      "info": {
+        "title": "About BIND import",
+        "bullet1": "Existing records are not deleted — import only adds new records.",
+        "bullet2": "Duplicate records are skipped by Cloudflare.",
+        "bullet3": "Use Export to back up the current zone before importing."
+      },
+      "chooseFile": "Choose file",
+      "dragDrop": "or drag and drop",
+      "fileHelp": "Accepts .txt, .bind, .zone files (max 1 MB)",
+      "invalidFileType": "Invalid file type. Accepted: .txt, .bind, .zone",
+      "fileTooLarge": "File is too large. Maximum size is 1 MB.",
+      "readError": "Could not read the file.",
+      "change": "Change file",
+      "confirm": "Import records",
+      "importing": "Importing…",
+      "success": "{added} records added ({parsed} parsed from file).",
+      "warnings": "Messages from Cloudflare:",
+      "error": "Import failed"
     }
   }
 }

@@ -25,23 +25,28 @@
       <div v-if="availableRecordTypes.length > 1" class="flex items-center gap-2 overflow-x-auto pb-1">
         <button
           type="button"
-          class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition"
+          class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition"
           :class="selectedType === 'ALL' ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'"
           @click="selectedType = 'ALL'"
         >
           {{ t('cloudflareDns.records.filter.all') }}
+          <span class="inline-flex items-center justify-center rounded-full bg-white/20 px-1.5 text-[10px] font-semibold leading-4" :class="selectedType === 'ALL' ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'">{{ props.records.length }}</span>
         </button>
         <button
-          v-for="type in availableRecordTypes"
-          :key="type"
+          v-for="rt in availableRecordTypes"
+          :key="rt.type"
           type="button"
-          class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition"
-          :class="selectedType === type ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'"
-          @click="selectedType = type"
+          class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition"
+          :class="selectedType === rt.type ? 'bg-brand text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'"
+          @click="selectedType = rt.type"
         >
-          {{ type }}
+          {{ rt.type }}
+          <span class="inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-4" :class="selectedType === rt.type ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'">{{ rt.count }}</span>
         </button>
       </div>
+      <p v-if="filteredRecords.length !== props.records.length" class="text-xs text-slate-500 dark:text-slate-400">
+        {{ t('cloudflareDns.records.showing', { shown: filteredRecords.length, total: props.records.length }) }}
+      </p>
       <div v-if="canEdit" class="flex justify-end">
         <button
           type="button"
@@ -238,8 +243,12 @@
         <tbody class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
           <template v-for="record in pagedRecords" :key="record.id">
           <tr class="text-sm text-slate-700 dark:text-slate-200">
-            <td class="px-4 py-3 align-top">{{ record.type }}</td>
             <td class="px-4 py-3 align-top">
+              <span class="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-xs font-medium dark:bg-slate-800">
+                {{ record.type }}
+              </span>
+            </td>
+            <td class="px-4 py-3 align-top font-mono text-sm">
               <div class="flex items-center gap-1">
                 <span>{{ record.name }}</span>
                 <span
@@ -251,7 +260,18 @@
                 </span>
               </div>
             </td>
-            <td class="px-4 py-3 align-top break-all">{{ record.content }}</td>
+            <td class="px-4 py-3 align-top break-all">
+              <template v-if="record.type === 'MX'">
+                <span class="text-slate-400">{{ record.priority ?? '' }}</span> {{ record.content }}
+              </template>
+              <template v-else-if="record.type === 'SRV'">
+                <span class="text-slate-400">{{ record.content.split(' ').slice(0, 3).join('/') }}</span> {{ record.content.split(' ').slice(3).join(' ') }}
+              </template>
+              <template v-else-if="record.type === 'CAA'">
+                <span class="text-slate-400">{{ record.content.split(' ')[0] }}</span> <span class="font-semibold">{{ record.content.split(' ')[1] }}</span> {{ record.content.split(' ').slice(2).join(' ') }}
+              </template>
+              <template v-else>{{ record.content }}</template>
+            </td>
             <td class="px-4 py-3 align-top">{{ displayTtl(record.ttl) }}</td>
               <td class="px-4 py-3 align-top">
               <span
@@ -271,7 +291,15 @@
               <span v-else class="text-xs text-slate-400">-</span>
               </td>
               <td v-if="canEdit" class="px-4 py-3 text-right">
-                <div class="flex justify-end gap-2">
+                <div class="flex justify-end gap-1.5">
+                  <button
+                    v-if="record.modified_on"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                    type="button"
+                    :title="`${t('cloudflareDns.records.lastChangedAt')}: ${new Date(record.modified_on).toLocaleString()}`"
+                  >
+                    <Icon icon="mdi:information-outline" class="h-4 w-4" />
+                  </button>
                   <button
                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
                     type="button"
@@ -279,6 +307,14 @@
                     @click="startEdit(record)"
                   >
                     <Icon icon="mdi:pencil" class="h-4 w-4" />
+                  </button>
+                  <button
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-500 transition hover:border-red-400 hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500/60 dark:border-red-700 dark:text-red-400"
+                    type="button"
+                    :title="t('common.delete')"
+                    @click="deleteRecord(record.id)"
+                  >
+                    <Icon icon="mdi:trash-can-outline" class="h-4 w-4" />
                   </button>
                 </div>
               </td>
@@ -494,11 +530,13 @@ const recordPageSize = 50
 const currentRecordPage = ref(1)
 
 const availableRecordTypes = computed(() => {
-  const types = new Set<string>()
+  const counts = new Map<string, number>()
   for (const r of props.records) {
-    if (r.type) types.add(r.type)
+    if (r.type) counts.set(r.type, (counts.get(r.type) ?? 0) + 1)
   }
-  return Array.from(types).sort()
+  return Array.from(counts.entries())
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => a.type.localeCompare(b.type))
 })
 
 const filteredRecords = computed(() => {
@@ -709,7 +747,10 @@ const startEdit = (record: any) => {
 const displayTtl = (ttl?: number | null) => {
   if (ttl === null || ttl === undefined) return 'auto'
   if (ttl === 1) return 'auto'
-  return ttl
+  if (ttl < 60) return `${ttl}s`
+  if (ttl < 3600) return `${Math.round(ttl / 60)}m`
+  if (ttl < 86400) return `${Math.round(ttl / 3600)}h`
+  return `${Math.round(ttl / 86400)}d`
 }
 
 const fqdn = (name: string) => {
