@@ -14,7 +14,9 @@ const eventTypes: AuditEventType[] = [
   'CLOUDFLARE_DNS_RECORD_DELETED',
   'CLOUDFLARE_DNS_ZONE_CREATED',
   'CLOUDFLARE_DNS_ZONE_DELETED',
-  'CLOUDFLARE_DNS_CONFIG_UPDATED'
+  'CLOUDFLARE_DNS_ZONE_IMPORTED',
+  'CLOUDFLARE_DNS_CONFIG_UPDATED',
+  'CLOUDFLARE_DNS_CONFIG_DELETED'
 ]
 
 // Register audit event types
@@ -46,9 +48,17 @@ registerAuditModule({
       sv: 'DNS-zon borttagen',
       en: 'DNS zone deleted'
     },
+    CLOUDFLARE_DNS_ZONE_IMPORTED: {
+      sv: 'DNS-zon importerad',
+      en: 'DNS zone imported'
+    },
     CLOUDFLARE_DNS_CONFIG_UPDATED: {
       sv: 'Cloudflare-konfiguration uppdaterad',
       en: 'Cloudflare configuration updated'
+    },
+    CLOUDFLARE_DNS_CONFIG_DELETED: {
+      sv: 'Cloudflare-konfiguration borttagen',
+      en: 'Cloudflare configuration deleted'
     }
   },
   // All events are visible in org audit

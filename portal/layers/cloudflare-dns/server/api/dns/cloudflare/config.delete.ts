@@ -2,6 +2,7 @@ import { createError, defineEventHandler } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getCloudflareDnsModuleAccessForUser } from '@cloudflare-dns/server/lib/cloudflare-dns/access'
 import { deleteOrgConfig } from '@cloudflare-dns/server/lib/cloudflare-dns/org-config'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -19,6 +20,11 @@ export default defineEventHandler(async (event) => {
   }
 
   await deleteOrgConfig(orgId)
+
+  await logAuditEvent(event, 'CLOUDFLARE_DNS_CONFIG_DELETED', {
+    moduleKey: 'cloudflare-dns',
+    entityType: 'config'
+  })
 
   return {
     ok: true

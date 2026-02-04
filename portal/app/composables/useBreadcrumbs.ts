@@ -283,7 +283,7 @@ function getContextIcon(segment: string | undefined): string | undefined {
     organizations: 'mdi:domain', // Same as /tenant-admin/organizations
     users: 'mdi:account-outline',
     dns: 'mdi:globe',
-    'cloudflare-dns': 'mdi:globe',
+    'cloudflare-dns': 'mdi:cloud-outline',
     distributors: 'mdi:city', // Match context switcher
     providers: 'mdi:store', // Match context switcher
     members: 'mdi:account-outline',

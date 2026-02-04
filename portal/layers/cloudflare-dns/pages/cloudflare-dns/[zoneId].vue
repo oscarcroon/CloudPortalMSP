@@ -1,5 +1,13 @@
 <template>
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
+    <NuxtLink
+      to="/cloudflare-dns"
+      class="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-brand dark:text-slate-400 dark:hover:text-brand"
+    >
+      <Icon icon="mdi:arrow-left" class="h-4 w-4" />
+      {{ t('cloudflareDns.zone.back') }}
+    </NuxtLink>
+
     <header class="flex flex-col gap-2">
       <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {{ t('cloudflareDns.zone.label') }}
@@ -13,13 +21,6 @@
             </span>
             <span v-else>{{ zoneData?.zone?.name ?? '—' }}</span>
           </h1>
-          <NuxtLink
-            to="/cloudflare-dns"
-            class="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-          >
-            <Icon icon="mdi:arrow-left" class="h-4 w-4" />
-            {{ t('cloudflareDns.zone.back') }}
-          </NuxtLink>
           <button
             type="button"
             class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"

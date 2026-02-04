@@ -90,6 +90,18 @@
       "label": "Cloudflare DNS",
       "title": "Organization configuration",
       "subtitle": "Store API token per organization and verify the connection. The token is not shown after save.",
+      "guide": {
+        "title": "How to create an API token",
+        "step1": "Sign in at {link}.",
+        "step2": "Go to {manageAccount} > {accountApiTokens}.",
+        "step3": "Click {createToken} > {createCustomToken}.",
+        "step4": "Enter a name, e.g. \"CloudPortal\".",
+        "step5": "Set Permissions: {zoneRead} and {dnsEdit}.",
+        "step6": "Set Zone Resources: {includeAll} (or specific zones).",
+        "step7": "Click {continue} > {create}.",
+        "step8": "Copy the token and paste it below.",
+        "dashboardLink": "Open Cloudflare Dashboard"
+      },
       "token": {
         "label": "API token",
         "title": "Cloudflare credentials",
@@ -100,7 +112,7 @@
         "apiTokenPlaceholder": "Cloudflare API token",
         "lastSaved": "Last saved: {value}",
         "none": "none",
-        "accountId": "Account ID (optional)",
+        "accountId": "Account ID",
         "accountIdPlaceholder": "Account ID",
         "accountIdHelper": "Used when creating zones. Leave empty if the token already has scope."
       },

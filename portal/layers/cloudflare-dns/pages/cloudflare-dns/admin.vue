@@ -12,6 +12,87 @@
       </p>
     </header>
 
+    <!-- Setup guide (collapsible) -->
+    <section class="rounded-2xl border border-blue-200 bg-blue-50/60 shadow-sm dark:border-blue-800 dark:bg-blue-950/40">
+      <button
+        class="flex w-full items-center gap-3 p-4 text-left"
+        @click="guideExpanded = !guideExpanded"
+      >
+        <Icon icon="mdi:information-outline" class="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
+        <span class="flex-1 text-sm font-semibold text-blue-900 dark:text-blue-100">
+          {{ t('cloudflareDns.admin.guide.title') }}
+        </span>
+        <Icon
+          :icon="guideExpanded ? 'mdi:chevron-up' : 'mdi:chevron-down'"
+          class="h-5 w-5 shrink-0 text-blue-500 dark:text-blue-400"
+        />
+      </button>
+
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out"
+        leave-active-class="transition-all duration-150 ease-in"
+        enter-from-class="opacity-0 max-h-0"
+        enter-to-class="opacity-100 max-h-[500px]"
+        leave-from-class="opacity-100 max-h-[500px]"
+        leave-to-class="opacity-0 max-h-0"
+      >
+        <div v-if="guideExpanded" class="overflow-hidden">
+          <ol class="list-decimal space-y-1.5 px-4 pb-4 pl-12 text-xs leading-relaxed text-blue-900 dark:text-blue-100">
+            <li>
+              <i18n-t keypath="cloudflareDns.admin.guide.step1" tag="span">
+                <template #link>
+                  <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" class="font-medium underline">dash.cloudflare.com</a>
+                </template>
+              </i18n-t>
+            </li>
+            <li>
+              <i18n-t keypath="cloudflareDns.admin.guide.step2" tag="span">
+                <template #manageAccount><strong>Manage Account</strong></template>
+                <template #accountApiTokens><strong>Account API Tokens</strong></template>
+              </i18n-t>
+            </li>
+            <li>
+              <i18n-t keypath="cloudflareDns.admin.guide.step3" tag="span">
+                <template #createToken><strong>Create Token</strong></template>
+                <template #createCustomToken><strong>Create Custom Token</strong></template>
+              </i18n-t>
+            </li>
+            <li>{{ t('cloudflareDns.admin.guide.step4') }}</li>
+            <li>
+              <i18n-t keypath="cloudflareDns.admin.guide.step5" tag="span">
+                <template #zoneRead><code class="rounded bg-blue-100 px-1 py-0.5 text-[11px] dark:bg-blue-900">Zone – Zone – Read</code></template>
+                <template #dnsEdit><code class="rounded bg-blue-100 px-1 py-0.5 text-[11px] dark:bg-blue-900">Zone – DNS – Edit</code></template>
+              </i18n-t>
+            </li>
+            <li>
+              <i18n-t keypath="cloudflareDns.admin.guide.step6" tag="span">
+                <template #includeAll><strong>Include – All zones</strong></template>
+              </i18n-t>
+            </li>
+            <li>
+              <i18n-t keypath="cloudflareDns.admin.guide.step7" tag="span">
+                <template #continue><strong>Continue to summary</strong></template>
+                <template #create><strong>Create Token</strong></template>
+              </i18n-t>
+            </li>
+            <li>{{ t('cloudflareDns.admin.guide.step8') }}</li>
+          </ol>
+
+          <div class="px-4 pb-4">
+            <a
+              href="https://dash.cloudflare.com/profile/api-tokens"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 underline hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+            >
+              <Icon icon="mdi:open-in-new" class="h-3.5 w-3.5" />
+              {{ t('cloudflareDns.admin.guide.dashboardLink') }}
+            </a>
+          </div>
+        </div>
+      </Transition>
+    </section>
+
     <CloudflareStatusCard :summary="statusSummary" />
 
     <section class="mod-cloudflare-dns-panel space-y-4">
@@ -118,6 +199,7 @@ const form = reactive({
   apiToken: '',
   accountId: ''
 })
+const guideExpanded = ref(false)
 const saving = ref(false)
 const testing = ref(false)
 const deleting = ref(false)
