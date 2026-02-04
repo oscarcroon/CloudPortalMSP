@@ -2,10 +2,26 @@
  * Composable for fetching and managing the operations feed (incidents & news).
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, type Ref, type ComputedRef } from 'vue'
+
+interface OperationsFeedInstance {
+  feed: Ref<OperationsFeedResponse | null>
+  loading: Ref<boolean>
+  error: Ref<string | null>
+  activeIncidents: ComputedRef<FeedIncident[]>
+  latestNews: ComputedRef<FeedNewsPost[]>
+  hasActiveIncidents: ComputedRef<boolean>
+  fetchFeed: () => Promise<void>
+  muteIncidentForUser: (incidentId: string) => Promise<void>
+  unmuteIncidentForUser: (incidentId: string) => Promise<void>
+  muteIncidentForScope: (incidentId: string, targetType?: 'organization' | 'tenant') => Promise<void>
+  unmuteIncidentForScope: (incidentId: string, targetType?: 'organization' | 'tenant') => Promise<void>
+  muteIncident: (incidentId: string, targetType?: 'organization' | 'tenant') => Promise<void>
+  unmuteIncident: (incidentId: string, targetType?: 'organization' | 'tenant') => Promise<void>
+}
 
 // Global feed instance for cross-component refresh
-let globalFeedInstance: ReturnType<typeof useOperationsFeed> | null = null
+let globalFeedInstance: OperationsFeedInstance | null = null
 
 export interface FeedIncident {
   id: string
@@ -52,7 +68,12 @@ export interface OperationsFeedResponse {
   }
 }
 
-export function useOperationsFeed() {
+export function useOperationsFeed(): OperationsFeedInstance {
+  // Singleton: reuse existing instance so all consumers share the same reactive state.
+  // This ensures refreshOperationsFeed() updates the feed for every consumer
+  // (layout banner, dashboard, etc.) instead of only the last-created instance.
+  if (globalFeedInstance) return globalFeedInstance
+
   const feed = ref<OperationsFeedResponse | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -156,9 +177,6 @@ export function useOperationsFeed() {
   // Legacy aliases for backwards compatibility
   const muteIncident = muteIncidentForScope
   const unmuteIncident = unmuteIncidentForScope
-
-  // Note: fetchFeed should be called explicitly by the consumer
-  // to avoid duplicate calls and timing issues
 
   const instance = {
     feed,

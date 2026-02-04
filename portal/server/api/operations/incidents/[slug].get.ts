@@ -3,12 +3,12 @@
  *
  * Returns a single incident if it's accessible from the current context.
  * Supports lookup by either slug or ID.
- * Context-aware: Only returns incidents from tenants the user has access to.
+ * Context-aware: Returns incidents from upstream tenants or the current organization.
  */
 
-import { eq, and, inArray, lte, or, isNull, gt, lt, asc, desc, ne } from 'drizzle-orm'
+import { eq, and, inArray, or, isNull, gt, lt, asc, desc, ne } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam } from 'h3'
-import { tenantIncidents, tenants } from '../../../database/schema'
+import { tenantIncidents, tenants, organizations } from '../../../database/schema'
 import { getDb } from '../../../utils/db'
 import { ensureAuthState } from '../../../utils/session'
 import { getUpstreamSources } from '../../../utils/operations/upstreamSources'
@@ -33,22 +33,36 @@ export default defineEventHandler(async (event) => {
     currentTenantId
   })
 
-  if (sources.sourceIds.length === 0) {
+  const hasOrgContext = Boolean(currentOrgId)
+
+  if (sources.sourceIds.length === 0 && !hasOrgContext) {
     throw createError({ statusCode: 404, message: 'Incident not found' })
   }
 
   const db = getDb()
 
-  // Determine if identifier is a slug (contains only lowercase letters, numbers, and dashes)
-  // or a CUID (typically starts with letters and contains mix of chars)
+  // Determine if identifier is a slug or a CUID
   const isSlug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(identifier)
 
-  // Build the identifier condition - try slug first if it looks like a slug
+  // Build the identifier condition
   const identifierCondition = isSlug
     ? eq(tenantIncidents.slug, identifier)
     : eq(tenantIncidents.id, identifier)
 
-  // Fetch the incident, ensuring it's from an allowed source tenant
+  // Build source access conditions: tenant sources OR organization source
+  const sourceConditions = []
+  if (sources.sourceIds.length > 0) {
+    sourceConditions.push(inArray(tenantIncidents.sourceTenantId, sources.sourceIds))
+  }
+  if (currentOrgId) {
+    sourceConditions.push(eq(tenantIncidents.sourceOrganizationId, currentOrgId))
+  }
+
+  if (sourceConditions.length === 0) {
+    throw createError({ statusCode: 404, message: 'Incident not found' })
+  }
+
+  // Use LEFT JOINs since incidents can be sourced from either a tenant or an organization
   let [incident] = await db
     .select({
       id: tenantIncidents.id,
@@ -62,17 +76,18 @@ export default defineEventHandler(async (event) => {
       resolvedAt: tenantIncidents.resolvedAt,
       createdAt: tenantIncidents.createdAt,
       sourceTenantId: tenantIncidents.sourceTenantId,
+      sourceOrganizationId: tenantIncidents.sourceOrganizationId,
       sourceTenantName: tenants.name,
-      sourceTenantType: tenants.type
+      sourceTenantType: tenants.type,
+      sourceOrgName: organizations.name
     })
     .from(tenantIncidents)
-    .innerJoin(tenants, eq(tenants.id, tenantIncidents.sourceTenantId))
+    .leftJoin(tenants, eq(tenants.id, tenantIncidents.sourceTenantId))
+    .leftJoin(organizations, eq(organizations.id, tenantIncidents.sourceOrganizationId))
     .where(
       and(
         identifierCondition,
-        // Must be from an allowed source tenant
-        inArray(tenantIncidents.sourceTenantId, sources.sourceIds),
-        // Must not be deleted
+        or(...sourceConditions),
         isNull(tenantIncidents.deletedAt)
       )
     )
@@ -93,15 +108,18 @@ export default defineEventHandler(async (event) => {
         resolvedAt: tenantIncidents.resolvedAt,
         createdAt: tenantIncidents.createdAt,
         sourceTenantId: tenantIncidents.sourceTenantId,
+        sourceOrganizationId: tenantIncidents.sourceOrganizationId,
         sourceTenantName: tenants.name,
-        sourceTenantType: tenants.type
+        sourceTenantType: tenants.type,
+        sourceOrgName: organizations.name
       })
       .from(tenantIncidents)
-      .innerJoin(tenants, eq(tenants.id, tenantIncidents.sourceTenantId))
+      .leftJoin(tenants, eq(tenants.id, tenantIncidents.sourceTenantId))
+      .leftJoin(organizations, eq(organizations.id, tenantIncidents.sourceOrganizationId))
       .where(
         and(
           eq(tenantIncidents.id, identifier),
-          inArray(tenantIncidents.sourceTenantId, sources.sourceIds),
+          or(...sourceConditions),
           isNull(tenantIncidents.deletedAt)
         )
       )
@@ -112,12 +130,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Incident not found' })
   }
 
-  // Prev/Next navigation within the same effective context (same allowed source tenants)
-  // Ordering: createdAt DESC (newest first)
+  // Resolve source info: either from tenant or from organization
+  let sourceId: string
+  let sourceName: string
+  let sourceType: 'provider' | 'distributor' | 'organization'
+
+  if (incident.sourceOrganizationId && incident.sourceOrgName) {
+    sourceId = incident.sourceOrganizationId
+    sourceName = incident.sourceOrgName
+    sourceType = 'organization'
+  } else {
+    sourceId = incident.sourceTenantId ?? ''
+    sourceName = incident.sourceTenantName ?? 'Unknown'
+    sourceType = (incident.sourceTenantType as 'provider' | 'distributor') ?? 'provider'
+  }
+
+  // Prev/Next navigation within the same effective context
   const currentCreatedAt = incident.createdAt
 
   const baseNavConditions = [
-    inArray(tenantIncidents.sourceTenantId, sources.sourceIds),
+    or(...sourceConditions),
     isNull(tenantIncidents.deletedAt),
     ne(tenantIncidents.id, incident.id)
   ] as const
@@ -157,9 +189,9 @@ export default defineEventHandler(async (event) => {
       resolvedAt: incident.resolvedAt,
       createdAt: incident.createdAt,
       sourceTenant: {
-        id: incident.sourceTenantId,
-        name: incident.sourceTenantName,
-        type: incident.sourceTenantType
+        id: sourceId,
+        name: sourceName,
+        type: sourceType
       }
     },
     navigation: {
@@ -168,4 +200,3 @@ export default defineEventHandler(async (event) => {
     }
   }
 })
-

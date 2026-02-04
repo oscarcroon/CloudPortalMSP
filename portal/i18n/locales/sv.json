@@ -37,6 +37,7 @@
     "notFound": "Driftmeddelandet kunde inte hittas eller så har du inte behörighet att se det.",
     "distributor": "Distributör",
     "provider": "Leverantör",
+    "organization": "Organisation",
     "previous": "Föregående",
     "next": "Nästa",
     "status": {

@@ -43,6 +43,7 @@
     "notFound": "Incident not found or you don't have permission to view it.",
     "distributor": "Distributor",
     "provider": "Provider",
+    "organization": "Organization",
     "previous": "Previous",
     "next": "Next",
     "status": {

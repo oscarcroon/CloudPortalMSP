@@ -34,7 +34,7 @@
       >
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-semibold text-slate-900 dark:text-slate-50">{{ zone.name }}</p>
+            <p class="text-lg font-medium text-slate-900 dark:text-slate-50">{{ zone.name }}</p>
             <p
               class="text-xs"
               :class="isPending(zone.status) ? 'text-amber-600 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'"
@@ -54,7 +54,6 @@
             @click.stop.prevent="$emit('exportZone', zone.id, zone.name)"
           >
             <Icon icon="mdi:download" class="h-3.5 w-3.5" />
-            {{ t('cloudflareDns.zoneList.export') }}
           </button>
         </div>
       </NuxtLink>
