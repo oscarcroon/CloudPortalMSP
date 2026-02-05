@@ -156,7 +156,7 @@ export async function tryOrgApiToken(event: H3Event): Promise<OrgApiTokenContext
   db.update(orgApiTokens)
     .set({ lastUsedAt: now })
     .where(eq(orgApiTokens.id, tokenRecord.id))
-    .run()
+    .then(() => {})
 
   // Parse scopes and constraints
   let scopes: string[] = []

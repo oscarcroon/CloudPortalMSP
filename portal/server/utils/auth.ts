@@ -615,44 +615,6 @@ export const createUserWithOrganization = async (
   input: CreateUserWithOrgInput
 ): Promise<{ userId: string; organizationId: string }> => {
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-  if (isSqlite) {
-    return db.transaction((tx) => {
-      const orgId = createId()
-      const userId = createId()
-      const organization: typeof organizations.$inferInsert = {
-        id: orgId,
-        name: input.organizationName,
-        slug: slugify(input.organizationName),
-        status: 'active'
-      }
-      tx.insert(organizations).values(organization).run()
-
-      const user: typeof users.$inferInsert = {
-        id: userId,
-        email: normalizeEmail(input.email),
-        passwordHash: input.passwordHash,
-        fullName: input.fullName,
-        status: 'active',
-        defaultOrgId: orgId
-      }
-      tx.insert(users).values(user).run()
-
-      tx.insert(organizationMemberships)
-        .values({
-          id: createId(),
-          organizationId: orgId,
-          userId,
-          role: 'owner',
-          status: 'active'
-        })
-        .run()
-
-      return { userId, organizationId: orgId }
-    })
-  }
-
   return db.transaction(async (tx) => {
     const orgId = createId()
     const userId = createId()

@@ -1,111 +1,105 @@
 /**
- * Setup script that initializes the database and seeds a user.
+ * Setup script that initializes the MySQL database and seeds a user.
  * This script automates the initial setup process for new installations.
- * 
+ *
  * Usage:
  *   npm run setup
- *   
+ *
  * Environment variables:
  *   SEED_SUPERADMIN_EMAIL    - Email for the superadmin (default: owner@example.com)
  *   SEED_SUPERADMIN_PASSWORD - Password for the superadmin (default: OwnerPass123!)
  *   SEED_SUPERADMIN_NAME     - Full name for the superadmin (default: Cloud Portal Owner)
- *   DATABASE_URL             - SQLite database path (default: file:./.data/dev.db)
+ *   DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME - Database connection
  */
 
+import 'dotenv/config'
 import { execSync } from 'child_process'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { existsSync, mkdirSync } from 'fs'
+import mysql from 'mysql2/promise'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const frontendDir = resolve(__dirname, '..')
 
+function buildMysqlUrl(): string {
+  const host = process.env.DB_HOST
+  const name = process.env.DB_NAME
+
+  if (host && name) {
+    const user = process.env.DB_USER || 'root'
+    const password = process.env.DB_PASSWORD || ''
+    const port = process.env.DB_PORT || '3306'
+    const credentials = password ? `${user}:${password}` : user
+    return `mysql://${credentials}@${host}:${port}/${name}`
+  }
+
+  if (process.env.DATABASE_URL_MARIA) {
+    return process.env.DATABASE_URL_MARIA
+  }
+
+  console.error('Database configuration missing. Set DB_HOST + DB_NAME in portal/.env')
+  process.exit(1)
+}
+
 function runCommand(command: string, cwd: string = frontendDir) {
-  console.log(`▶️  Kör: ${command}`)
+  console.log(`Kor: ${command}`)
   try {
-    execSync(command, { 
+    execSync(command, {
       cwd,
       stdio: 'inherit',
       encoding: 'utf-8'
     })
   } catch (error) {
-    console.error(`❌ Kommandot misslyckades: ${command}`)
+    console.error(`Kommandot misslyckades: ${command}`)
     throw error
   }
 }
 
 async function setup() {
-  console.log('🚀 Startar setup av Cloud Portal MSP...\n')
+  console.log('Startar setup av Cloud Portal MSP...\n')
 
-  // Check if database exists and has tables
-  const dbUrl = process.env.DATABASE_URL || 'file:./.data/dev.db'
-  const dbPath = resolve(frontendDir, dbUrl.replace('file:', ''))
-  const dbExists = existsSync(dbPath)
+  const dbUrl = buildMysqlUrl()
 
-  // Check if users table exists (indicates database is initialized)
+  // Check if database is initialized by trying to connect and query
   let dbInitialized = false
-  if (dbExists) {
-    try {
-      const Database = (await import('better-sqlite3')).default
-      const db = new Database(dbPath)
-      const tableExists = db.prepare(`
-        SELECT name FROM sqlite_master 
-        WHERE type='table' AND name='users'
-      `).get()
-      db.close()
-      dbInitialized = !!tableExists
-    } catch (error) {
-      // Database might be corrupted or not readable, we'll recreate it
-      console.log('⚠️  Kunde inte läsa databasen, kommer att skapa ny...')
-    }
+  try {
+    const connection = await mysql.createConnection(dbUrl)
+    const [tables] = await connection.execute(
+      `SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'`
+    )
+    dbInitialized = Array.isArray(tables) && tables.length > 0
+    await connection.end()
+  } catch (error) {
+    console.log('Kunde inte ansluta till databasen, kommer att forsoka initialisera...')
   }
 
   // Initialize database if needed
   if (!dbInitialized) {
-    console.log('📦 Initialiserar databas...')
-    
-    // Ensure data directory exists before running db:push
-    const dataDir = dirname(dbPath)
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true })
-      console.log(`📁 Skapade data-katalog: ${dataDir}`)
-    }
-    
-    // Create empty database file if it doesn't exist (drizzle-kit needs it)
-    if (!existsSync(dbPath)) {
-      try {
-        const Database = (await import('better-sqlite3')).default
-        const db = new Database(dbPath)
-        db.close()
-        console.log(`📁 Skapade tom databas-fil: ${dbPath}`)
-      } catch (error) {
-        console.error('⚠️  Kunde inte skapa databas-fil, drizzle-kit kommer att försöka skapa den...')
-      }
-    }
-    
+    console.log('Initialiserar databas...')
+
     try {
       runCommand('npm run db:push')
-      console.log('✅ Databas initialiserad!\n')
+      console.log('Databas initialiserad!\n')
     } catch (error) {
-      console.error('\n❌ Kunde inte initialisera databasen.')
-      console.error('   Kontrollera att alla dependencies är installerade.')
+      console.error('\nKunde inte initialisera databasen.')
+      console.error('   Kontrollera att DB_HOST, DB_NAME etc. ar korrekt och att MySQL-servern ar tillganglig.')
       throw error
     }
   } else {
-    console.log('✅ Databas redan initialiserad, hoppar över db:push\n')
+    console.log('Databas redan initialiserad, hoppar over db:push\n')
   }
 
   // Seed user
-  console.log('🌱 Seedar användare...')
+  console.log('Seedar anvandare...')
   runCommand('npm run seed:user')
-  console.log('✅ Setup klar!\n')
+  console.log('Setup klar!\n')
 
-  console.log('🎉 Installationen är klar! Du kan nu köra:')
+  console.log('Installationen ar klar! Du kan nu kora:')
   console.log('   npm run dev')
 }
 
 setup().catch((error) => {
-  console.error('❌ Setup misslyckades:', error)
+  console.error('Setup misslyckades:', error)
   process.exit(1)
 })

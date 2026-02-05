@@ -42,7 +42,6 @@ export default defineEventHandler(async (event) => {
     .leftJoin(users, eq(users.id, orgApiTokens.createdByUserId))
     .where(eq(orgApiTokens.organizationId, orgId))
     .orderBy(orgApiTokens.createdAt)
-    .all()
 
   // Parse scopes and constraints
   const formattedTokens = tokens.map((token) => {

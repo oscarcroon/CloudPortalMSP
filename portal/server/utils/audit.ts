@@ -139,43 +139,22 @@ export const logAuditEvent = async (
   const sanitizedMeta = sanitizeMetadata(meta)
   
   // Insert into audit_logs table
-  const isSqlite = (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-  
-  if (isSqlite) {
-    db.insert(auditLogs).values({
-      id: createId(),
-      userId: userId || null,
-      eventType,
-      severity,
-      requestId,
-      endpoint: url.pathname,
-      method,
-      orgId: orgId || null,
-      tenantId: tenantId || null,
-      fromContext: fromContext ? JSON.stringify(fromContext) : null,
-      toContext: toContext ? JSON.stringify(toContext) : null,
-      ip: ip || undefined,
-      userAgent: userAgent || undefined,
-      meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
-    }).run()
-  } else {
-    await db.insert(auditLogs).values({
-      id: createId(),
-      userId: userId || null,
-      eventType,
-      severity,
-      requestId,
-      endpoint: url.pathname,
-      method,
-      orgId: orgId || null,
-      tenantId: tenantId || null,
-      fromContext: fromContext ? JSON.stringify(fromContext) : null,
-      toContext: toContext ? JSON.stringify(toContext) : null,
-      ip: ip || undefined,
-      userAgent: userAgent || undefined,
-      meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
-    })
-  }
+  await db.insert(auditLogs).values({
+    id: createId(),
+    userId: userId || null,
+    eventType,
+    severity,
+    requestId,
+    endpoint: url.pathname,
+    method,
+    orgId: orgId || null,
+    tenantId: tenantId || null,
+    fromContext: fromContext ? JSON.stringify(fromContext) : null,
+    toContext: toContext ? JSON.stringify(toContext) : null,
+    ip: ip || undefined,
+    userAgent: userAgent || undefined,
+    meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
+  })
   
   // Also log to structured logger for correlation
   const logMessage = `Audit event: ${eventType}`

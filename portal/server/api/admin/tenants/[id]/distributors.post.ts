@@ -50,79 +50,37 @@ export default defineEventHandler(async (event) => {
   const tenantId = createId()
   const ownerUserId = existingUser?.id ?? createId()
   const now = new Date()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-
   try {
-    if (isSqlite) {
-      await db.transaction((tx) => {
-        tx.insert(tenants)
-          .values({
-            id: tenantId,
-            name: payload.name,
-            slug: payload.slug ?? slugify(payload.name),
-            type: 'distributor',
-            parentTenantId,
-            status: 'active'
-          })
-          .run()
-
-        if (!existingUser) {
-          tx.insert(users)
-            .values({
-              id: ownerUserId,
-              email: normalizedOwnerEmail,
-              passwordHash: null,
-              fullName: payload.owner.fullName,
-              status: 'active',
-              forcePasswordReset: true
-            })
-            .run()
-        }
-
-        tx.insert(tenantMemberships)
-          .values({
-            id: createId(),
-            tenantId,
-            userId: ownerUserId,
-            role: 'admin' as TenantRole,
-            includeChildren: true,
-            status: 'active'
-          })
-          .run()
+    await db.transaction(async (tx) => {
+      await tx.insert(tenants).values({
+        id: tenantId,
+        name: payload.name,
+        slug: payload.slug ?? slugify(payload.name),
+        type: 'distributor',
+        parentTenantId,
+        status: 'active'
       })
-    } else {
-      await db.transaction(async (tx) => {
-        await tx.insert(tenants).values({
-          id: tenantId,
-          name: payload.name,
-          slug: payload.slug ?? slugify(payload.name),
-          type: 'distributor',
-          parentTenantId,
-          status: 'active'
-        })
 
-        if (!existingUser) {
-          await tx.insert(users).values({
-            id: ownerUserId,
-            email: normalizedOwnerEmail,
-            passwordHash: null,
-            fullName: payload.owner.fullName,
-            status: 'active',
+      if (!existingUser) {
+        await tx.insert(users).values({
+          id: ownerUserId,
+          email: normalizedOwnerEmail,
+          passwordHash: null,
+          fullName: payload.owner.fullName,
+          status: 'active',
           forcePasswordReset: true
-          })
-        }
-
-        await tx.insert(tenantMemberships).values({
-          id: createId(),
-          tenantId,
-          userId: ownerUserId,
-          role: 'admin',
-          includeChildren: true,
-          status: 'active'
         })
+      }
+
+      await tx.insert(tenantMemberships).values({
+        id: createId(),
+        tenantId,
+        userId: ownerUserId,
+        role: 'admin',
+        includeChildren: true,
+        status: 'active'
       })
-    }
+    })
   } catch (error: any) {
     if (
       typeof error?.message === 'string' &&
@@ -159,11 +117,7 @@ if (!tenant) {
         organizationData: null
       }
 
-      if (isSqlite) {
-        await db.insert(tenantInvitations).values(invitationValues).run()
-      } else {
-        await db.insert(tenantInvitations).values(invitationValues)
-      }
+      await db.insert(tenantInvitations).values(invitationValues)
       
       await sendDistributorInvitationEmail({
         tenantId: tenant.id,

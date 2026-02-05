@@ -24,8 +24,6 @@ export default defineEventHandler(async (event) => {
   }
   const payload = checkEmailSchema.parse(await readBody(event))
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   const normalizedEmail = normalizeEmail(payload.email)
   const [user] = await db

@@ -1,1 +1,0 @@
-ALTER TABLE `organizations` ADD `core_id` text;

@@ -92,70 +92,33 @@ export default defineEventHandler(async (event) => {
   const toRemove = Array.from(currentRoleIds).filter((id) => !requestedRoleIds.has(id))
 
   // Atomic update in transaction
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
+  await db.transaction(async (tx) => {
+    // Remove old assignments
+    if (toRemove.length > 0) {
+      const toRemoveAssignments = currentAssignments
+        .filter((a) => toRemove.includes(a.roleId))
+        .map((a) => a.roleId)
 
-  if (isSqlite) {
-    await db.transaction((tx) => {
-      // Remove old assignments
-      if (toRemove.length > 0) {
-        const toRemoveAssignments = currentAssignments
-          .filter((a) => toRemove.includes(a.roleId))
-          .map((a) => a.roleId)
-
-        for (const roleId of toRemoveAssignments) {
-          tx
-            .delete(tenantMemberMspRoles)
-            .where(
-              and(
-                eq(tenantMemberMspRoles.tenantMembershipId, memberId),
-                eq(tenantMemberMspRoles.roleId, roleId)
-              )
-            )
-            .run()
-        }
-      }
-
-      // Add new assignments
-      if (toAdd.length > 0) {
-        tx.insert(tenantMemberMspRoles).values(
-          toAdd.map((roleId) => ({
-            tenantMembershipId: memberId,
-            roleId
-          }))
-        ).run()
-      }
-    })
-  } else {
-    // MySQL transaction
-    await (db as any).transaction(async (tx: any) => {
-      // Remove old assignments
-      if (toRemove.length > 0) {
-        const toRemoveAssignments = currentAssignments
-          .filter((a) => toRemove.includes(a.roleId))
-          .map((a) => a.roleId)
-
-        await tx
-          .delete(tenantMemberMspRoles)
-          .where(
-            and(
-              eq(tenantMemberMspRoles.tenantMembershipId, memberId),
-              inArray(tenantMemberMspRoles.roleId, toRemoveAssignments)
-            )
+      await tx
+        .delete(tenantMemberMspRoles)
+        .where(
+          and(
+            eq(tenantMemberMspRoles.tenantMembershipId, memberId),
+            inArray(tenantMemberMspRoles.roleId, toRemoveAssignments)
           )
-      }
-
-      // Add new assignments
-      if (toAdd.length > 0) {
-        await tx.insert(tenantMemberMspRoles).values(
-          toAdd.map((roleId: string) => ({
-            tenantMembershipId: memberId,
-            roleId
-          }))
         )
-      }
-    })
-  }
+    }
+
+    // Add new assignments
+    if (toAdd.length > 0) {
+      await tx.insert(tenantMemberMspRoles).values(
+        toAdd.map((roleId: string) => ({
+          tenantMembershipId: memberId,
+          roleId
+        }))
+      )
+    }
+  })
 
   // Audit log
   await logTenantAction(

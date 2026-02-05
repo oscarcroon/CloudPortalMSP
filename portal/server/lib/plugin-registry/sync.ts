@@ -19,14 +19,14 @@ export async function syncPluginRegistry(): Promise<SyncResult> {
   let hasEnabledColumn = false
   let hasLifecycleColumns = false
   try {
-    db.all(sql`SELECT enabled FROM modules LIMIT 1`)
+    await db.execute(sql`SELECT enabled FROM modules LIMIT 1`)
     hasEnabledColumn = true
   } catch {
     hasEnabledColumn = false
   }
 
   try {
-    db.all(sql`SELECT is_active, status, removed_at FROM module_permissions LIMIT 1`)
+    await db.execute(sql`SELECT is_active, status, removed_at FROM module_permissions LIMIT 1`)
     hasLifecycleColumns = true
   } catch {
     hasLifecycleColumns = false
@@ -76,8 +76,7 @@ export async function syncPluginRegistry(): Promise<SyncResult> {
     await db
       .insert(modules)
       .values(baseValues)
-      .onConflictDoUpdate({
-        target: modules.key,
+      .onDuplicateKeyUpdate({
         set: updateValues
       })
 

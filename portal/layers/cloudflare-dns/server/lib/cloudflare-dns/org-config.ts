@@ -66,8 +66,7 @@ export const saveOrgConfig = async (orgId: string, input: { apiToken: string; ac
       createdAt: now,
       updatedAt: now
     })
-    .onConflictDoUpdate({
-      target: cloudflareDnsOrgConfig.organizationId,
+    .onDuplicateKeyUpdate({
       set: {
         encryptedApiToken: encrypted.cipherText,
         encryptionIv: encrypted.iv,
@@ -169,8 +168,7 @@ export const upsertZoneCache = async (
         createdAt: now,
         updatedAt: now
       })
-      .onConflictDoUpdate({
-        target: [cloudflareDnsZonesCache.organizationId, cloudflareDnsZonesCache.zoneId],
+      .onDuplicateKeyUpdate({
         set: {
           name: zone.name,
           status: zone.status ?? null,

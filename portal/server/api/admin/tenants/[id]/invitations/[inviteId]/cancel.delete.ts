@@ -20,8 +20,6 @@ export default defineEventHandler(async (event) => {
   await requireTenantPermission(event, 'tenants:manage-members', tenantId)
 
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   // Verify tenant exists
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
@@ -46,7 +44,7 @@ export default defineEventHandler(async (event) => {
     )
     .limit(1)
   
-  const invitation = isSqlite ? invitationRows[0] : invitationRows[0] ?? null
+  const invitation = invitationRows[0] ?? null
 
   if (!invitation) {
     throw createError({ statusCode: 404, message: 'Inbjudan hittades inte.' })

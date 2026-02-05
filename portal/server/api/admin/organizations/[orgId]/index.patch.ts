@@ -55,8 +55,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Not authenticated' })
   }
 
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
   const organization = await requireOrganizationByIdentifier(db, orgParam)
 
   // Super admins can always update
@@ -118,32 +116,17 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    if (isSqlite) {
-      db.transaction((tx) => {
-        if (Object.keys(orgUpdates).length) {
-          tx.update(organizations).set(orgUpdates).where(eq(organizations.id, organization.id)).run()
-        }
-        if (Object.keys(authUpdates).length) {
-          tx
-            .update(organizationAuthSettings)
-            .set(authUpdates)
-            .where(eq(organizationAuthSettings.organizationId, organization.id))
-            .run()
-        }
-      })
-    } else {
-      await db.transaction(async (tx) => {
-        if (Object.keys(orgUpdates).length) {
-          await tx.update(organizations).set(orgUpdates).where(eq(organizations.id, organization.id))
-        }
-        if (Object.keys(authUpdates).length) {
-          await tx
-            .update(organizationAuthSettings)
-            .set(authUpdates)
-            .where(eq(organizationAuthSettings.organizationId, organization.id))
-        }
-      })
-    }
+    await db.transaction(async (tx) => {
+      if (Object.keys(orgUpdates).length) {
+        await tx.update(organizations).set(orgUpdates).where(eq(organizations.id, organization.id))
+      }
+      if (Object.keys(authUpdates).length) {
+        await tx
+          .update(organizationAuthSettings)
+          .set(authUpdates)
+          .where(eq(organizationAuthSettings.organizationId, organization.id))
+      }
+    })
   } catch (error: any) {
     if (
       typeof error?.message === 'string' &&

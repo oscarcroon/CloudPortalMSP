@@ -24,8 +24,8 @@ npm run setup
 
 # Or manually:
 cd portal
-npm run db:generate   # Generate SQL from schema
 npm run db:push       # Push schema to database (creates tables)
+npm run db:generate   # Generate SQL migrations from schema
 npm run db:migrate    # Apply migrations
 npm run db:studio     # Open Drizzle Studio UI
 npm run seed:user     # Seed test user (auto-runs db:push if needed)
@@ -63,18 +63,18 @@ npm run generate:openapi      # Generate OpenAPI specs
 - `portal/app/composables/` - Vue composables (auth, permissions, API client)
 - `portal/app/stores/` - Pinia stores (containers, dns, monitoring, vms, wordpress)
 - `portal/server/api/` - Nitro server routes (H3)
-- `portal/server/database/schema.ts` - Drizzle ORM schema
-- `portal/layers/` - Plugin layers (cloudflare-dns, windows-dns)
+- `portal/server/database/schema.ts` - Drizzle ORM schema (MySQL)
+- `portal/layers/` - Plugin layers (cloudflare-dns, windows-dns, windows-dns-redirects)
 
 ### Authentication Flow
-1. Login: `POST /api/auth/login` → JWT in HTTP-only cookie
+1. Login: `POST /api/auth/login` -> JWT in HTTP-only cookie
 2. Session validated on each request via Nitro middleware
 3. Multi-tenant with organization context switching
 
 ### Authorization (RBAC)
 - Organization roles: `owner`, `admin`, `operator`, `member`, `viewer`, `support`
 - MSP tenant roles: `msp-global-admin`, `msp-cloudflare-admin`, etc.
-- Permissions defined in `frontend/app/constants/rbac.ts`
+- Permissions defined in `portal/app/constants/rbac.ts`
 - Frontend: `usePermission()` composable
 - Server: `requirePermission(event, permission, orgId?)` in Nitro routes
 
@@ -82,9 +82,11 @@ npm run generate:openapi      # Generate OpenAPI specs
 Plugins use Nuxt layers in `portal/layers/`. Each layer has its own pages, components, server routes, and locales. Registry in `portal/layers/plugin-manifests.ts`, synced to database via `portal/server/plugins/plugin-registry-sync.ts`.
 
 ### Database
-- SQLite (dev) / MySQL (prod) via Drizzle ORM
+- **MySQL/MariaDB** via Drizzle ORM (`drizzle-orm/mysql-core`)
+- Connection: `mysql2/promise` pool via `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME`
 - Schema: `portal/server/database/schema.ts`
-- Migrations: `portal/server/database/migrations/`
+- Upsert pattern: `.onDuplicateKeyUpdate()` (MySQL syntax)
+- Transactions: `await db.transaction(async (tx) => { await tx.insert(...) })`
 - ID generation: CUID2
 
 ## Patterns
@@ -110,15 +112,18 @@ Plugins use Nuxt layers in `portal/layers/`. Each layer has its own pages, compo
 - **Styling:** Tailwind 3.4
 - **State:** Pinia
 - **i18n:** @nuxtjs/i18n
-- **Database:** Drizzle ORM 0.44 with SQLite/MySQL
+- **Database:** Drizzle ORM 0.44 with MySQL/MariaDB
 - **Auth:** JWT (jsonwebtoken), bcryptjs
 - **Validation:** Zod
 
 ## Environment Variables
 
 Key variables (see `env.example`):
+- `DB_HOST` - MySQL server hostname or IP
+- `DB_PORT` - MySQL port (default: 3306)
+- `DB_USER` - MySQL user (default: root)
+- `DB_PASSWORD` - MySQL password
+- `DB_NAME` - Database name
 - `AUTH_JWT_SECRET` - JWT signing secret (min 32 chars in production)
 - `AUTH_SERVICE_TOKEN` - Service token for internal calls
-- `DRIZZLE_DIALECT` - `sqlite` or `mysql`
-- `DATABASE_URL` - SQLite connection string
 - `CLOUDFLARE_TOKEN` - Cloudflare API token

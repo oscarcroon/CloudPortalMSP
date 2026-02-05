@@ -18,8 +18,6 @@ export default defineEventHandler(async (event) => {
 
   const payload = updateProviderLinksSchema.parse(await readBody(event))
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   // Validate provider
   const [provider] = await db
@@ -64,40 +62,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    if (isSqlite) {
-      await db.transaction((tx) => {
-        // Remove all existing links for this provider
-        tx.delete(distributorProviders)
-          .where(eq(distributorProviders.providerId, providerId))
-          .run()
+    await db.transaction(async (tx) => {
+      // Remove all existing links for this provider
+      await tx.delete(distributorProviders)
+        .where(eq(distributorProviders.providerId, providerId))
 
-        // Create new links
-        for (const distributorId of payload.distributorIds) {
-          tx.insert(distributorProviders)
-            .values({
-              id: createId(),
-              distributorId,
-              providerId
-            })
-            .run()
-        }
-      })
-    } else {
-      await db.transaction(async (tx) => {
-        // Remove all existing links for this provider
-        await tx.delete(distributorProviders)
-          .where(eq(distributorProviders.providerId, providerId))
-
-        // Create new links
-        for (const distributorId of payload.distributorIds) {
-          await tx.insert(distributorProviders).values({
-            id: createId(),
-            distributorId,
-            providerId
-          })
-        }
-      })
-    }
+      // Create new links
+      for (const distributorId of payload.distributorIds) {
+        await tx.insert(distributorProviders).values({
+          id: createId(),
+          distributorId,
+          providerId
+        })
+      }
+    })
   } catch (error: any) {
     if (
       typeof error?.message === 'string' &&

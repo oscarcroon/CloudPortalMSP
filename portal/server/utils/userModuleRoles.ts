@@ -99,8 +99,6 @@ export const setModuleRoleOverridesForModule = async ({
   actorUserId?: string
 }): Promise<void> => {
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   const whereClause = and(
     eq(memberModuleRoleOverrides.organizationId, organizationId),
@@ -108,11 +106,7 @@ export const setModuleRoleOverridesForModule = async ({
     eq(memberModuleRoleOverrides.moduleId, moduleId)
   )
 
-  if (isSqlite) {
-    db.delete(memberModuleRoleOverrides).where(whereClause).run()
-  } else {
-    await db.delete(memberModuleRoleOverrides).where(whereClause)
-  }
+  await db.delete(memberModuleRoleOverrides).where(whereClause)
 
   const rows = [
     ...grantKeys.map(roleKey => ({
@@ -141,10 +135,6 @@ export const setModuleRoleOverridesForModule = async ({
     return
   }
 
-  if (isSqlite) {
-    db.insert(memberModuleRoleOverrides).values(rows).run()
-  } else {
-    await db.insert(memberModuleRoleOverrides).values(rows)
-  }
+  await db.insert(memberModuleRoleOverrides).values(rows)
 }
 

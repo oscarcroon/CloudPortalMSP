@@ -33,8 +33,6 @@ export default defineEventHandler(async (event) => {
   const { orgId } = await requirePermission(event, 'org:manage')
   const payload = organizationAuthUpdateSchema.parse(await readBody(event))
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   const [organization] = await db
     .select()
@@ -87,32 +85,17 @@ export default defineEventHandler(async (event) => {
     authUpdates.idpConfig = null
   }
 
-  if (isSqlite) {
-    db.transaction((tx) => {
-      if (Object.keys(orgUpdates).length) {
-        tx.update(organizations).set(orgUpdates).where(eq(organizations.id, orgId)).run()
-      }
-      if (Object.keys(authUpdates).length) {
-        tx
-          .update(organizationAuthSettings)
-          .set(authUpdates)
-          .where(eq(organizationAuthSettings.organizationId, orgId))
-          .run()
-      }
-    })
-  } else {
-    await db.transaction(async (tx) => {
-      if (Object.keys(orgUpdates).length) {
-        await tx.update(organizations).set(orgUpdates).where(eq(organizations.id, orgId))
-      }
-      if (Object.keys(authUpdates).length) {
-        await tx
-          .update(organizationAuthSettings)
-          .set(authUpdates)
-          .where(eq(organizationAuthSettings.organizationId, orgId))
-      }
-    })
-  }
+  await db.transaction(async (tx) => {
+    if (Object.keys(orgUpdates).length) {
+      await tx.update(organizations).set(orgUpdates).where(eq(organizations.id, orgId))
+    }
+    if (Object.keys(authUpdates).length) {
+      await tx
+        .update(organizationAuthSettings)
+        .set(authUpdates)
+        .where(eq(organizationAuthSettings.organizationId, orgId))
+    }
+  })
 
   return buildOrganizationDetailPayload(db, orgId)
 })

@@ -152,10 +152,9 @@ export default defineEventHandler(async (event) => {
   const templateId = createId()
   const now = new Date()
 
-  // Create template (synchronous transaction for better-sqlite3)
-  db.transaction((tx) => {
+  await db.transaction(async (tx) => {
     // Insert template
-    tx.insert(mspRoles).values({
+    await tx.insert(mspRoles).values({
       id: templateId,
       tenantId: distributorId,
       key: templateKey,
@@ -167,17 +166,17 @@ export default defineEventHandler(async (event) => {
       createdBy: auth.user.id,
       createdAt: now,
       updatedAt: now
-    }).run()
+    })
 
     // Copy permissions
     if (sourcePermissions.length > 0) {
-      tx.insert(mspRolePermissions).values(
+      await tx.insert(mspRolePermissions).values(
         sourcePermissions.map((perm) => ({
           roleId: templateId,
           moduleKey: perm.moduleKey,
           permissionKey: perm.permissionKey
         }))
-      ).run()
+      )
     }
   })
 

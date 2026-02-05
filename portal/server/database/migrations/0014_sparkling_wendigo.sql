@@ -1,1 +1,0 @@
-ALTER TABLE `tenant_invitations` ADD `include_children` integer DEFAULT false NOT NULL;

@@ -56,13 +56,12 @@ export default defineEventHandler(async (event) => {
   // Revoke the token
   const now = new Date()
 
-  db.update(orgApiTokens)
+  await db.update(orgApiTokens)
     .set({
       revokedAt: now,
       updatedAt: now,
     })
     .where(eq(orgApiTokens.id, tokenId))
-    .run()
 
   // Audit log
   await logAuditEvent(event, 'API_TOKEN_REVOKED', {

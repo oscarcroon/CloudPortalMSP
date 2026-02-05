@@ -32,8 +32,6 @@ export default defineEventHandler(async (event) => {
 
   const payload = deleteSchema.parse(await readBody(event))
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   // Get tenant
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
@@ -190,29 +188,16 @@ export default defineEventHandler(async (event) => {
     eq(distributorProviders.distributorId, tenantId),
     eq(distributorProviders.providerId, tenantId)
   )
-  if (isSqlite) {
-    db.transaction((tx) => {
-      tx.delete(tenantModulePolicies).where(eq(tenantModulePolicies.tenantId, tenantId)).run()
-      tx.delete(emailProviderProfiles).where(eq(emailProviderProfiles.tenantId, tenantId)).run()
-      tx.delete(tenantAuthSettings).where(eq(tenantAuthSettings.tenantId, tenantId)).run()
-      tx.delete(tenantInvitations).where(eq(tenantInvitations.tenantId, tenantId)).run()
-      tx.delete(brandingThemes).where(eq(brandingThemes.tenantId, tenantId)).run()
-      tx.delete(distributorProviders).where(distributorProviderCondition).run()
-      tx.delete(tenantMemberships).where(eq(tenantMemberships.tenantId, tenantId)).run()
-      tx.delete(tenants).where(eq(tenants.id, tenantId)).run()
-    })
-  } else {
-    await db.transaction(async (tx) => {
-      await tx.delete(tenantModulePolicies).where(eq(tenantModulePolicies.tenantId, tenantId))
-      await tx.delete(emailProviderProfiles).where(eq(emailProviderProfiles.tenantId, tenantId))
-      await tx.delete(tenantAuthSettings).where(eq(tenantAuthSettings.tenantId, tenantId))
-      await tx.delete(tenantInvitations).where(eq(tenantInvitations.tenantId, tenantId))
-      await tx.delete(brandingThemes).where(eq(brandingThemes.tenantId, tenantId))
-      await tx.delete(distributorProviders).where(distributorProviderCondition)
-      await tx.delete(tenantMemberships).where(eq(tenantMemberships.tenantId, tenantId))
-      await tx.delete(tenants).where(eq(tenants.id, tenantId))
-    })
-  }
+  await db.transaction(async (tx) => {
+    await tx.delete(tenantModulePolicies).where(eq(tenantModulePolicies.tenantId, tenantId))
+    await tx.delete(emailProviderProfiles).where(eq(emailProviderProfiles.tenantId, tenantId))
+    await tx.delete(tenantAuthSettings).where(eq(tenantAuthSettings.tenantId, tenantId))
+    await tx.delete(tenantInvitations).where(eq(tenantInvitations.tenantId, tenantId))
+    await tx.delete(brandingThemes).where(eq(brandingThemes.tenantId, tenantId))
+    await tx.delete(distributorProviders).where(distributorProviderCondition)
+    await tx.delete(tenantMemberships).where(eq(tenantMemberships.tenantId, tenantId))
+    await tx.delete(tenants).where(eq(tenants.id, tenantId))
+  })
 
   // Log audit event
   await logTenantAction(event, 'TENANT_DELETED', {

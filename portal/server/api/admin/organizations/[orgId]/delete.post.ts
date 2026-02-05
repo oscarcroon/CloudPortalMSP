@@ -20,8 +20,6 @@ export default defineEventHandler(async (event) => {
   const orgParam = parseOrgParam(event)
   const payload = deleteSchema.parse(await readBody(event))
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
   const organization = await requireOrganizationByIdentifier(db, orgParam)
 
   if (payload.confirmSlug !== organization.slug) {
@@ -47,15 +45,9 @@ export default defineEventHandler(async (event) => {
     // Continue with deletion even if cleanup fails
   }
 
-  if (isSqlite) {
-    db.transaction((tx) => {
-      tx.delete(organizations).where(eq(organizations.id, organization.id)).run()
-    })
-  } else {
-    await db.transaction(async (tx) => {
-      await tx.delete(organizations).where(eq(organizations.id, organization.id))
-    })
-  }
+  await db.transaction(async (tx) => {
+    await tx.delete(organizations).where(eq(organizations.id, organization.id))
+  })
 
   // Log audit event
   await logOrganizationAction(event, 'ORGANIZATION_DELETED', {

@@ -115,7 +115,7 @@ export default defineEventHandler(async (event) => {
 
   // Batch insert permissions
   if (permissionsToInsert.length > 0) {
-    // Insert in batches to avoid SQLite limits
+    // Insert in batches to avoid query size limits
     const BATCH_SIZE = 100
     for (let i = 0; i < permissionsToInsert.length; i += BATCH_SIZE) {
       const batch = permissionsToInsert.slice(i, i + BATCH_SIZE)

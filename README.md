@@ -1,75 +1,105 @@
 # Cloud Customer Portal
 
-Multi-tenant portal för hantering av Cloudflare, Incus, ESXi/Morpheus och WordPress-resurser.
+Multi-tenant portal for hantering av Cloudflare, Windows DNS, Incus, ESXi/Morpheus och WordPress-resurser.
 
 ## Krav
 
-**Rekommenderat: Node.js 22 LTS**
+- **Node.js 20+** (rekommenderat: Node.js 22 LTS)
+- **MySQL/MariaDB** - en tillganglig MySQL- eller MariaDB-server
 
-Applikationen fungerar med Node.js 22 LTS. Detta är den rekommenderade versionen för minst bekymmer.
-
-**Node.js 24 LTS (känd bugg)**
-
-Om du kör Node.js 24 LTS finns det en känd bugg i `better-sqlite3` som gör att du behöver paketera och installera `better-sqlite3` manuellt. Detta kan vara komplicerat, så vi rekommenderar att använda Node.js 22 LTS istället.
-
-## Kom igång
+## Kom igang
 
 ### 1. Installera dependencies
 
-**Från projektets root-mapp:**
+**Fran projektets root-mapp:**
 
 ```bash
 npm run install:all
 ```
 
-### 2. Konfigurera miljövariabler
+### 2. Konfigurera miljovariabler
 
-**Från projektets root-mapp:**
-
-Kopiera `env.example` till en `.env`-fil för att skapa din lokala miljövariabelfil. Både `.env` och `.env.local` fungerar, men `.env.local` är rekommenderat för lokala inställningar (har högre prioritet):
+Kopiera `env.example` till `portal/.env`:
 
 **Windows (PowerShell/CMD):**
 ```bash
-copy env.example .env.local
-# Eller:
-copy env.example .env
+copy env.example portal\.env
 ```
 
 **Linux/Mac:**
 ```bash
-cp env.example .env.local
-# Eller:
-cp env.example .env
+cp env.example portal/.env
 ```
 
-### 3. Initialisera databas och skapa användare
+Redigera `portal/.env` och uppdatera minst:
 
-**Från projektets root-mapp:**
+```env
+# Databas - obligatorisk
+DB_HOST=192.168.7.250
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=cloudpanelmsp
+
+# Sakerhet - obligatorisk i produktion (min 32 tecken)
+AUTH_JWT_SECRET=<generera-stark-hemlighet>
+AUTH_SERVICE_TOKEN=<generera-stark-token>
+```
+
+### 3. Skapa databasen i MySQL
+
+Logga in pa din MySQL/MariaDB-server och skapa databasen:
+
+```sql
+CREATE DATABASE IF NOT EXISTS cloudpanelmsp
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+```
+
+Om du anvander en dedikerad anvandare (rekommenderat for produktion):
+
+```sql
+CREATE USER 'portaluser'@'%' IDENTIFIED BY 'starkt-losenord';
+GRANT ALL PRIVILEGES ON cloudpanelmsp.* TO 'portaluser'@'%';
+FLUSH PRIVILEGES;
+```
+
+Uppdatera sedan `DB_HOST`, `DB_USER`, `DB_PASSWORD` och `DB_NAME` i `portal/.env` med ratt uppgifter.
+
+### 4. Initialisera databas och skapa anvandare
+
+**Fran projektets root-mapp:**
 
 ```bash
-# Enkelt sätt - gör allt automatiskt:
+# Enkelt satt - gor allt automatiskt:
 npm run setup
 ```
 
-**Eller manuellt (från portal-mappen):**
+**Eller manuellt (fran portal-mappen):**
 
 ```bash
 cd portal
 npm run db:push    # Skapar databastabellerna
-npm run seed:user  # Skapar superadmin-användare
+npm run seed:user  # Skapar superadmin-anvandare
 ```
 
-**Notera:** `seed:user` kommer automatiskt att köra `db:push` om tabellerna saknas, så du kan hoppa över det steget om du vill.
+`seed:user` kommer automatiskt att kora `db:push` om tabellerna saknas.
 
-### 4. Starta utvecklingsserver
+### 5. Starta utvecklingsserver
 
-**Från projektets root-mapp:**
+**Fran projektets root-mapp:**
 
 ```bash
 npm run dev
 ```
 
-Applikationen körs på `http://localhost:3000`.
+Applikationen kors pa `http://localhost:3000`.
+
+**Inloggningsuppgifter** (standard):
+- Email: `owner@example.com`
+- Losenord: `OwnerPass123!`
+
+(Kan andras via `SEED_SUPERADMIN_EMAIL` / `SEED_SUPERADMIN_PASSWORD` i `.env`)
 
 ## Projektstruktur
 
@@ -80,12 +110,24 @@ packages/   Delade paket (email-kit)
 
 ## Databas
 
-Schemat finns i `portal/server/database/schema.ts`. För att generera och applicera migrationer:
+Applikationen anvander **MySQL/MariaDB** via Drizzle ORM.
 
-**Från portal-mappen:**
+Schemat finns i `portal/server/database/schema.ts`. For att hantera schemat:
 
 ```bash
 cd portal
-npm run db:generate   # generera SQL från schema
-npm run db:migrate    # applicera SQL till databasen
+npm run db:push       # Pusha schema till databasen (skapar/uppdaterar tabeller)
+npm run db:generate   # Generera SQL-migrationer fran schema
+npm run db:migrate    # Applicera SQL-migrationer
+npm run db:studio     # Oppna Drizzle Studio (databas-UI)
 ```
+
+### Miljovariabler for databas
+
+| Variabel | Beskrivning |
+|---|---|
+| `DB_HOST` | MySQL-server hostname eller IP-adress |
+| `DB_PORT` | MySQL-port (standard: `3306`) |
+| `DB_USER` | MySQL-anvandare (standard: `root`) |
+| `DB_PASSWORD` | MySQL-losenord |
+| `DB_NAME` | Databasnamn (t.ex. `cloudpanelmsp`) |

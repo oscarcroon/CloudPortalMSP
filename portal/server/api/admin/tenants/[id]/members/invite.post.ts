@@ -33,8 +33,6 @@ export default defineEventHandler(async (event) => {
 
   const payload = inviteSchema.parse(await readBody(event))
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   // Get tenant first to check type
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
@@ -101,27 +99,16 @@ export default defineEventHandler(async (event) => {
   const oneDayAgo = Date.now() - RATE_LIMIT_WINDOW_DAY
 
   // Count invitations created by this user in the last hour
-  const recentInvitesHour = isSqlite
-    ? await db
-        .select({ count: sql<number>`count(*)` })
-        .from(tenantInvitations)
-        .where(
-          and(
-            eq(tenantInvitations.invitedByUserId, auth.user.id),
-            gte(tenantInvitations.createdAt, new Date(oneHourAgo))
-          )
-        )
-        .then((rows) => (rows[0]?.count as number) ?? 0)
-    : await db
-        .select({ count: sql<number>`count(*)` })
-        .from(tenantInvitations)
-        .where(
-          and(
-            eq(tenantInvitations.invitedByUserId, auth.user.id),
-            gte(tenantInvitations.createdAt, new Date(oneHourAgo))
-          )
-        )
-        .then((rows) => Number(rows[0]?.count ?? 0))
+  const recentInvitesHour = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(tenantInvitations)
+    .where(
+      and(
+        eq(tenantInvitations.invitedByUserId, auth.user.id),
+        gte(tenantInvitations.createdAt, new Date(oneHourAgo))
+      )
+    )
+    .then((rows) => Number(rows[0]?.count ?? 0))
 
   if (recentInvitesHour >= MAX_INVITES_PER_HOUR) {
     throw createError({
@@ -131,27 +118,16 @@ export default defineEventHandler(async (event) => {
   }
 
   // Count invitations created by this user in the last day
-  const recentInvitesDay = isSqlite
-    ? await db
-        .select({ count: sql<number>`count(*)` })
-        .from(tenantInvitations)
-        .where(
-          and(
-            eq(tenantInvitations.invitedByUserId, auth.user.id),
-            gte(tenantInvitations.createdAt, new Date(oneDayAgo))
-          )
-        )
-        .then((rows) => (rows[0]?.count as number) ?? 0)
-    : await db
-        .select({ count: sql<number>`count(*)` })
-        .from(tenantInvitations)
-        .where(
-          and(
-            eq(tenantInvitations.invitedByUserId, auth.user.id),
-            gte(tenantInvitations.createdAt, new Date(oneDayAgo))
-          )
-        )
-        .then((rows) => Number(rows[0]?.count ?? 0))
+  const recentInvitesDay = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(tenantInvitations)
+    .where(
+      and(
+        eq(tenantInvitations.invitedByUserId, auth.user.id),
+        gte(tenantInvitations.createdAt, new Date(oneDayAgo))
+      )
+    )
+    .then((rows) => Number(rows[0]?.count ?? 0))
 
   if (recentInvitesDay >= MAX_INVITES_PER_DAY) {
     throw createError({
@@ -161,27 +137,16 @@ export default defineEventHandler(async (event) => {
   }
 
   // SECURITY: Check max members per tenant
-  const activeMembersCount = isSqlite
-    ? await db
-        .select({ count: sql<number>`count(*)` })
-        .from(tenantMemberships)
-        .where(
-          and(
-            eq(tenantMemberships.tenantId, tenantId),
-            eq(tenantMemberships.status, 'active')
-          )
-        )
-        .then((rows) => (rows[0]?.count as number) ?? 0)
-    : await db
-        .select({ count: sql<number>`count(*)` })
-        .from(tenantMemberships)
-        .where(
-          and(
-            eq(tenantMemberships.tenantId, tenantId),
-            eq(tenantMemberships.status, 'active')
-          )
-        )
-        .then((rows) => Number(rows[0]?.count ?? 0))
+  const activeMembersCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(tenantMemberships)
+    .where(
+      and(
+        eq(tenantMemberships.tenantId, tenantId),
+        eq(tenantMemberships.status, 'active')
+      )
+    )
+    .then((rows) => Number(rows[0]?.count ?? 0))
 
   if (activeMembersCount >= MAX_MEMBERS_PER_TENANT) {
     throw createError({
@@ -218,51 +183,24 @@ export default defineEventHandler(async (event) => {
   try {
     if (existingUser) {
       if (existingMembershipRecord) {
-        if (isSqlite) {
-          await db
-            .update(tenantMemberships)
-            .set({
-              role: targetRole,
-              includeChildren: includeChildrenFlag,
-              status: 'active',
-              updatedAt: new Date()
-            })
-            .where(eq(tenantMemberships.id, existingMembershipRecord.id))
-            .run()
-        } else {
-          await db
-            .update(tenantMemberships)
-            .set({
-              role: targetRole,
-              includeChildren: includeChildrenFlag,
-              status: 'active',
-              updatedAt: new Date()
-            })
-            .where(eq(tenantMemberships.id, existingMembershipRecord.id))
-        }
-      } else {
-        if (isSqlite) {
-          await db
-            .insert(tenantMemberships)
-            .values({
-              id: createId(),
-              tenantId,
-              userId: existingUser.id,
-              role: targetRole,
-              includeChildren: includeChildrenFlag,
-              status: 'active'
-            })
-            .run()
-        } else {
-          await db.insert(tenantMemberships).values({
-            id: createId(),
-            tenantId,
-            userId: existingUser.id,
+        await db
+          .update(tenantMemberships)
+          .set({
             role: targetRole,
             includeChildren: includeChildrenFlag,
-            status: 'active'
+            status: 'active',
+            updatedAt: new Date()
           })
-        }
+          .where(eq(tenantMemberships.id, existingMembershipRecord.id))
+      } else {
+        await db.insert(tenantMemberships).values({
+          id: createId(),
+          tenantId,
+          userId: existingUser.id,
+          role: targetRole,
+          includeChildren: includeChildrenFlag,
+          status: 'active'
+        })
       }
 
       await sendDistributorConfirmationEmail({
@@ -273,30 +211,18 @@ export default defineEventHandler(async (event) => {
         invitedBy: auth.user.email ?? 'System'
       })
     } else {
-      const existingPendingInvite = isSqlite
-        ? await db
-            .select()
-            .from(tenantInvitations)
-            .where(
-              and(
-                eq(tenantInvitations.tenantId, tenantId),
-                eq(tenantInvitations.email, normalizedEmail),
-                eq(tenantInvitations.status, 'pending')
-              )
-            )
-            .get()
-        : await db
-            .select()
-            .from(tenantInvitations)
-            .where(
-              and(
-                eq(tenantInvitations.tenantId, tenantId),
-                eq(tenantInvitations.email, normalizedEmail),
-                eq(tenantInvitations.status, 'pending')
-              )
-            )
-            .limit(1)
-            .then((rows) => rows[0] ?? null)
+      const existingPendingInviteRows = await db
+        .select()
+        .from(tenantInvitations)
+        .where(
+          and(
+            eq(tenantInvitations.tenantId, tenantId),
+            eq(tenantInvitations.email, normalizedEmail),
+            eq(tenantInvitations.status, 'pending')
+          )
+        )
+        .limit(1)
+      const existingPendingInvite = existingPendingInviteRows[0] ?? null
 
       if (existingPendingInvite) {
         throw createError({
@@ -305,36 +231,18 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      if (isSqlite) {
-        await db
-          .insert(tenantInvitations)
-          .values({
-            id: createId(),
-            tenantId,
-            email: normalizedEmail,
-            role: targetRole,
-            includeChildren: payload.includeChildren ?? false,
-            token: inviteToken,
-            status: 'pending',
-            invitedByUserId: auth.user.id,
-            expiresAt: inviteExpiresAt,
-            organizationData: null
-          })
-          .run()
-      } else {
-        await db.insert(tenantInvitations).values({
-          id: createId(),
-          tenantId,
-          email: normalizedEmail,
-          role: targetRole,
-          includeChildren: payload.includeChildren ?? false,
-          token: inviteToken,
-          status: 'pending',
-          invitedByUserId: auth.user.id,
-          expiresAt: inviteExpiresAt,
-          organizationData: null
-        })
-      }
+      await db.insert(tenantInvitations).values({
+        id: createId(),
+        tenantId,
+        email: normalizedEmail,
+        role: targetRole,
+        includeChildren: payload.includeChildren ?? false,
+        token: inviteToken,
+        status: 'pending',
+        invitedByUserId: auth.user.id,
+        expiresAt: inviteExpiresAt,
+        organizationData: null
+      })
 
       await sendDistributorInvitationEmail({
         tenantId: tenant.id,

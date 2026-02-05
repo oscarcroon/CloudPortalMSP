@@ -115,92 +115,44 @@ export default defineEventHandler(async (event) => {
   const toRemove = Array.from(currentOrgIds).filter((id) => !requestedOrgIds.has(id))
 
   // Transaction: revoke removed, add new
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
+  await db.transaction(async (tx) => {
+    // Revoke removed delegations
+    if (toRemove.length > 0) {
+      const toRevokeIds = currentDelegations
+        .filter((d) => toRemove.includes(d.orgId))
+        .map((d) => d.id)
 
-  if (isSqlite) {
-    await db.transaction((tx) => {
-      // Revoke removed delegations
-      if (toRemove.length > 0) {
-        const toRevokeIds = currentDelegations
-          .filter((d) => toRemove.includes(d.orgId))
-          .map((d) => d.id)
-
-        for (const id of toRevokeIds) {
-          tx
-            .update(mspOrgDelegations)
-            .set({
-              revokedAt: new Date(),
-              revokedBy: auth.user.id,
-              updatedAt: new Date()
-            })
-            .where(eq(mspOrgDelegations.id, id))
-            .run()
-        }
-      }
-
-      // Add new delegations
-      if (toAdd.length > 0) {
-        const newDelegations = toAdd.map((orgId) => ({
-          id: createId(),
-          orgId,
-          subjectType: 'user' as const,
-          subjectId: membership.userId,
-          source: 'msp_scope' as const,
-          supplierTenantId: tenantId,
-          createdBy: auth.user.id,
-          expiresAt: payload.expiresAt ? new Date(payload.expiresAt) : null,
-          note: payload.note || null,
-          revokedAt: null,
-          revokedBy: null,
-          createdAt: new Date(),
+      await tx
+        .update(mspOrgDelegations)
+        .set({
+          revokedAt: new Date(),
+          revokedBy: auth.user.id,
           updatedAt: new Date()
-        }))
+        })
+        .where(inArray(mspOrgDelegations.id, toRevokeIds))
+    }
 
-        tx.insert(mspOrgDelegations).values(newDelegations).run()
-      }
-    })
-  } else {
-    // MySQL transaction
-    await (db as any).transaction(async (tx: any) => {
-      // Revoke removed delegations
-      if (toRemove.length > 0) {
-        const toRevokeIds = currentDelegations
-          .filter((d) => toRemove.includes(d.orgId))
-          .map((d) => d.id)
+    // Add new delegations
+    if (toAdd.length > 0) {
+      const newDelegations = toAdd.map((orgId) => ({
+        id: createId(),
+        orgId,
+        subjectType: 'user' as const,
+        subjectId: membership.userId,
+        source: 'msp_scope' as const,
+        supplierTenantId: tenantId,
+        createdBy: auth.user.id,
+        expiresAt: payload.expiresAt ? new Date(payload.expiresAt) : null,
+        note: payload.note || null,
+        revokedAt: null,
+        revokedBy: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }))
 
-        await tx
-          .update(mspOrgDelegations)
-          .set({
-            revokedAt: new Date(),
-            revokedBy: auth.user.id,
-            updatedAt: new Date()
-          })
-          .where(inArray(mspOrgDelegations.id, toRevokeIds))
-      }
-
-      // Add new delegations
-      if (toAdd.length > 0) {
-        const newDelegations = toAdd.map((orgId) => ({
-          id: createId(),
-          orgId,
-          subjectType: 'user' as const,
-          subjectId: membership.userId,
-          source: 'msp_scope' as const,
-          supplierTenantId: tenantId,
-          createdBy: auth.user.id,
-          expiresAt: payload.expiresAt ? new Date(payload.expiresAt) : null,
-          note: payload.note || null,
-          revokedAt: null,
-          revokedBy: null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }))
-
-        await tx.insert(mspOrgDelegations).values(newDelegations)
-      }
-    })
-  }
+      await tx.insert(mspOrgDelegations).values(newDelegations)
+    }
+  })
 
   // Audit log
   await logTenantAction(

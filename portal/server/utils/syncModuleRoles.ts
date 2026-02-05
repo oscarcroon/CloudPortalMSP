@@ -43,9 +43,6 @@ export const syncModuleRoles = async (): Promise<void> => {
     existing.map(role => [`${role.moduleId}:${role.roleKey}`, role])
   )
 
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-
   for (const [key, snapshot] of desired) {
     const current = existingMap.get(key)
     if (!current) {
@@ -58,11 +55,7 @@ export const syncModuleRoles = async (): Promise<void> => {
         capabilities: snapshot.capabilities
       }
 
-      if (isSqlite) {
-        db.insert(moduleRoles).values(row).run()
-      } else {
-        await db.insert(moduleRoles).values(row)
-      }
+      await db.insert(moduleRoles).values(row)
       continue
     }
 
@@ -72,27 +65,15 @@ export const syncModuleRoles = async (): Promise<void> => {
       (current.capabilities ?? null) !== snapshot.capabilities
 
     if (needsUpdate) {
-      if (isSqlite) {
-        db.update(moduleRoles)
-          .set({
-            roleName: snapshot.roleName,
-            description: snapshot.description,
-            capabilities: snapshot.capabilities,
-            updatedAt: new Date()
-          })
-          .where(eq(moduleRoles.id, current.id))
-          .run()
-      } else {
-        await db
-          .update(moduleRoles)
-          .set({
-            roleName: snapshot.roleName,
-            description: snapshot.description,
-            capabilities: snapshot.capabilities,
-            updatedAt: new Date()
-          })
-          .where(eq(moduleRoles.id, current.id))
-      }
+      await db
+        .update(moduleRoles)
+        .set({
+          roleName: snapshot.roleName,
+          description: snapshot.description,
+          capabilities: snapshot.capabilities,
+          updatedAt: new Date()
+        })
+        .where(eq(moduleRoles.id, current.id))
     }
   }
 
@@ -102,13 +83,7 @@ export const syncModuleRoles = async (): Promise<void> => {
       continue
     }
 
-    if (isSqlite) {
-      db.delete(moduleRoles)
-        .where(eq(moduleRoles.id, role.id))
-        .run()
-    } else {
-      await db.delete(moduleRoles).where(eq(moduleRoles.id, role.id))
-    }
+    await db.delete(moduleRoles).where(eq(moduleRoles.id, role.id))
   }
 
   await syncRoleMappings()
@@ -157,13 +132,6 @@ const syncRoleMappings = async () => {
     return
   }
 
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-
-  if (isSqlite) {
-    db.insert(roleModuleRoleMappings).values(rowsToInsert).run()
-  } else {
-    await db.insert(roleModuleRoleMappings).values(rowsToInsert)
-  }
+  await db.insert(roleModuleRoleMappings).values(rowsToInsert)
 }
 

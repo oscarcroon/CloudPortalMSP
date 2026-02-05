@@ -19,8 +19,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   // Check permissions
   await requireTenantPermission(event, 'tenants:read', tenantId)
@@ -98,40 +96,22 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get tenant invitations
-  const inviteRows = isSqlite
-    ? await db
-        .select({
-          id: tenantInvitations.id,
-          email: tenantInvitations.email,
-          role: tenantInvitations.role,
-          status: tenantInvitations.status,
-          invitedAt: tenantInvitations.createdAt,
-          expiresAt: tenantInvitations.expiresAt,
-          invitedById: tenantInvitations.invitedByUserId,
-          invitedByEmail: users.email,
-          invitedByName: users.fullName,
-          organizationData: tenantInvitations.organizationData
-        })
-        .from(tenantInvitations)
-        .leftJoin(users, eq(users.id, tenantInvitations.invitedByUserId))
-        .where(eq(tenantInvitations.tenantId, tenantId))
-        .all()
-    : await db
-        .select({
-          id: tenantInvitations.id,
-          email: tenantInvitations.email,
-          role: tenantInvitations.role,
-          status: tenantInvitations.status,
-          invitedAt: tenantInvitations.createdAt,
-          expiresAt: tenantInvitations.expiresAt,
-          invitedById: tenantInvitations.invitedByUserId,
-          invitedByEmail: users.email,
-          invitedByName: users.fullName,
-          organizationData: tenantInvitations.organizationData
-        })
-        .from(tenantInvitations)
-        .leftJoin(users, eq(users.id, tenantInvitations.invitedByUserId))
-        .where(eq(tenantInvitations.tenantId, tenantId))
+  const inviteRows = await db
+    .select({
+      id: tenantInvitations.id,
+      email: tenantInvitations.email,
+      role: tenantInvitations.role,
+      status: tenantInvitations.status,
+      invitedAt: tenantInvitations.createdAt,
+      expiresAt: tenantInvitations.expiresAt,
+      invitedById: tenantInvitations.invitedByUserId,
+      invitedByEmail: users.email,
+      invitedByName: users.fullName,
+      organizationData: tenantInvitations.organizationData
+    })
+    .from(tenantInvitations)
+    .leftJoin(users, eq(users.id, tenantInvitations.invitedByUserId))
+    .where(eq(tenantInvitations.tenantId, tenantId))
 
   // Check for expired invitations
   const now = new Date()

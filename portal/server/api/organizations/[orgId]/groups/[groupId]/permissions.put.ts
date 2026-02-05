@@ -103,8 +103,7 @@ export default defineEventHandler(async (event) => {
     existingPermissions.map(p => [`${p.moduleKey}:${p.permissionKey}`, p])
   )
 
-  // Use synchronous transaction for SQLite
-  db.transaction((tx) => {
+  await db.transaction(async (tx) => {
     for (const perm of permissions) {
       const key = `${perm.moduleKey}:${perm.permissionKey}`
       const existing = existingMap.get(key)
@@ -112,33 +111,31 @@ export default defineEventHandler(async (event) => {
       if (perm.effect === null) {
         // Remove permission (inherit)
         if (existing) {
-          tx.delete(orgGroupModulePermissions)
+          await tx.delete(orgGroupModulePermissions)
             .where(eq(orgGroupModulePermissions.id, existing.id))
-            .run()
           removed++
         }
       } else if (existing) {
         // Update existing
         if (existing.effect !== perm.effect) {
-          tx.update(orgGroupModulePermissions)
+          await tx.update(orgGroupModulePermissions)
             .set({
               effect: perm.effect,
               updatedAt: new Date()
             })
             .where(eq(orgGroupModulePermissions.id, existing.id))
-            .run()
           updated++
         }
       } else {
         // Insert new
-        tx.insert(orgGroupModulePermissions).values({
+        await tx.insert(orgGroupModulePermissions).values({
           id: createId(),
           organizationId: orgId,
           groupId,
           moduleKey: perm.moduleKey,
           permissionKey: perm.permissionKey,
           effect: perm.effect
-        }).run()
+        })
         added++
       }
     }

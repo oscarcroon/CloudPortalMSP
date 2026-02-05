@@ -182,17 +182,10 @@ export const setUserModulePermissions = async (
       )
     )
 
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-
   // If overrides are empty, remove record
   if (filtered.grants.length === 0 && filtered.denies.length === 0) {
     if (existing) {
-      if (isSqlite) {
-        db.delete(userModulePermissions).where(eq(userModulePermissions.id, existing.id)).run()
-      } else {
-        await db.delete(userModulePermissions).where(eq(userModulePermissions.id, existing.id))
-      }
+      await db.delete(userModulePermissions).where(eq(userModulePermissions.id, existing.id))
     }
     return
   }
@@ -204,11 +197,7 @@ export const setUserModulePermissions = async (
       deniedPermissions: payloadJson,
       updatedAt: new Date()
     }
-    if (isSqlite) {
-      db.update(userModulePermissions).set(updateData).where(eq(userModulePermissions.id, existing.id)).run()
-    } else {
-      await db.update(userModulePermissions).set(updateData).where(eq(userModulePermissions.id, existing.id))
-    }
+    await db.update(userModulePermissions).set(updateData).where(eq(userModulePermissions.id, existing.id))
   } else {
     const insertData = {
       id: createId(),
@@ -217,11 +206,7 @@ export const setUserModulePermissions = async (
       moduleId,
       deniedPermissions: payloadJson
     }
-    if (isSqlite) {
-      db.insert(userModulePermissions).values(insertData).run()
-    } else {
-      await db.insert(userModulePermissions).values(insertData)
-    }
+    await db.insert(userModulePermissions).values(insertData)
   }
 }
 

@@ -19,36 +19,35 @@ const seed = async () => {
   const db = getDb()
   const ownerPasswordHash = await hashPassword(ownerPassword)
 
-  console.log('🌱 Startar seed av distributör, leverantör och organisationer...')
+  console.log('Startar seed av distributor, leverantor och organisationer...')
 
-  await db.transaction((tx) => {
-    // 1. Skapa eller hitta användaren owner@example.com
-    let ownerUser = tx.select().from(users).where(eq(users.email, ownerEmail)).limit(1).all()
+  await db.transaction(async (tx) => {
+    // 1. Skapa eller hitta anvandaren owner@example.com
+    let ownerUser = await tx.select().from(users).where(eq(users.email, ownerEmail)).limit(1)
 
     if (ownerUser.length === 0) {
       const ownerUserId = createId()
-      tx.insert(users)
+      await tx.insert(users)
         .values({
           id: ownerUserId,
           email: ownerEmail,
           passwordHash: ownerPasswordHash,
           fullName: ownerName,
           status: 'active',
-          isSuperAdmin: 1,
+          isSuperAdmin: true,
           defaultOrgId: null
         })
-        .run()
       ownerUser = [{ id: ownerUserId }]
-      console.log(`✅ Skapade användare: ${ownerEmail}`)
+      console.log(`Skapade anvandare: ${ownerEmail}`)
     } else {
-      console.log(`ℹ️  Användare ${ownerEmail} finns redan`)
+      console.log(`Anvandare ${ownerEmail} finns redan`)
     }
 
     const ownerUserId = ownerUser[0].id
 
     // 2. Skapa provider tenant
     const providerId = createId()
-    tx.insert(tenants)
+    await tx.insert(tenants)
       .values({
         id: providerId,
         name: 'Provider',
@@ -57,22 +56,20 @@ const seed = async () => {
         parentTenantId: null,
         status: 'active'
       })
-      .run()
-    console.log('✅ Skapade provider tenant')
+    console.log('Skapade provider tenant')
 
     // 3. Skapa distributor tenant (under provider)
     const distributorId = createId()
-    tx.insert(tenants)
+    await tx.insert(tenants)
       .values({
         id: distributorId,
-        name: 'Distributör',
+        name: 'Distributor',
         slug: 'distributor',
         type: 'distributor',
         parentTenantId: providerId,
         status: 'active'
       })
-      .run()
-    console.log('✅ Skapade distributor tenant')
+    console.log('Skapade distributor tenant')
 
     // 4. Skapa 4 organisationer (under distributor)
     const orgIds = []
@@ -87,7 +84,7 @@ const seed = async () => {
       const orgId = createId()
       orgIds.push(orgId)
 
-      tx.insert(organizations)
+      await tx.insert(organizations)
         .values({
           id: orgId,
           name: org.name,
@@ -95,23 +92,21 @@ const seed = async () => {
           tenantId: distributorId,
           status: 'active',
           defaultRole: 'viewer',
-          requireSso: 0,
-          allowSelfSignup: 0
+          requireSso: false,
+          allowSelfSignup: false
         })
-        .run()
 
-      // Skapa auth settings för organisationen
-      tx.insert(organizationAuthSettings)
+      // Skapa auth settings for organisationen
+      await tx.insert(organizationAuthSettings)
         .values({
           organizationId: orgId,
           idpType: 'none',
-          ssoEnforced: 0,
-          allowLocalLoginForOwners: 1
+          ssoEnforced: false,
+          allowLocalLoginForOwners: true
         })
-        .run()
 
-      // Gör owner@example.com till ägare på organisationen
-      tx.insert(organizationMemberships)
+      // Gor owner@example.com till agare pa organisationen
+      await tx.insert(organizationMemberships)
         .values({
           id: createId(),
           organizationId: orgId,
@@ -119,32 +114,30 @@ const seed = async () => {
           role: 'owner',
           status: 'active'
         })
-        .run()
 
-      console.log(`✅ Skapade organisation: ${org.name}`)
+      console.log(`Skapade organisation: ${org.name}`)
     }
 
-    // Sätt första organisationen som default för användaren
+    // Satt forsta organisationen som default for anvandaren
     if (orgIds.length > 0) {
-      tx.update(users)
+      await tx.update(users)
         .set({ defaultOrgId: orgIds[0] })
         .where(eq(users.id, ownerUserId))
-        .run()
     }
   })
 
-  console.log('✅ Seed klar!')
-  console.log(`📧 Inloggning: ${ownerEmail} / ${ownerPassword}`)
-  console.log('📋 Skapade:')
+  console.log('Seed klar!')
+  console.log(`Inloggning: ${ownerEmail} / ${ownerPassword}`)
+  console.log('Skapade:')
   console.log('   - 1 Provider')
-  console.log('   - 1 Distributör')
+  console.log('   - 1 Distributor')
   console.log('   - 4 Organisationer')
-  console.log(`   - ${ownerEmail} är ägare på alla organisationer`)
+  console.log(`   - ${ownerEmail} ar agare pa alla organisationer`)
 }
 
 seed()
   .catch((error) => {
-    console.error('❌ Misslyckades med seed:', error)
+    console.error('Misslyckades med seed:', error)
     process.exitCode = 1
   })
   .finally(() => {

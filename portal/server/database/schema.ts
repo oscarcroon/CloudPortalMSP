@@ -2,47 +2,47 @@ import { createId } from '@paralleldrive/cuid2'
 import { relations, sql } from 'drizzle-orm'
 import {
   index,
-  integer,
-  real,
-  sqliteTable,
+  int,
+  boolean,
+  float,
+  mysqlTable,
+  varchar,
   text,
   uniqueIndex,
-  primaryKey
-} from 'drizzle-orm/sqlite-core'
-import type { RbacRole, TenantRole } from '~/constants/rbac'
-import type { OrganizationMemberStatus } from '~/types/admin'
+  primaryKey,
+  timestamp,
+  foreignKey
+} from 'drizzle-orm/mysql-core'
+import type { RbacRole, TenantRole } from '../../app/constants/rbac'
+import type { OrganizationMemberStatus } from '../../app/types/admin'
 
 // Import layer schemas
-import { createCloudflareDnsSchema } from '~~/layers/cloudflare-dns/server/database'
-import { createWindowsDnsSchema } from '~~/layers/windows-dns/server/database'
-import { createWindowsDnsRedirectsSchema } from '~~/layers/windows-dns-redirects/server/database'
+import { createCloudflareDnsSchema } from '../../layers/cloudflare-dns/server/database'
+import { createWindowsDnsSchema } from '../../layers/windows-dns/server/database'
+import { createWindowsDnsRedirectsSchema } from '../../layers/windows-dns-redirects/server/database'
 
 export type BrandingTargetType = 'organization' | 'provider' | 'distributor' | 'global'
 
 const timestampColumns = () => ({
-  createdAt: integer('created_at', { mode: 'timestamp_ms' })
-    .notNull()
-    .default(sql`(strftime('%s','now') * 1000)`),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
-    .notNull()
-    .default(sql`(strftime('%s','now') * 1000)`)
+  createdAt: timestamp('created_at', { fsp: 3 }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { fsp: 3 }).notNull().defaultNow().onUpdateNow()
 })
 
-const softDeleteColumn = () => integer('deleted_at', { mode: 'timestamp_ms' })
+const softDeleteColumn = () => timestamp('deleted_at', { fsp: 3 })
 
 /**
  * Registry of plugin modules (plugin/layer metadata)
  */
-export const modules = sqliteTable(
+export const modules = mysqlTable(
   'modules',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    key: text('key').notNull(),
-    name: text('name').notNull(),
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    key: varchar('key', { length: 255 }).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
     description: text('description'),
-    category: text('category'),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
-    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
+    category: varchar('category', { length: 255 }),
+    enabled: boolean('enabled').notNull().default(false),
+    disabled: boolean('disabled').notNull().default(false),
     comingSoonMessage: text('coming_soon_message'),
     ...timestampColumns()
   },
@@ -55,18 +55,18 @@ export const modules = sqliteTable(
 /**
  * Module-level permissions declared by plugins
  */
-export const modulePermissions = sqliteTable(
+export const modulePermissions = mysqlTable(
   'module_permissions',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    moduleKey: text('module_key')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    moduleKey: varchar('module_key', { length: 255 })
       .notNull()
       .references(() => modules.key, { onDelete: 'cascade' }),
-    permissionKey: text('permission_key').notNull(),
+    permissionKey: varchar('permission_key', { length: 255 }).notNull(),
     description: text('description'),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    status: text('status').notNull().default('active').$type<'active' | 'deprecated' | 'removed'>(),
-    removedAt: integer('removed_at', { mode: 'timestamp_ms' }),
+    isActive: boolean('is_active').notNull().default(true),
+    status: varchar('status', { length: 50 }).notNull().default('active').$type<'active' | 'deprecated' | 'removed'>(),
+    removedAt: timestamp('removed_at', { fsp: 3 }),
     ...timestampColumns()
   },
   (table) => ({
@@ -79,21 +79,21 @@ export const modulePermissions = sqliteTable(
   })
 )
 
-export const tenants = sqliteTable(
+export const tenants = mysqlTable(
   'tenants',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    name: text('name').notNull(),
-    slug: text('slug').notNull(),
-    customDomain: text('custom_domain'),
-    customDomainVerificationStatus: text('custom_domain_verification_status')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull(),
+    customDomain: varchar('custom_domain', { length: 255 }),
+    customDomainVerificationStatus: varchar('custom_domain_verification_status', { length: 50 })
       .notNull()
       .default('unverified'),
-    customDomainVerifiedAt: integer('custom_domain_verified_at', { mode: 'timestamp_ms' }),
-    customDomainVerificationToken: text('custom_domain_verification_token'),
-    type: text('type').notNull().$type<'provider' | 'distributor' | 'organization'>(),
-    parentTenantId: text('parent_tenant_id'),
-    status: text('status').notNull().default('active'),
+    customDomainVerifiedAt: timestamp('custom_domain_verified_at', { fsp: 3 }),
+    customDomainVerificationToken: varchar('custom_domain_verification_token', { length: 255 }),
+    type: varchar('type', { length: 50 }).notNull().$type<'provider' | 'distributor' | 'organization'>(),
+    parentTenantId: varchar('parent_tenant_id', { length: 128 }),
+    status: varchar('status', { length: 50 }).notNull().default('active'),
     ...timestampColumns()
   },
   table => ({
@@ -102,36 +102,36 @@ export const tenants = sqliteTable(
   })
 )
 
-export const organizations = sqliteTable(
+export const organizations = mysqlTable(
   'organizations',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    name: text('name').notNull(),
-    slug: text('slug').notNull(),
-    tenantId: text('tenant_id'),
-    status: text('status').notNull().default('active'),
-    isSuspended: integer('is_suspended', { mode: 'boolean' }).notNull().default(false),
-    defaultRole: text('default_role').notNull().default('viewer'),
-    requireSso: integer('require_sso', { mode: 'boolean' }).notNull().default(false),
-    allowSelfSignup: integer('allow_self_signup', { mode: 'boolean' }).notNull().default(false),
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 128 }),
+    status: varchar('status', { length: 50 }).notNull().default('active'),
+    isSuspended: boolean('is_suspended').notNull().default(false),
+    defaultRole: varchar('default_role', { length: 50 }).notNull().default('viewer'),
+    requireSso: boolean('require_sso').notNull().default(false),
+    allowSelfSignup: boolean('allow_self_signup').notNull().default(false),
     logoUrl: text('logo_url'),
-    billingEmail: text('billing_email'),
-    coreId: text('core_id'),
+    billingEmail: varchar('billing_email', { length: 255 }),
+    coreId: varchar('core_id', { length: 255 }),
     emailDisclaimerMarkdown: text('email_disclaimer_markdown'),
     // Custom domain fields - allows organizations to use their own domain
-    customDomain: text('custom_domain'),
-    customDomainVerificationStatus: text('custom_domain_verification_status')
+    customDomain: varchar('custom_domain', { length: 255 }),
+    customDomainVerificationStatus: varchar('custom_domain_verification_status', { length: 50 })
       .notNull()
       .default('unverified'),
-    customDomainVerifiedAt: integer('custom_domain_verified_at', { mode: 'timestamp_ms' }),
-    customDomainVerificationToken: text('custom_domain_verification_token'),
+    customDomainVerifiedAt: timestamp('custom_domain_verified_at', { fsp: 3 }),
+    customDomainVerificationToken: varchar('custom_domain_verification_token', { length: 255 }),
     // Setup wizard fields - controls onboarding flow for new organizations
-    setupStatus: text('setup_status')
+    setupStatus: varchar('setup_status', { length: 50 })
       .$type<'pending' | 'complete'>()
       .notNull()
       .default('complete'), // Default 'complete' so existing orgs don't get stuck in wizard
-    setupCompletedAt: integer('setup_completed_at', { mode: 'timestamp_ms' }),
-    defaultGroupId: text('default_group_id'), // Auto-assign new members to this org group
+    setupCompletedAt: timestamp('setup_completed_at', { fsp: 3 }),
+    defaultGroupId: varchar('default_group_id', { length: 128 }), // Auto-assign new members to this org group
     ...timestampColumns()
   },
   table => ({
@@ -141,24 +141,24 @@ export const organizations = sqliteTable(
 )
 
 
-export const users = sqliteTable(
+export const users = mysqlTable(
   'users',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    email: text('email').notNull(),
-    passwordHash: text('password_hash'),
-    fullName: text('full_name'),
-    status: text('status').notNull().default('active'),
-    locale: text('locale').notNull().default('sv'),
-    isSuperAdmin: integer('is_super_admin', { mode: 'boolean' }).notNull().default(false),
-    isMfaEnabled: integer('is_mfa_enabled', { mode: 'boolean' }).notNull().default(false),
-    lastLoginAt: integer('last_login_at', { mode: 'timestamp_ms' }),
-    defaultOrgId: text('default_org_id'),
-    enforcedOrgId: text('enforced_org_id'),
-    forcePasswordReset: integer('force_password_reset', { mode: 'boolean' }).notNull().default(false),
-    passwordResetTokenHash: text('password_reset_token_hash'),
-    passwordResetExpiresAt: integer('password_reset_expires_at', { mode: 'timestamp_ms' }),
-    metadata: text('metadata', { length: 2048 }),
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    email: varchar('email', { length: 255 }).notNull(),
+    passwordHash: varchar('password_hash', { length: 255 }),
+    fullName: varchar('full_name', { length: 255 }),
+    status: varchar('status', { length: 50 }).notNull().default('active'),
+    locale: varchar('locale', { length: 10 }).notNull().default('sv'),
+    isSuperAdmin: boolean('is_super_admin').notNull().default(false),
+    isMfaEnabled: boolean('is_mfa_enabled').notNull().default(false),
+    lastLoginAt: timestamp('last_login_at', { fsp: 3 }),
+    defaultOrgId: varchar('default_org_id', { length: 128 }),
+    enforcedOrgId: varchar('enforced_org_id', { length: 128 }),
+    forcePasswordReset: boolean('force_password_reset').notNull().default(false),
+    passwordResetTokenHash: varchar('password_reset_token_hash', { length: 255 }),
+    passwordResetExpiresAt: timestamp('password_reset_expires_at', { fsp: 3 }),
+    metadata: text('metadata'),
     ...timestampColumns(),
     deletedAt: softDeleteColumn()
   },
@@ -167,15 +167,15 @@ export const users = sqliteTable(
   })
 )
 
-export const orgGroups = sqliteTable(
+export const orgGroups = mysqlTable(
   'org_groups',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    slug: text('slug').notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull(),
     description: text('description'),
     ...timestampColumns()
   },
@@ -186,14 +186,14 @@ export const orgGroups = sqliteTable(
   })
 )
 
-export const orgGroupMembers = sqliteTable(
+export const orgGroupMembers = mysqlTable(
   'org_group_members',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    groupId: text('group_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    groupId: varchar('group_id', { length: 128 })
       .notNull()
       .references(() => orgGroups.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
+    userId: varchar('user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     ...timestampColumns()
@@ -204,26 +204,26 @@ export const orgGroupMembers = sqliteTable(
   })
 )
 
-export const organizationMemberships = sqliteTable(
+export const organizationMemberships = mysqlTable(
   'organization_memberships',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
+    userId: varchar('user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    role: text('role')
+    role: varchar('role', { length: 50 })
       .notNull()
       .$type<RbacRole>()
       .default('viewer'),
-    status: text('status')
+    status: varchar('status', { length: 50 })
       .notNull()
       .$type<OrganizationMemberStatus>()
       .default('active'),
-    labels: text('labels', { length: 1024 }),
-    lastAccessedAt: integer('last_accessed_at', { mode: 'timestamp_ms' }),
+    labels: text('labels'),
+    lastAccessedAt: timestamp('last_accessed_at', { fsp: 3 }),
     ...timestampColumns()
   },
   table => ({
@@ -234,17 +234,17 @@ export const organizationMemberships = sqliteTable(
   })
 )
 
-export const brandingThemes = sqliteTable(
+export const brandingThemes = mysqlTable(
   'branding_themes',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    targetType: text('target_type')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    targetType: varchar('target_type', { length: 50 })
       .notNull()
       .$type<BrandingTargetType>(),
-    tenantId: text('tenant_id').references(() => tenants.id, {
+    tenantId: varchar('tenant_id', { length: 128 }).references(() => tenants.id, {
       onDelete: 'cascade'
     }),
-    organizationId: text('organization_id').references(() => organizations.id, {
+    organizationId: varchar('organization_id', { length: 128 }).references(() => organizations.id, {
       onDelete: 'cascade'
     }),
     logoUrl: text('logo_url'),
@@ -254,15 +254,15 @@ export const brandingThemes = sqliteTable(
     loginLogoDarkUrl: text('login_logo_dark_url'),
     loginBackgroundUrl: text('login_background_url'),
     emailLogoUrl: text('email_logo_url'),
-    loginBackgroundTint: text('login_background_tint', { length: 16 }),
-    navigationBackgroundColor: text('navigation_background_color', { length: 16 }),
-    loginBackgroundTintOpacity: real('login_background_tint_opacity'),
-    accentColor: text('accent_color', { length: 16 }),
-    paletteKey: text('palette_key', { length: 64 }),
-    createdByUserId: text('created_by_user_id').references(() => users.id, {
+    loginBackgroundTint: varchar('login_background_tint', { length: 16 }),
+    navigationBackgroundColor: varchar('navigation_background_color', { length: 16 }),
+    loginBackgroundTintOpacity: float('login_background_tint_opacity'),
+    accentColor: varchar('accent_color', { length: 16 }),
+    paletteKey: varchar('palette_key', { length: 64 }),
+    createdByUserId: varchar('created_by_user_id', { length: 128 }).references(() => users.id, {
       onDelete: 'set null'
     }),
-    updatedByUserId: text('updated_by_user_id').references(() => users.id, {
+    updatedByUserId: varchar('updated_by_user_id', { length: 128 }).references(() => users.id, {
       onDelete: 'set null'
     }),
     ...timestampColumns()
@@ -276,24 +276,24 @@ export const brandingThemes = sqliteTable(
   })
 )
 
-export const tenantMemberships = sqliteTable(
+export const tenantMemberships = mysqlTable(
   'tenant_memberships',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    tenantId: text('tenant_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    tenantId: varchar('tenant_id', { length: 128 })
       .notNull()
       .references((): any => tenants.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
+    userId: varchar('user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    role: text('role')
+    role: varchar('role', { length: 50 })
       .notNull()
       .$type<TenantRole>()
       .default('viewer'),
-    includeChildren: integer('include_children', { mode: 'boolean' })
+    includeChildren: boolean('include_children')
       .notNull()
       .default(false),
-    status: text('status')
+    status: varchar('status', { length: 50 })
       .notNull()
       .$type<OrganizationMemberStatus>()
       .default('active'),
@@ -307,14 +307,14 @@ export const tenantMemberships = sqliteTable(
   })
 )
 
-export const tenantMemberRoles = sqliteTable(
+export const tenantMemberRoles = mysqlTable(
   'tenant_member_roles',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    membershipId: text('membership_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    membershipId: varchar('membership_id', { length: 128 })
       .notNull()
       .references(() => tenantMemberships.id, { onDelete: 'cascade' }),
-    roleKey: text('role_key')
+    roleKey: varchar('role_key', { length: 50 })
       .notNull()
       .$type<TenantRole>(),
     ...timestampColumns()
@@ -328,29 +328,29 @@ export const tenantMemberRoles = sqliteTable(
   })
 )
 
-export const tenantInvitations = sqliteTable(
+export const tenantInvitations = mysqlTable(
   'tenant_invitations',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    tenantId: text('tenant_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    tenantId: varchar('tenant_id', { length: 128 })
       .notNull()
       .references((): any => tenants.id, { onDelete: 'cascade' }),
-    email: text('email').notNull(),
-    role: text('role')
+    email: varchar('email', { length: 255 }).notNull(),
+    role: varchar('role', { length: 50 })
       .notNull()
       .$type<'admin' | 'user' | 'viewer' | 'support'>()
       .default('viewer'),
-    includeChildren: integer('include_children', { mode: 'boolean' })
+    includeChildren: boolean('include_children')
       .notNull()
       .default(false),
-    token: text('token').notNull(),
-    status: text('status').notNull().default('pending'),
-    invitedByUserId: text('invited_by_user_id').references(() => users.id, {
+    token: varchar('token', { length: 255 }).notNull(),
+    status: varchar('status', { length: 50 }).notNull().default('pending'),
+    invitedByUserId: varchar('invited_by_user_id', { length: 128 }).references(() => users.id, {
       onDelete: 'set null'
     }),
-    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
-    acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
-    declinedAt: integer('declined_at', { mode: 'timestamp_ms' }),
+    expiresAt: timestamp('expires_at', { fsp: 3 }).notNull(),
+    acceptedAt: timestamp('accepted_at', { fsp: 3 }),
+    declinedAt: timestamp('declined_at', { fsp: 3 }),
     organizationData: text('organization_data'), // JSON string for organization data
     ...timestampColumns()
   },
@@ -364,15 +364,15 @@ export const tenantInvitations = sqliteTable(
   })
 )
 
-export const userModuleFavorites = sqliteTable(
+export const userModuleFavorites = mysqlTable(
   'user_module_favorites',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    userId: text('user_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    userId: varchar('user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    moduleId: text('module_id').notNull(),
-    displayOrder: integer('display_order').notNull().default(0),
+    moduleId: varchar('module_id', { length: 255 }).notNull(),
+    displayOrder: int('display_order').notNull().default(0),
     ...timestampColumns()
   },
   table => ({
@@ -381,14 +381,14 @@ export const userModuleFavorites = sqliteTable(
   })
 )
 
-export const distributorProviders = sqliteTable(
+export const distributorProviders = mysqlTable(
   'distributor_providers',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    distributorId: text('distributor_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    distributorId: varchar('distributor_id', { length: 128 })
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
-    providerId: text('provider_id')
+    providerId: varchar('provider_id', { length: 128 })
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
     ...timestampColumns()
@@ -401,26 +401,26 @@ export const distributorProviders = sqliteTable(
   })
 )
 
-export const organizationInvitations = sqliteTable(
+export const organizationInvitations = mysqlTable(
   'organization_invitations',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    email: text('email').notNull(),
-    role: text('role')
+    email: varchar('email', { length: 255 }).notNull(),
+    role: varchar('role', { length: 50 })
       .notNull()
       .$type<RbacRole>()
       .default('viewer'),
-    token: text('token').notNull(),
-    status: text('status').notNull().default('pending'),
-    invitedByUserId: text('invited_by_user_id').references(() => users.id, {
+    token: varchar('token', { length: 255 }).notNull(),
+    status: varchar('status', { length: 50 }).notNull().default('pending'),
+    invitedByUserId: varchar('invited_by_user_id', { length: 128 }).references(() => users.id, {
       onDelete: 'set null'
     }),
-    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
-    acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
-    declinedAt: integer('declined_at', { mode: 'timestamp_ms' }),
+    expiresAt: timestamp('expires_at', { fsp: 3 }).notNull(),
+    acceptedAt: timestamp('accepted_at', { fsp: 3 }),
+    declinedAt: timestamp('declined_at', { fsp: 3 }),
     ...timestampColumns()
   },
   table => ({
@@ -428,66 +428,66 @@ export const organizationInvitations = sqliteTable(
   })
 )
 
-export const organizationAuthSettings = sqliteTable('organization_auth_settings', {
-  organizationId: text('organization_id')
+export const organizationAuthSettings = mysqlTable('organization_auth_settings', {
+  organizationId: varchar('organization_id', { length: 128 })
     .primaryKey()
     .references(() => organizations.id, { onDelete: 'cascade' }),
-  idpType: text('idp_type').notNull().default('none'),
-  ssoEnforced: integer('sso_enforced', { mode: 'boolean' }).notNull().default(false),
-  allowLocalLoginForOwners: integer('allow_local_login_for_owners', { mode: 'boolean' })
+  idpType: varchar('idp_type', { length: 50 }).notNull().default('none'),
+  ssoEnforced: boolean('sso_enforced').notNull().default(false),
+  allowLocalLoginForOwners: boolean('allow_local_login_for_owners')
     .notNull()
     .default(true),
-  requireMfaOnSensitiveActions: integer('require_mfa_on_sensitive_actions', { mode: 'boolean' })
+  requireMfaOnSensitiveActions: boolean('require_mfa_on_sensitive_actions')
     .notNull()
     .default(false),
-  requireMfaOnContextSwitch: integer('require_mfa_on_context_switch', { mode: 'boolean' })
+  requireMfaOnContextSwitch: boolean('require_mfa_on_context_switch')
     .notNull()
     .default(false),
-  idpConfig: text('idp_config', { length: 4096 }),
+  idpConfig: text('idp_config'),
   ...timestampColumns()
 })
 
-export const tenantAuthSettings = sqliteTable('tenant_auth_settings', {
-  tenantId: text('tenant_id')
+export const tenantAuthSettings = mysqlTable('tenant_auth_settings', {
+  tenantId: varchar('tenant_id', { length: 128 })
     .primaryKey()
     .references(() => tenants.id, { onDelete: 'cascade' }),
-  requireMfaOnSensitiveActions: integer('require_mfa_on_sensitive_actions', { mode: 'boolean' })
+  requireMfaOnSensitiveActions: boolean('require_mfa_on_sensitive_actions')
     .notNull()
     .default(false),
-  requireMfaOnContextSwitch: integer('require_mfa_on_context_switch', { mode: 'boolean' })
+  requireMfaOnContextSwitch: boolean('require_mfa_on_context_switch')
     .notNull()
     .default(false),
   ...timestampColumns()
 })
 
-export const mfaSessions = sqliteTable('mfa_sessions', {
-  id: text('id').primaryKey().$defaultFn(createId),
-  userId: text('user_id')
+export const mfaSessions = mysqlTable('mfa_sessions', {
+  id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+  userId: varchar('user_id', { length: 128 })
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  scope: text('scope').notNull(), // e.g., 'global', 'org:<id>', 'tenant:<id>'
-  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  scope: varchar('scope', { length: 255 }).notNull(), // e.g., 'global', 'org:<id>', 'tenant:<id>'
+  expiresAt: timestamp('expires_at', { fsp: 3 }).notNull(),
   ...timestampColumns()
 }, table => ({
   userScopeIdx: uniqueIndex('mfa_sessions_user_scope_idx').on(table.userId, table.scope)
 }))
 
-export const auditLogs = sqliteTable('audit_logs', {
-  id: text('id').primaryKey().$defaultFn(createId),
-  userId: text('user_id')
+export const auditLogs = mysqlTable('audit_logs', {
+  id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+  userId: varchar('user_id', { length: 128 })
     .references(() => users.id, { onDelete: 'cascade' }),
-  eventType: text('event_type').notNull(),
-  severity: text('severity').notNull().default('info').$type<'info' | 'warning' | 'error' | 'critical'>(),
-  requestId: text('request_id'),
-  endpoint: text('endpoint'),
-  method: text('method'),
-  orgId: text('org_id'),
-  tenantId: text('tenant_id'),
-  fromContext: text('from_context', { length: 1024 }),
-  toContext: text('to_context', { length: 1024 }),
-  ip: text('ip'),
-  userAgent: text('user_agent', { length: 512 }),
-  meta: text('meta', { length: 4096 }),
+  eventType: varchar('event_type', { length: 255 }).notNull(),
+  severity: varchar('severity', { length: 50 }).notNull().default('info').$type<'info' | 'warning' | 'error' | 'critical'>(),
+  requestId: varchar('request_id', { length: 255 }),
+  endpoint: varchar('endpoint', { length: 255 }),
+  method: varchar('method', { length: 10 }),
+  orgId: varchar('org_id', { length: 128 }),
+  tenantId: varchar('tenant_id', { length: 128 }),
+  fromContext: text('from_context'),
+  toContext: text('to_context'),
+  ip: varchar('ip', { length: 50 }),
+  userAgent: varchar('user_agent', { length: 512 }),
+  meta: text('meta'),
   ...timestampColumns()
 }, table => ({
   userIdIdx: index('audit_logs_user_id_idx').on(table.userId),
@@ -506,41 +506,41 @@ export const auditLogs = sqliteTable('audit_logs', {
  * - prefix: Used for DB lookup (unique, base32)
  * - secret: Hashed with scrypt + salt + pepper
  */
-export const orgApiTokens = sqliteTable(
+export const orgApiTokens = mysqlTable(
   'org_api_tokens',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     // Token lookup prefix (first part of token, globally unique)
-    prefix: text('prefix').notNull(),
+    prefix: varchar('prefix', { length: 255 }).notNull(),
     // Hash algorithm and version
-    hashAlg: text('hash_alg').notNull().default('scrypt-v1'),
-    hashVersion: integer('hash_version').notNull().default(1),
+    hashAlg: varchar('hash_alg', { length: 50 }).notNull().default('scrypt-v1'),
+    hashVersion: int('hash_version').notNull().default(1),
     // Hash parameters (JSON: N, r, p, keylen)
-    hashParams: text('hash_params', { length: 256 }).notNull(),
+    hashParams: varchar('hash_params', { length: 256 }).notNull(),
     // Salt for hashing (base64)
-    salt: text('salt').notNull(),
+    salt: varchar('salt', { length: 255 }).notNull(),
     // Hash of the secret portion only (base64)
-    tokenHash: text('token_hash').notNull(),
+    tokenHash: varchar('token_hash', { length: 255 }).notNull(),
     // Key ID for pepper (for KeyVault rotation)
-    pepperKid: text('pepper_kid').notNull(),
+    pepperKid: varchar('pepper_kid', { length: 255 }).notNull(),
     // Scopes granted to this token (JSON array of strings)
-    scopes: text('scopes', { length: 2048 }).notNull(),
+    scopes: text('scopes').notNull(),
     // Resource constraints (JSON object)
-    resourceConstraints: text('resource_constraints', { length: 2048 }),
+    resourceConstraints: text('resource_constraints'),
     // Human-readable description
-    description: text('description', { length: 512 }),
+    description: text('description'),
     // Who created the token
-    createdByUserId: text('created_by_user_id')
+    createdByUserId: varchar('created_by_user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     // Expiration and revocation
-    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
-    revokedAt: integer('revoked_at', { mode: 'timestamp_ms' }),
+    expiresAt: timestamp('expires_at', { fsp: 3 }),
+    revokedAt: timestamp('revoked_at', { fsp: 3 }),
     // Usage tracking
-    lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }),
+    lastUsedAt: timestamp('last_used_at', { fsp: 3 }),
     ...timestampColumns()
   },
   (table) => ({
@@ -556,61 +556,65 @@ export const orgApiTokens = sqliteTable(
   })
 )
 
-export const organizationIdentityProviders = sqliteTable(
+export const organizationIdentityProviders = mysqlTable(
   'organization_identity_providers',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
-      .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
-    type: text('type').notNull().default('oidc'),
-    providerName: text('provider_name').notNull(),
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
+      .notNull(),
+    type: varchar('type', { length: 50 }).notNull().default('oidc'),
+    providerName: varchar('provider_name', { length: 255 }).notNull(),
     issuer: text('issuer'),
-    clientId: text('client_id'),
+    clientId: varchar('client_id', { length: 255 }),
     clientSecret: text('client_secret'),
     redirectUri: text('redirect_uri'),
     metadataUrl: text('metadata_url'),
-    audience: text('audience'),
+    audience: varchar('audience', { length: 255 }),
     scopes: text('scopes'),
-    isEnabled: integer('is_enabled', { mode: 'boolean' }).notNull().default(false),
-    enforceForUserType: text('enforce_for_user_type'),
+    isEnabled: boolean('is_enabled').notNull().default(false),
+    enforceForUserType: varchar('enforce_for_user_type', { length: 50 }),
     ...timestampColumns()
   },
   table => ({
     orgProviderIdx: uniqueIndex('organization_idp_unique').on(
       table.organizationId,
       table.providerName
-    )
+    ),
+    orgFk: foreignKey({
+      name: 'org_idp_organization_id_fk',
+      columns: [table.organizationId],
+      foreignColumns: [organizations.id]
+    }).onDelete('cascade')
   })
 )
 
-export const emailProviderProfiles = sqliteTable(
+export const emailProviderProfiles = mysqlTable(
   'email_provider_profiles',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    targetType: text('target_type').notNull().$type<'global' | 'provider' | 'distributor' | 'organization'>(),
-    targetKey: text('target_key').notNull(),
-    tenantId: text('tenant_id').references(() => tenants.id, {
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    targetType: varchar('target_type', { length: 50 }).notNull().$type<'global' | 'provider' | 'distributor' | 'organization'>(),
+    targetKey: varchar('target_key', { length: 255 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 128 }).references(() => tenants.id, {
       onDelete: 'cascade'
     }),
-    organizationId: text('organization_id').references(() => organizations.id, {
+    organizationId: varchar('organization_id', { length: 128 }).references(() => organizations.id, {
       onDelete: 'cascade'
     }),
-    providerType: text('provider_type').notNull(),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(false),
-    fromName: text('from_name'),
-    fromEmail: text('from_email'),
-    replyToEmail: text('reply_to_email'),
-    subjectPrefix: text('subject_prefix'),
-    supportContact: text('support_contact'),
-    emailDarkMode: integer('email_dark_mode', { mode: 'boolean' }).notNull().default(false),
-    brandingConfig: text('branding_config', { length: 4096 }),
-    encryptedConfig: text('encrypted_config', { length: 8192 }),
-    encryptionIv: text('encryption_iv'),
-    encryptionAuthTag: text('encryption_auth_tag'),
-    configVersion: integer('config_version').notNull().default(1),
-    lastTestedAt: integer('last_tested_at', { mode: 'timestamp_ms' }),
-    lastTestStatus: text('last_test_status'),
+    providerType: varchar('provider_type', { length: 50 }).notNull(),
+    isActive: boolean('is_active').notNull().default(false),
+    fromName: varchar('from_name', { length: 255 }),
+    fromEmail: varchar('from_email', { length: 255 }),
+    replyToEmail: varchar('reply_to_email', { length: 255 }),
+    subjectPrefix: varchar('subject_prefix', { length: 255 }),
+    supportContact: varchar('support_contact', { length: 255 }),
+    emailDarkMode: boolean('email_dark_mode').notNull().default(false),
+    brandingConfig: text('branding_config'),
+    encryptedConfig: text('encrypted_config'),
+    encryptionIv: varchar('encryption_iv', { length: 255 }),
+    encryptionAuthTag: varchar('encryption_auth_tag', { length: 255 }),
+    configVersion: int('config_version').notNull().default(1),
+    lastTestedAt: timestamp('last_tested_at', { fsp: 3 }),
+    lastTestStatus: varchar('last_test_status', { length: 50 }),
     lastTestError: text('last_test_error'),
     ...timestampColumns()
   },
@@ -621,17 +625,17 @@ export const emailProviderProfiles = sqliteTable(
   })
 )
 
-export const dnsZones = sqliteTable(
+export const dnsZones = mysqlTable(
   'dns_zones',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    status: text('status').notNull().default('active'),
-    provider: text('provider').default('cloudflare'),
-    accountId: text('account_id'),
+    name: varchar('name', { length: 255 }).notNull(),
+    status: varchar('status', { length: 50 }).notNull().default('active'),
+    provider: varchar('provider', { length: 50 }).default('cloudflare'),
+    accountId: varchar('account_id', { length: 255 }),
     ...timestampColumns()
   },
   table => ({
@@ -639,22 +643,22 @@ export const dnsZones = sqliteTable(
   })
 )
 
-export const dnsRecords = sqliteTable(
+export const dnsRecords = mysqlTable(
   'dns_records',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    zoneId: text('zone_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    zoneId: varchar('zone_id', { length: 128 })
       .notNull()
       .references(() => dnsZones.id, { onDelete: 'cascade' }),
-    organizationId: text('organization_id')
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    type: text('type').notNull(),
-    name: text('name').notNull(),
+    type: varchar('type', { length: 50 }).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
     content: text('content').notNull(),
-    ttl: integer('ttl').notNull().default(3600),
-    proxied: integer('proxied', { mode: 'boolean' }).notNull().default(false),
-    priority: integer('priority'),
+    ttl: int('ttl').notNull().default(3600),
+    proxied: boolean('proxied').notNull().default(false),
+    priority: int('priority'),
     ...timestampColumns()
   },
   table => ({
@@ -666,16 +670,16 @@ export const dnsRecords = sqliteTable(
   })
 )
 
-export const containerProjects = sqliteTable(
+export const containerProjects = mysqlTable(
   'container_projects',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
     description: text('description'),
-    environment: text('environment').default('production'),
+    environment: varchar('environment', { length: 50 }).default('production'),
     ...timestampColumns()
   },
   table => ({
@@ -686,23 +690,23 @@ export const containerProjects = sqliteTable(
   })
 )
 
-export const containerInstances = sqliteTable(
+export const containerInstances = mysqlTable(
   'container_instances',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    projectId: text('project_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    projectId: varchar('project_id', { length: 128 })
       .notNull()
       .references(() => containerProjects.id, { onDelete: 'cascade' }),
-    organizationId: text('organization_id')
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    status: text('status').notNull().default('RUNNING'),
-    image: text('image').notNull(),
-    cpu: text('cpu').notNull(),
-    memory: text('memory').notNull(),
-    region: text('region').default('eu-north-1'),
-    metadata: text('metadata', { length: 2048 }),
+    name: varchar('name', { length: 255 }).notNull(),
+    status: varchar('status', { length: 50 }).notNull().default('RUNNING'),
+    image: varchar('image', { length: 255 }).notNull(),
+    cpu: varchar('cpu', { length: 50 }).notNull(),
+    memory: varchar('memory', { length: 50 }).notNull(),
+    region: varchar('region', { length: 50 }).default('eu-north-1'),
+    metadata: text('metadata'),
     ...timestampColumns()
   },
   table => ({
@@ -713,20 +717,20 @@ export const containerInstances = sqliteTable(
   })
 )
 
-export const ncentralDevices = sqliteTable(
+export const ncentralDevices = mysqlTable(
   'ncentral_devices',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    status: text('status').notNull().default('online'),
-    type: text('type').notNull().default('server'),
-    osVersion: text('os_version'),
-    region: text('region'),
-    lastSeenAt: integer('last_seen_at', { mode: 'timestamp_ms' }),
-    metadata: text('metadata', { length: 2048 }),
+    name: varchar('name', { length: 255 }).notNull(),
+    status: varchar('status', { length: 50 }).notNull().default('online'),
+    type: varchar('type', { length: 50 }).notNull().default('server'),
+    osVersion: varchar('os_version', { length: 255 }),
+    region: varchar('region', { length: 50 }),
+    lastSeenAt: timestamp('last_seen_at', { fsp: 3 }),
+    metadata: text('metadata'),
     ...timestampColumns()
   },
   table => ({
@@ -737,21 +741,21 @@ export const ncentralDevices = sqliteTable(
   })
 )
 
-export const vmInstances = sqliteTable(
+export const vmInstances = mysqlTable(
   'vm_instances',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    platform: text('platform').notNull(),
-    powerState: text('power_state').notNull(),
-    cpu: text('cpu').notNull(),
-    memory: text('memory').notNull(),
-    disk: text('disk').notNull(),
-    region: text('region'),
-    lastBackupAt: integer('last_backup_at', { mode: 'timestamp_ms' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    platform: varchar('platform', { length: 50 }).notNull(),
+    powerState: varchar('power_state', { length: 50 }).notNull(),
+    cpu: varchar('cpu', { length: 50 }).notNull(),
+    memory: varchar('memory', { length: 50 }).notNull(),
+    disk: varchar('disk', { length: 50 }).notNull(),
+    region: varchar('region', { length: 50 }),
+    lastBackupAt: timestamp('last_backup_at', { fsp: 3 }),
     ...timestampColumns()
   },
   table => ({
@@ -759,35 +763,35 @@ export const vmInstances = sqliteTable(
   })
 )
 
-export const monitoringAlerts = sqliteTable('monitoring_alerts', {
-  id: text('id').primaryKey().$defaultFn(createId),
-  organizationId: text('organization_id')
+export const monitoringAlerts = mysqlTable('monitoring_alerts', {
+  id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+  organizationId: varchar('organization_id', { length: 128 })
     .notNull()
     .references(() => organizations.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  description: text('description', { length: 1024 }),
-  severity: text('severity').notNull().default('info'),
-  status: text('status').notNull().default('open'),
-  source: text('source'),
-  triggeredAt: integer('triggered_at', { mode: 'timestamp_ms' }),
-  resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
-  metadata: text('metadata', { length: 2048 }),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  severity: varchar('severity', { length: 50 }).notNull().default('info'),
+  status: varchar('status', { length: 50 }).notNull().default('open'),
+  source: varchar('source', { length: 255 }),
+  triggeredAt: timestamp('triggered_at', { fsp: 3 }),
+  resolvedAt: timestamp('resolved_at', { fsp: 3 }),
+  metadata: text('metadata'),
   ...timestampColumns()
 })
 
-export const wordpressSites = sqliteTable(
+export const wordpressSites = mysqlTable(
   'wordpress_sites',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    domain: text('domain').notNull(),
-    status: text('status').notNull().default('healthy'),
-    version: text('version'),
-    region: text('region'),
-    lastBackupAt: integer('last_backup_at', { mode: 'timestamp_ms' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    domain: varchar('domain', { length: 255 }).notNull(),
+    status: varchar('status', { length: 50 }).notNull().default('healthy'),
+    version: varchar('version', { length: 50 }),
+    region: varchar('region', { length: 50 }),
+    lastBackupAt: timestamp('last_backup_at', { fsp: 3 }),
     ...timestampColumns()
   },
   table => ({
@@ -976,30 +980,30 @@ export const emailProviderProfileRelations = relations(emailProviderProfiles, ({
  * These policies define which modules are available and which permissions are allowed
  * at the tenant level. Organizations inherit from their tenant's policy.
  */
-export const tenantModulePolicies = sqliteTable(
+export const tenantModulePolicies = mysqlTable(
   'tenant_module_policies',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    tenantId: text('tenant_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    tenantId: varchar('tenant_id', { length: 128 })
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
-    moduleId: text('module_id').notNull(),
-    mode: text('mode', { enum: ['inherit', 'default-closed', 'allowlist', 'blocked'] })
+    moduleId: varchar('module_id', { length: 255 }).notNull(),
+    mode: varchar('mode', { length: 50 })
       .$type<'inherit' | 'default-closed' | 'allowlist' | 'blocked'>()
       .notNull()
       .default('inherit'),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    enabled: boolean('enabled').notNull().default(true),
     // If disabled is true, module is visible but grayed out (deactivated)
     // If enabled is false, module is hidden completely (inactivated)
-    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
+    disabled: boolean('disabled').notNull().default(false),
     // Coming soon message for marketing/upselling (shows when disabled=true and message is set)
     comingSoonMessage: text('coming_soon_message'),
     // JSON object storing permission overrides
     // Example: { "cloudflare:write": false } to disable write access
-    permissionOverrides: text('permission_overrides', { length: 2048 }),
+    permissionOverrides: text('permission_overrides'),
     // JSON array storing allowed module roles for this tenant
     // null => inherit defaults, [] => block, ["dns-admin"] => override
-    allowedRoles: text('allowed_roles', { length: 2048 }),
+    allowedRoles: text('allowed_roles'),
     ...timestampColumns()
   },
   table => ({
@@ -1016,29 +1020,29 @@ export const tenantModulePolicies = sqliteTable(
  * These policies can further restrict what's allowed at tenant level
  * Organizations can only restrict, not expand permissions
  */
-export const organizationModulePolicies = sqliteTable(
+export const organizationModulePolicies = mysqlTable(
   'organization_module_policies',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    moduleId: text('module_id').notNull(),
-    mode: text('mode', { enum: ['inherit', 'default-closed', 'allowlist', 'blocked'] })
+    moduleId: varchar('module_id', { length: 255 }).notNull(),
+    mode: varchar('mode', { length: 50 })
       .$type<'inherit' | 'default-closed' | 'allowlist' | 'blocked'>()
       .notNull()
       .default('inherit'),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    enabled: boolean('enabled').notNull().default(true),
     // If disabled is true, module is visible but grayed out (deactivated)
     // If enabled is false, module is hidden completely (inactivated)
-    disabled: integer('disabled', { mode: 'boolean' }).notNull().default(false),
+    disabled: boolean('disabled').notNull().default(false),
     // Coming soon message for marketing/upselling (shows when disabled=true and message is set)
     comingSoonMessage: text('coming_soon_message'),
     // JSON object storing permission overrides
     // Example: { "cloudflare:write": false } to disable write access
-    permissionOverrides: text('permission_overrides', { length: 2048 }),
+    permissionOverrides: text('permission_overrides'),
     // JSON array storing allowed module roles for this organization
-    allowedRoles: text('allowed_roles', { length: 2048 }),
+    allowedRoles: text('allowed_roles'),
     ...timestampColumns()
   },
   table => ({
@@ -1050,16 +1054,16 @@ export const organizationModulePolicies = sqliteTable(
   })
 )
 
-export const pluginAclEntries = sqliteTable(
+export const pluginAclEntries = mysqlTable(
   'plugin_acl_entries',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    pluginKey: text('plugin_key').notNull(),
-    operation: text('operation').notNull(),
-    groupId: text('group_id')
+    pluginKey: varchar('plugin_key', { length: 255 }).notNull(),
+    operation: varchar('operation', { length: 255 }).notNull(),
+    groupId: varchar('group_id', { length: 128 })
       .notNull()
       .references(() => orgGroups.id, { onDelete: 'cascade' }),
     ...timestampColumns()
@@ -1075,19 +1079,19 @@ export const pluginAclEntries = sqliteTable(
   })
 )
 
-export const orgGroupModulePermissions = sqliteTable(
+export const orgGroupModulePermissions = mysqlTable(
   'org_group_module_permissions',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    groupId: text('group_id')
+    groupId: varchar('group_id', { length: 128 })
       .notNull()
       .references(() => orgGroups.id, { onDelete: 'cascade' }),
-    moduleKey: text('module_key').notNull(),
-    permissionKey: text('permission_key').notNull(),
-    effect: text('effect')
+    moduleKey: varchar('module_key', { length: 255 }).notNull(),
+    permissionKey: varchar('permission_key', { length: 255 }).notNull(),
+    effect: varchar('effect', { length: 50 })
       .notNull()
       .$type<'grant' | 'deny'>(),
     ...timestampColumns()
@@ -1108,22 +1112,22 @@ export const orgGroupModulePermissions = sqliteTable(
  * Cloudflare API credentials per organization
  * Stores encrypted API tokens for Cloudflare integration
  */
-export const cloudflareCredentials = sqliteTable(
+export const cloudflareCredentials = mysqlTable(
   'cloudflare_credentials',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     // Encrypted API token
-    encryptedApiToken: text('encrypted_api_token', { length: 2048 }).notNull(),
-    encryptionIv: text('encryption_iv').notNull(),
-    encryptionAuthTag: text('encryption_auth_tag').notNull(),
+    encryptedApiToken: text('encrypted_api_token').notNull(),
+    encryptionIv: varchar('encryption_iv', { length: 255 }).notNull(),
+    encryptionAuthTag: varchar('encryption_auth_tag', { length: 255 }).notNull(),
     // Optional: Cloudflare account ID if needed
-    accountId: text('account_id'),
+    accountId: varchar('account_id', { length: 255 }),
     // Status of the credentials
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    lastValidatedAt: integer('last_validated_at', { mode: 'timestamp_ms' }),
+    isActive: boolean('is_active').notNull().default(true),
+    lastValidatedAt: timestamp('last_validated_at', { fsp: 3 }),
     ...timestampColumns()
   },
   table => ({
@@ -1170,17 +1174,17 @@ export const brandingThemeRelations = relations(brandingThemes, ({ one }) => ({
 /**
  * Module-specific roles that can be assigned per module
  */
-export const moduleRoles = sqliteTable(
+export const moduleRoles = mysqlTable(
   'module_roles',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    moduleId: text('module_id').notNull(),
-    roleKey: text('role_key').notNull(),
-    roleName: text('role_name').notNull(),
-    description: text('description', { length: 512 }),
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    moduleId: varchar('module_id', { length: 255 }).notNull(),
+    roleKey: varchar('role_key', { length: 255 }).notNull(),
+    roleName: varchar('role_name', { length: 255 }).notNull(),
+    description: text('description'),
     // JSON encoded capabilities for UI/logic hints
-    capabilities: text('capabilities', { length: 2048 }),
-    sortOrder: integer('sort_order').notNull().default(0),
+    capabilities: text('capabilities'),
+    sortOrder: int('sort_order').notNull().default(0),
     ...timestampColumns()
   },
   table => ({
@@ -1189,13 +1193,13 @@ export const moduleRoles = sqliteTable(
   })
 )
 
-export const roleModuleRoleMappings = sqliteTable(
+export const roleModuleRoleMappings = mysqlTable(
   'role_module_role_mappings',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    moduleId: text('module_id').notNull(),
-    moduleRoleKey: text('module_role_key').notNull(),
-    rbacRole: text('rbac_role').notNull(),
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    moduleId: varchar('module_id', { length: 255 }).notNull(),
+    moduleRoleKey: varchar('module_role_key', { length: 255 }).notNull(),
+    rbacRole: varchar('rbac_role', { length: 50 }).notNull(),
     ...timestampColumns()
   },
   table => ({
@@ -1209,17 +1213,17 @@ export const roleModuleRoleMappings = sqliteTable(
 )
 
 /**
- * Module role → permission mapping per module (plugin-driven)
+ * Module role -> permission mapping per module (plugin-driven)
  */
-export const moduleRolePermissions = sqliteTable(
+export const moduleRolePermissions = mysqlTable(
   'module_role_permissions',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    moduleKey: text('module_key')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    moduleKey: varchar('module_key', { length: 255 })
       .notNull()
       .references(() => modules.key, { onDelete: 'cascade' }),
-    roleKey: text('role_key').notNull(),
-    permissionKey: text('permission_key').notNull(),
+    roleKey: varchar('role_key', { length: 255 }).notNull(),
+    permissionKey: varchar('permission_key', { length: 255 }).notNull(),
     ...timestampColumns()
   },
   (table) => ({
@@ -1234,15 +1238,15 @@ export const moduleRolePermissions = sqliteTable(
 /**
  * Default module roles for each app/org role
  */
-export const moduleRoleDefaults = sqliteTable(
+export const moduleRoleDefaults = mysqlTable(
   'module_role_defaults',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    moduleKey: text('module_key')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    moduleKey: varchar('module_key', { length: 255 })
       .notNull()
       .references(() => modules.key, { onDelete: 'cascade' }),
-    appRoleKey: text('app_role_key').notNull(),
-    moduleRoleKey: text('module_role_key').notNull(),
+    appRoleKey: varchar('app_role_key', { length: 50 }).notNull(),
+    moduleRoleKey: varchar('module_role_key', { length: 255 }).notNull(),
     ...timestampColumns()
   },
   (table) => ({
@@ -1253,25 +1257,25 @@ export const moduleRoleDefaults = sqliteTable(
 /**
  * User-specific module role overrides per organization
  */
-export const memberModuleRoleOverrides = sqliteTable(
+export const memberModuleRoleOverrides = mysqlTable(
   'member_module_role_overrides',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
+    userId: varchar('user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    moduleId: text('module_id').notNull(),
-    roleKey: text('role_key').notNull(),
-    effect: text('effect')
+    moduleId: varchar('module_id', { length: 255 }).notNull(),
+    roleKey: varchar('role_key', { length: 255 }).notNull(),
+    effect: varchar('effect', { length: 50 })
       .notNull()
       .$type<'grant' | 'deny'>(),
-    createdByUserId: text('created_by_user_id').references(() => users.id, {
+    createdByUserId: varchar('created_by_user_id', { length: 128 }).references(() => users.id, {
       onDelete: 'set null'
     }),
-    updatedByUserId: text('updated_by_user_id').references(() => users.id, {
+    updatedByUserId: varchar('updated_by_user_id', { length: 128 }).references(() => users.id, {
       onDelete: 'set null'
     }),
     ...timestampColumns()
@@ -1302,21 +1306,21 @@ export const cloudflareCredentialsRelations = relations(cloudflareCredentials, (
  * Allows granular control over which permissions a user has for specific modules
  * Can only restrict (deny) permissions, not expand beyond the user's role
  */
-export const userModulePermissions = sqliteTable(
+export const userModulePermissions = mysqlTable(
   'user_module_permissions',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    organizationId: text('organization_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
+    userId: varchar('user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    moduleId: text('module_id').notNull(),
+    moduleId: varchar('module_id', { length: 255 }).notNull(),
     // JSON object storing denied permissions
     // Example: { "cloudflare:write": true } means write is denied for this user
     // If permission is not in this object, it follows the user's role permissions
-    deniedPermissions: text('denied_permissions', { length: 2048 }),
+    deniedPermissions: text('denied_permissions'),
     ...timestampColumns()
   },
   table => ({
@@ -1343,24 +1347,24 @@ export const userModulePermissionRelations = relations(userModulePermissions, ({
   })
 }))
 
-export const mspOrgDelegations = sqliteTable(
+export const mspOrgDelegations = mysqlTable(
   'msp_org_delegations',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    orgId: text('org_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    orgId: varchar('org_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    subjectType: text('subject_type').notNull(), // 'user' (future: msp_group, msp_role)
-    subjectId: text('subject_id')
+    subjectType: varchar('subject_type', { length: 50 }).notNull(), // 'user' (future: msp_group, msp_role)
+    subjectId: varchar('subject_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    source: text('source').notNull().default('ad_hoc').$type<'ad_hoc' | 'msp_scope'>(),
-    supplierTenantId: text('supplier_tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
-    createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
-    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
+    source: varchar('source', { length: 50 }).notNull().default('ad_hoc').$type<'ad_hoc' | 'msp_scope'>(),
+    supplierTenantId: varchar('supplier_tenant_id', { length: 128 }).references(() => tenants.id, { onDelete: 'cascade' }),
+    createdBy: varchar('created_by', { length: 128 }).references(() => users.id, { onDelete: 'set null' }),
+    expiresAt: timestamp('expires_at', { fsp: 3 }),
     note: text('note'),
-    revokedAt: integer('revoked_at', { mode: 'timestamp_ms' }),
-    revokedBy: text('revoked_by').references(() => users.id, { onDelete: 'set null' }),
+    revokedAt: timestamp('revoked_at', { fsp: 3 }),
+    revokedBy: varchar('revoked_by', { length: 128 }).references(() => users.id, { onDelete: 'set null' }),
     ...timestampColumns()
   },
   (table) => ({
@@ -1379,18 +1383,22 @@ export const mspOrgDelegations = sqliteTable(
   })
 )
 
-export const mspOrgDelegationPermissions = sqliteTable(
+export const mspOrgDelegationPermissions = mysqlTable(
   'msp_org_delegation_permissions',
   {
-    delegationId: text('delegation_id')
-      .notNull()
-      .references(() => mspOrgDelegations.id, { onDelete: 'cascade' }),
-    permissionKey: text('permission_key').notNull()
+    delegationId: varchar('delegation_id', { length: 128 })
+      .notNull(),
+    permissionKey: varchar('permission_key', { length: 255 }).notNull()
     // Note: permissionKey is a logical reference to manifest permission keys, not a DB foreign key
   },
   (table) => ({
     pk: primaryKey({ columns: [table.delegationId, table.permissionKey] }),
-    permissionIdx: index('msp_org_delegation_permissions_perm_idx').on(table.permissionKey)
+    permissionIdx: index('msp_org_delegation_permissions_perm_idx').on(table.permissionKey),
+    delegationFk: foreignKey({
+      name: 'msp_deleg_perms_delegation_id_fk',
+      columns: [table.delegationId],
+      foreignColumns: [mspOrgDelegations.id]
+    }).onDelete('cascade')
   })
 )
 
@@ -1398,63 +1406,66 @@ export const mspOrgDelegationPermissions = sqliteTable(
  * MSP Delegation Invitations - Pending invitations for external users to receive delegation access
  * Similar to organizationInvitations but for delegation-based access without membership
  */
-export const mspOrgDelegationInvitations = sqliteTable(
+export const mspOrgDelegationInvitations = mysqlTable(
   'msp_org_delegation_invitations',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    orgId: text('org_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    orgId: varchar('org_id', { length: 128 })
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    email: text('email').notNull(),
-    token: text('token').notNull(),
+    email: varchar('email', { length: 255 }).notNull(),
+    token: varchar('token', { length: 255 }).notNull(),
     permissionKeys: text('permission_keys').notNull(), // JSON array of permission keys
     note: text('note'),
-    status: text('status').notNull().default('pending'), // pending, accepted, cancelled, expired
-    invitedByUserId: text('invited_by_user_id').references(() => users.id, {
+    status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, accepted, cancelled, expired
+    invitedByUserId: varchar('invited_by_user_id', { length: 128 }).references(() => users.id, {
       onDelete: 'set null'
     }),
-    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
-    delegationExpiresAt: integer('delegation_expires_at', { mode: 'timestamp_ms' }), // When the resulting delegation should expire
-    acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }),
-    delegationId: text('delegation_id').references(() => mspOrgDelegations.id, {
-      onDelete: 'set null'
-    }), // Set when accepted
+    expiresAt: timestamp('expires_at', { fsp: 3 }).notNull(),
+    delegationExpiresAt: timestamp('delegation_expires_at', { fsp: 3 }), // When the resulting delegation should expire
+    acceptedAt: timestamp('accepted_at', { fsp: 3 }),
+    delegationId: varchar('delegation_id', { length: 128 }), // Set when accepted — FK defined below
     ...timestampColumns()
   },
   table => ({
     tokenIdx: uniqueIndex('msp_delegation_invites_token_idx').on(table.token),
-    orgEmailIdx: index('msp_delegation_invites_org_email_idx').on(table.orgId, table.email)
+    orgEmailIdx: index('msp_delegation_invites_org_email_idx').on(table.orgId, table.email),
+    delegationFk: foreignKey({
+      name: 'msp_deleg_inv_delegation_id_fk',
+      columns: [table.delegationId],
+      foreignColumns: [mspOrgDelegations.id]
+    }).onDelete('set null')
   })
 )
 
 /**
  * MSP Roles - Dynamically defined roles for MSP access
  * Each role is tenant-specific and defines which module permissions it grants
- * 
+ *
  * role_kind='template': Distributor-level templates (publishable, never assignable)
  * role_kind='role': Provider-level roles (assignable to members)
  */
-export const mspRoles = sqliteTable(
+export const mspRoles = mysqlTable(
   'msp_roles',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    tenantId: text('tenant_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    tenantId: varchar('tenant_id', { length: 128 })
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
-    key: text('key').notNull(), // e.g., 'msp-cloudflare-admin'
-    name: text('name').notNull(), // Display name, e.g., 'Cloudflare Admin'
+    key: varchar('key', { length: 255 }).notNull(), // e.g., 'msp-cloudflare-admin'
+    name: varchar('name', { length: 255 }).notNull(), // Display name, e.g., 'Cloudflare Admin'
     description: text('description'), // Optional description
-    isSystem: integer('is_system', { mode: 'boolean' }).notNull().default(false), // true for built-in/system roles
-    createdBy: text('created_by').references(() => users.id, { onDelete: 'set null' }),
+    isSystem: boolean('is_system').notNull().default(false), // true for built-in/system roles
+    createdBy: varchar('created_by', { length: 128 }).references(() => users.id, { onDelete: 'set null' }),
     // Template support fields
-    roleKind: text('role_kind').notNull().default('role').$type<'template' | 'role'>(),
-    sourceTemplateId: text('source_template_id'), // Self-reference to msp_roles, manually managed
-    publishedAt: integer('published_at', { mode: 'timestamp_ms' }), // Only for templates
-    templateVersion: integer('template_version').notNull().default(1), // Bumped on publish update
+    roleKind: varchar('role_kind', { length: 50 }).notNull().default('role').$type<'template' | 'role'>(),
+    sourceTemplateId: varchar('source_template_id', { length: 128 }), // Self-reference to msp_roles, manually managed
+    publishedAt: timestamp('published_at', { fsp: 3 }), // Only for templates
+    templateVersion: int('template_version').notNull().default(1), // Bumped on publish update
     // Sync metadata (for roles derived from templates)
-    sourceTemplateVersion: integer('source_template_version'), // Version at time of create/sync
-    lastSyncedAt: integer('last_synced_at', { mode: 'timestamp_ms' }),
-    permissionsFingerprint: text('permissions_fingerprint'), // Hash of sorted permission list
+    sourceTemplateVersion: int('source_template_version'), // Version at time of create/sync
+    lastSyncedAt: timestamp('last_synced_at', { fsp: 3 }),
+    permissionsFingerprint: varchar('permissions_fingerprint', { length: 255 }), // Hash of sorted permission list
     ...timestampColumns()
   },
   (table) => ({
@@ -1469,14 +1480,14 @@ export const mspRoles = sqliteTable(
  * MSP Role Permissions - Maps MSP roles to module permissions
  * FK to module_permissions ensures integrity (permissions marked as removed are still valid for FK)
  */
-export const mspRolePermissions = sqliteTable(
+export const mspRolePermissions = mysqlTable(
   'msp_role_permissions',
   {
-    roleId: text('role_id')
+    roleId: varchar('role_id', { length: 128 })
       .notNull()
       .references(() => mspRoles.id, { onDelete: 'cascade' }),
-    moduleKey: text('module_key').notNull(), // e.g., 'cloudflare-dns'
-    permissionKey: text('permission_key').notNull() // e.g., 'cloudflare-dns:view'
+    moduleKey: varchar('module_key', { length: 255 }).notNull(), // e.g., 'cloudflare-dns'
+    permissionKey: varchar('permission_key', { length: 255 }).notNull() // e.g., 'cloudflare-dns:view'
     // Note: FK to module_permissions(module_key, permission_key) is logical, not enforced by DB
     // Special values: moduleKey='*' means all modules, permissionKey='*' means all permissions
   },
@@ -1490,20 +1501,24 @@ export const mspRolePermissions = sqliteTable(
 /**
  * Tenant Member MSP Roles - Join table for assigning MSP roles to tenant members
  */
-export const tenantMemberMspRoles = sqliteTable(
+export const tenantMemberMspRoles = mysqlTable(
   'tenant_member_msp_roles',
   {
-    tenantMembershipId: text('tenant_membership_id')
-      .notNull()
-      .references(() => tenantMemberships.id, { onDelete: 'cascade' }),
-    roleId: text('role_id')
+    tenantMembershipId: varchar('tenant_membership_id', { length: 128 })
+      .notNull(),
+    roleId: varchar('role_id', { length: 128 })
       .notNull()
       .references(() => mspRoles.id, { onDelete: 'cascade' })
   },
   (table) => ({
     pk: primaryKey({ columns: [table.tenantMembershipId, table.roleId] }),
     membershipIdx: index('tenant_member_msp_roles_membership_idx').on(table.tenantMembershipId),
-    roleIdx: index('tenant_member_msp_roles_role_idx').on(table.roleId)
+    roleIdx: index('tenant_member_msp_roles_role_idx').on(table.roleId),
+    membershipFk: foreignKey({
+      name: 'tm_msp_roles_membership_id_fk',
+      columns: [table.tenantMembershipId],
+      foreignColumns: [tenantMemberships.id]
+    }).onDelete('cascade')
   })
 )
 
@@ -1520,28 +1535,28 @@ export type IncidentMuteTargetType = 'tenant' | 'organization'
  * Tenant Incidents (Driftmeddelanden)
  * Created by distributors/providers, inherited downstream.
  */
-export const tenantIncidents = sqliteTable(
+export const tenantIncidents = mysqlTable(
   'tenant_incidents',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
     // Source can be either a tenant (provider/distributor) or an organization (internal incidents)
     // At least one of these must be set
-    sourceTenantId: text('source_tenant_id')
+    sourceTenantId: varchar('source_tenant_id', { length: 128 })
       .references(() => tenants.id, { onDelete: 'cascade' }),
-    sourceOrganizationId: text('source_organization_id')
+    sourceOrganizationId: varchar('source_organization_id', { length: 128 })
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    title: text('title').notNull(),
-    slug: text('slug').notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull(),
     bodyMarkdown: text('body_markdown'),
-    severity: text('severity').notNull().$type<IncidentSeverity>().default('notice'),
-    status: text('status').notNull().$type<IncidentStatus>().default('active'),
-    startsAt: integer('starts_at', { mode: 'timestamp_ms' }),
-    endsAt: integer('ends_at', { mode: 'timestamp_ms' }),
-    resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
-    createdByUserId: text('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
-    updatedByUserId: text('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
-    deletedAt: integer('deleted_at', { mode: 'timestamp_ms' }),
-    deletedByUserId: text('deleted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    severity: varchar('severity', { length: 50 }).notNull().$type<IncidentSeverity>().default('notice'),
+    status: varchar('status', { length: 50 }).notNull().$type<IncidentStatus>().default('active'),
+    startsAt: timestamp('starts_at', { fsp: 3 }),
+    endsAt: timestamp('ends_at', { fsp: 3 }),
+    resolvedAt: timestamp('resolved_at', { fsp: 3 }),
+    createdByUserId: varchar('created_by_user_id', { length: 128 }).references(() => users.id, { onDelete: 'set null' }),
+    updatedByUserId: varchar('updated_by_user_id', { length: 128 }).references(() => users.id, { onDelete: 'set null' }),
+    deletedAt: timestamp('deleted_at', { fsp: 3 }),
+    deletedByUserId: varchar('deleted_by_user_id', { length: 128 }).references(() => users.id, { onDelete: 'set null' }),
     ...timestampColumns()
   },
   (table) => ({
@@ -1564,23 +1579,23 @@ export const tenantIncidents = sqliteTable(
  * Tenant Incident Mutes
  * Allows downstream tenants/organizations to hide inherited incidents.
  */
-export const tenantIncidentMutes = sqliteTable(
+export const tenantIncidentMutes = mysqlTable(
   'tenant_incident_mutes',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    incidentId: text('incident_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    incidentId: varchar('incident_id', { length: 128 })
       .notNull()
       .references(() => tenantIncidents.id, { onDelete: 'cascade' }),
-    targetType: text('target_type').notNull().$type<IncidentMuteTargetType>(),
-    targetTenantId: text('target_tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
-    organizationId: text('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
-    mutedByUserId: text('muted_by_user_id')
+    targetType: varchar('target_type', { length: 50 }).notNull().$type<IncidentMuteTargetType>(),
+    targetTenantId: varchar('target_tenant_id', { length: 128 }).references(() => tenants.id, { onDelete: 'cascade' }),
+    organizationId: varchar('organization_id', { length: 128 }).references(() => organizations.id, { onDelete: 'cascade' }),
+    mutedByUserId: varchar('muted_by_user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    mutedAt: integer('muted_at', { mode: 'timestamp_ms' })
+    mutedAt: timestamp('muted_at', { fsp: 3 })
       .notNull()
-      .default(sql`(strftime('%s','now') * 1000)`),
-    muteUntil: integer('mute_until', { mode: 'timestamp_ms' }),
+      .defaultNow(),
+    muteUntil: timestamp('mute_until', { fsp: 3 }),
     mutedReason: text('muted_reason')
   },
   (table) => ({
@@ -1602,20 +1617,20 @@ export const tenantIncidentMutes = sqliteTable(
  * Tenant Incident User Mutes
  * Allows individual users to hide incidents for themselves only (personal mute).
  */
-export const tenantIncidentUserMutes = sqliteTable(
+export const tenantIncidentUserMutes = mysqlTable(
   'tenant_incident_user_mutes',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    incidentId: text('incident_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    incidentId: varchar('incident_id', { length: 128 })
       .notNull()
       .references(() => tenantIncidents.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
+    userId: varchar('user_id', { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    mutedAt: integer('muted_at', { mode: 'timestamp_ms' })
+    mutedAt: timestamp('muted_at', { fsp: 3 })
       .notNull()
-      .default(sql`(strftime('%s','now') * 1000)`),
-    muteUntil: integer('mute_until', { mode: 'timestamp_ms' })
+      .defaultNow(),
+    muteUntil: timestamp('mute_until', { fsp: 3 })
   },
   (table) => ({
     incidentIdx: index('tenant_incident_user_mutes_incident_idx').on(table.incidentId),
@@ -1631,22 +1646,22 @@ export const tenantIncidentUserMutes = sqliteTable(
  * Tenant News Posts (Nyheter)
  * Blog-style posts created by distributors/providers, inherited downstream.
  */
-export const tenantNewsPosts = sqliteTable(
+export const tenantNewsPosts = mysqlTable(
   'tenant_news_posts',
   {
-    id: text('id').primaryKey().$defaultFn(createId),
-    sourceTenantId: text('source_tenant_id')
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    sourceTenantId: varchar('source_tenant_id', { length: 128 })
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
-    title: text('title').notNull(),
-    slug: text('slug').notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull(),
     summary: text('summary'),
     heroImageUrl: text('hero_image_url'),
     bodyMarkdown: text('body_markdown'),
-    status: text('status').notNull().$type<NewsPostStatus>().default('draft'),
-    publishedAt: integer('published_at', { mode: 'timestamp_ms' }),
-    createdByUserId: text('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
-    updatedByUserId: text('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+    status: varchar('status', { length: 50 }).notNull().$type<NewsPostStatus>().default('draft'),
+    publishedAt: timestamp('published_at', { fsp: 3 }),
+    createdByUserId: varchar('created_by_user_id', { length: 128 }).references(() => users.id, { onDelete: 'set null' }),
+    updatedByUserId: varchar('updated_by_user_id', { length: 128 }).references(() => users.id, { onDelete: 'set null' }),
     ...timestampColumns()
   },
   (table) => ({
@@ -1785,4 +1800,3 @@ export const windowsDnsRedirectHits = windowsDnsRedirectsSchemaInstance.windowsD
 export const windowsDnsRedirectOrgConfig = windowsDnsRedirectsSchemaInstance.windowsDnsRedirectOrgConfig
 export const windowsDnsRedirectImportLogs = windowsDnsRedirectsSchemaInstance.windowsDnsRedirectImportLogs
 export const windowsDnsManagedRecords = windowsDnsRedirectsSchemaInstance.windowsDnsManagedRecords
-

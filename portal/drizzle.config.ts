@@ -1,22 +1,32 @@
 import 'dotenv/config'
 import { defineConfig } from 'drizzle-kit'
 
-const dialect = process.env.DRIZZLE_DIALECT === 'mysql' ? 'mysql' : 'sqlite'
+function buildMysqlUrl(): string {
+  const host = process.env.DB_HOST
+  const name = process.env.DB_NAME
 
-const sqliteCredentials = {
-  url: process.env.DATABASE_URL ?? 'file:./.data/dev.db'
-}
+  if (host && name) {
+    const user = process.env.DB_USER || 'root'
+    const password = process.env.DB_PASSWORD || ''
+    const port = process.env.DB_PORT || '3306'
+    const credentials = password ? `${user}:${password}` : user
+    return `mysql://${credentials}@${host}:${port}/${name}`
+  }
 
-const mysqlCredentials = {
-  url: process.env.DATABASE_URL_MARIA ?? ''
+  if (process.env.DATABASE_URL_MARIA) {
+    return process.env.DATABASE_URL_MARIA
+  }
+
+  throw new Error('Database configuration missing. Set DB_HOST + DB_NAME or DATABASE_URL_MARIA.')
 }
 
 export default defineConfig({
   schema: './server/database/schema.ts',
-  out: process.env.DRIZZLE_OUT ?? './server/database/migrations',
-  dialect,
-  dbCredentials: dialect === 'mysql' ? mysqlCredentials : sqliteCredentials,
+  out: './server/database/migrations',
+  dialect: 'mysql',
+  dbCredentials: {
+    url: buildMysqlUrl()
+  },
   strict: true,
   verbose: true
 })
-

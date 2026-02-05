@@ -67,125 +67,60 @@ export default defineEventHandler(async (event) => {
   const organizationId = createId()
   const ownerUserId = existingUser?.id ?? createId()
   const now = new Date()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   try {
-    if (isSqlite) {
-      await db.transaction((tx) => {
-        tx.insert(organizations)
-          .values({
-            id: organizationId,
-            name: payload.name,
-            slug: payload.slug ?? slugify(payload.name),
-            tenantId: distributorTenantId,
-            status: 'active',
-            billingEmail: payload.billingEmail,
-            requireSso: false,
-            allowSelfSignup: false,
-            defaultRole: payload.defaultRole ?? 'viewer',
-            coreId: payload.coreId ? payload.coreId.toUpperCase() : null
-          })
-          .run()
-
-        tx.insert(organizationAuthSettings)
-          .values({
-            organizationId,
-            idpType: 'none',
-            ssoEnforced: false,
-            allowLocalLoginForOwners: true
-          })
-          .run()
-
-        if (!existingUser) {
-          tx.insert(users)
-            .values({
-              id: ownerUserId,
-              email: normalizedOwnerEmail,
-              passwordHash: null,
-              fullName: payload.owner.fullName,
-              status: 'active',
-              defaultOrgId: organizationId,
-              forcePasswordReset: true
-            })
-            .run()
-        } else {
-          const updates: Partial<typeof users.$inferInsert> = {}
-          if (!existingUser.defaultOrgId) {
-            updates.defaultOrgId = organizationId
-          }
-          if (payload.owner.fullName && !existingUser.fullName) {
-            updates.fullName = payload.owner.fullName
-          }
-          if (Object.keys(updates).length) {
-            tx.update(users).set(updates).where(eq(users.id, existingUser.id)).run()
-          }
-        }
-
-        tx.insert(organizationMemberships)
-          .values({
-            id: createId(),
-            organizationId,
-            userId: ownerUserId,
-            role: 'owner',
-            status: 'active'
-          })
-          .run()
+    await db.transaction(async (tx) => {
+      await tx.insert(organizations).values({
+        id: organizationId,
+        name: payload.name,
+        slug: payload.slug ?? slugify(payload.name),
+        tenantId: distributorTenantId,
+        status: 'active',
+        billingEmail: payload.billingEmail,
+        requireSso: false,
+        allowSelfSignup: false,
+        defaultRole: payload.defaultRole ?? 'viewer',
+        coreId: payload.coreId ? payload.coreId.toUpperCase() : null
       })
-    } else {
-      await db.transaction(async (tx) => {
-        await tx.insert(organizations).values({
-          id: organizationId,
-          name: payload.name,
-          slug: payload.slug ?? slugify(payload.name),
-          tenantId: distributorTenantId,
+
+      await tx.insert(organizationAuthSettings).values({
+        organizationId,
+        idpType: 'none',
+        ssoEnforced: false,
+        allowLocalLoginForOwners: true
+      })
+
+      if (!existingUser) {
+        await tx.insert(users).values({
+          id: ownerUserId,
+          email: normalizedOwnerEmail,
+          passwordHash: null,
+          fullName: payload.owner.fullName,
           status: 'active',
-          billingEmail: payload.billingEmail,
-          requireSso: false,
-          allowSelfSignup: false,
-          defaultRole: payload.defaultRole ?? 'viewer',
-          coreId: payload.coreId ? payload.coreId.toUpperCase() : null
+          defaultOrgId: organizationId,
+          forcePasswordReset: true
         })
-
-        await tx.insert(organizationAuthSettings).values({
-          organizationId,
-          idpType: 'none',
-          ssoEnforced: false,
-          allowLocalLoginForOwners: true
-        })
-
-        if (!existingUser) {
-          await tx.insert(users).values({
-            id: ownerUserId,
-            email: normalizedOwnerEmail,
-            passwordHash: null,
-            fullName: payload.owner.fullName,
-            status: 'active',
-            defaultOrgId: organizationId,
-            forcePasswordReset: true
-          })
-        } else {
-          const updates: Partial<typeof users.$inferInsert> = {}
-          if (!existingUser.defaultOrgId) {
-            updates.defaultOrgId = organizationId
-          }
-          if (payload.owner.fullName && !existingUser.fullName) {
-            updates.fullName = payload.owner.fullName
-          }
-          if (Object.keys(updates).length) {
-            await tx.update(users).set(updates).where(eq(users.id, existingUser.id))
-          }
+      } else {
+        const updates: Partial<typeof users.$inferInsert> = {}
+        if (!existingUser.defaultOrgId) {
+          updates.defaultOrgId = organizationId
         }
+        if (payload.owner.fullName && !existingUser.fullName) {
+          updates.fullName = payload.owner.fullName
+        }
+        if (Object.keys(updates).length) {
+          await tx.update(users).set(updates).where(eq(users.id, existingUser.id))
+        }
+      }
 
-        await tx.insert(organizationMemberships).values({
-          id: createId(),
-          organizationId,
-          userId: ownerUserId,
-          role: 'owner',
-          status: 'active'
-        })
+      await tx.insert(organizationMemberships).values({
+        id: createId(),
+        organizationId,
+        userId: ownerUserId,
+        role: 'owner',
+        status: 'active'
       })
-    }
+    })
   } catch (error: any) {
     if (
       typeof error?.message === 'string' &&

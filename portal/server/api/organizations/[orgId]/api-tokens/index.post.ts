@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
   const tokenId = createId()
   const now = new Date()
 
-  db.insert(orgApiTokens)
+  await db.insert(orgApiTokens)
     .values({
       id: tokenId,
       organizationId: orgId,
@@ -75,7 +75,6 @@ export default defineEventHandler(async (event) => {
       createdAt: now,
       updatedAt: now,
     })
-    .run()
 
   // Audit log
   await logAuditEvent(event, 'API_TOKEN_CREATED', {

@@ -104,43 +104,21 @@ export default defineEventHandler(async (event) => {
 
   // Update permissions if provided (atomically in transaction)
   if (payload.permissions !== undefined) {
-    const isSqlite =
-      (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
+    await db.transaction(async (tx) => {
+      // Delete existing permissions
+      await tx.delete(mspRolePermissions).where(eq(mspRolePermissions.roleId, roleId))
 
-    if (isSqlite) {
-      await db.transaction((tx) => {
-        // Delete existing permissions
-        tx.delete(mspRolePermissions).where(eq(mspRolePermissions.roleId, roleId)).run()
-
-        // Insert new permissions
-        if (payload.permissions && payload.permissions.length > 0) {
-          tx.insert(mspRolePermissions).values(
-            payload.permissions.map((perm) => ({
-              roleId,
-              moduleKey: perm.moduleKey,
-              permissionKey: perm.permissionKey
-            }))
-          ).run()
-        }
-      })
-    } else {
-      // MySQL transaction
-      await (db as any).transaction(async (tx: any) => {
-        // Delete existing permissions
-        await tx.delete(mspRolePermissions).where(eq(mspRolePermissions.roleId, roleId))
-
-        // Insert new permissions
-        if (payload.permissions && payload.permissions.length > 0) {
-          await tx.insert(mspRolePermissions).values(
-            payload.permissions.map((perm: any) => ({
-              roleId,
-              moduleKey: perm.moduleKey,
-              permissionKey: perm.permissionKey
-            }))
-          )
-        }
-      })
-    }
+      // Insert new permissions
+      if (payload.permissions && payload.permissions.length > 0) {
+        await tx.insert(mspRolePermissions).values(
+          payload.permissions.map((perm) => ({
+            roleId,
+            moduleKey: perm.moduleKey,
+            permissionKey: perm.permissionKey
+          }))
+        )
+      }
+    })
   }
 
   // Audit log
