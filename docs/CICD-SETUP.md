@@ -9,12 +9,13 @@ Denna guide beskriver steg för steg hur du sätter upp GitHub Actions CI/CD fö
 3. [Del 1: Förbered applikationsservrarna](#del-1-förbered-applikationsservrarna)
 4. [Del 2: Generera SSH-nycklar för deployment](#del-2-generera-ssh-nycklar-för-deployment)
 5. [Del 3: Konfigurera GitHub Repository](#del-3-konfigurera-github-repository)
-6. [Del 4: Konfigurera databas](#del-4-konfigurera-databas)
-7. [Del 5: Konfigurera Traefik](#del-5-konfigurera-traefik)
-8. [Del 6: Första deployment](#del-6-första-deployment)
-9. [Del 7: Verifiering](#del-7-verifiering)
-10. [Felsökning](#felsökning)
-11. [Rollback-procedur](#rollback-procedur)
+6. [Del 4: Secrets-hantering](#del-4-secrets-hantering)
+7. [Del 5: Konfigurera databas](#del-5-konfigurera-databas)
+8. [Del 6: Konfigurera Traefik](#del-6-konfigurera-traefik)
+9. [Del 7: Första deployment](#del-7-första-deployment)
+10. [Del 8: Verifiering](#del-8-verifiering)
+11. [Felsökning](#felsökning)
+12. [Rollback-procedur](#rollback-procedur)
 
 ---
 
@@ -145,19 +146,19 @@ sudo apt install -y curl wget git build-essential
 sudo apt install -y curl wget git build-essential
 ```
 
-### 1.3 Installera Node.js 20 LTS
+### 1.3 Installera Node.js 22 LTS
 
 **[DEV-SERVER]**
 ```bash
 # Lägg till NodeSource repository
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 
 # Installera Node.js
 sudo apt install -y nodejs
 
 # Verifiera installation
 node --version
-# Förväntat: v20.x.x
+# Förväntat: v22.x.x
 
 npm --version
 # Förväntat: 10.x.x
@@ -166,7 +167,7 @@ npm --version
 **[PROD-SERVER]**
 ```bash
 # Lägg till NodeSource repository
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 
 # Installera Node.js
 sudo apt install -y nodejs
@@ -296,24 +297,30 @@ NUXT_PUBLIC_APP_URL=https://dev.portal.example.com
 DB_HOST=galera-vip.internal
 DB_PORT=3306
 DB_USER=cloudportal_dev
-DB_PASSWORD=ÄNDRA_TILL_SÄKERT_LÖSENORD
+DB_PASSWORD=               # $(openssl rand -base64 24)
 DB_NAME=cloudportal_dev
 
 # Authentication
-# Generera med: openssl rand -base64 32
-AUTH_JWT_SECRET=ÄNDRA_TILL_MINST_32_TECKEN_HEMLIGHET
-AUTH_SERVICE_TOKEN=ÄNDRA_TILL_MINST_16_TECKEN_TOKEN
+AUTH_JWT_SECRET=           # $(openssl rand -base64 32)
+AUTH_SERVICE_TOKEN=        # $(openssl rand -base64 16)
 
 # Cloudflare (om tillämpligt)
 CLOUDFLARE_TOKEN=din_cloudflare_api_token
-CLOUDFLARE_CRYPTO_KEY=GENERERA_32_BYTE_BASE64_KEY
+CLOUDFLARE_CRYPTO_KEY=     # $(openssl rand -base64 32)
 
 # Email
-EMAIL_CRYPTO_KEY=GENERERA_32_BYTE_BASE64_KEY
+EMAIL_CRYPTO_KEY=          # $(openssl rand -base64 32)
 
 # Traefik integration
 TRAEFIK_DOMAINS_ENABLED=false
 ```
+
+> **Tips:** Generera värden direkt i terminalen och klistra in:
+> ```bash
+> openssl rand -base64 32   # För JWT_SECRET och CRYPTO_KEY
+> openssl rand -base64 24   # För DB_PASSWORD
+> openssl rand -base64 16   # För SERVICE_TOKEN
+> ```
 
 Spara filen (Ctrl+X, Y, Enter).
 
@@ -343,20 +350,19 @@ NUXT_PUBLIC_APP_URL=https://portal.example.com
 DB_HOST=galera-vip.internal
 DB_PORT=3306
 DB_USER=cloudportal_prod
-DB_PASSWORD=ÄNDRA_TILL_SÄKERT_LÖSENORD
+DB_PASSWORD=               # $(openssl rand -base64 24)
 DB_NAME=cloudportal_prod
 
 # Authentication
-# Generera med: openssl rand -base64 32
-AUTH_JWT_SECRET=ÄNDRA_TILL_MINST_32_TECKEN_HEMLIGHET
-AUTH_SERVICE_TOKEN=ÄNDRA_TILL_MINST_16_TECKEN_TOKEN
+AUTH_JWT_SECRET=           # $(openssl rand -base64 32)
+AUTH_SERVICE_TOKEN=        # $(openssl rand -base64 16)
 
 # Cloudflare (om tillämpligt)
 CLOUDFLARE_TOKEN=din_cloudflare_api_token
-CLOUDFLARE_CRYPTO_KEY=GENERERA_32_BYTE_BASE64_KEY
+CLOUDFLARE_CRYPTO_KEY=     # $(openssl rand -base64 32)
 
 # Email
-EMAIL_CRYPTO_KEY=GENERERA_32_BYTE_BASE64_KEY
+EMAIL_CRYPTO_KEY=          # $(openssl rand -base64 32)
 
 # Traefik integration
 TRAEFIK_DOMAINS_ENABLED=true
@@ -370,17 +376,7 @@ sudo chmod 600 /opt/cloudportal/shared/.env
 sudo chown cloudportal:cloudportal /opt/cloudportal/shared/.env
 ```
 
-> **Tips:** Generera säkra värden med:
-> ```bash
-> # För AUTH_JWT_SECRET (32+ tecken)
-> openssl rand -base64 32
->
-> # För AUTH_SERVICE_TOKEN (16+ tecken)
-> openssl rand -base64 16
->
-> # För CRYPTO_KEY (32 bytes base64)
-> openssl rand -base64 32
-> ```
+> **VIKTIGT:** Använd ALDRIG samma secrets för dev och prod! Generera unika värden för varje miljö.
 
 ### 1.9 Skapa systemd service
 
@@ -754,9 +750,147 @@ Din GitHub-konfiguration ska nu se ut så här:
 
 ---
 
-## Del 4: Konfigurera databas
+## Del 4: Secrets-hantering
 
-### 4.1 Skapa databaser och användare
+Denna sektion beskriver best practices för att hantera känsliga uppgifter (secrets) i din CI/CD-pipeline.
+
+### 4.1 Översikt av secrets-typer
+
+| Typ | Var lagras | Användning |
+|-----|-----------|------------|
+| **SSH-nycklar** | GitHub Secrets | Deployment till servrar |
+| **Applikations-secrets** | Server `.env`-fil | Runtime-konfiguration |
+| **Databas-lösenord** | Server `.env`-fil | Databasanslutning |
+| **API-tokens** | Server `.env`-fil | Externa tjänster |
+
+### 4.2 GitHub Secrets vs Server Secrets
+
+**GitHub Secrets** används för:
+- SSH-nycklar för deployment
+- Server-hostnames och användarnamn
+- Known hosts för SSH-verifiering
+
+**Server `.env`-filer** används för:
+- Applikationskonfiguration (JWT secrets, API-tokens)
+- Databasanslutningar
+- Miljöspecifika inställningar
+
+> **Varför inte alla secrets i GitHub?**
+> - `.env`-filer ger bättre separation mellan infrastruktur och applikation
+> - Enklare att rotera applikations-secrets utan att ändra CI/CD
+> - Secrets exponeras aldrig i build-loggar
+> - Lokala utvecklare kan ha egna `.env`-filer
+
+### 4.3 Generera säkra secrets
+
+**[LOKAL DATOR]** eller **[DEV-SERVER]**
+
+Generera alla secrets innan du konfigurerar `.env`-filerna:
+
+```bash
+# Generera AUTH_JWT_SECRET (minst 32 tecken, används för JWT-signering)
+echo "AUTH_JWT_SECRET=$(openssl rand -base64 32)"
+
+# Generera AUTH_SERVICE_TOKEN (minst 16 tecken, används för interna API-anrop)
+echo "AUTH_SERVICE_TOKEN=$(openssl rand -base64 16)"
+
+# Generera CLOUDFLARE_CRYPTO_KEY (32 bytes, används för kryptering)
+echo "CLOUDFLARE_CRYPTO_KEY=$(openssl rand -base64 32)"
+
+# Generera EMAIL_CRYPTO_KEY (32 bytes, används för e-postkryptering)
+echo "EMAIL_CRYPTO_KEY=$(openssl rand -base64 32)"
+
+# Generera DB_PASSWORD (säkert databaslösenord)
+echo "DB_PASSWORD=$(openssl rand -base64 24)"
+```
+
+Kopiera output och klistra in i respektive `.env`-fil.
+
+> **VIKTIGT:** Generera ALLTID unika secrets för varje miljö (dev/prod)!
+
+### 4.4 Alternativ: Använda GitHub Secrets för applikations-secrets
+
+Om du föredrar att hantera alla secrets via GitHub kan du modifiera deployment-workflow:n för att injicera secrets vid deploy.
+
+**Lägg till Environment Secrets i GitHub:**
+
+| Secret | Environment | Beskrivning |
+|--------|-------------|-------------|
+| `APP_AUTH_JWT_SECRET` | development / production | JWT-signeringsnyckel |
+| `APP_AUTH_SERVICE_TOKEN` | development / production | Intern service-token |
+| `APP_DB_PASSWORD` | development / production | Databaslösenord |
+| `APP_CLOUDFLARE_TOKEN` | development / production | Cloudflare API-token |
+| `APP_CLOUDFLARE_CRYPTO_KEY` | development / production | Krypteringsnyckel |
+| `APP_EMAIL_CRYPTO_KEY` | development / production | E-postkrypteringsnyckel |
+
+**Modifiera deploy workflow** (`.github/workflows/deploy-dev.yml`):
+
+Lägg till ett steg efter "Deploy to server" som uppdaterar `.env`:
+
+```yaml
+      - name: Update application secrets
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          APP_AUTH_JWT_SECRET: ${{ secrets.APP_AUTH_JWT_SECRET }}
+          APP_AUTH_SERVICE_TOKEN: ${{ secrets.APP_AUTH_SERVICE_TOKEN }}
+          APP_DB_PASSWORD: ${{ secrets.APP_DB_PASSWORD }}
+          APP_CLOUDFLARE_TOKEN: ${{ secrets.APP_CLOUDFLARE_TOKEN }}
+          APP_CLOUDFLARE_CRYPTO_KEY: ${{ secrets.APP_CLOUDFLARE_CRYPTO_KEY }}
+          APP_EMAIL_CRYPTO_KEY: ${{ secrets.APP_EMAIL_CRYPTO_KEY }}
+        run: |
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} << 'ENVSSH'
+            # Uppdatera secrets i .env-filen
+            sed -i "s|^AUTH_JWT_SECRET=.*|AUTH_JWT_SECRET=${APP_AUTH_JWT_SECRET}|" /opt/cloudportal/shared/.env
+            sed -i "s|^AUTH_SERVICE_TOKEN=.*|AUTH_SERVICE_TOKEN=${APP_AUTH_SERVICE_TOKEN}|" /opt/cloudportal/shared/.env
+            sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${APP_DB_PASSWORD}|" /opt/cloudportal/shared/.env
+            sed -i "s|^CLOUDFLARE_TOKEN=.*|CLOUDFLARE_TOKEN=${APP_CLOUDFLARE_TOKEN}|" /opt/cloudportal/shared/.env
+            sed -i "s|^CLOUDFLARE_CRYPTO_KEY=.*|CLOUDFLARE_CRYPTO_KEY=${APP_CLOUDFLARE_CRYPTO_KEY}|" /opt/cloudportal/shared/.env
+            sed -i "s|^EMAIL_CRYPTO_KEY=.*|EMAIL_CRYPTO_KEY=${APP_EMAIL_CRYPTO_KEY}|" /opt/cloudportal/shared/.env
+          ENVSSH
+```
+
+> **Fördelar med GitHub Secrets för allt:**
+> - Centraliserad hantering av alla secrets
+> - Enkel rotation via GitHub UI
+> - Audit trail i GitHub
+>
+> **Nackdelar:**
+> - Mer komplex workflow
+> - Secrets syns i deploy-steg (dock maskerade)
+> - Svårare för lokal utveckling
+
+### 4.5 Rotera secrets
+
+**Att rotera applikations-secrets:**
+
+1. Generera nya värden med `openssl rand -base64 32`
+2. Uppdatera `.env`-filen på servern (eller GitHub Secret)
+3. Starta om applikationen: `sudo systemctl restart cloudportal`
+
+**Att rotera SSH deploy-nycklar:**
+
+1. Generera nya nycklar (se [Del 2](#del-2-generera-ssh-nycklar-för-deployment))
+2. Lägg till nya publika nycklar på servrarna
+3. Uppdatera GitHub Secrets med nya privata nycklar
+4. Ta bort gamla publika nycklar från servrarna
+
+### 4.6 Secrets-checklista
+
+Innan du går vidare, verifiera att du har:
+
+- [ ] Genererat unika AUTH_JWT_SECRET för dev och prod
+- [ ] Genererat unika AUTH_SERVICE_TOKEN för dev och prod
+- [ ] Genererat unika DB_PASSWORD för dev och prod
+- [ ] Genererat unika CRYPTO_KEY för dev och prod
+- [ ] Konfigurerat SSH-nycklar i GitHub Secrets
+- [ ] Verifierat att `.env`-filer har korrekta rättigheter (600)
+
+---
+
+## Del 5: Konfigurera databas
+
+### 5.1 Skapa databaser och användare
 
 **[GALERA-CLUSTER]** (anslut till valfri nod i klustret)
 
@@ -811,7 +945,7 @@ SELECT User, Host FROM mysql.user WHERE User LIKE 'cloudportal%';
 EXIT;
 ```
 
-### 4.2 Testa databasanslutning
+### 5.2 Testa databasanslutning
 
 **[DEV-SERVER]**
 ```bash
@@ -833,9 +967,9 @@ mysql -h galera-vip.internal -u cloudportal_prod -p cloudportal_prod -e "SELECT 
 
 ---
 
-## Del 5: Konfigurera Traefik
+## Del 6: Konfigurera Traefik
 
-### 5.1 Skapa routing-konfiguration för Development
+### 6.1 Skapa routing-konfiguration för Development
 
 **[TRAEFIK-SERVER]** (i DMZ)
 ```bash
@@ -877,7 +1011,7 @@ http:
           Referrer-Policy: "strict-origin-when-cross-origin"
 ```
 
-### 5.2 Skapa routing-konfiguration för Production
+### 6.2 Skapa routing-konfiguration för Production
 
 **[TRAEFIK-SERVER]**
 ```bash
@@ -926,7 +1060,7 @@ http:
         burst: 50
 ```
 
-### 5.3 Verifiera Traefik-konfiguration
+### 6.3 Verifiera Traefik-konfiguration
 
 **[TRAEFIK-SERVER]**
 ```bash
@@ -942,9 +1076,9 @@ docker exec traefik traefik healthcheck
 
 ---
 
-## Del 6: Första deployment
+## Del 7: Första deployment
 
-### 6.1 Verifiera att workflow-filer finns
+### 7.1 Verifiera att workflow-filer finns
 
 Kontrollera att följande filer finns i ditt repository:
 
@@ -956,7 +1090,7 @@ Kontrollera att följande filer finns i ditt repository:
     └── deploy-prod.yml  # Deploy till production
 ```
 
-### 6.2 Pusha till dev-branchen
+### 7.2 Pusha till dev-branchen
 
 **[LOKAL DATOR]**
 ```bash
@@ -971,7 +1105,7 @@ git commit -m "Trigger initial deployment"
 git push origin dev
 ```
 
-### 6.3 Övervaka deployment i GitHub Actions
+### 7.3 Övervaka deployment i GitHub Actions
 
 1. Gå till ditt GitHub-repository
 2. Klicka på **Actions**-fliken
@@ -982,7 +1116,7 @@ git push origin dev
 4. Klicka på **Deploy to Development** för att se detaljerna
 5. Vänta tills alla steg är gröna ✅
 
-### 6.4 Initialisera databasen (endast första gången)
+### 7.4 Initialisera databasen (endast första gången)
 
 Efter första deployment måste du köra databasmigrationer och seeda initial data.
 
@@ -1009,7 +1143,7 @@ exit
 
 > **OBS:** Migrationer körs automatiskt vid varje deployment via workflow-filen, men initial seeding måste göras manuellt.
 
-### 6.5 Deploy till Production
+### 7.5 Deploy till Production
 
 1. Skapa en Pull Request från `dev` till `main`
 2. Granska och godkänn PR:en
@@ -1032,9 +1166,9 @@ exit
 
 ---
 
-## Del 7: Verifiering
+## Del 8: Verifiering
 
-### 7.1 Kontrollera tjänstestatus
+### 8.1 Kontrollera tjänstestatus
 
 **[DEV-SERVER]**
 ```bash
@@ -1055,7 +1189,7 @@ sudo systemctl status cloudportal
 sudo journalctl -u cloudportal -n 50 --no-pager
 ```
 
-### 7.2 Testa health endpoint lokalt
+### 8.2 Testa health endpoint lokalt
 
 **[DEV-SERVER]**
 ```bash
@@ -1081,7 +1215,7 @@ curl -s http://localhost:3000/api/health | jq .
 curl -s http://localhost:3000/api/health | jq .
 ```
 
-### 7.3 Testa via Traefik (extern åtkomst)
+### 8.3 Testa via Traefik (extern åtkomst)
 
 **[LOKAL DATOR]**
 ```bash
@@ -1092,7 +1226,7 @@ curl -s https://dev.portal.example.com/api/health | jq .
 curl -s https://portal.example.com/api/health | jq .
 ```
 
-### 7.4 Verifiera release-katalogen
+### 8.4 Verifiera release-katalogen
 
 **[DEV-SERVER]**
 ```bash
@@ -1105,7 +1239,7 @@ ls -la /opt/cloudportal/current
 # Ska peka på senaste release
 ```
 
-### 7.5 Checklista för verifiering
+### 8.5 Checklista för verifiering
 
 | Kontroll | DEV | PROD |
 |----------|-----|------|
@@ -1283,7 +1417,7 @@ Denna fil deployar till prod-servern vid push till `main`-branchen, men kräver 
 
 Efter att ha följt denna guide har du:
 
-1. ✅ Två Ubuntu-servrar konfigurerade med Node.js och pnpm
+1. ✅ Två Ubuntu-servrar konfigurerade med Node.js 22 LTS och pnpm
 2. ✅ Dedikerad `cloudportal`-användare med rätt behörigheter
 3. ✅ Systemd-tjänst för automatisk start och övervakning
 4. ✅ SSH-nycklar för säker deployment från GitHub Actions
