@@ -418,6 +418,10 @@
     "news": "News",
     "noNews": "No news at the moment.",
     "module": "Module",
+    "activeIncidents": "Active incidents",
+    "noActiveIncidents": "All systems operational",
+    "viewIncidents": "View all incidents",
+    "moreIncidents": "more",
     "statusLabels": {
       "ok": "OK",
       "degraded": "Degraded",
@@ -1545,7 +1549,12 @@
       },
       "health": {
         "title": "System health",
-        "lastSync": "Last synced"
+        "lastSync": "Last synced",
+        "database": "Database",
+        "checking": "Checking...",
+        "refresh": "Refresh",
+        "unconfigured": "Not configured",
+        "checkedAt": "Checked at"
       },
       "activity": {
         "title": "Recent activity",

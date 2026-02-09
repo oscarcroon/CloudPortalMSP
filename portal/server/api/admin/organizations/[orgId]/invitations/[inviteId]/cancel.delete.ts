@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Saknar inbjudnings-ID.' })
   }
 
-  const invitation = await getDb()
+  const [invitation] = await getDb()
     .select({
       id: organizationInvitations.id,
       organizationId: organizationInvitations.organizationId,
@@ -22,7 +22,6 @@ export default defineEventHandler(async (event) => {
     })
     .from(organizationInvitations)
     .where(and(eq(organizationInvitations.id, inviteId), eq(organizationInvitations.organizationId, organization.id)))
-    .get()
 
   if (!invitation) {
     throw createError({ statusCode: 404, message: 'Inbjudan hittades inte.' })

@@ -26,6 +26,7 @@ let globalFeedInstance: OperationsFeedInstance | null = null
 export interface FeedIncident {
   id: string
   title: string
+  slug: string
   bodyMarkdown: string | null
   severity: 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
   status: 'active' | 'resolved'

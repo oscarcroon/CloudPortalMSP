@@ -32,6 +32,10 @@ const manifest = definePluginManifest({
     { key: 'windows-dns:redirects:traefik:view', description: 'View Traefik sync status.' },
     { key: 'windows-dns:redirects:traefik:sync', description: 'Trigger Traefik configuration sync.' }
   ],
+  healthCheck: {
+    endpoint: '/api/dns/windows/health?mode=infra',
+    label: 'Windows DNS Layer'
+  },
   rbacDefaults: {
     owner: [
       // DNS core

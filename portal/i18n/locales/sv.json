@@ -413,6 +413,10 @@
     "news": "Nyheter",
     "noNews": "Inga nyheter just nu.",
     "module": "Modul",
+    "activeIncidents": "Aktiva incidenter",
+    "noActiveIncidents": "Alla system fungerar normalt",
+    "viewIncidents": "Visa alla incidenter",
+    "moreIncidents": "till",
     "statusLabels": {
       "ok": "OK",
       "degraded": "Degraded",
@@ -1540,7 +1544,12 @@
       },
       "health": {
         "title": "Systemhälsa",
-        "lastSync": "Senast synkad"
+        "lastSync": "Senast synkad",
+        "database": "Databas",
+        "checking": "Kontrollerar...",
+        "refresh": "Uppdatera",
+        "unconfigured": "Ej konfigurerad",
+        "checkedAt": "Kontrollerad"
       },
       "activity": {
         "title": "Senaste aktivitet",

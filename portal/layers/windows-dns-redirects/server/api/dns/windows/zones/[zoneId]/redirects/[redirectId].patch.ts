@@ -288,11 +288,16 @@ export default defineEventHandler(async (event) => {
   }
 
   // Update the redirect
-  const [redirect] = await db
+  await db
     .update(windowsDnsRedirects)
     .set(updateData)
     .where(eq(windowsDnsRedirects.id, redirectId))
-    .returning() as any[]
+
+  const [redirect] = await db
+    .select()
+    .from(windowsDnsRedirects)
+    .where(eq(windowsDnsRedirects.id, redirectId))
+    .limit(1)
 
   if (!redirect) {
     throw createError({ statusCode: 404, message: 'Redirect not found after update.' })

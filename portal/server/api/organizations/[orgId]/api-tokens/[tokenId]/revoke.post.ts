@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
 
   // Find the token
-  const token = db
+  const [token] = await db
     .select()
     .from(orgApiTokens)
     .where(
@@ -37,7 +37,6 @@ export default defineEventHandler(async (event) => {
         eq(orgApiTokens.organizationId, orgId)
       )
     )
-    .get()
 
   if (!token) {
     throw createError({

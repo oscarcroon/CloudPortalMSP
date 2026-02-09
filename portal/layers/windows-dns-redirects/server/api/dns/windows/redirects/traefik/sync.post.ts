@@ -55,14 +55,18 @@ export default defineEventHandler(async (event) => {
     .limit(1)
 
   if (!config) {
-    ;[config] = await db
+    await db
       .insert(windowsDnsRedirectOrgConfig)
       .values({
         organizationId: orgId,
         traefikConfigPath: null,
         lastConfigSync: null
       })
-      .returning()
+    ;[config] = await db
+      .select()
+      .from(windowsDnsRedirectOrgConfig)
+      .where(eq(windowsDnsRedirectOrgConfig.organizationId, orgId))
+      .limit(1)
   }
 
   // Get all active redirects for this organization

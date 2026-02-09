@@ -56,15 +56,50 @@
     <div class="grid gap-6 lg:grid-cols-2">
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card transition-colors dark:border-slate-700 dark:bg-slate-900/70">
         <div class="flex items-center gap-3">
-          <Icon icon="mdi:chart-line" class="h-6 w-6 text-brand" />
-          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('dashboard.status') }}</h3>
+          <Icon icon="mdi:alert-circle-outline" class="h-6 w-6 text-brand" />
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('dashboard.activeIncidents') }}</h3>
         </div>
-        <ul class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-          <li v-for="item in statusItems" :key="item.label" class="flex items-center justify-between">
-            <span>{{ item.label }}</span>
-            <StatusPill :variant="item.variant" dot>{{ item.value }}</StatusPill>
-          </li>
-        </ul>
+
+        <!-- Has active incidents -->
+        <template v-if="activeIncidents.length > 0">
+          <ul class="mt-4 space-y-2">
+            <li
+              v-for="incident in activeIncidents.slice(0, 5)"
+              :key="incident.id"
+              class="flex items-center gap-3 rounded-lg border px-3 py-2"
+              :class="dashboardIncidentBorderClass(incident.severity)"
+            >
+              <Icon :icon="dashboardIncidentIcon(incident.severity)" class="h-4 w-4 flex-shrink-0" :class="dashboardIncidentIconClass(incident.severity)" />
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{{ incident.title }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ incident.sourceTenantName }}</p>
+              </div>
+              <StatusPill :variant="incidentSeverityVariant(incident.severity)" dot>
+                {{ incident.severity }}
+              </StatusPill>
+            </li>
+          </ul>
+          <div v-if="activeIncidents.length > 5" class="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">
+            +{{ activeIncidents.length - 5 }} {{ t('dashboard.moreIncidents') }}
+          </div>
+        </template>
+
+        <!-- No active incidents -->
+        <div v-else class="mt-4 flex flex-col items-center py-4 text-center">
+          <Icon icon="mdi:check-circle-outline" class="h-10 w-10 text-emerald-500" />
+          <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ t('dashboard.noActiveIncidents') }}</p>
+        </div>
+
+        <!-- Footer link -->
+        <div class="mt-4 text-center">
+          <NuxtLink
+            to="/operations"
+            class="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+          >
+            {{ t('dashboard.viewIncidents') }}
+            <Icon icon="heroicons:arrow-right" class="h-4 w-4" />
+          </NuxtLink>
+        </div>
       </div>
 
       <div class="rounded-2xl border border-slate-100 bg-white p-6 shadow-card transition-colors dark:border-slate-700 dark:bg-slate-900/70">
@@ -161,7 +196,7 @@ const router = useRouter()
 const auth = useAuth()
 const { modules: allModules, loading, fetchVisibleModules } = useModules()
 const { toggleFavorite, isFavorite, pending: favoritesPending } = useFavorites()
-const { latestNews, loading: newsLoading, fetchFeed } = useOperationsFeed()
+const { latestNews, activeIncidents, loading: newsLoading, fetchFeed } = useOperationsFeed()
 
 // News filter: 'all' | 'distributor' | 'provider'
 type NewsFilter = 'all' | 'distributor' | 'provider'
@@ -233,15 +268,47 @@ function getModuleDescription(module: { descriptionKey?: string; description?: s
   return module.description ?? ''
 }
 
-const statusItems = [
-  { label: 'Cloudflare API', value: t('dashboard.statusLabels.ok'), variant: 'success' },
-  { label: 'Incus cluster', value: t('dashboard.statusLabels.degraded'), variant: 'warning' },
-  { label: 'VM platform', value: t('dashboard.statusLabels.ok'), variant: 'success' },
-  { label: 'WordPress', value: t('dashboard.statusLabels.maintenance'), variant: 'danger' }
-] as const
-
-
 const organisations = auth.organizations
+
+function dashboardIncidentIcon(severity: string): string {
+  switch (severity) {
+    case 'critical': return 'mdi:alert-circle'
+    case 'outage': return 'mdi:alert'
+    case 'maintenance': return 'mdi:wrench'
+    case 'planned': return 'mdi:calendar-clock'
+    default: return 'mdi:information'
+  }
+}
+
+function dashboardIncidentIconClass(severity: string): string {
+  switch (severity) {
+    case 'critical': return 'text-red-500'
+    case 'outage': return 'text-orange-500'
+    case 'maintenance':
+    case 'planned': return 'text-blue-500'
+    default: return 'text-amber-500'
+  }
+}
+
+function dashboardIncidentBorderClass(severity: string): string {
+  switch (severity) {
+    case 'critical': return 'border-red-200 bg-red-50/50 dark:border-red-500/30 dark:bg-red-500/5'
+    case 'outage': return 'border-orange-200 bg-orange-50/50 dark:border-orange-500/30 dark:bg-orange-500/5'
+    case 'maintenance':
+    case 'planned': return 'border-blue-200 bg-blue-50/50 dark:border-blue-500/30 dark:bg-blue-500/5'
+    default: return 'border-slate-200 dark:border-white/10'
+  }
+}
+
+function incidentSeverityVariant(severity: string): string {
+  switch (severity) {
+    case 'critical': return 'danger'
+    case 'outage': return 'warning'
+    case 'maintenance':
+    case 'planned': return 'info'
+    default: return 'info'
+  }
+}
 
 onMounted(async () => {
   await Promise.all([

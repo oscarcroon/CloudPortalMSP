@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const normalizedEmail = normalizeEmail(tenantInviteRow.email)
-    const existingUser = await db
+    const [existingUser] = await db
       .select({
         id: users.id,
         hasPassword: users.passwordHash
@@ -93,7 +93,6 @@ export default defineEventHandler(async (event) => {
       .from(users)
       .where(eq(users.email, normalizedEmail))
       .limit(1)
-      .get()
 
     const auth = (await ensureAuthState(event)) ?? null
     const authEmail = auth?.user?.email ? normalizeEmail(auth.user.email as string) : null
@@ -196,7 +195,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const normalizedEmail = normalizeEmail(row.email)
-  const existingUser = await db
+  const [existingUser] = await db
     .select({
       id: users.id,
       hasPassword: users.passwordHash
@@ -204,7 +203,6 @@ export default defineEventHandler(async (event) => {
     .from(users)
     .where(eq(users.email, normalizedEmail))
     .limit(1)
-    .get()
 
   const auth = await ensureAuthState(event)
     const authEmail = auth?.user?.email ? normalizeEmail(auth.user.email as string) : null

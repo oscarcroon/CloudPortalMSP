@@ -105,7 +105,7 @@ export async function tryOrgApiToken(event: H3Event): Promise<OrgApiTokenContext
         isNull(orgApiTokens.revokedAt)
       )
     )
-    .get()
+    .then(rows => rows[0])
 
   if (!tokenRecord) {
     await logSecurityEvent(event, 'PERMISSION_DENIED', {

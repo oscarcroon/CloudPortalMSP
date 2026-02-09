@@ -394,32 +394,75 @@
       <div class="space-y-6 lg:col-span-4">
         <!-- System Health Card -->
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-slate-900/70">
-          <div class="flex items-center gap-3">
-            <Icon icon="mdi:heart-pulse" class="h-6 w-6 text-brand" />
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {{ t('admin.tenantAdmin.health.title') }}
-            </h2>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <Icon icon="mdi:heart-pulse" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {{ t('admin.tenantAdmin.health.title') }}
+              </h2>
+            </div>
+            <button
+              class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-400 dark:hover:bg-white/5"
+              :disabled="healthPending"
+              @click="refreshHealth()"
+            >
+              <Icon icon="mdi:refresh" class="h-3.5 w-3.5" :class="{ 'animate-spin': healthPending }" />
+              {{ t('admin.tenantAdmin.health.refresh') }}
+            </button>
           </div>
-          <div class="mt-4 space-y-3">
+
+          <!-- Loading state -->
+          <div v-if="healthPending && !healthData" class="mt-4 space-y-3">
+            <div v-for="i in 2" :key="i" class="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 dark:border-white/5 dark:bg-white/5">
+              <div class="h-4 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+              <div class="h-5 w-16 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
+            </div>
+          </div>
+
+          <!-- Health results -->
+          <div v-else-if="healthData" class="mt-4 space-y-3">
+            <!-- Database row -->
+            <div class="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 dark:border-white/5 dark:bg-white/5">
+              <div class="flex items-center gap-2">
+                <Icon icon="mdi:database" class="h-4 w-4 text-slate-500" />
+                <span class="text-sm text-slate-700 dark:text-slate-300">{{ t('admin.tenantAdmin.health.database') }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span v-if="healthData.database.latency_ms" class="text-xs text-slate-400">{{ healthData.database.latency_ms }}ms</span>
+                <span
+                  class="rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="getStatusClass(healthData.database.status)"
+                >
+                  {{ healthData.database.status }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Integration rows -->
             <div
-              v-for="integration in integrations"
-              :key="integration.name"
+              v-for="integration in healthData.integrations"
+              :key="integration.key"
               class="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 dark:border-white/5 dark:bg-white/5"
             >
               <div class="flex items-center gap-2">
-                <Icon :icon="integration.icon" class="h-4 w-4 text-slate-500" />
-                <span class="text-sm text-slate-700 dark:text-slate-300">{{ integration.name }}</span>
+                <Icon :icon="getIntegrationIcon(integration.key)" class="h-4 w-4 text-slate-500" />
+                <span class="text-sm text-slate-700 dark:text-slate-300">{{ integration.label }}</span>
               </div>
-              <span
-                class="rounded-full px-2 py-0.5 text-xs font-medium"
-                :class="getStatusClass(integration.status)"
-              >
-                {{ integration.status }}
-              </span>
+              <div class="flex items-center gap-2">
+                <span v-if="integration.latency_ms" class="text-xs text-slate-400">{{ integration.latency_ms }}ms</span>
+                <span
+                  class="rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="getStatusClass(integration.status)"
+                  :title="integration.message"
+                >
+                  {{ integration.status }}
+                </span>
+              </div>
             </div>
           </div>
-          <p class="mt-4 text-xs text-slate-400 dark:text-slate-500">
-            {{ t('admin.tenantAdmin.health.lastSync') }}: —
+
+          <p v-if="healthData?.checkedAt" class="mt-4 text-xs text-slate-400 dark:text-slate-500">
+            {{ t('admin.tenantAdmin.health.checkedAt') }}: {{ formatDateTime(healthData.checkedAt) }}
           </p>
         </div>
 
@@ -965,11 +1008,29 @@ const tenantActions = computed(() => {
   return actions
 })
 
-const integrations = [
-  { name: 'Cloudflare DNS', icon: 'mdi:shield-check', status: 'Unknown' },
-  { name: 'Windows DNS', icon: 'mdi:dns', status: 'Unknown' },
-  { name: 'RMM', icon: 'mdi:remote-desktop', status: 'Unknown' }
-]
+// --- System Health ---
+interface SystemHealthResponse {
+  database: { status: string; latency_ms: number; message?: string }
+  integrations: { key: string; label: string; status: string; latency_ms: number; message?: string }[]
+  checkedAt: string
+}
+
+const { data: healthData, pending: healthPending, refresh: refreshHealth } = (useFetch as any)(
+  '/api/admin/system-health',
+  {
+    default: () => null as SystemHealthResponse | null,
+    server: false,
+    lazy: true
+  }
+)
+
+function getIntegrationIcon(key: string): string {
+  switch (key) {
+    case 'cloudflare-dns': return 'mdi:shield-check'
+    case 'windows-dns': return 'mdi:dns'
+    default: return 'mdi:puzzle-outline'
+  }
+}
 
 function getStatusClass(status: string): string {
   switch (status.toLowerCase()) {

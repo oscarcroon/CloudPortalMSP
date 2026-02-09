@@ -76,7 +76,7 @@
               <NuxtLink
                 v-for="incident in displayedIncidents"
                 :key="incident.id"
-                :to="`/operations/incidents/${incident.id}`"
+                :to="`/incidents/${incident.slug}`"
                 class="flex items-start gap-3 rounded-md px-2 py-2 transition hover:bg-slate-50 dark:hover:bg-slate-700/50"
                 :class="{ 'bg-slate-50 dark:bg-slate-700/30': notifications.isIncidentUnread(incident) }"
                 @click="open = false"
@@ -114,7 +114,7 @@
               <NuxtLink
                 v-for="news in displayedNews"
                 :key="news.id"
-                :to="`/operations/news/${news.slug}`"
+                :to="`/news/${news.slug}`"
                 class="flex items-start gap-3 rounded-md px-2 py-2 transition hover:bg-slate-50 dark:hover:bg-slate-700/50"
                 :class="{ 'bg-slate-50 dark:bg-slate-700/30': notifications.isNewsUnread(news) }"
                 @click="open = false"

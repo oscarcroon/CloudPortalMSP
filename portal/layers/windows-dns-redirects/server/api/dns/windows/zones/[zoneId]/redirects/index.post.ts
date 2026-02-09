@@ -3,6 +3,7 @@
  * Create a new redirect for a zone
  */
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
+import { createId } from '@paralleldrive/cuid2'
 import { eq, and } from 'drizzle-orm'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
@@ -237,9 +238,11 @@ export default defineEventHandler(async (event) => {
   }
 
   // Create the redirect
-  const [redirect] = await db
+  const redirectId = createId()
+  await db
     .insert(windowsDnsRedirects)
     .values({
+      id: redirectId,
       organizationId: orgId,
       zoneId,
       zoneName,
@@ -251,7 +254,12 @@ export default defineEventHandler(async (event) => {
       isActive: body.isActive !== false,
       createdBy: auth.user.id
     })
-    .returning() as any[]
+
+  const [redirect] = await db
+    .select()
+    .from(windowsDnsRedirects)
+    .where(eq(windowsDnsRedirects.id, redirectId))
+    .limit(1)
 
   if (!redirect) {
     throw createError({ statusCode: 500, message: 'Failed to create redirect.' })

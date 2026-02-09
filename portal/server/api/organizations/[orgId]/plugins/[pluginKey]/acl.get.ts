@@ -23,18 +23,6 @@ export default defineEventHandler(async (event) => {
 
   const db = getDb()
 
-  // Ensure table exists (legacy DBs)
-  await db.run(sql`
-    CREATE TABLE IF NOT EXISTS plugin_acl_entries (
-      id text primary key,
-      organization_id text not null,
-      plugin_key text not null,
-      operation text not null,
-      group_id text not null,
-      created_at integer,
-      updated_at integer
-    )
-  `)
   const rows = await db
     .select({
       operation: pluginAclEntries.operation,

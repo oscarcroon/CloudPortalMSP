@@ -15,6 +15,10 @@ const manifest = definePluginManifest({
     { key: 'cloudflare-dns:manage_org_config', description: 'Manage Cloudflare API token for the organization.' },
     { key: 'cloudflare-dns:manage_acls', description: 'Manage zone ACLs inside the plugin.' }
   ],
+  healthCheck: {
+    endpoint: '/api/dns/cloudflare/health',
+    label: 'Cloudflare API'
+  },
   rbacDefaults: {
     owner: [
       'cloudflare-dns:view',

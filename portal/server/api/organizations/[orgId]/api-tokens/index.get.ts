@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
 
   // Get all tokens for the organization (not revoked)
-  const tokens = db
+  const tokens = await db
     .select({
       id: orgApiTokens.id,
       prefix: orgApiTokens.prefix,

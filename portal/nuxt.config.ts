@@ -1,4 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
+import { resolve, dirname } from 'node:path'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
 // i18n constants defined inline to avoid importing from app/ directory
 // which causes "Vue app aliases are not allowed in server runtime" error in Nitro
 const SUPPORTED_LOCALES = [
@@ -64,6 +69,9 @@ export default defineNuxtConfig({
   },
   nitro: {
     compatibilityDate: '2025-11-29',
+    alias: {
+      '~~/layers': resolve(__dirname, 'layers')
+    },
     routeRules: {
       '/api/uploads/logos/**': {
         headers: { 'cache-control': 'public, max-age=31536000' }
