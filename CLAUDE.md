@@ -71,6 +71,16 @@ npm run generate:openapi      # Generate OpenAPI specs
 2. Session validated on each request via Nitro middleware
 3. Multi-tenant with organization context switching
 
+### CSRF Protection
+Signed Double-Submit Cookie pattern on all state-changing requests (POST/PUT/DELETE/PATCH). See [`docs/CSRF.md`](docs/CSRF.md) for full details.
+
+- **Server middleware** (`server/middleware/csrf.ts`) validates `X-CSRF-Token` header against cookie + HMAC signature
+- **Client plugin** (`app/plugins/csrf.client.ts`) automatically injects the header on `$fetch` calls
+- **API client** (`app/composables/useApiClient.ts`) also injects via `onRequest` interceptor
+- Token utilities in `server/utils/csrf.ts` — derived from `AUTH_JWT_SECRET`, no extra env vars
+- Exempt paths: login, register, password reset, SSO, invite, introspect
+- Bearer/PAT auth is not CSRF-checked (not cookie-based)
+
 ### Authorization (RBAC)
 - Organization roles: `owner`, `admin`, `operator`, `member`, `viewer`, `support`
 - MSP tenant roles: `msp-global-admin`, `msp-cloudflare-admin`, etc.

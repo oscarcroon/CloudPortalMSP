@@ -4,6 +4,7 @@ import type { JwtPayload } from 'jsonwebtoken'
 import type { SessionTokenPayload, AuthState, ZeroTrustIdentity } from '../types/auth'
 import { buildAuthState, findUserByEmail } from './auth'
 import { normalizeEmail } from './crypto'
+import { setCsrfCookie, clearCsrfCookie } from './csrf'
 
 const SESSION_COOKIE = 'auth_token'
 const SESSION_VERSION = 1
@@ -33,7 +34,7 @@ const getRuntimeConfig = () => {
   }
 }
 
-const getJwtSecret = () => {
+export const getJwtSecret = () => {
   const config = getRuntimeConfig()
   const secret = config.auth?.jwtSecret || process.env.AUTH_JWT_SECRET
 
@@ -144,6 +145,7 @@ const writeSessionCookie = (event: H3Event, token: string) => {
 
 export const destroySession = (event: H3Event) => {
   deleteCookie(event, SESSION_COOKIE, { path: '/' })
+  clearCsrfCookie(event)
   event.context.auth = null
 }
 
@@ -205,6 +207,7 @@ export const createSession = async (
     version: SESSION_VERSION
   })
   writeSessionCookie(event, token)
+  setCsrfCookie(event, auth.user.id, getJwtSecret())
   event.context.auth = auth
   return auth
 }
