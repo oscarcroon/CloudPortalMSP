@@ -35,6 +35,7 @@ export interface AuthUser {
   id: string
   email: string
   fullName?: string | null
+  profilePictureUrl?: string | null
   status: string
   defaultOrgId?: string | null
   isSuperAdmin: boolean

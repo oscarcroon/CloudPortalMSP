@@ -6,27 +6,33 @@ export default defineNuxtPlugin(() => {
     return match?.[1] ? decodeURIComponent(match[1]) : undefined
   }
 
-  const original$fetch = globalThis.$fetch
+  // Intercept globalThis.$fetch by wrapping it with onRequest support.
+  // We replace the global function while preserving .create() and .raw().
+  const original = globalThis.$fetch
 
-  globalThis.$fetch = new Proxy(original$fetch, {
-    apply(target, thisArg, args: [string, Record<string, any>?]) {
-      const [url, opts = {}] = args
-      const method = (opts.method || 'GET').toString()
+  const wrapped: typeof $fetch = Object.assign(
+    ((url: string, opts?: Record<string, any>) => {
+      const options = opts ? { ...opts } : {}
+      const method = (options.method || 'GET').toString()
 
       if (STATE_CHANGING_METHODS.has(method)) {
         const csrfToken = readCsrfCookie()
         if (csrfToken) {
-          opts.headers = {
-            ...(opts.headers || {}),
+          options.headers = {
+            ...(options.headers || {}),
             'X-CSRF-Token': csrfToken
           }
         }
       }
 
-      return Reflect.apply(target, thisArg, [url, opts])
-    },
-    get(target, prop, receiver) {
-      return Reflect.get(target, prop, receiver)
+      return original(url as any, options as any)
+    }) as typeof $fetch,
+    {
+      raw: original.raw.bind(original),
+      native: original.native.bind(original),
+      create: original.create.bind(original)
     }
-  }) as typeof $fetch
+  )
+
+  globalThis.$fetch = wrapped
 })

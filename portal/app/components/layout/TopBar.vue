@@ -75,28 +75,15 @@
           </NuxtLink>
         </div>
 
-        <!-- Mitten: Språkväxlare + Tema toggle -->
+        <!-- Mitten: Notifikationer + Språkväxlare + Tema toggle -->
         <div class="flex items-center gap-2">
+          <NotificationBell />
           <LanguageSwitcher />
           <ThemeToggle />
         </div>
 
-        <!-- Höger: Profil-ikon -->
-        <NuxtLink
-          to="/profile"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-white transition"
-          :style="{ backgroundColor: accentColor }"
-          :class="{ 'hover:opacity-90': true }"
-          :aria-label="t('topBar.profile')"
-          :title="t('topBar.profile')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 3a5 5 0 0 1 3.187 8.871A8 8 0 0 1 20 19.25a.75.75 0 0 1-1.5 0 6.5 6.5 0 0 0-13 0 .75.75 0 0 1-1.5 0 8 8 0 0 1 4.814-7.379A5 5 0 0 1 12 3Zm0 1.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"
-              fill="currentColor"
-            />
-          </svg>
-        </NuxtLink>
+        <!-- Höger: Profil-avatar -->
+        <UserAvatarMenu />
       </div>
 
       <!-- Desktop: Höger sektion -->
@@ -137,26 +124,13 @@
           <Icon icon="mdi:headset" class="h-5 w-5" />
         </NuxtLink>
 
+        <NotificationBell />
+
         <ThemeToggle />
 
         <LanguageSwitcher />
 
-        <NuxtLink
-          to="/profile"
-          class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-white transition"
-          :style="{ backgroundColor: accentColor }"
-          :class="{ 'hover:opacity-90': true }"
-          :aria-label="t('topBar.profile')"
-          :title="t('topBar.profile')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 3a5 5 0 0 1 3.187 8.871A8 8 0 0 1 20 19.25a.75.75 0 0 1-1.5 0 6.5 6.5 0 0 0-13 0 .75.75 0 0 1-1.5 0 8 8 0 0 1 4.814-7.379A5 5 0 0 1 12 3Zm0 1.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"
-              fill="currentColor"
-            />
-          </svg>
-          <span>{{ currentUser?.email ?? t('common.unknown') }}</span>
-        </NuxtLink>
+        <UserAvatarMenu />
       </div>
 
       <Transition
@@ -209,6 +183,8 @@ import { Icon } from '@iconify/vue'
 import ThemeToggle from '~/components/layout/ThemeToggle.vue'
 import LanguageSwitcher from '~/components/layout/LanguageSwitcher.vue'
 import GlobalSearchDropdown from '~/components/layout/GlobalSearchDropdown.vue'
+import UserAvatarMenu from '~/components/layout/UserAvatarMenu.vue'
+import NotificationBell from '~/components/layout/NotificationBell.vue'
 import { useAuth } from '~/composables/useAuth'
 import { useGlobalSearch } from '~/composables/useGlobalSearch'
 
@@ -216,7 +192,6 @@ const auth = useAuth()
 const { t } = useI18n()
 const globalSearch = useGlobalSearch()
 const router = useRouter()
-const currentUser = computed(() => auth.user.value)
 const mobileSearchOpen = ref(false)
 const mobileSearchInput = ref<HTMLInputElement | null>(null)
 const desktopSearchInput = ref<HTMLInputElement | null>(null)

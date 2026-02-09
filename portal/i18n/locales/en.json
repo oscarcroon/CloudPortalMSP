@@ -37,6 +37,20 @@
       "archived": "Archived"
     }
   },
+  "operationsPage": {
+    "title": "Operations",
+    "subtitle": "Active incidents and latest news",
+    "incidentsTitle": "Active incidents",
+    "noActiveIncidents": "No active incidents",
+    "hiddenIncidents": "Hidden incidents",
+    "noHiddenIncidents": "No hidden incidents",
+    "newsTitle": "Latest news",
+    "noNews": "No news at the moment",
+    "viewAllNews": "View all news",
+    "hideForMe": "Hide for me",
+    "showForMe": "Show again",
+    "loading": "Loading..."
+  },
   "incident": {
     "title": "Incident",
     "backToDashboard": "Back to dashboard",
@@ -279,7 +293,23 @@
     "toggleSearchClose": "Close search",
     "docs": "Documentation",
     "support": "Support",
-    "profile": "Profile"
+    "profile": "Profile",
+    "avatarMenu": "User menu",
+    "viewProfile": "Profile",
+    "logout": "Log out"
+  },
+  "notifications": {
+    "label": "Notifications",
+    "title": "Notifications",
+    "incidents": "Incidents",
+    "news": "News",
+    "markAllRead": "Mark all as read",
+    "viewAll": "View all",
+    "empty": "No notifications",
+    "justNow": "Just now",
+    "minutesAgo": "{count} min ago",
+    "hoursAgo": "{count} hr ago",
+    "daysAgo": "{count} d ago"
   },
   "theme": {
     "ariaLabel": "Change theme",

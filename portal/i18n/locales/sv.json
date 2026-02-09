@@ -31,6 +31,20 @@
       "planned": "Planerad"
     }
   },
+  "operationsPage": {
+    "title": "Driftstatus",
+    "subtitle": "Aktiva driftstörningar och senaste nyheter",
+    "incidentsTitle": "Aktiva driftstörningar",
+    "noActiveIncidents": "Inga aktiva driftstörningar",
+    "hiddenIncidents": "Dolda driftstörningar",
+    "noHiddenIncidents": "Inga dolda driftstörningar",
+    "newsTitle": "Senaste nyheterna",
+    "noNews": "Inga nyheter just nu",
+    "viewAllNews": "Visa alla nyheter",
+    "hideForMe": "Göm för mig",
+    "showForMe": "Visa igen",
+    "loading": "Laddar..."
+  },
   "incident": {
     "title": "Driftmeddelande",
     "backToDashboard": "Tillbaka till startsidan",
@@ -274,7 +288,23 @@
     "toggleSearchClose": "Stäng sök",
     "docs": "Dokumentation",
     "support": "Support",
-    "profile": "Profil"
+    "profile": "Profil",
+    "avatarMenu": "Användarmeny",
+    "viewProfile": "Profil",
+    "logout": "Logga ut"
+  },
+  "notifications": {
+    "label": "Notifikationer",
+    "title": "Notifikationer",
+    "incidents": "Driftmeddelanden",
+    "news": "Nyheter",
+    "markAllRead": "Markera alla som lästa",
+    "viewAll": "Visa alla",
+    "empty": "Inga notifikationer",
+    "justNow": "Just nu",
+    "minutesAgo": "{count} min sedan",
+    "hoursAgo": "{count} tim sedan",
+    "daysAgo": "{count} d sedan"
   },
   "theme": {
     "ariaLabel": "Ändra tema",

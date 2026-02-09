@@ -457,6 +457,7 @@ export const buildAuthState = async (
       id: user.id,
       email: user.email,
       fullName: user.fullName,
+      profilePictureUrl: user.profilePictureUrl ?? null,
       status: user.status,
       defaultOrgId: user.defaultOrgId,
       isSuperAdmin: Boolean(user.isSuperAdmin),
@@ -607,6 +608,7 @@ export interface CreateUserWithOrgInput {
 export interface CreateUserForOrganizationInput {
   email: string
   fullName?: string
+  profilePictureUrl?: string
   organizationId: string
   role?: RbacRole
 }
@@ -659,6 +661,7 @@ export const createUserForOrganization = async (
     id: userId,
     email: normalizedEmail,
     fullName: input.fullName,
+    profilePictureUrl: input.profilePictureUrl,
     status: 'active',
     defaultOrgId: input.organizationId
   })

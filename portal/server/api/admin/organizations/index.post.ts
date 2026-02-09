@@ -17,7 +17,7 @@ import { slugify } from '../../../utils/auth'
 import { requireSuperAdmin, requireTenantPermission } from '../../../utils/rbac'
 import { ensureAuthState } from '../../../utils/session'
 import { ensureOrganizationAuthSettings, serializeAuthSettings, slugRegex, createInviteToken } from './utils'
-import { sendInvitationEmail } from '~~/server/utils/mailer'
+import { sendInvitationEmail, sendOrganizationCreatedEmail } from '~~/server/utils/mailer'
 import { describeEmailSendError } from '~~/server/utils/emailTest'
 import { logOrganizationAction } from '../../../utils/audit'
 import { initializeNewOrganization } from '../../../utils/orgSetup'
@@ -151,16 +151,19 @@ export default defineEventHandler(async (event) => {
         })
       }
 
-      // Always create invitation for owner when creating new organization
+      // Create invitation for owner - if existing user with membership, mark as accepted
+      const inviteStatus = existingUser ? 'accepted' : 'pending'
+      const inviteAcceptedAt = existingUser ? new Date() : null
       await tx.insert(organizationInvitations).values({
         id: inviteId,
         organizationId,
         email: normalizedOwnerEmail,
         role: 'owner',
         token: inviteToken,
-        status: 'pending',
+        status: inviteStatus,
         invitedByUserId: auth.user.id,
-        expiresAt: inviteExpiresAt
+        expiresAt: inviteExpiresAt,
+        acceptedAt: inviteAcceptedAt
       })
     })
   } catch (error: any) {
@@ -212,23 +215,34 @@ export default defineEventHandler(async (event) => {
 
   const authSettings = await ensureOrganizationAuthSettings(db, organizationId)
 
-  // Always send invitation email to owner when creating new organization
-  const invitedByLabel = auth.user.fullName?.trim() || auth.user.email
+  // Send appropriate email to owner
+  const createdByLabel = auth.user.fullName?.trim() || auth.user.email
   try {
-    await sendInvitationEmail({
-      organizationId: organization.id,
-      organizationName: organization.name,
-      invitedBy: invitedByLabel,
-      role: 'owner',
-      to: normalizedOwnerEmail,
-      expiresAt: inviteExpiresAtMs,
-      token: inviteToken,
-      organizationLogo: organization.logoUrl ?? null
-    })
+    if (existingUser) {
+      // Existing user: send confirmation email (no invite needed, they're already a member)
+      await sendOrganizationCreatedEmail({
+        organizationId: organization.id,
+        organizationName: organization.name,
+        createdBy: createdByLabel,
+        to: normalizedOwnerEmail,
+        organizationLogo: organization.logoUrl ?? null
+      })
+    } else {
+      // New user: send invitation email with link to set password
+      await sendInvitationEmail({
+        organizationId: organization.id,
+        organizationName: organization.name,
+        invitedBy: createdByLabel,
+        role: 'owner',
+        to: normalizedOwnerEmail,
+        expiresAt: inviteExpiresAtMs,
+        token: inviteToken,
+        organizationLogo: organization.logoUrl ?? null
+      })
+    }
   } catch (error) {
-    console.error('[create-org] Failed to send invitation email to owner', error)
+    console.error('[create-org] Failed to send email to owner', error)
     // Don't fail the request if email fails, but log it
-    // In production, you might want to throw an error or queue the email for retry
   }
 
   return {

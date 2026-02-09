@@ -464,6 +464,108 @@ export const sendInvitationEmail = async (input: {
   return { acceptUrl, storedAt }
 }
 
+export const sendOrganizationCreatedEmail = async (input: {
+  organizationId: string
+  organizationName: string
+  createdBy: string
+  to: string
+  organizationLogo?: string | null
+}) => {
+  const loginUrl = `${portalBaseUrl}/login`
+  const senderContext = await getEffectiveEmailSenderContext(input.organizationId)
+  const locale = normalizeEmailLocale(senderContext.emailLanguage)
+  const provider = senderContext.profile
+  const disclaimerMarkdown = await fetchOrganizationDisclaimer(input.organizationId)
+  const branding = await resolveEmailBranding({
+    organizationId: input.organizationId,
+    overrideLogoUrl: input.organizationLogo ?? null,
+    disclaimerMarkdown,
+    supportContact: senderContext.supportContact,
+    isDarkMode: senderContext.emailDarkMode
+  })
+
+  const copy: Record<EmailLocale, {
+    subject: string
+    pretitle: string
+    intro: string
+    body: string[]
+    buttonLabel: string
+    outro: string[]
+  }> = {
+    sv: {
+      subject: `Din organisation "${input.organizationName}" har skapats`,
+      pretitle: 'Välkommen!',
+      intro: 'Hej!',
+      body: [
+        `${input.createdBy} har skapat organisationen **${input.organizationName}** åt dig.`,
+        'Du är nu ägare av organisationen och kan börja använda portalen direkt.'
+      ],
+      buttonLabel: 'Logga in',
+      outro: ['Välkommen!']
+    },
+    en: {
+      subject: `Your organization "${input.organizationName}" has been created`,
+      pretitle: 'Welcome!',
+      intro: 'Hi!',
+      body: [
+        `${input.createdBy} has created the organization **${input.organizationName}** for you.`,
+        'You are now the owner of the organization and can start using the portal right away.'
+      ],
+      buttonLabel: 'Log in',
+      outro: ['Welcome!']
+    }
+  }
+
+  const copyForLocale = copy[locale]
+  const content = renderBrandedTemplate(
+    {
+      locale,
+      subject: copyForLocale.subject,
+      pretitle: copyForLocale.pretitle,
+      title: input.organizationName,
+      intro: copyForLocale.intro,
+      body: copyForLocale.body,
+      action: {
+        label: copyForLocale.buttonLabel,
+        url: loginUrl
+      },
+      outro: copyForLocale.outro
+    },
+    branding
+  )
+  const finalContent = {
+    ...content,
+    subject: formatSubject(content.subject, senderContext.subjectPrefix)
+  }
+
+  if (provider) {
+    const delivery = await sendTemplatedEmail({
+      profile: provider,
+      to: [{ email: input.to }],
+      content: finalContent,
+      dryRunOutboxDir: outboxDir
+    })
+    return { loginUrl, delivery }
+  }
+
+  const storedAt = await writeOutboxPreview(
+    {
+      to: [{ email: input.to }],
+      subject: finalContent.subject,
+      html: finalContent.html,
+      text: finalContent.text,
+      meta: {
+        reason: 'missing-provider',
+        organizationId: input.organizationId,
+        type: 'organization-created'
+      }
+    },
+    outboxDir
+  )
+  console.info(`[mail] Organization created email for ${input.to} stored at ${storedAt}`)
+  return { loginUrl, storedAt }
+}
+
 const buildDelegationAcceptUrl = (token: string) =>
   `${inviteBaseUrl}/invite/delegation?token=${encodeURIComponent(token)}`
 

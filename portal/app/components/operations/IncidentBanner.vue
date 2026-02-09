@@ -250,10 +250,19 @@ const canMute = computed(() => {
   return !!auth.user?.value
 })
 
-// Dynamic link based on context - org users go to settings, tenant users go to tenant-admin
+// Dynamic link based on context and role
+const canManageOrg = computed(() => {
+  const org = auth.currentOrg?.value
+  if (!org) return false
+  const orgRoles = auth.orgRoles?.value ?? {}
+  const role = orgRoles[org.id]
+  return role === 'owner' || role === 'admin' || role === 'support'
+})
+
 const viewAllLink = computed(() => {
   const hasActiveOrg = !!auth.currentOrg?.value
-  return hasActiveOrg ? '/settings/operations' : '/tenant-admin/operations/visibility'
+  if (!hasActiveOrg) return '/tenant-admin/operations/visibility'
+  return canManageOrg.value ? '/settings/operations' : '/operations'
 })
 
 const sourcePillClasses = 'bg-black/10 text-current dark:bg-white/10'
