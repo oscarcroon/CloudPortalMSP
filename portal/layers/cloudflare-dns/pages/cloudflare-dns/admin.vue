@@ -110,7 +110,7 @@
         </span>
       </header>
 
-      <form class="space-y-3" @submit.prevent="saveConfig">
+      <form class="space-y-3" autocomplete="off" @submit.prevent="saveConfig">
         <div class="grid gap-3 md:grid-cols-2">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
@@ -120,8 +120,8 @@
               v-model="form.apiToken"
               class="input"
               type="password"
-              name="apiToken"
-              autocomplete="off"
+              name="cf-api-token"
+              autocomplete="new-password"
               :placeholder="t('cloudflareDns.admin.form.apiTokenPlaceholder')"
               required
             />
@@ -137,7 +137,8 @@
               v-model="form.accountId"
               class="input"
               type="text"
-              name="accountId"
+              name="cf-account-id"
+              autocomplete="off"
               :placeholder="t('cloudflareDns.admin.form.accountIdPlaceholder')"
             />
             <p class="text-xs text-slate-500 dark:text-slate-400">
