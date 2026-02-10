@@ -40,16 +40,12 @@ export default defineEventHandler(async (event) => {
         canEdit: false,
         canManage: false,
         aclRestricted: false,
-        access: {
-          canManageAcls: false
-        }
       })),
       moduleRights: {
         canManageZones: moduleRights.canManageZones,
         canEditRecords: moduleRights.canEditRecords,
         canExport: moduleRights.canExport,
-        canManageAcls: moduleRights.canManageAcls,
-        canManageOrgConfig: moduleRights.canManageOrgConfig
+        canManageApi: moduleRights.canManageApi
       },
       fromCache: true,
       stale: true
@@ -102,15 +98,12 @@ export default defineEventHandler(async (event) => {
           canEdit: false,
           canManage: false,
           aclRestricted: false,
-          access: {
-            canManageAcls: false
-          }
         })),
         moduleRights: {
           canManageZones: moduleRights.canManageZones,
           canEditRecords: moduleRights.canEditRecords,
-          canManageAcls: moduleRights.canManageAcls,
-          canManageOrgConfig: moduleRights.canManageOrgConfig
+          canExport: moduleRights.canExport,
+          canManageApi: moduleRights.canManageApi
         },
         fromCache: true,
         stale: true,
@@ -135,10 +128,7 @@ export default defineEventHandler(async (event) => {
       effectiveRole: access.zoneRole,
       canEdit: access.canEditRecords,
       canManage: access.canManageZones,
-      aclRestricted: access.zoneRole !== null,
-      access: {
-        canManageAcls: access.canManageAcls
-      }
+      aclRestricted: access.zoneRole !== null
     })
   }
 
@@ -147,8 +137,8 @@ export default defineEventHandler(async (event) => {
     moduleRights: {
       canManageZones: moduleRights.canManageZones,
       canEditRecords: moduleRights.canEditRecords,
-      canManageAcls: moduleRights.canManageAcls,
-      canManageOrgConfig: moduleRights.canManageOrgConfig
+      canExport: moduleRights.canExport,
+      canManageApi: moduleRights.canManageApi
     }
   }
 })

@@ -1,8 +1,13 @@
 <template>
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
-    <!-- Access denied -->
+    <!-- Loading -->
+    <div v-if="configPending" class="text-sm text-slate-500 dark:text-slate-400">
+      {{ t('cloudflareDns.zone.loadingZone') }}
+    </div>
+
+    <!-- Access denied / error -->
     <div
-      v-if="accessDenied"
+      v-else-if="configError"
       class="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800 shadow-sm dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
     >
       <div class="flex items-start gap-3">
@@ -210,20 +215,12 @@ import { Icon } from '@iconify/vue'
 import CloudflareStatusCard from '@cloudflare-dns/components/CloudflareStatusCard.vue'
 import { useI18n } from '#imports'
 
-const accessDenied = ref(false)
-
-const { data: config, refresh: refreshConfig } = useAsyncData('cloudflare-config', async () => {
-  try {
-    return await $fetch('/api/dns/cloudflare/config')
-  } catch (err: any) {
-    if (err?.statusCode === 403 || err?.status === 403) {
-      accessDenied.value = true
-    }
-    throw err
-  }
-})
+const { data: config, error: configError, pending: configPending, refresh: refreshConfig } = useAsyncData('cloudflare-config', () =>
+  $fetch('/api/dns/cloudflare/config')
+)
 const { data: status, refresh: refreshStatus } = useAsyncData('cloudflare-status', () =>
-  $fetch('/api/dns/cloudflare/status/summary')
+  $fetch('/api/dns/cloudflare/status/summary'),
+  { lazy: true }
 )
 
 const { t } = useI18n()

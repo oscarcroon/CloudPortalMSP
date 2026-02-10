@@ -16,30 +16,6 @@
       "notValidated": "Ej verifierad"
     },
 
-    "acl": {
-      "label": "Åtkomst",
-      "title": "Zon-ACL",
-      "readOnly": "Read-only",
-      "principal": "Principal",
-      "principalPlaceholder": "user-id eller org-roll",
-      "type": "Typ",
-      "role": "Roll",
-      "actions": "Åtgärder",
-      "principalType": {
-        "user": "Användare",
-        "orgRole": "Org-roll"
-      },
-      "roleOptions": {
-        "viewer": "Viewer",
-        "recordsOnly": "Records only",
-        "editor": "Editor",
-        "admin": "Admin"
-      },
-      "addRow": "Lägg till rad",
-      "save": "Spara ACL",
-      "remove": "Ta bort"
-    },
-
     "zoneList": {
       "label": "Zoner",
       "title": "Cloudflare-zoner",

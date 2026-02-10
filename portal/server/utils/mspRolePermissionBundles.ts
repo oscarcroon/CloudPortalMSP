@@ -29,9 +29,10 @@ const mspRoleToModulePermissions: Record<string, Record<string, string[]>> = {
     'cloudflare-dns': [
       'cloudflare-dns:view',
       'cloudflare-dns:edit_records',
+      'cloudflare-dns:export',
+      'cloudflare-dns:import',
       'cloudflare-dns:admin_zones',
-      'cloudflare-dns:manage_org_config',
-      'cloudflare-dns:manage_acls'
+      'cloudflare-dns:manage_api'
     ]
   },
   'msp-containers-admin': {
@@ -86,9 +87,10 @@ const mspRoleToModulePermissions: Record<string, Record<string, string[]>> = {
     'cloudflare-dns': [
       'cloudflare-dns:view',
       'cloudflare-dns:edit_records',
+      'cloudflare-dns:export',
+      'cloudflare-dns:import',
       'cloudflare-dns:admin_zones',
-      'cloudflare-dns:manage_org_config',
-      'cloudflare-dns:manage_acls'
+      'cloudflare-dns:manage_api'
     ],
     'containers': [
       'containers:view',
@@ -100,9 +102,10 @@ const mspRoleToModulePermissions: Record<string, Record<string, string[]>> = {
     'cloudflare-dns': [
       'cloudflare-dns:view',
       'cloudflare-dns:edit_records',
+      'cloudflare-dns:export',
+      'cloudflare-dns:import',
       'cloudflare-dns:admin_zones',
-      'cloudflare-dns:manage_org_config',
-      'cloudflare-dns:manage_acls'
+      'cloudflare-dns:manage_api'
     ],
     'containers': [
       'containers:view',

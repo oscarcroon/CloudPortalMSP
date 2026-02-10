@@ -16,30 +16,6 @@
       "notValidated": "Not validated"
     },
 
-    "acl": {
-      "label": "Access",
-      "title": "Zone ACL",
-      "readOnly": "Read-only",
-      "principal": "Principal",
-      "principalPlaceholder": "user-id or org-role",
-      "type": "Type",
-      "role": "Role",
-      "actions": "Actions",
-      "principalType": {
-        "user": "User",
-        "orgRole": "Org-role"
-      },
-      "roleOptions": {
-        "viewer": "Viewer",
-        "recordsOnly": "Records only",
-        "editor": "Editor",
-        "admin": "Admin"
-      },
-      "addRow": "Add row",
-      "save": "Save ACL",
-      "remove": "Remove"
-    },
-
     "zoneList": {
       "label": "Zones",
       "title": "Cloudflare zones",

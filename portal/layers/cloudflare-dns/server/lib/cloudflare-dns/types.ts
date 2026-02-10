@@ -9,8 +9,7 @@ export interface CloudflareModuleRights {
   canExport: boolean
   canImport: boolean
   canManageZones: boolean
-  canManageAcls: boolean
-  canManageOrgConfig: boolean
+  canManageApi: boolean
 }
 
 export interface CloudflareZoneAccess extends CloudflareModuleRights {

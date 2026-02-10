@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const orgId = auth.currentOrgId
   const access = await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
-  if (!access.canManageOrgConfig) {
+  if (!access.canManageApi) {
     throw createError({
       statusCode: 403,
       message: 'Saknar behörighet att hantera Cloudflare-konfiguration.'

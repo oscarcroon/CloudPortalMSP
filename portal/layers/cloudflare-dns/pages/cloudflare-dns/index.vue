@@ -34,7 +34,7 @@
           <Icon icon="mdi:refresh" class="h-5 w-5" />
         </button>
         <NuxtLink
-          v-if="state.data?.moduleRights?.canManageOrgConfig"
+          v-if="state.data?.moduleRights?.canManageApi"
           to="/cloudflare-dns/admin"
           class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
         >
@@ -122,7 +122,7 @@ import { useI18n } from '#imports'
 
 type ZonesResponse = {
   zones: any[]
-  moduleRights: { canManageZones: boolean; canEditRecords?: boolean; canExport?: boolean; canManageAcls?: boolean; canManageOrgConfig?: boolean }
+  moduleRights: { canManageZones: boolean; canEditRecords?: boolean; canExport?: boolean; canManageApi?: boolean }
   fromCache?: boolean
   stale?: boolean
 }
