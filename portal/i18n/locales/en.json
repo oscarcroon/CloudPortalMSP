@@ -408,6 +408,9 @@
   "dashboard": {
     "title": "Single pane of glass",
     "subtitle": "Manage DNS, containers, virtual machines and WordPress sites from a single interface.",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
     "allSystemsOperational": "All systems operational",
     "organizations": "Organizations",
     "noModules": "No modules are available for your organization.",

@@ -403,6 +403,9 @@
   "dashboard": {
     "title": "Single pane of glass",
     "subtitle": "Hantera DNS, containrar, virtuella maskiner och WordPress-webbplatser från ett enda gränssnitt.",
+    "greetingMorning": "God morgon",
+    "greetingAfternoon": "God eftermiddag",
+    "greetingEvening": "God kväll",
     "allSystemsOperational": "All systems operational",
     "organizations": "Organisationer",
     "noModules": "Inga moduler är tillgängliga för din organisation.",

@@ -1,18 +1,28 @@
 <template>
   <section class="space-y-10">
     <div
-      class="rounded-3xl px-6 py-10 text-white shadow-card"
+      class="rounded-3xl px-6 py-5 text-white shadow-card"
       :style="heroGradientStyle"
     >
-      <p class="text-sm uppercase tracking-[0.3em] text-white/70">Cloud Portal</p>
-      <h1 class="mt-3 text-4xl font-semibold">{{ t('dashboard.title') }}</h1>
-      <p class="mt-4 max-w-2xl text-white/80">
-        {{ t('dashboard.subtitle') }}
-      </p>
-      <div class="mt-6 flex flex-wrap gap-3">
-        <StatusPill v-if="!newsLoading && activeIncidents.length === 0" variant="success" dot>{{ t('dashboard.allSystemsOperational') }}</StatusPill>
-        <StatusPill v-else-if="activeIncidents.length > 0" :variant="worstIncidentVariant" dot>{{ activeIncidents.length }} {{ t('dashboard.activeIncidents').toLowerCase() }}</StatusPill>
-        <StatusPill variant="info">{{ t('dashboard.organizations') }}: {{ organisations.length }}</StatusPill>
+      <p class="text-xs uppercase tracking-[0.25em] text-white/40">Cloud Portal</p>
+      <div class="mt-1 flex items-center justify-between gap-4">
+        <h1 class="text-lg font-semibold">{{ greeting }}, {{ firstName }}</h1>
+        <div class="flex flex-wrap gap-2">
+          <StatusPill v-if="!newsLoading && activeIncidents.length === 0" variant="success" dot>{{ t('dashboard.allSystemsOperational') }}</StatusPill>
+          <StatusPill v-else-if="activeIncidents.length > 0" :variant="worstIncidentVariant" dot>{{ activeIncidents.length }} {{ t('dashboard.activeIncidents').toLowerCase() }}</StatusPill>
+          <StatusPill variant="info">{{ organisations.length }} {{ t('dashboard.organizations').toLowerCase() }}</StatusPill>
+        </div>
+      </div>
+      <div v-if="favoriteModules.length > 0" class="mt-3 flex flex-wrap gap-2">
+        <button
+          v-for="fav in favoriteModules"
+          :key="fav.id"
+          class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm font-medium text-white/90 backdrop-blur-sm transition-colors hover:bg-white/25"
+          @click="navigateTo(fav.routePath)"
+        >
+          <Icon :icon="fav.icon" class="h-4 w-4" />
+          {{ fav.name }}
+        </button>
       </div>
     </div>
 
@@ -196,8 +206,21 @@ const { t } = useI18n()
 const router = useRouter()
 const auth = useAuth()
 const { modules: allModules, loading, fetchVisibleModules } = useModules()
-const { toggleFavorite, isFavorite, pending: favoritesPending } = useFavorites()
+const { toggleFavorite, isFavorite, favoriteModules, pending: favoritesPending } = useFavorites()
 const { latestNews, activeIncidents, loading: newsLoading, fetchFeed } = useOperationsFeed()
+
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 11) return t('dashboard.greetingMorning')
+  if (hour >= 11 && hour < 17) return t('dashboard.greetingAfternoon')
+  return t('dashboard.greetingEvening')
+})
+
+const firstName = computed(() => {
+  const fullName = auth.user.value?.fullName
+  if (!fullName) return ''
+  return fullName.split(' ')[0]
+})
 
 // News filter: 'all' | 'distributor' | 'provider'
 type NewsFilter = 'all' | 'distributor' | 'provider'
