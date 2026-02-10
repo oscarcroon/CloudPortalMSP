@@ -6,6 +6,8 @@ export interface CloudflareModuleRights {
   roles: CloudflareDnsModuleRole[]
   canView: boolean
   canEditRecords: boolean
+  canExport: boolean
+  canImport: boolean
   canManageZones: boolean
   canManageAcls: boolean
   canManageOrgConfig: boolean

@@ -44,7 +44,7 @@
           </NuxtLink>
           <!-- Export zone button -->
           <button
-            v-if="zoneId && isValidZoneId && zoneData?.zone"
+            v-if="zoneId && isValidZoneId && zoneData?.zone && recordsData?.access?.canExport"
             type="button"
             class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="exporting"
@@ -220,7 +220,7 @@ const zoneData = ref<{
 const recordsPending = ref(true)
 const recordsData = ref<{
   records: any[]
-  access: { canEditRecords: boolean; canEditZones: boolean }
+  access: { canEditRecords: boolean; canEditZones: boolean; canExport: boolean }
 } | null>(null)
 
 // Extract SOA record (case-insensitive) for Zone Info panel
@@ -276,7 +276,7 @@ const fetchRecords = async () => {
   // Guard: Don't fetch if zoneId is invalid
   if (!isValidZoneId.value) {
     recordsPending.value = false
-    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false } }
+    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false, canExport: false } }
     return
   }
 
@@ -288,7 +288,7 @@ const fetchRecords = async () => {
     recordsData.value = res
   } catch (err: any) {
     console.error('Failed to fetch records:', err)
-    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false } }
+    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false, canExport: false } }
   } finally {
     recordsPending.value = false
   }

@@ -20,8 +20,8 @@ export default defineEventHandler(async (event) => {
 
   // Check module access
   const moduleRights = await getWindowsDnsModuleAccessForUser(orgId, auth.user.id)
-  if (!moduleRights.canView) {
-    throw createError({ statusCode: 403, message: 'No permission to view Windows DNS zones.' })
+  if (!moduleRights.canExport) {
+    throw createError({ statusCode: 403, message: 'No permission to export Windows DNS zones.' })
   }
 
   // Verify the zone is in the org's allowed zones and get the zone name

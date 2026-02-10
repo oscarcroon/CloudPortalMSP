@@ -190,7 +190,8 @@ export default defineEventHandler(async (event) => {
                   canEditRecords: moduleRights.canEditRecords,
                   canAutodiscover: moduleRights.canAutodiscover,
                   canManageOwnership: moduleRights.canManageOwnership,
-                  canManageOrgConfig: moduleRights.canManageOrgConfig
+                  canExport: moduleRights.canExport,
+              canManageOrgConfig: moduleRights.canManageOrgConfig
                 }
               }
             }
@@ -209,7 +210,8 @@ export default defineEventHandler(async (event) => {
                 canEditRecords: moduleRights.canEditRecords,
                 canAutodiscover: moduleRights.canAutodiscover,
                 canManageOwnership: moduleRights.canManageOwnership,
-                canManageOrgConfig: moduleRights.canManageOrgConfig
+                canExport: moduleRights.canExport,
+              canManageOrgConfig: moduleRights.canManageOrgConfig
               }
             }
           }
@@ -309,7 +311,8 @@ export default defineEventHandler(async (event) => {
                 canEditRecords: moduleRights.canEditRecords,
                 canAutodiscover: moduleRights.canAutodiscover,
                 canManageOwnership: moduleRights.canManageOwnership,
-                canManageOrgConfig: moduleRights.canManageOrgConfig
+                canExport: moduleRights.canExport,
+              canManageOrgConfig: moduleRights.canManageOrgConfig
               }
             }
           }
@@ -332,6 +335,7 @@ export default defineEventHandler(async (event) => {
               canEditRecords: moduleRights.canEditRecords,
               canAutodiscover: moduleRights.canAutodiscover,
               canManageOwnership: moduleRights.canManageOwnership,
+              canExport: moduleRights.canExport,
               canManageOrgConfig: moduleRights.canManageOrgConfig
             }
           }

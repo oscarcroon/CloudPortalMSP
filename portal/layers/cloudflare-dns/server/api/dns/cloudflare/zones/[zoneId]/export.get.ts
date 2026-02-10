@@ -17,8 +17,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const access = await getCloudflareDnsZoneAccessForUser(orgId, auth.user.id, orgRole, zoneId)
-  if (!access.canView) {
-    throw createError({ statusCode: 403, message: 'Ingen behörighet att se zonen.' })
+  if (!access.canExport) {
+    throw createError({ statusCode: 403, message: 'Saknar rättighet att exportera zonen.' })
   }
 
   try {

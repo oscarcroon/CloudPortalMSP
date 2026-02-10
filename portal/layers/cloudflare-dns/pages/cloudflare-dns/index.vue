@@ -121,7 +121,7 @@ import { useI18n } from '#imports'
 
 type ZonesResponse = {
   zones: any[]
-  moduleRights: { canManageZones: boolean; canEditRecords?: boolean; canManageAcls?: boolean; canManageOrgConfig?: boolean }
+  moduleRights: { canManageZones: boolean; canEditRecords?: boolean; canExport?: boolean; canManageAcls?: boolean; canManageOrgConfig?: boolean }
   fromCache?: boolean
   stale?: boolean
 }

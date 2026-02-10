@@ -47,6 +47,7 @@ export default defineEventHandler(async (event) => {
       moduleRights: {
         canManageZones: moduleRights.canManageZones,
         canEditRecords: moduleRights.canEditRecords,
+        canExport: moduleRights.canExport,
         canManageAcls: moduleRights.canManageAcls,
         canManageOrgConfig: moduleRights.canManageOrgConfig
       },

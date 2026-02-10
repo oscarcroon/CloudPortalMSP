@@ -48,6 +48,7 @@
         <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>{{ t('cloudflareDns.zoneList.recordCount', { count: zone.recordCount ?? '–' }) }}</span>
           <button
+            v-if="moduleRights?.canExport"
             type="button"
             class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-500 opacity-0 transition hover:border-brand hover:text-brand group-hover:opacity-100 dark:border-slate-700 dark:text-slate-400"
             :title="t('cloudflareDns.zoneList.export')"
@@ -164,6 +165,7 @@ const props = defineProps<{
   zones: any[]
   moduleRights: {
     canManageZones: boolean
+    canExport?: boolean
   }
   loading?: boolean
 }>()

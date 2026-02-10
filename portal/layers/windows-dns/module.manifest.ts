@@ -14,7 +14,7 @@ const manifest = definePluginManifest({
     { key: 'windows-dns:zones:create', description: 'Create new DNS zones.' },
     { key: 'windows-dns:zones:write', description: 'Modify existing DNS zones.' },
     { key: 'windows-dns:records:write', description: 'Create or update DNS records.' },
-    { key: 'windows-dns:ownership:read', description: 'View zone ownership mappings.' },
+    { key: 'windows-dns:export', description: 'Export DNS zones to file.' },
     { key: 'windows-dns:ownership:write', description: 'Manage zone ownership mappings.' },
     { key: 'windows-dns:autodiscover:read', description: 'Run autodiscover to find matching zones.' },
     { key: 'windows-dns:manage_org_config', description: 'Manage DNS connection settings for the organization.' },
@@ -43,7 +43,7 @@ const manifest = definePluginManifest({
       'windows-dns:zones:create',
       'windows-dns:zones:write',
       'windows-dns:records:write',
-      'windows-dns:ownership:read',
+      'windows-dns:export',
       'windows-dns:ownership:write',
       'windows-dns:autodiscover:read',
       'windows-dns:manage_org_config',
@@ -66,7 +66,7 @@ const manifest = definePluginManifest({
       'windows-dns:zones:create',
       'windows-dns:zones:write',
       'windows-dns:records:write',
-      'windows-dns:ownership:read',
+      'windows-dns:export',
       'windows-dns:ownership:write',
       'windows-dns:autodiscover:read',
       'windows-dns:manage_org_config',
@@ -89,7 +89,7 @@ const manifest = definePluginManifest({
       'windows-dns:zones:create',
       'windows-dns:zones:write',
       'windows-dns:records:write',
-      'windows-dns:ownership:read',
+      'windows-dns:export',
       'windows-dns:autodiscover:read',
       // Redirects - CRUD + traefik sync
       'windows-dns:redirects:access',
@@ -104,6 +104,7 @@ const manifest = definePluginManifest({
     ],
     member: [
       'windows-dns:view',
+      'windows-dns:export',
       // Redirects - view + export only
       'windows-dns:redirects:access',
       'windows-dns:redirects:view',
@@ -111,6 +112,7 @@ const manifest = definePluginManifest({
     ],
     viewer: [
       'windows-dns:view',
+      'windows-dns:export',
       // Redirects - view + export only
       'windows-dns:redirects:access',
       'windows-dns:redirects:view',

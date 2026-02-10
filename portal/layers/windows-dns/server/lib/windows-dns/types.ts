@@ -12,6 +12,7 @@ export interface WindowsDnsModuleRights {
   canCreateZones: boolean
   canEditZones: boolean
   canEditRecords: boolean
+  canExport: boolean
   canManageOwnership: boolean
   canAutodiscover: boolean
   canManageOrgConfig: boolean

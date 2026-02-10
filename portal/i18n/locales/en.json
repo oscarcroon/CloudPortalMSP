@@ -763,7 +763,7 @@
       "clearFilters": "Clear filters",
       "searchPlaceholder": "Search by name or email",
       "clear": "Clear",
-      "showOnlyOverrides": "Show only members with manual module roles",
+      "showOnlyOverrides": "Show only members with manual permissions",
       "table": {
         "name": "Name",
         "email": "Email",
@@ -772,7 +772,7 @@
         "lastUpdated": "Last updated",
         "actions": "Actions",
         "unknownName": "Unknown name",
-        "hasOverrides": "Has manually customized module roles",
+        "hasOverrides": "Has manually customized permissions",
         "count": "{count}",
         "of": "of {total}"
       },
@@ -815,17 +815,17 @@
         "resendError": "Failed to resend invitation."
       },
       "moduleRoles": {
-        "title": "Module roles",
-        "loading": "Loading module roles...",
-        "none": "No modules with module-specific roles found.",
+        "title": "Permissions",
+        "loading": "Loading permissions...",
+        "none": "No modules with module-specific permissions found.",
         "policy": "Policy: {source}",
         "allowedRoles": "Allowed roles: {roles}",
-        "blocked": "Module roles are blocked by {source}.",
+        "blocked": "Permissions are blocked by {source}.",
         "save": "Save changes",
         "saving": "Saving...",
         "saved": "Changes saved",
         "error": "Could not save changes",
-        "button": "Module roles",
+        "button": "Permissions",
         "policyLabel": "Policy",
         "allowedRolesLabel": "Allowed roles",
         "sourceLabel": "Source",
@@ -845,9 +845,9 @@
           "removed": "− Removed"
         },
         "sourceLabels": {
-          "custom": "Manually assigned roles",
+          "custom": "Manually assigned permissions",
           "rbacInherited": "Inherited from RBAC ({role})",
-          "none": "No module roles assigned"
+          "none": "No permissions assigned"
         }
       },
       "summary": {
@@ -1815,7 +1815,7 @@
       }
     },
     "layerLabel": "Layer:",
-    "moduleRoles": "Module roles",
+    "moduleRoles": "Permissions",
     "openModule": "Open module",
     "routeLabel": "Route:",
     "results": "{count} modules",

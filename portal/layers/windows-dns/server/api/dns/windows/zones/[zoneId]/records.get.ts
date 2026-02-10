@@ -51,7 +51,8 @@ export default defineEventHandler(async (event) => {
       records: filteredRecords,
       access: {
         canEditRecords: moduleRights.canEditRecords,
-        canEditZones: moduleRights.canEditZones
+        canEditZones: moduleRights.canEditZones,
+        canExport: moduleRights.canExport
       }
     }
   } catch (error: any) {

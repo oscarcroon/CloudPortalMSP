@@ -23,10 +23,9 @@ import type { ModulePolicy } from '~/types/modules'
 import { getModulePermissionsForMspRoles } from './mspRolePermissionBundles'
 import { canAccessTenant } from './rbac'
 import { getEffectiveModulePolicyForOrg } from './modulePolicy'
+import { normalizePermissionOverrides } from './userModulePermissions'
 
 type PermissionKey = string
-
-type Effect = 'grant' | 'deny'
 
 export interface EffectiveModulePermissions {
   allowedPermissions: Set<PermissionKey>
@@ -237,20 +236,13 @@ export const resolveEffectiveModulePermissions = async ({
       )
     )
 
-  const userOverrides =
-    userPerm?.deniedPermissions && userPerm.deniedPermissions.trim()
-      ? (JSON.parse(userPerm.deniedPermissions) as Record<string, Effect>)
-      : {}
+  const rawOverrides = userPerm?.deniedPermissions && userPerm.deniedPermissions.trim()
+    ? JSON.parse(userPerm.deniedPermissions)
+    : null
 
-  const userGrants = new Set<string>()
-  const userDenies = new Set<string>()
-  for (const [perm, value] of Object.entries(userOverrides)) {
-    if (value === 'grant') {
-      userGrants.add(perm)
-    } else if (value === 'deny' || value === true) {
-      userDenies.add(perm)
-    }
-  }
+  const normalized = normalizePermissionOverrides(rawOverrides)
+  const userGrants = new Set<string>(normalized?.grants ?? [])
+  const userDenies = new Set<string>(normalized?.denies ?? [])
 
   // Delegation grants (MSP → Org) - ad-hoc delegations
   const nowMs = Date.now()

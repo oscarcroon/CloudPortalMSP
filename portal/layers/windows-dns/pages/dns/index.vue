@@ -160,6 +160,7 @@ type ZonesResponse = {
   moduleRights: {
     canManageZones: boolean
     canEditRecords: boolean
+    canExport: boolean
     canAutodiscover: boolean
     canManageOwnership?: boolean
   }

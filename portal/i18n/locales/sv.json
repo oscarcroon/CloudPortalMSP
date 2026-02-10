@@ -758,7 +758,7 @@
       "clearFilters": "Rensa filter",
       "searchPlaceholder": "Sök efter namn eller e-post",
       "clear": "Rensa",
-      "showOnlyOverrides": "Visa bara medlemmar med manuella modulroller",
+      "showOnlyOverrides": "Visa bara medlemmar med manuella behörigheter",
       "table": {
         "name": "Namn",
         "email": "E-post",
@@ -767,7 +767,7 @@
         "lastUpdated": "Senast uppdaterad",
         "actions": "Åtgärder",
         "unknownName": "Okänt namn",
-        "hasOverrides": "Har manuellt anpassade modulroller",
+        "hasOverrides": "Har manuellt anpassade behörigheter",
         "count": "{count} st",
         "of": "av {total}"
       },
@@ -810,17 +810,17 @@
         "resendError": "Kunde inte skicka om inbjudan."
       },
       "moduleRoles": {
-        "title": "Modulroller",
-        "loading": "Laddar modulroller...",
-        "none": "Inga moduler med modulspecifika roller hittades.",
+        "title": "Behörigheter",
+        "loading": "Laddar behörigheter...",
+        "none": "Inga moduler med modulspecifika behörigheter hittades.",
         "policy": "Policy: {source}",
         "allowedRoles": "Tillåtna roller: {roles}",
-        "blocked": "Modulroller blockeras av {source}.",
+        "blocked": "Behörigheter blockeras av {source}.",
         "save": "Spara ändringar",
         "saving": "Sparar...",
         "saved": "Ändringar sparade",
         "error": "Kunde inte spara ändringar",
-        "button": "Modulroller",
+        "button": "Behörigheter",
         "policyLabel": "Policy",
         "allowedRolesLabel": "Tillåtna roller",
         "sourceLabel": "Källa",
@@ -840,9 +840,9 @@
           "removed": "− Borttagen"
         },
         "sourceLabels": {
-          "custom": "Manuellt tilldelade roller",
+          "custom": "Manuellt tilldelade behörigheter",
           "rbacInherited": "Ärvda från RBAC ({role})",
-          "none": "Inga modulroller tilldelade"
+          "none": "Inga behörigheter tilldelade"
         }
       },
       "summary": {
@@ -1811,7 +1811,7 @@
       }
     },
     "layerLabel": "Lager:",
-    "moduleRoles": "Modulroller",
+    "moduleRoles": "Behörigheter",
     "openModule": "Öppna modul",
     "routeLabel": "Route:",
     "results": "{count} moduler",

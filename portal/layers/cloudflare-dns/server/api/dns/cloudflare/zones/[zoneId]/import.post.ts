@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const access = await getCloudflareDnsZoneAccessForUser(orgId, auth.user.id, orgRole, zoneId)
-  if (!access.canEditRecords) {
+  if (!access.canImport) {
     throw createError({ statusCode: 403, message: 'Saknar rättighet att importera records till zonen.' })
   }
 

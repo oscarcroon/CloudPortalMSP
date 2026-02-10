@@ -22,6 +22,7 @@
             <span v-else>{{ zoneData?.zone?.name ?? '—' }}</span>
           </h1>
           <button
+            v-if="recordsData?.access?.canExport"
             type="button"
             class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
             :disabled="exporting"
@@ -31,9 +32,9 @@
             {{ t('cloudflareDns.zone.export') }}
           </button>
           <button
+            v-if="recordsData?.access?.canImport"
             type="button"
             class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
-            :disabled="!(recordsData?.access?.canEditRecords)"
             @click="openImportModal"
           >
             <Icon icon="mdi:upload" class="h-4 w-4" />
