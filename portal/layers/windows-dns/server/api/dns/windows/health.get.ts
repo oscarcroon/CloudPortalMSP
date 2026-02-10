@@ -40,8 +40,8 @@ export default defineEventHandler(async (event) => {
 
     const start = Date.now()
     try {
-      await ofetch(`${layerUrl}/system/health`, {
-        headers: { Authorization: `Bearer ${layerToken}` },
+      await ofetch(`${layerUrl}/admin/health`, {
+        headers: { 'x-admin-key': layerToken },
         timeout: 5000
       })
       return {

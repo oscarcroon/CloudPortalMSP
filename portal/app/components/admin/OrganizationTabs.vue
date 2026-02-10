@@ -32,9 +32,6 @@ const basePath = computed(() => {
   if (route.path.startsWith('/tenant-admin')) {
     return '/tenant-admin'
   }
-  if (route.path.startsWith('/admin')) {
-    return '/admin'
-  }
   return '/platform-admin'
 })
 
@@ -80,7 +77,7 @@ const visibleTabs = computed(() => {
     })
   }
   
-  // On admin paths (superadmin), show all tabs
+  // On platform-admin paths (superadmin), show all tabs
   return allTabs
 })
 

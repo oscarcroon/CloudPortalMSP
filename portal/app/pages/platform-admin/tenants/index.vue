@@ -177,7 +177,7 @@ onMounted(() => {
 
 watch(() => route.path, (newPath, oldPath) => {
   // Only refresh if navigating back to this page from another page (not on first mount)
-  if (newPath === '/admin/tenants' && oldPath && oldPath !== newPath && !isFirstMount.value) {
+  if (newPath === '/platform-admin/tenants' && oldPath && oldPath !== newPath && !isFirstMount.value) {
     refresh()
   }
 })

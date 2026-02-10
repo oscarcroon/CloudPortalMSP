@@ -353,7 +353,7 @@ const goToPreviousStep = () => {
     // Navigate back to tenant page if tenantId is provided, otherwise to organizations list
     const tenantId = typeof route.query.tenantId === 'string' ? route.query.tenantId : null
     if (tenantId) {
-      router.push(`/admin/tenants/${tenantId}`)
+      router.push(`/platform-admin/tenants/${tenantId}`)
     } else {
       router.push('/platform-admin/organizations')
     }
@@ -406,7 +406,7 @@ const handleSubmit = async () => {
     }) as AdminCreateOrganizationResponse
 
     await router.push({
-      path: `/admin/organizations/${response.organization.slug}/overview`,
+      path: `/platform-admin/organizations/${response.organization.slug}/overview`,
       query: { created: '1' }
     })
   } catch (error) {

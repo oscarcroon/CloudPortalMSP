@@ -7,7 +7,7 @@ import { ofetch } from 'ofetch'
  *
  * Infrastructure-level health check for the Cloudflare integration.
  * Requires super admin or tenant admin auth (no org context needed).
- * Checks: CLOUDFLARE_TOKEN exists + calls Cloudflare GET /user/tokens/verify.
+ * Verifies that the Cloudflare API is reachable (no token needed — orgs use their own tokens).
  */
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -16,30 +16,29 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Tenant admin required' })
   }
 
-  const token = process.env.CLOUDFLARE_TOKEN
-
-  if (!token) {
-    return {
-      status: 'unconfigured' as const,
-      latency_ms: 0,
-      message: 'CLOUDFLARE_TOKEN not set'
-    }
-  }
-
   const start = Date.now()
   try {
-    await ofetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
-      headers: { Authorization: `Bearer ${token}` }
+    // Ping the Cloudflare API base — any HTTP response (even 400/401) means it's reachable
+    await ofetch.raw('https://api.cloudflare.com/client/v4/', {
+      timeout: 5000
     })
     return {
       status: 'ok' as const,
       latency_ms: Date.now() - start
     }
   } catch (err: any) {
+    const latency = Date.now() - start
+    // An HTTP error response (4xx) still means the API is reachable
+    if (err?.response?.status) {
+      return {
+        status: 'ok' as const,
+        latency_ms: latency
+      }
+    }
     return {
       status: 'error' as const,
-      latency_ms: Date.now() - start,
-      message: err?.data?.errors?.[0]?.message || err?.message || 'Token verification failed'
+      latency_ms: latency,
+      message: err?.message || 'Cloudflare API unreachable'
     }
   }
 })

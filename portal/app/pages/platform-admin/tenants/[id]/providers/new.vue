@@ -325,7 +325,7 @@ const handleSubmit = async () => {
     })
 
     await router.push({
-      path: `/admin/tenants/${distributorId}`,
+      path: `/platform-admin/tenants/${distributorId}`,
       query: { created: '1' }
     })
   } catch (error) {

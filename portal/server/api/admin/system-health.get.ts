@@ -1,4 +1,4 @@
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, getRequestHeaders } from 'h3'
 import { sql } from 'drizzle-orm'
 import { requireSuperAdmin } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
@@ -18,6 +18,12 @@ interface HealthCheckResult {
  */
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
+
+  // Forward auth headers so internal $fetch calls inherit the session
+  const reqHeaders = getRequestHeaders(event)
+  const forwardHeaders: Record<string, string> = {}
+  if (reqHeaders.cookie) forwardHeaders.cookie = reqHeaders.cookie
+  if (reqHeaders.authorization) forwardHeaders.authorization = reqHeaders.authorization
 
   // 1. Database health
   let dbResult: HealthCheckResult
@@ -44,7 +50,8 @@ export default defineEventHandler(async (event) => {
     integrationChecks.map(async (check) => {
       try {
         const result = await $fetch<HealthCheckResult>(check.endpoint, {
-          timeout: check.timeout
+          timeout: check.timeout,
+          headers: forwardHeaders
         })
         return {
           key: check.key,

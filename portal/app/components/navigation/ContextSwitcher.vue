@@ -345,7 +345,6 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
   // Core routes handle context changes reactively or don't depend on organization context
   // Everything else (module/layer pages) will trigger a full page reload
   const coreRoutes = [
-    '/admin/',           // Admin pages handle context via their own logic
     '/tenant-admin',     // Tenant admin pages
     '/settings/',        // Settings pages are reactive
     '/profile',          // Profile is user-specific, not org-specific
@@ -369,20 +368,9 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
   }
 
   if (payload.organizationId) {
-    if (isSuperAdminUser) {
-      const org = auth.organizations.value.find(o => o.id === payload.organizationId)
-      if (org) {
-        // Only redirect if we are on an org-specific admin route so view matches context
-        if (currentPath.includes('/admin/organizations/')) {
-          await router.push(`/admin/organizations/${org.slug}/overview`)
-        }
-        // Otherwise stay on current route; reactive data will follow context
-        return
-      }
-    } else {
-      // For regular users, stay on current route and rely on middleware/auth to handle access
-      return
-    }
+    // Stay on current route and rely on middleware/auth to handle access
+    // Reactive data will follow context change
+    return
   }
 }
 

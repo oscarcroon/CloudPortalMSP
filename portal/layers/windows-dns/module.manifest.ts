@@ -34,7 +34,7 @@ const manifest = definePluginManifest({
   ],
   healthCheck: {
     endpoint: '/api/dns/windows/health?mode=infra',
-    label: 'Windows DNS Layer'
+    label: 'DNS'
   },
   rbacDefaults: {
     owner: [

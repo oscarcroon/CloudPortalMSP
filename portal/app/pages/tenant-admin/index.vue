@@ -428,7 +428,6 @@
                 <span class="text-sm text-slate-700 dark:text-slate-300">{{ t('admin.tenantAdmin.health.database') }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <span v-if="healthData.database.latency_ms" class="text-xs text-slate-400">{{ healthData.database.latency_ms }}ms</span>
                 <span
                   class="rounded-full px-2 py-0.5 text-xs font-medium"
                   :class="getStatusClass(healthData.database.status)"
@@ -449,7 +448,6 @@
                 <span class="text-sm text-slate-700 dark:text-slate-300">{{ integration.label }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <span v-if="integration.latency_ms" class="text-xs text-slate-400">{{ integration.latency_ms }}ms</span>
                 <span
                   class="rounded-full px-2 py-0.5 text-xs font-medium"
                   :class="getStatusClass(integration.status)"

@@ -959,7 +959,7 @@ const isDistributor = computed(() => tenantData.value?.tenant?.type === 'distrib
 // Redirect distributors to the templates page (distributors should not have MSP roles, only templates)
 watch(isDistributor, (newValue) => {
   if (newValue) {
-    navigateTo(`/admin/distributors/${tenantId.value}/msp-role-templates`)
+    navigateTo(`/tenant-admin/distributors/${tenantId.value}/msp-role-templates`)
   }
 }, { immediate: true })
 

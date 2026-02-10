@@ -2,7 +2,7 @@
   <section class="space-y-8">
     <header class="space-y-1">
       <NuxtLink
-        to="/admin"
+        to="/tenant-admin"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
         ← Tillbaka
@@ -389,7 +389,7 @@ const goToPreviousStep = () => {
     if (tenantId) {
       router.push(`/tenant-admin/tenants/${tenantId}`)
     } else {
-      router.push('/admin')
+      router.push('/tenant-admin')
     }
     return
   }
