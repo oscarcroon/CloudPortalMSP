@@ -37,7 +37,7 @@ export const getDb = (): DrizzleDb => {
 
   const url = buildMysqlUrl()
   const pool = mysql.createPool(url)
-  dbInstance = drizzle(pool, { schema, mode: 'default' })
+  dbInstance = drizzle({ client: pool, schema, mode: 'default' })
   return dbInstance
 }
 
