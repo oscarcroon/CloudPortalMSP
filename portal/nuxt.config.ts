@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     dirs: ['layers']
   },
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode', '@nuxtjs/i18n'],
+  modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/color-mode', '@nuxtjs/i18n', '@nuxtjs/turnstile'],
 
   css: ['~/assets/css/tailwind.css'],
   postcss: {
@@ -43,7 +43,13 @@ export default defineNuxtConfig({
   tailwindcss: {
     viewer: false
   },
+  turnstile: {
+    siteKey: process.env.NUXT_PUBLIC_TURNSTILE_SITE_KEY || ''
+  },
   runtimeConfig: {
+    turnstile: {
+      secretKey: process.env.NUXT_TURNSTILE_SECRET_KEY || ''
+    },
     auth: {
       // SECURITY: In production, AUTH_JWT_SECRET is required (validated by validate-env plugin).
       // The dev fallback is ONLY for local development and will NOT work in production.

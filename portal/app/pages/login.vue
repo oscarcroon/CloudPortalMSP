@@ -50,6 +50,11 @@
         </div>
       </div>
 
+      <!-- Turnstile widget on password step (only when no SSO providers) -->
+      <div v-if="step === 'password' && !providers.identityProviders.length" class="flex justify-center">
+        <NuxtTurnstile ref="turnstileRef" v-model="turnstileToken" />
+      </div>
+
       <!-- MFA Code field -->
       <div v-if="step === 'mfa'" class="space-y-3">
         <p class="text-sm text-slate-600 dark:text-slate-300">
@@ -172,6 +177,8 @@ const password = ref('')
 const mfaCode = ref('')
 const showMfaHelp = ref(false)
 const errorMessage = ref('')
+const turnstileToken = ref('')
+const turnstileRef = ref()
 const passwordInput = ref<HTMLInputElement | null>(null)
 const mfaCodeInput = ref<HTMLInputElement | null>(null)
 interface IdentityProviderSummary {
@@ -257,7 +264,7 @@ const handlePasswordSubmit = async () => {
   try {
     const response = await ($fetch as any)('/api/auth/login', {
       method: 'POST',
-      body: { email: email.value, password: password.value }
+      body: { email: email.value, password: password.value, turnstileToken: turnstileToken.value }
     })
     // Check if MFA is required
     if (response?.mfaRequired) {
@@ -271,13 +278,21 @@ const handlePasswordSubmit = async () => {
     const fetchError = unknownError as FetchError | undefined
     const status =
       fetchError?.statusCode ?? fetchError?.status ?? fetchError?.response?.status ?? null
+    turnstileRef.value?.reset()
+    if (status === 400 || status === 403) {
+      const msg = fetchError?.data?.message || ''
+      if (msg.toLowerCase().includes('turnstile')) {
+        errorMessage.value = t('auth.errors.turnstileFailed')
+        return
+      }
+      if (status === 403) {
+        errorMessage.value = t('auth.errors.ssoRequired')
+        return
+      }
+    }
     if (status === 401) {
       errorMessage.value = t('auth.errors.invalidCredentials')
       password.value = ''
-      return
-    }
-    if (status === 403) {
-      errorMessage.value = t('auth.errors.ssoRequired')
       return
     }
     errorMessage.value = t('auth.errors.loginFailed')
@@ -306,6 +321,7 @@ const resetToEmailStep = () => {
   step.value = 'email'
   password.value = ''
   mfaCode.value = ''
+  turnstileToken.value = ''
   showMfaHelp.value = false
   providers.value.restrictSso = false
   providers.value.identityProviders = []

@@ -134,7 +134,8 @@
       "invalidCredentials": "Wrong email or password. Try again.",
       "ssoRequired": "The organization requires SSO. Use SSO login.",
       "loginFailed": "Could not log in right now.",
-      "invalidMfaCode": "Invalid verification code. Try again."
+      "invalidMfaCode": "Invalid verification code. Try again.",
+      "turnstileFailed": "Verification failed. Please try again."
     },
     "groups": {
       "title": "Groups",

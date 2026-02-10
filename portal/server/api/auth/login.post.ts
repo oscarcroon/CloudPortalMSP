@@ -6,6 +6,7 @@ import { normalizeEmail, verifyPassword } from '../../utils/crypto'
 import { createSession } from '../../utils/session'
 import { logSecurityEvent } from '../../utils/audit'
 import { getClientIP } from '../../utils/ip'
+import { requireTurnstileToken } from '../../utils/turnstile'
 import { getDb } from '../../utils/db'
 import { organizationSsoDomains, organizations, users } from '../../database/schema'
 
@@ -97,7 +98,8 @@ const getCooldownDuration = (failedAttempts: number): number => {
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  mfaCode: z.string().min(6).max(8).optional()
+  mfaCode: z.string().min(6).max(8).optional(),
+  turnstileToken: z.string().optional()
 })
 
 // ============================================================================
@@ -177,6 +179,13 @@ export default defineEventHandler(async (event) => {
       message: 'Too many login attempts. Please try again later.',
       data: { retryAfter: Math.max(1, retryAfter) }
     })
+  }
+
+  // ========================================================================
+  // Turnstile verification (only on password step, not MFA)
+  // ========================================================================
+  if (!body.mfaCode) {
+    await requireTurnstileToken(event, body.turnstileToken)
   }
 
   // ========================================================================

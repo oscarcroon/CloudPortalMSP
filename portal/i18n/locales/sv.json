@@ -129,7 +129,8 @@
       "invalidCredentials": "Fel e-post eller lösenord. Försök igen.",
       "ssoRequired": "Organisationen kräver SSO. Använd SSO-inloggning.",
       "loginFailed": "Kunde inte logga in just nu.",
-      "invalidMfaCode": "Ogiltig verifieringskod. Försök igen."
+      "invalidMfaCode": "Ogiltig verifieringskod. Försök igen.",
+      "turnstileFailed": "Verifieringen misslyckades. Försök igen."
     },
     "groups": {
       "title": "Grupper",

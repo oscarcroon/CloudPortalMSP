@@ -36,6 +36,8 @@
         />
       </div>
 
+      <NuxtTurnstile ref="turnstileRef" v-model="turnstileToken" />
+
       <p v-if="errorMessage" class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
         {{ errorMessage }}
       </p>
@@ -77,6 +79,8 @@ const email = ref('')
 const submitting = ref(false)
 const submitted = ref(false)
 const errorMessage = ref('')
+const turnstileToken = ref('')
+const turnstileRef = ref()
 
 const handleSubmit = async () => {
   if (!email.value) return
@@ -85,11 +89,12 @@ const handleSubmit = async () => {
   try {
     await ($fetch as any)('/api/auth/password/forgot', {
       method: 'POST',
-      body: { email: email.value.trim() }
+      body: { email: email.value.trim(), turnstileToken: turnstileToken.value }
     })
     submitted.value = true
   } catch (error) {
     console.error(error)
+    turnstileRef.value?.reset()
     errorMessage.value = t('forgotPassword.error')
   } finally {
     submitting.value = false

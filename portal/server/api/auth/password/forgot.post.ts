@@ -6,15 +6,18 @@ import { getDb } from '../../../utils/db'
 import { normalizeEmail } from '../../../utils/crypto'
 import { EmailDeliveryError, triggerPasswordReset } from '../../../utils/passwordReset'
 import { logUserAction } from '../../../utils/audit'
+import { requireTurnstileToken } from '../../../utils/turnstile'
 
 const requestSchema = z.object({
-  email: z.string().email()
+  email: z.string().email(),
+  turnstileToken: z.string().optional()
 })
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export default defineEventHandler(async (event) => {
   const payload = requestSchema.parse(await readBody(event))
+  await requireTurnstileToken(event, payload.turnstileToken)
   const normalizedEmail = normalizeEmail(payload.email)
   const db = getDb()
 
