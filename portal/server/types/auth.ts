@@ -11,6 +11,7 @@ export interface AuthUser {
   status: string
   defaultOrgId?: string | null
   isSuperAdmin: boolean
+  isMfaEnabled: boolean
   forcePasswordReset: boolean
   locale: SupportedLocaleCode
 }

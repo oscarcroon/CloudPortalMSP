@@ -105,7 +105,16 @@
     "changeEmail": "Byt e-postadress",
     "forgotPassword": "Glömt lösenord?",
     "continue": "Fortsätt",
-    "restrictSso": "Minst en organisation kräver SSO. Använd knapparna nedan för att initiera SSO-flödet eller välj en org som tillåter lösenord.",
+    "mfaPrompt": "Ange den 6-siffriga koden från din autentiseringsapp.",
+    "mfaCode": "Verifieringskod",
+    "mfaCodePlaceholder": "000000",
+    "mfaTroubleLink": "Har du problem att logga in?",
+    "mfaHelpBackupCodes": "Om du inte kan komma åt din autentiseringsapp kan du använda en av reservkoderna du fick när du aktiverade tvåfaktorsautentisering.",
+    "mfaHelpContact": "Om du har tappat bort dina reservkoder, kontakta din leverantör eller organisationsadministratör för hjälp.",
+    "verifyMfa": "Verifiera",
+    "restrictSso": "Din organisation kräver SSO-inloggning. Använd knappen nedan för att logga in.",
+    "ssoLoginWith": "Logga in med {provider}",
+    "ssoOrLabel": "eller",
     "ssoOrganizations": "SSO-aktiverade organisationer",
     "cloudflareNote": "Skyddat bakom Cloudflare Zero Trust? Lägg till ditt Access-token i headern",
     "cloudflareCode": "CF_Authorization",
@@ -119,7 +128,8 @@
       "verifyFailed": "Kunde inte verifiera e-postadressen. Kontrollera att den är korrekt formaterad och försök igen.",
       "invalidCredentials": "Fel e-post eller lösenord. Försök igen.",
       "ssoRequired": "Organisationen kräver SSO. Använd SSO-inloggning.",
-      "loginFailed": "Kunde inte logga in just nu."
+      "loginFailed": "Kunde inte logga in just nu.",
+      "invalidMfaCode": "Ogiltig verifieringskod. Försök igen."
     },
     "groups": {
       "title": "Grupper",
@@ -144,6 +154,29 @@
       "entra": "Microsoft Entra ID",
       "openid": "OpenID Connect",
       "saml": "SAML"
+    },
+    "ssoDomains": {
+      "title": "SSO-domäner",
+      "description": "Domäner vars e-postadresser dirigeras till SSO vid inloggning. Verifiera ägandeskap via DNS.",
+      "addDomain": "Lägg till domän",
+      "domainPlaceholder": "example.com",
+      "add": "Lägg till",
+      "verify": "Verifiera",
+      "remove": "Ta bort",
+      "verified": "Verifierad",
+      "pending": "Väntar på verifiering",
+      "failed": "Verifiering misslyckades",
+      "noDomains": "Inga SSO-domäner konfigurerade.",
+      "verifyInstructions": "Lägg till följande TXT-post i din DNS:",
+      "recordType": "Typ",
+      "recordName": "Namn",
+      "recordValue": "Värde",
+      "domainAdded": "Domänen lades till. Verifiera via DNS.",
+      "domainVerified": "Domänen har verifierats.",
+      "domainRemoved": "Domänen togs bort.",
+      "verifyFailed": "Verifieringen misslyckades. Kontrollera DNS-konfigurationen.",
+      "configureIdpFirst": "Konfigurera en Identity Provider innan SSO-domäner kan läggas till.",
+      "confirmRemove": "Vill du ta bort denna SSO-domän?"
     }
   },
   "forgotPassword": {
@@ -389,7 +422,34 @@
       "passwordSaved": "Lösenordet uppdaterades.",
       "passwordError": "Kunde inte uppdatera lösenordet. Kontrollera ditt nuvarande lösenord och försök igen."
     },
-    "notProvided": "Ej angivet"
+    "notProvided": "Ej angivet",
+    "mfa": {
+      "title": "Tvåfaktorsautentisering",
+      "description": "Lägg till ett extra säkerhetslager på ditt konto med en autentiseringsapp.",
+      "enabled": "Aktiverad",
+      "disabled": "Inaktiverad",
+      "enableButton": "Aktivera tvåfaktorsautentisering",
+      "disableButton": "Inaktivera tvåfaktorsautentisering",
+      "scanQrCode": "Skanna QR-koden nedan med din autentiseringsapp (t.ex. Google Authenticator, Authy, 1Password).",
+      "qrCodeAlt": "TOTP QR-kod",
+      "manualEntry": "Eller ange denna kod manuellt:",
+      "verificationCode": "Verifieringskod",
+      "codePlaceholder": "000000",
+      "verify": "Verifiera och aktivera",
+      "verifying": "Verifierar...",
+      "cancel": "Avbryt",
+      "done": "Klar",
+      "backupCodesWarning": "Spara dessa reservkoder på ett säkert ställe!",
+      "backupCodesHint": "Varje kod kan bara användas en gång. Om du förlorar åtkomst till din autentiseringsapp kan du använda en av dessa koder för att logga in.",
+      "copyBackupCodes": "Kopiera koder",
+      "backupCodesCopied": "Reservkoder kopierade till urklipp.",
+      "disableConfirmText": "Ange en kod från din autentiseringsapp för att bekräfta inaktivering av tvåfaktorsautentisering.",
+      "disabling": "Inaktiverar...",
+      "confirmDisable": "Inaktivera MFA",
+      "disabledSuccess": "Tvåfaktorsautentisering har inaktiverats.",
+      "setupError": "Kunde inte starta MFA-konfiguration. Försök igen.",
+      "invalidCode": "Ogiltig verifieringskod. Försök igen."
+    }
   },
   "password": {
     "requirements": {
@@ -935,8 +995,10 @@
         },
         "requireSsoDisabled": {
           "noIdp": "Konfigurera en IdP innan SSO kan krävas.",
-          "incomplete": "Fyll i alla obligatoriska IdP-fält för att kunna kräva SSO."
+          "incomplete": "Fyll i alla obligatoriska IdP-fält för att kunna kräva SSO.",
+          "noDomain": "Lägg till och verifiera minst en SSO-domän innan SSO kan krävas."
         },
+        "idpDisabled": "Verifiera minst en SSO-domän innan Identity Provider kan konfigureras.",
         "validation": {
           "incomplete": "Fyll i alla obligatoriska IdP-fält innan du sparar.",
           "noOrg": "Ingen organisation är vald."
@@ -990,10 +1052,34 @@
         "title": "Tillåt lokalt login för ägare",
         "description": "Behåll fallback via lösenord för ägare."
       },
+      "requireMfa": {
+        "title": "Kräv MFA",
+        "description": "Alla användare med lokala konton måste aktivera tvåfaktorsautentisering."
+      },
       "features": {
         "idp": "Välj IdP-typ (OpenID eller Entra AD)",
         "cloudflare": "Följ guiden för att konfigurera Cloudflare Access",
         "require": "Aktivera \"Kräv SSO\" när IdP är klar"
+      },
+      "ssoDomains": {
+        "title": "SSO-domäner",
+        "description": "Domäner vars e-postadresser dirigeras till SSO vid inloggning. Verifiera ägandeskap via DNS.",
+        "domainPlaceholder": "example.com",
+        "add": "Lägg till",
+        "verify": "Verifiera",
+        "remove": "Ta bort",
+        "verified": "Verifierad",
+        "pending": "Väntar på verifiering",
+        "noDomains": "Inga SSO-domäner konfigurerade.",
+        "verifyInstructions": "Lägg till följande TXT-post i din DNS:",
+        "recordType": "Typ",
+        "recordName": "Namn",
+        "recordValue": "Värde",
+        "domainAdded": "Domänen lades till. Verifiera via DNS.",
+        "domainVerified": "Domänen har verifierats.",
+        "domainRemoved": "Domänen togs bort.",
+        "verifyFailed": "Verifieringen misslyckades. Kontrollera DNS-konfigurationen.",
+        "confirmRemove": "Vill du ta bort denna SSO-domän?"
       }
     },
     "email": {
@@ -2723,6 +2809,15 @@
       "modules": "Moduler",
       "pages": "Sidor"
     }
+  },
+  "legal": {
+    "termsTitle": "Användarvillkor",
+    "privacyTitle": "Integritetspolicy",
+    "lastUpdated": "Senast uppdaterad",
+    "backToLogin": "Tillbaka till inloggning",
+    "loginConsent": "Genom att fortsätta godkänner du våra {terms} och {privacy}.",
+    "termsLink": "Användarvillkor",
+    "privacyLink": "Integritetspolicy"
   }
 }
 

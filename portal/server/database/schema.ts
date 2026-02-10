@@ -153,6 +153,8 @@ export const users = mysqlTable(
     locale: varchar('locale', { length: 10 }).notNull().default('sv'),
     isSuperAdmin: boolean('is_super_admin').notNull().default(false),
     isMfaEnabled: boolean('is_mfa_enabled').notNull().default(false),
+    mfaTotpSecret: varchar('mfa_totp_secret', { length: 512 }),
+    mfaBackupCodes: text('mfa_backup_codes'),
     lastLoginAt: timestamp('last_login_at', { fsp: 3 }),
     defaultOrgId: varchar('default_org_id', { length: 128 }),
     enforcedOrgId: varchar('enforced_org_id', { length: 128 }),
@@ -429,6 +431,25 @@ export const organizationInvitations = mysqlTable(
   })
 )
 
+export const organizationSsoDomains = mysqlTable(
+  'organization_sso_domains',
+  {
+    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+    organizationId: varchar('organization_id', { length: 128 })
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    domain: varchar('domain', { length: 255 }).notNull(),
+    verificationStatus: varchar('verification_status', { length: 50 }).notNull().default('pending'),
+    verificationToken: varchar('verification_token', { length: 255 }),
+    verifiedAt: timestamp('verified_at', { fsp: 3 }),
+    ...timestampColumns()
+  },
+  (table) => ({
+    domainUnique: uniqueIndex('organization_sso_domains_domain_unique').on(table.domain),
+    orgIdx: index('organization_sso_domains_org_idx').on(table.organizationId)
+  })
+)
+
 export const organizationAuthSettings = mysqlTable('organization_auth_settings', {
   organizationId: varchar('organization_id', { length: 128 })
     .primaryKey()
@@ -442,6 +463,9 @@ export const organizationAuthSettings = mysqlTable('organization_auth_settings',
     .notNull()
     .default(false),
   requireMfaOnContextSwitch: boolean('require_mfa_on_context_switch')
+    .notNull()
+    .default(false),
+  requireMfa: boolean('require_mfa')
     .notNull()
     .default(false),
   idpConfig: text('idp_config'),
@@ -826,6 +850,7 @@ export const organizationsRelations = relations(organizations, ({ many, one }) =
   memberships: many(organizationMemberships),
   invitations: many(organizationInvitations),
   identityProviders: many(organizationIdentityProviders),
+  ssoDomains: many(organizationSsoDomains),
   authSettings: one(organizationAuthSettings, {
     fields: [organizations.id],
     references: [organizationAuthSettings.organizationId]
@@ -901,6 +926,16 @@ export const organizationAuthSettingsRelations = relations(
   ({ one }) => ({
     organization: one(organizations, {
       fields: [organizationAuthSettings.organizationId],
+      references: [organizations.id]
+    })
+  })
+)
+
+export const organizationSsoDomainsRelations = relations(
+  organizationSsoDomains,
+  ({ one }) => ({
+    organization: one(organizations, {
+      fields: [organizationSsoDomains.organizationId],
       references: [organizations.id]
     })
   })

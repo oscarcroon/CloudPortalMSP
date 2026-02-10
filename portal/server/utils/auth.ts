@@ -461,6 +461,7 @@ export const buildAuthState = async (
       status: user.status,
       defaultOrgId: user.defaultOrgId,
       isSuperAdmin: Boolean(user.isSuperAdmin),
+      isMfaEnabled: Boolean(user.isMfaEnabled),
       forcePasswordReset: Boolean(user.forcePasswordReset),
       locale: (user.locale as SupportedLocaleCode) ?? DEFAULT_LOCALE
     },

@@ -101,11 +101,114 @@
 
       </div>
 
+      <!-- SSO Domains section — FIRST step in the flow -->
       <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#101932]">
+        <div class="flex flex-col gap-2">
+          <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ t('auth.ssoDomains.title') }}</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            {{ t('auth.ssoDomains.description') }}
+          </p>
+        </div>
+
+        <div
+          v-if="ssoDomainMessage"
+          class="mt-4 rounded-lg border px-4 py-3 text-sm"
+          :class="ssoDomainMessageType === 'success'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/5 dark:text-emerald-200'
+            : 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/5 dark:text-red-200'"
+        >
+          {{ ssoDomainMessage }}
+        </div>
+
+        <!-- Add domain form -->
+        <div class="mt-4 flex gap-2">
+          <input
+            v-model="newDomain"
+            type="text"
+            :placeholder="t('auth.ssoDomains.domainPlaceholder')"
+            class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-[#0f172a] dark:text-white"
+            :disabled="addingDomain"
+            @keydown.enter.prevent="handleAddDomain"
+          />
+          <button
+            type="button"
+            class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/85 disabled:opacity-50"
+            :disabled="!newDomain.trim() || addingDomain"
+            @click="handleAddDomain"
+          >
+            {{ t('auth.ssoDomains.add') }}
+          </button>
+        </div>
+
+        <!-- Domain list -->
+        <div v-if="ssoDomains.length" class="mt-4 space-y-3">
+          <div
+            v-for="domain in ssoDomains"
+            :key="domain.id"
+            class="rounded-lg border border-slate-200 px-4 py-3 dark:border-white/10"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ domain.domain }}</span>
+                <span
+                  class="rounded-full px-2 py-0.5 text-xs font-medium"
+                  :class="domain.verificationStatus === 'verified'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'"
+                >
+                  {{ domain.verificationStatus === 'verified' ? t('auth.ssoDomains.verified') : t('auth.ssoDomains.pending') }}
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="domain.verificationStatus !== 'verified'"
+                  type="button"
+                  class="rounded px-3 py-1 text-xs font-semibold text-brand transition hover:bg-brand/10"
+                  :disabled="verifyingDomain === domain.domain"
+                  @click="handleVerifyDomain(domain.domain)"
+                >
+                  {{ t('auth.ssoDomains.verify') }}
+                </button>
+                <button
+                  type="button"
+                  class="rounded px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                  :disabled="removingDomain === domain.domain"
+                  @click="handleRemoveDomain(domain.domain)"
+                >
+                  {{ t('auth.ssoDomains.remove') }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Verification instructions for pending domains -->
+            <div v-if="domain.verificationStatus !== 'verified' && domain.verificationInstructions" class="mt-3 rounded-lg bg-slate-50 p-3 text-xs dark:bg-white/5">
+              <p class="mb-2 text-slate-500 dark:text-slate-400">{{ t('auth.ssoDomains.verifyInstructions') }}</p>
+              <div class="space-y-1 font-mono text-slate-700 dark:text-slate-300">
+                <p><span class="text-slate-500 dark:text-slate-400">{{ t('auth.ssoDomains.recordType') }}:</span> TXT</p>
+                <p><span class="text-slate-500 dark:text-slate-400">{{ t('auth.ssoDomains.recordName') }}:</span> {{ domain.verificationInstructions.recordName }}</p>
+                <p><span class="text-slate-500 dark:text-slate-400">{{ t('auth.ssoDomains.recordValue') }}:</span> {{ domain.verificationInstructions.recordValue }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p v-else class="mt-4 text-sm text-slate-500 dark:text-slate-400">
+          {{ t('auth.ssoDomains.noDomains') }}
+        </p>
+      </div>
+
+      <!-- Identity Provider section — disabled until a domain is verified -->
+      <div
+        class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#101932]"
+        :class="{ 'opacity-50 pointer-events-none': !hasVerifiedSsoDomain }"
+      >
         <div class="flex flex-col gap-2">
           <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Identity Provider</h2>
           <p class="text-sm text-slate-500 dark:text-slate-400">
             Välj vilken IdP som ska vara aktiv och fyll i OIDC-detaljer. Organisationen kan endast ha en IdP åt gången.
+          </p>
+          <p v-if="!hasVerifiedSsoDomain" class="text-xs text-amber-600 dark:text-amber-300">
+            Verifiera minst en SSO-domän innan Identity Provider kan konfigureras.
           </p>
         </div>
 
@@ -126,6 +229,7 @@
               :value="option.value"
               v-model="form.idpProvider"
               class="text-brand focus:ring-brand"
+              :disabled="!hasVerifiedSsoDomain"
             />
             <IconifyIcon
               :icon="option.icon"
@@ -331,6 +435,7 @@
           </article>
         </div>
       </div>
+
     </form>
   </section>
 </template>
@@ -346,12 +451,33 @@ definePageMeta({
   // API endpoint validates tenant permissions
 })
 
+const { t } = useI18n()
 const route = useRoute()
 const slug = computed(() => route.params.slug as string)
 
 const errorMessage = ref('')
 const successMessage = ref('')
 const saving = ref(false)
+
+// SSO Domains state
+interface SsoDomainEntry {
+  id: string
+  domain: string
+  verificationStatus: string
+  verifiedAt: string | null
+  createdAt: string
+  verificationInstructions?: {
+    recordName: string
+    recordValue: string
+  } | null
+}
+const ssoDomains = ref<SsoDomainEntry[]>([])
+const newDomain = ref('')
+const addingDomain = ref(false)
+const verifyingDomain = ref<string | null>(null)
+const removingDomain = ref<string | null>(null)
+const ssoDomainMessage = ref('')
+const ssoDomainMessageType = ref<'success' | 'error'>('success')
 
 const providerOptions = [
   { value: 'none', label: 'Ingen IdP', icon: 'mdi:cancel' },
@@ -571,12 +697,19 @@ const providerConfigured = computed(() => {
   return false
 })
 
-const requireSsoDisabled = computed(() => form.idpProvider === 'none' || !providerConfigured.value)
-const requireSsoDisabledMessage = computed(() =>
-  form.idpProvider === 'none'
-    ? 'Konfigurera en IdP innan SSO kan krävas.'
-    : 'Fyll i alla obligatoriska IdP-fält för att kunna kräva SSO.'
+const hasVerifiedSsoDomain = computed(() =>
+  ssoDomains.value.some((d) => d.verificationStatus === 'verified')
 )
+
+const requireSsoDisabled = computed(() =>
+  form.idpProvider === 'none' || !providerConfigured.value || !hasVerifiedSsoDomain.value
+)
+const requireSsoDisabledMessage = computed(() => {
+  if (!hasVerifiedSsoDomain.value) return 'Lägg till och verifiera minst en SSO-domän innan SSO kan krävas.'
+  if (form.idpProvider === 'none') return 'Konfigurera en IdP innan SSO kan krävas.'
+  if (!providerConfigured.value) return 'Fyll i alla obligatoriska IdP-fält för att kunna kräva SSO.'
+  return ''
+})
 
 const buildPayload = () => {
   const payload: Record<string, unknown> = {
@@ -669,5 +802,121 @@ const handleSave = async () => {
     saving.value = false
   }
 }
+
+// ── SSO Domains ──────────────────────────────────────────────────────────
+
+const fetchSsoDomains = async () => {
+  if (!organization.value) return
+  try {
+    const response = await ($fetch as any)(
+      `/api/admin/organizations/${organization.value.id}/sso-domains`
+    )
+    ssoDomains.value = (response.domains ?? []).map((d: any) => ({
+      ...d,
+      verificationInstructions: d.verificationInstructions ?? null
+    }))
+  } catch {
+    // Silently fail — domains section is supplementary
+  }
+}
+
+const handleAddDomain = async () => {
+  if (!organization.value || !newDomain.value.trim()) return
+  addingDomain.value = true
+  ssoDomainMessage.value = ''
+  try {
+    const response = await ($fetch as any)(
+      `/api/admin/organizations/${organization.value.id}/sso-domains`,
+      { method: 'POST', body: { domain: newDomain.value.trim() } }
+    )
+    ssoDomains.value.push({
+      id: response.id,
+      domain: response.domain,
+      verificationStatus: response.verificationStatus,
+      verifiedAt: null,
+      createdAt: new Date().toISOString(),
+      verificationInstructions: response.verificationInstructions
+        ? { recordName: response.verificationInstructions.recordName, recordValue: response.verificationInstructions.recordValue }
+        : null
+    })
+    newDomain.value = ''
+    ssoDomainMessage.value = t('auth.ssoDomains.domainAdded')
+    ssoDomainMessageType.value = 'success'
+  } catch (err: any) {
+    ssoDomainMessage.value = err?.data?.message ?? err?.message ?? t('auth.ssoDomains.configureIdpFirst')
+    ssoDomainMessageType.value = 'error'
+  } finally {
+    addingDomain.value = false
+  }
+}
+
+const handleVerifyDomain = async (domain: string) => {
+  if (!organization.value) return
+  verifyingDomain.value = domain
+  ssoDomainMessage.value = ''
+  try {
+    const response = await ($fetch as any)(
+      `/api/admin/organizations/${organization.value.id}/sso-domains/${encodeURIComponent(domain)}/verify`,
+      { method: 'POST' }
+    )
+    if (response.verified) {
+      const entry = ssoDomains.value.find((d) => d.domain === domain)
+      if (entry) {
+        entry.verificationStatus = 'verified'
+        entry.verifiedAt = new Date().toISOString()
+      }
+      ssoDomainMessage.value = t('auth.ssoDomains.domainVerified')
+      ssoDomainMessageType.value = 'success'
+    } else {
+      // Update instructions from the response
+      const entry = ssoDomains.value.find((d) => d.domain === domain)
+      if (entry && response.expected) {
+        entry.verificationInstructions = {
+          recordName: response.expected.recordName,
+          recordValue: response.expected.recordValue
+        }
+      }
+      ssoDomainMessage.value = response.error ?? t('auth.ssoDomains.verifyFailed')
+      ssoDomainMessageType.value = 'error'
+    }
+  } catch (err: any) {
+    ssoDomainMessage.value = err?.data?.message ?? err?.message ?? t('auth.ssoDomains.verifyFailed')
+    ssoDomainMessageType.value = 'error'
+  } finally {
+    verifyingDomain.value = null
+  }
+}
+
+const handleRemoveDomain = async (domain: string) => {
+  if (!organization.value) return
+  if (!confirm(t('auth.ssoDomains.confirmRemove'))) return
+  removingDomain.value = domain
+  ssoDomainMessage.value = ''
+  try {
+    await ($fetch as any)(
+      `/api/admin/organizations/${organization.value.id}/sso-domains/${encodeURIComponent(domain)}`,
+      { method: 'DELETE' }
+    )
+    ssoDomains.value = ssoDomains.value.filter((d) => d.domain !== domain)
+    ssoDomainMessage.value = t('auth.ssoDomains.domainRemoved')
+    ssoDomainMessageType.value = 'success'
+  } catch (err: any) {
+    ssoDomainMessage.value = err?.data?.message ?? err?.message ?? 'Kunde inte ta bort domänen.'
+    ssoDomainMessageType.value = 'error'
+  } finally {
+    removingDomain.value = null
+  }
+}
+
+// Load SSO domains when organization data is available
+watch(
+  organization,
+  (org) => {
+    if (org) {
+      fetchSsoDomains()
+    }
+  },
+  { immediate: true }
+)
 </script>
 

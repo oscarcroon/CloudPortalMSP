@@ -71,7 +71,7 @@ export const useAuth = () => {
     await fetchMe()
   }
 
-  const login = async (payload: { email: string; password: string }) => {
+  const login = async (payload: { email: string; password: string; mfaCode?: string }) => {
     state.value.loading = true
     try {
       await ($fetch as any)('/api/auth/login', {

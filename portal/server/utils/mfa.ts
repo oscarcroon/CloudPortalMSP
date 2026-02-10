@@ -120,36 +120,49 @@ export const createMfaSession = async (
 }
 
 /**
- * Verify MFA code (TOTP, SMS, email, etc.)
- * This is a placeholder - implement actual MFA verification based on your setup
+ * Verify MFA code (TOTP or backup code)
  */
 export const verifyMfaCode = async (
   userId: string,
   code: string,
   method: 'totp' | 'sms' | 'email' = 'totp'
 ): Promise<boolean> => {
+  const { verifyTotpCode, verifyBackupCode } = await import('./totp')
   const db = getDb()
   const [user] = await db
-    .select({ isMfaEnabled: users.isMfaEnabled })
+    .select({
+      isMfaEnabled: users.isMfaEnabled,
+      mfaTotpSecret: users.mfaTotpSecret,
+      mfaBackupCodes: users.mfaBackupCodes
+    })
     .from(users)
     .where(eq(users.id, userId))
 
-  if (!user || !user.isMfaEnabled) {
+  if (!user?.isMfaEnabled || !user.mfaTotpSecret) {
     return false
   }
 
-  // TODO: Implement actual MFA verification
-  // For now, this is a placeholder that always returns false
-  // You'll need to integrate with your MFA provider (TOTP, SMS gateway, etc.)
-  
-  // Example structure:
-  // if (method === 'totp') {
-  //   return await verifyTotpCode(userId, code)
-  // } else if (method === 'sms') {
-  //   return await verifySmsCode(userId, code)
-  // } else if (method === 'email') {
-  //   return await verifyEmailCode(userId, code)
-  // }
+  // Try TOTP verification first
+  if (verifyTotpCode(user.mfaTotpSecret, code)) {
+    return true
+  }
+
+  // Try backup code
+  if (user.mfaBackupCodes) {
+    try {
+      const hashedCodes: string[] = JSON.parse(user.mfaBackupCodes)
+      const result = await verifyBackupCode(code, hashedCodes)
+      if (result.valid) {
+        await db
+          .update(users)
+          .set({ mfaBackupCodes: JSON.stringify(result.remainingCodes) })
+          .where(eq(users.id, userId))
+        return true
+      }
+    } catch {
+      // Invalid JSON in backup codes — treat as no backup codes
+    }
+  }
 
   return false
 }

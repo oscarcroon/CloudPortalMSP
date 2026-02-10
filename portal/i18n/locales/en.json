@@ -110,7 +110,16 @@
     "changeEmail": "Change email address",
     "forgotPassword": "Forgot password?",
     "continue": "Continue",
-    "restrictSso": "At least one organization requires SSO. Use the buttons below to initiate the SSO flow or select an org that allows passwords.",
+    "mfaPrompt": "Enter the 6-digit code from your authenticator app.",
+    "mfaCode": "Verification code",
+    "mfaCodePlaceholder": "000000",
+    "mfaTroubleLink": "Having trouble logging in?",
+    "mfaHelpBackupCodes": "If you can't access your authenticator app, you can use one of the backup codes you received when setting up two-factor authentication.",
+    "mfaHelpContact": "If you've lost your backup codes, contact your provider or organization administrator for help.",
+    "verifyMfa": "Verify",
+    "restrictSso": "Your organization requires SSO login. Use the button below to log in.",
+    "ssoLoginWith": "Log in with {provider}",
+    "ssoOrLabel": "or",
     "ssoOrganizations": "SSO-enabled organizations",
     "cloudflareNote": "Protected behind Cloudflare Zero Trust? Add your Access token in the header",
     "cloudflareCode": "CF_Authorization",
@@ -124,7 +133,8 @@
       "verifyFailed": "Could not verify the email address. Check that it is correctly formatted and try again.",
       "invalidCredentials": "Wrong email or password. Try again.",
       "ssoRequired": "The organization requires SSO. Use SSO login.",
-      "loginFailed": "Could not log in right now."
+      "loginFailed": "Could not log in right now.",
+      "invalidMfaCode": "Invalid verification code. Try again."
     },
     "groups": {
       "title": "Groups",
@@ -149,6 +159,29 @@
       "entra": "Microsoft Entra ID",
       "openid": "OpenID Connect",
       "saml": "SAML"
+    },
+    "ssoDomains": {
+      "title": "SSO Domains",
+      "description": "Domains whose email addresses are routed to SSO at login. Verify ownership via DNS.",
+      "addDomain": "Add domain",
+      "domainPlaceholder": "example.com",
+      "add": "Add",
+      "verify": "Verify",
+      "remove": "Remove",
+      "verified": "Verified",
+      "pending": "Pending verification",
+      "failed": "Verification failed",
+      "noDomains": "No SSO domains configured.",
+      "verifyInstructions": "Add the following TXT record to your DNS:",
+      "recordType": "Type",
+      "recordName": "Name",
+      "recordValue": "Value",
+      "domainAdded": "Domain added. Verify via DNS.",
+      "domainVerified": "Domain has been verified.",
+      "domainRemoved": "Domain removed.",
+      "verifyFailed": "Verification failed. Check your DNS configuration.",
+      "configureIdpFirst": "Configure an Identity Provider before adding SSO domains.",
+      "confirmRemove": "Do you want to remove this SSO domain?"
     }
   },
   "forgotPassword": {
@@ -394,7 +427,34 @@
       "passwordSaved": "Password updated.",
       "passwordError": "Could not update the password. Verify your current password and try again."
     },
-    "notProvided": "Not specified"
+    "notProvided": "Not specified",
+    "mfa": {
+      "title": "Two-factor authentication",
+      "description": "Add an extra layer of security to your account with an authenticator app.",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enableButton": "Enable two-factor authentication",
+      "disableButton": "Disable two-factor authentication",
+      "scanQrCode": "Scan the QR code below with your authenticator app (e.g. Google Authenticator, Authy, 1Password).",
+      "qrCodeAlt": "TOTP QR code",
+      "manualEntry": "Or enter this code manually:",
+      "verificationCode": "Verification code",
+      "codePlaceholder": "000000",
+      "verify": "Verify and enable",
+      "verifying": "Verifying...",
+      "cancel": "Cancel",
+      "done": "Done",
+      "backupCodesWarning": "Save these backup codes in a safe place!",
+      "backupCodesHint": "Each code can only be used once. If you lose access to your authenticator app, you can use one of these codes to log in.",
+      "copyBackupCodes": "Copy codes",
+      "backupCodesCopied": "Backup codes copied to clipboard.",
+      "disableConfirmText": "Enter a code from your authenticator app to confirm disabling two-factor authentication.",
+      "disabling": "Disabling...",
+      "confirmDisable": "Disable MFA",
+      "disabledSuccess": "Two-factor authentication has been disabled.",
+      "setupError": "Could not start MFA setup. Try again.",
+      "invalidCode": "Invalid verification code. Try again."
+    }
   },
   "password": {
     "requirements": {
@@ -940,8 +1000,10 @@
         },
         "requireSsoDisabled": {
           "noIdp": "Configure an IdP before SSO can be required.",
-          "incomplete": "Fill in all required IdP fields to be able to require SSO."
+          "incomplete": "Fill in all required IdP fields to be able to require SSO.",
+          "noDomain": "Add and verify at least one SSO domain before SSO can be required."
         },
+        "idpDisabled": "Verify at least one SSO domain before configuring an Identity Provider.",
         "validation": {
           "incomplete": "Fill in all required IdP fields before saving.",
           "noOrg": "No organization is selected."
@@ -991,6 +1053,10 @@
         "title": "Require SSO",
         "description": "All users must log in via selected IdP."
       },
+      "requireMfa": {
+        "title": "Require MFA",
+        "description": "All users with local accounts must enable two-factor authentication."
+      },
       "allowLocalLogin": {
         "title": "Allow local login for owners",
         "description": "Keep fallback via password for owners."
@@ -999,6 +1065,26 @@
         "idp": "Select IdP type (OpenID or Entra AD)",
         "cloudflare": "Follow the guide to configure Cloudflare Access",
         "require": "Enable \"Require SSO\" when IdP is ready"
+      },
+      "ssoDomains": {
+        "title": "SSO Domains",
+        "description": "Domains whose email addresses are routed to SSO at login. Verify ownership via DNS.",
+        "domainPlaceholder": "example.com",
+        "add": "Add",
+        "verify": "Verify",
+        "remove": "Remove",
+        "verified": "Verified",
+        "pending": "Pending verification",
+        "noDomains": "No SSO domains configured.",
+        "verifyInstructions": "Add the following TXT record to your DNS:",
+        "recordType": "Type",
+        "recordName": "Name",
+        "recordValue": "Value",
+        "domainAdded": "Domain added. Verify via DNS.",
+        "domainVerified": "Domain has been verified.",
+        "domainRemoved": "Domain removed.",
+        "verifyFailed": "Verification failed. Check your DNS configuration.",
+        "confirmRemove": "Do you want to remove this SSO domain?"
       }
     },
     "email": {
@@ -2580,6 +2666,15 @@
       "modules": "Modules",
       "pages": "Pages"
     }
+  },
+  "legal": {
+    "termsTitle": "Terms of Service",
+    "privacyTitle": "Privacy Policy",
+    "lastUpdated": "Last updated",
+    "backToLogin": "Back to login",
+    "loginConsent": "By continuing, you agree to our {terms} and {privacy}.",
+    "termsLink": "Terms of Service",
+    "privacyLink": "Privacy Policy"
   }
 }
 

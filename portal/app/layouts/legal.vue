@@ -1,24 +1,26 @@
 <template>
   <div
-    class="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-50"
+    class="relative min-h-screen bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-50"
     :style="containerStyle"
   >
     <div class="absolute right-6 top-6 flex items-center gap-2">
       <LanguageSwitcher />
       <ThemeToggle />
     </div>
-    <NuxtLink
-      to="/"
-      class="mb-10 flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-200"
-    >
-      <img :src="currentLogo" alt="Cloud Portal" class="h-16 w-auto drop-shadow-md" />
-      Cloud Portal
-    </NuxtLink>
-    <main
-      class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-xl dark:border-white/10 dark:bg-white/5"
-    >
-      <slot />
-    </main>
+    <div class="mx-auto max-w-3xl px-6 pt-12 pb-12">
+      <NuxtLink
+        to="/"
+        class="mb-10 flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-200"
+      >
+        <img :src="currentLogo" alt="Cloud Portal" class="h-16 w-auto drop-shadow-md" />
+        Cloud Portal
+      </NuxtLink>
+      <main
+        class="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl dark:border-white/10 dark:bg-white/5"
+      >
+        <slot />
+      </main>
+    </div>
   </div>
 </template>
 
@@ -106,4 +108,3 @@ function mixRgb(base: number[], target: number[], amount: number) {
   })
 }
 </script>
-

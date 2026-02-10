@@ -94,6 +94,7 @@ export interface OrganizationAuthSettings {
   idpType: OrganizationIdpType
   ssoEnforced: boolean
   allowLocalLoginForOwners: boolean
+  requireMfa: boolean
   idpConfig: Record<string, unknown> | null
 }
 
@@ -441,6 +442,7 @@ export interface AdminTenantMembersResponse {
 export interface OrganizationAuthUpdatePayload {
   requireSso: boolean
   allowLocalLoginForOwners: boolean
+  requireMfa?: boolean
   idpType?: 'none' | 'saml' | 'oidc'
   idpConfig?: {
     entryPoint?: string

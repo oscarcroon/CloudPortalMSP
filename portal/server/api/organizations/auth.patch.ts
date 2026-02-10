@@ -79,6 +79,9 @@ export default defineEventHandler(async (event) => {
   if (payload.allowLocalLoginForOwners !== undefined) {
     authUpdates.allowLocalLoginForOwners = payload.allowLocalLoginForOwners
   }
+  if (payload.requireMfa !== undefined) {
+    authUpdates.requireMfa = payload.requireMfa
+  }
   if (payload.idpConfig !== undefined) {
     authUpdates.idpConfig = stringifyIdpConfig(nextIdpConfig) ?? null
   } else if (payload.idpType === 'none') {

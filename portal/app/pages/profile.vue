@@ -144,6 +144,186 @@
       </div>
     </div>
 
+    <!-- MFA Section -->
+    <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0f172a]">
+      <div>
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+          {{ t('profile.mfa.title') }}
+        </h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          {{ t('profile.mfa.description') }}
+        </p>
+      </div>
+
+      <!-- MFA Status -->
+      <div class="flex items-center gap-3">
+        <span
+          class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+          :class="user?.isMfaEnabled
+            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+            : 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-400'"
+        >
+          {{ user?.isMfaEnabled ? t('profile.mfa.enabled') : t('profile.mfa.disabled') }}
+        </span>
+      </div>
+
+      <!-- MFA Not Enabled: Show setup button -->
+      <div v-if="!user?.isMfaEnabled && mfaStep === 'idle'">
+        <button
+          type="button"
+          class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
+          :disabled="mfaLoading"
+          @click="handleMfaSetup"
+        >
+          {{ t('profile.mfa.enableButton') }}
+        </button>
+      </div>
+
+      <!-- MFA Setup: QR Code step -->
+      <div v-if="mfaStep === 'qr'" class="space-y-4">
+        <p class="text-sm text-slate-600 dark:text-slate-300">
+          {{ t('profile.mfa.scanQrCode') }}
+        </p>
+        <div class="flex justify-center">
+          <img
+            v-if="mfaQrCode"
+            :src="mfaQrCode"
+            :alt="t('profile.mfa.qrCodeAlt')"
+            class="h-48 w-48 rounded-lg border border-slate-200 dark:border-white/10"
+          />
+        </div>
+        <div v-if="mfaSecret" class="rounded-lg bg-slate-50 p-3 text-center dark:bg-white/5">
+          <p class="text-xs text-slate-500 dark:text-slate-400">{{ t('profile.mfa.manualEntry') }}</p>
+          <code class="mt-1 block text-sm font-mono text-slate-800 dark:text-slate-200 select-all break-all">{{ mfaSecret }}</code>
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ t('profile.mfa.verificationCode') }}
+          </label>
+          <input
+            v-model="mfaCode"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-lg font-mono tracking-widest text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-white/10 dark:text-white"
+            :placeholder="t('profile.mfa.codePlaceholder')"
+            @keydown.enter.prevent="handleMfaConfirm"
+          />
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
+            :disabled="mfaLoading || mfaCode.length !== 6"
+            @click="handleMfaConfirm"
+          >
+            {{ mfaLoading ? t('profile.mfa.verifying') : t('profile.mfa.verify') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            @click="resetMfaSetup"
+          >
+            {{ t('profile.mfa.cancel') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- MFA Setup: Backup codes step -->
+      <div v-if="mfaStep === 'backup'" class="space-y-4">
+        <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-500/30 dark:bg-amber-500/5">
+          <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            {{ t('profile.mfa.backupCodesWarning') }}
+          </p>
+          <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">
+            {{ t('profile.mfa.backupCodesHint') }}
+          </p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-4 dark:bg-white/5 sm:grid-cols-4">
+          <code
+            v-for="code in mfaBackupCodes"
+            :key="code"
+            class="rounded bg-white px-2 py-1 text-center text-sm font-mono text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+          >
+            {{ code }}
+          </code>
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            @click="copyBackupCodes"
+          >
+            {{ t('profile.mfa.copyBackupCodes') }}
+          </button>
+          <button
+            type="button"
+            class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
+            @click="resetMfaSetup"
+          >
+            {{ t('profile.mfa.done') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- MFA Enabled: Show disable option -->
+      <div v-if="user?.isMfaEnabled && mfaStep === 'idle'" class="space-y-3">
+        <button
+          v-if="!showDisableMfa"
+          type="button"
+          class="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
+          @click="showDisableMfa = true"
+        >
+          {{ t('profile.mfa.disableButton') }}
+        </button>
+        <div v-if="showDisableMfa" class="space-y-3">
+          <p class="text-sm text-slate-600 dark:text-slate-300">
+            {{ t('profile.mfa.disableConfirmText') }}
+          </p>
+          <div>
+            <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              {{ t('profile.mfa.verificationCode') }}
+            </label>
+            <input
+              v-model="mfaCode"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-center text-lg font-mono tracking-widest text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-white/10 dark:text-white"
+              :placeholder="t('profile.mfa.codePlaceholder')"
+              @keydown.enter.prevent="handleMfaDisable"
+            />
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+              :disabled="mfaLoading || mfaCode.length !== 6"
+              @click="handleMfaDisable"
+            >
+              {{ mfaLoading ? t('profile.mfa.disabling') : t('profile.mfa.confirmDisable') }}
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+              @click="showDisableMfa = false; mfaCode = ''"
+            >
+              {{ t('profile.mfa.cancel') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p v-if="mfaError" class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-200">
+        {{ mfaError }}
+      </p>
+      <p v-if="mfaSuccess" class="rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-200">
+        {{ mfaSuccess }}
+      </p>
+    </div>
+
     <form class="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#0f172a]" @submit.prevent="handlePasswordChange">
       <div>
         <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
@@ -244,6 +424,87 @@ const selectedLocale = ref<SupportedLocaleCode>(user.value?.locale ?? DEFAULT_LO
 const localeSubmitting = ref(false)
 const localeSuccess = ref('')
 const localeError = ref('')
+
+// MFA state
+const mfaStep = ref<'idle' | 'qr' | 'backup'>('idle')
+const mfaLoading = ref(false)
+const mfaQrCode = ref('')
+const mfaSecret = ref('')
+const mfaCode = ref('')
+const mfaBackupCodes = ref<string[]>([])
+const mfaError = ref('')
+const mfaSuccess = ref('')
+const showDisableMfa = ref(false)
+
+const handleMfaSetup = async () => {
+  mfaLoading.value = true
+  mfaError.value = ''
+  try {
+    const response = await ($fetch as any)('/api/auth/mfa/setup', { method: 'POST' })
+    mfaQrCode.value = response.qrCodeDataUrl
+    mfaSecret.value = response.secret
+    mfaStep.value = 'qr'
+  } catch (error: any) {
+    mfaError.value = error?.data?.message ?? error?.message ?? t('profile.mfa.setupError')
+  } finally {
+    mfaLoading.value = false
+  }
+}
+
+const handleMfaConfirm = async () => {
+  if (mfaCode.value.length !== 6) return
+  mfaLoading.value = true
+  mfaError.value = ''
+  try {
+    const response = await ($fetch as any)('/api/auth/mfa/confirm', {
+      method: 'POST',
+      body: { code: mfaCode.value }
+    })
+    mfaBackupCodes.value = response.backupCodes
+    mfaStep.value = 'backup'
+    mfaCode.value = ''
+    await auth.fetchMe()
+  } catch (error: any) {
+    mfaError.value = error?.data?.message ?? error?.message ?? t('profile.mfa.invalidCode')
+  } finally {
+    mfaLoading.value = false
+  }
+}
+
+const handleMfaDisable = async () => {
+  if (mfaCode.value.length !== 6) return
+  mfaLoading.value = true
+  mfaError.value = ''
+  try {
+    await ($fetch as any)('/api/auth/mfa/disable', {
+      method: 'POST',
+      body: { code: mfaCode.value }
+    })
+    mfaCode.value = ''
+    showDisableMfa.value = false
+    await auth.fetchMe()
+    setEphemeralMessage(mfaSuccess, t('profile.mfa.disabledSuccess'))
+  } catch (error: any) {
+    mfaError.value = error?.data?.message ?? error?.message ?? t('profile.mfa.invalidCode')
+  } finally {
+    mfaLoading.value = false
+  }
+}
+
+const resetMfaSetup = () => {
+  mfaStep.value = 'idle'
+  mfaQrCode.value = ''
+  mfaSecret.value = ''
+  mfaCode.value = ''
+  mfaBackupCodes.value = []
+  mfaError.value = ''
+}
+
+const copyBackupCodes = () => {
+  const text = mfaBackupCodes.value.join('\n')
+  navigator.clipboard.writeText(text)
+  setEphemeralMessage(mfaSuccess, t('profile.mfa.backupCodesCopied'))
+}
 
 const passwordForm = reactive({
   current: '',

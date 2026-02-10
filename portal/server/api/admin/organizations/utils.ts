@@ -203,6 +203,7 @@ export const serializeAuthSettings = (
   idpType: record.idpType as OrganizationIdpType,
   ssoEnforced: Boolean(record.ssoEnforced),
   allowLocalLoginForOwners: Boolean(record.allowLocalLoginForOwners),
+  requireMfa: Boolean(record.requireMfa),
   idpConfig: record.idpConfig ? safeParseJson(record.idpConfig) : null
 })
 

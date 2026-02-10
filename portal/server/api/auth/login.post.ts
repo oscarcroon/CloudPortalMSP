@@ -1,10 +1,13 @@
 import { createError, defineEventHandler, readBody } from 'h3'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { findUserByEmail, touchUserLogin, userRequiresSso } from '../../utils/auth'
+import { findUserByEmail, touchUserLogin } from '../../utils/auth'
 import { normalizeEmail, verifyPassword } from '../../utils/crypto'
 import { createSession } from '../../utils/session'
 import { logSecurityEvent } from '../../utils/audit'
 import { getClientIP } from '../../utils/ip'
+import { getDb } from '../../utils/db'
+import { organizationSsoDomains, organizations, users } from '../../database/schema'
 
 // ============================================================================
 // Login Rate Limiting Configuration
@@ -94,7 +97,7 @@ const getCooldownDuration = (failedAttempts: number): number => {
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  allowPasswordFallback: z.boolean().optional()
+  mfaCode: z.string().min(6).max(8).optional()
 })
 
 // ============================================================================
@@ -217,22 +220,45 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Kontot är inaktiverat.' })
   }
 
-  const ssoRequired = await userRequiresSso(user.id)
-  if (ssoRequired && !body.allowPasswordFallback) {
-    // SSO requirement is not a "failed attempt" for rate limiting purposes
-    await logSecurityEvent(
-      event,
-      'LOGIN_FAILED',
-      {
-        email,
-        reason: 'sso_required',
-        userId: user.id
-      },
-      {
-        userId: user.id
+  // Domain-based SSO check: if the email domain matches a verified SSO domain
+  // on an org that requires SSO, block password login (unless super admin)
+  if (!user.isSuperAdmin) {
+    const emailDomain = email.split('@')[1]?.toLowerCase()
+    if (emailDomain) {
+      const db = getDb()
+      const [ssoDomainMatch] = await db
+        .select({
+          orgId: organizations.id,
+          requireSso: organizations.requireSso
+        })
+        .from(organizationSsoDomains)
+        .innerJoin(organizations, eq(organizations.id, organizationSsoDomains.organizationId))
+        .where(
+          and(
+            eq(organizationSsoDomains.domain, emailDomain),
+            eq(organizationSsoDomains.verificationStatus, 'verified'),
+            eq(organizations.requireSso, true)
+          )
+        )
+        .limit(1)
+
+      if (ssoDomainMatch) {
+        // SSO requirement is not a "failed attempt" for rate limiting purposes
+        await logSecurityEvent(
+          event,
+          'LOGIN_FAILED',
+          {
+            email,
+            reason: 'sso_required',
+            userId: user.id
+          },
+          {
+            userId: user.id
+          }
+        )
+        throw createError({ statusCode: 403, message: 'Organisation kräver SSO.' })
       }
-    )
-    throw createError({ statusCode: 403, message: 'Organisation requires SSO' })
+    }
   }
 
   const isValid = await verifyPassword(body.password, user.passwordHash)
@@ -254,6 +280,55 @@ export default defineEventHandler(async (event) => {
       }
     )
     throw createError({ statusCode: 401, message: 'Invalid credentials' })
+  }
+
+  // ========================================================================
+  // MFA check — if user has MFA enabled, require a valid TOTP code
+  // ========================================================================
+  if (user.isMfaEnabled && user.mfaTotpSecret) {
+    if (!body.mfaCode) {
+      // Password correct but MFA required — return challenge
+      return {
+        mfaRequired: true,
+        email: user.email
+      }
+    }
+
+    // Verify the MFA code (TOTP or backup code)
+    const { verifyTotpCode, verifyBackupCode } = await import('../../utils/totp')
+    let mfaValid = verifyTotpCode(user.mfaTotpSecret, body.mfaCode)
+
+    if (!mfaValid && user.mfaBackupCodes) {
+      try {
+        const hashedCodes: string[] = JSON.parse(user.mfaBackupCodes)
+        const result = await verifyBackupCode(body.mfaCode, hashedCodes)
+        if (result.valid) {
+          mfaValid = true
+          // Consume the backup code
+          const db = getDb()
+          await db
+            .update(users)
+            .set({ mfaBackupCodes: JSON.stringify(result.remainingCodes) })
+            .where(eq(users.id, user.id))
+        }
+      } catch {
+        // Invalid JSON in backup codes
+      }
+    }
+
+    if (!mfaValid) {
+      emailAttempt.count += 1
+      emailAttempt.lastAttemptAt = now
+      emailAttempt.cooldownUntil = now + getCooldownDuration(emailAttempt.count)
+
+      await logSecurityEvent(event, 'LOGIN_FAILED', {
+        email,
+        reason: 'invalid_mfa_code',
+        userId: user.id
+      }, { userId: user.id })
+
+      throw createError({ statusCode: 401, message: 'Invalid MFA code' })
+    }
   }
 
   // ========================================================================
