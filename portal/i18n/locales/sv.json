@@ -392,6 +392,14 @@
       "label": "Språk",
       "description": "Välj vilket språk du vill använda i portalen."
     },
+    "avatar": {
+      "label": "Profilbild",
+      "description": "Välj hur din avatar visas i portalen.",
+      "usingSso": "Visar SSO-profilbild",
+      "usingInitials": "Visar initialer",
+      "saved": "Avatarpreferensen sparades.",
+      "error": "Kunde inte uppdatera avatarpreferensen."
+    },
     "form": {
       "nameLabel": "Ändra namn",
       "namePlaceholder": "Förnamn Efternamn",

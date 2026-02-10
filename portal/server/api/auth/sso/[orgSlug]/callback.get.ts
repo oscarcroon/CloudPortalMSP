@@ -147,7 +147,10 @@ export default defineEventHandler(async (event) => {
   // Update profile from IDP on every SSO login
   const profileUpdates: Record<string, unknown> = {}
   if (fullName && fullName !== user.fullName) profileUpdates.fullName = fullName
-  if (profilePictureUrl && profilePictureUrl !== user.profilePictureUrl) profileUpdates.profilePictureUrl = profilePictureUrl
+  if (profilePictureUrl && profilePictureUrl !== user.profilePictureUrl) {
+    profileUpdates.profilePictureUrl = profilePictureUrl
+    profileUpdates.avatarPreference = 'sso'
+  }
   if (Object.keys(profileUpdates).length > 0) {
     await db.update(users).set(profileUpdates).where(eq(users.id, user.id))
   }

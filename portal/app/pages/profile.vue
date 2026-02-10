@@ -9,20 +9,6 @@
           {{ t('profile.subtitle') }}
         </p>
       </div>
-      <div class="flex flex-wrap gap-3">
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-lg border border-transparent bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand/90 md:px-4 md:py-2 md:text-sm"
-          @click="handleLogout"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          <span class="whitespace-nowrap">{{ t('auth.logout') }}</span>
-        </button>
-      </div>
     </header>
 
     <div
@@ -80,6 +66,60 @@
           </p>
           <p v-else-if="localeSuccess" class="text-xs text-emerald-600 dark:text-emerald-300">
             {{ localeSuccess }}
+          </p>
+        </div>
+
+        <!-- Avatar preference -->
+        <div v-if="user?.profilePictureUrl" class="space-y-2">
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ t('profile.avatar.label') }}
+          </label>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ t('profile.avatar.description') }}
+          </p>
+          <div class="flex items-center gap-4">
+            <button
+              type="button"
+              class="flex flex-col items-center gap-1.5 rounded-lg p-2 transition"
+              :class="avatarPreference === 'sso' ? 'ring-2 ring-brand' : 'opacity-60 hover:opacity-100'"
+              @click="setAvatarPreference('sso')"
+            >
+              <span
+                class="inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2"
+                :class="avatarPreference === 'sso' ? 'border-brand' : 'border-slate-200 dark:border-white/10'"
+              >
+                <img
+                  :src="user.profilePictureUrl"
+                  :alt="user.fullName ?? ''"
+                  class="h-full w-full rounded-full object-cover"
+                />
+              </span>
+              <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300">SSO</span>
+            </button>
+            <button
+              type="button"
+              class="flex flex-col items-center gap-1.5 rounded-lg p-2 transition"
+              :class="avatarPreference === 'initials' ? 'ring-2 ring-brand' : 'opacity-60 hover:opacity-100'"
+              @click="setAvatarPreference('initials')"
+            >
+              <span
+                class="inline-flex h-12 w-12 items-center justify-center rounded-full border-2 text-sm font-semibold text-white"
+                :class="avatarPreference === 'initials' ? 'border-brand' : 'border-slate-200 dark:border-white/10'"
+                :style="{ backgroundColor: accentColor }"
+              >
+                {{ userInitials }}
+              </span>
+              <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300">ABC</span>
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ avatarPreference === 'sso' ? t('profile.avatar.usingSso') : t('profile.avatar.usingInitials') }}
+          </p>
+          <p v-if="avatarError" class="text-xs text-red-600 dark:text-red-400">
+            {{ avatarError }}
+          </p>
+          <p v-else-if="avatarSuccess" class="text-xs text-emerald-600 dark:text-emerald-300">
+            {{ avatarSuccess }}
           </p>
         </div>
 
@@ -633,10 +673,50 @@ const handlePasswordChange = async () => {
   }
 }
 
-const handleLogout = async () => {
-  await auth.logout()
-  await navigateTo('/login')
+// Avatar preference
+const avatarPreference = ref<'sso' | 'initials'>(user.value?.avatarPreference ?? 'sso')
+const avatarError = ref('')
+const avatarSuccess = ref('')
+
+const accentColor = computed(() => {
+  return auth.branding.value?.activeTheme.accentColor || '#1C6DD0'
+})
+
+const userInitials = computed(() => {
+  const name = user.value?.fullName
+  if (!name?.trim()) {
+    return user.value?.email?.[0]?.toUpperCase() ?? '?'
+  }
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0][0].toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+})
+
+const setAvatarPreference = async (preference: 'sso' | 'initials') => {
+  if (preference === avatarPreference.value) return
+  const previous = avatarPreference.value
+  avatarPreference.value = preference
+  avatarError.value = ''
+  avatarSuccess.value = ''
+  try {
+    await ($fetch as any)('/api/profile/avatar-preference', {
+      method: 'PATCH',
+      body: { avatarPreference: preference }
+    })
+    await auth.fetchMe()
+    setEphemeralMessage(avatarSuccess, t('profile.avatar.saved'))
+  } catch {
+    avatarPreference.value = previous
+    avatarError.value = t('profile.avatar.error')
+  }
 }
+
+watch(
+  () => user.value?.avatarPreference,
+  (next) => {
+    if (next) avatarPreference.value = next
+  }
+)
 </script>
 
 

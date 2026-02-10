@@ -149,6 +149,7 @@ export const users = mysqlTable(
     passwordHash: varchar('password_hash', { length: 255 }),
     fullName: varchar('full_name', { length: 255 }),
     profilePictureUrl: varchar('profile_picture_url', { length: 1024 }),
+    avatarPreference: varchar('avatar_preference', { length: 20 }).notNull().default('sso'),
     status: varchar('status', { length: 50 }).notNull().default('active'),
     locale: varchar('locale', { length: 10 }).notNull().default('sv'),
     isSuperAdmin: boolean('is_super_admin').notNull().default(false),

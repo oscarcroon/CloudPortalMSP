@@ -458,6 +458,7 @@ export const buildAuthState = async (
       email: user.email,
       fullName: user.fullName,
       profilePictureUrl: user.profilePictureUrl ?? null,
+      avatarPreference: (user.avatarPreference as 'sso' | 'initials') ?? 'sso',
       status: user.status,
       defaultOrgId: user.defaultOrgId,
       isSuperAdmin: Boolean(user.isSuperAdmin),

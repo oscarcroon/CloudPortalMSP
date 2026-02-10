@@ -397,6 +397,14 @@
       "label": "Language",
       "description": "Choose which language you want to use in the portal."
     },
+    "avatar": {
+      "label": "Profile picture",
+      "description": "Choose how your avatar is displayed across the portal.",
+      "usingSso": "Using SSO profile picture",
+      "usingInitials": "Using initials",
+      "saved": "Avatar preference saved.",
+      "error": "Could not update avatar preference."
+    },
     "form": {
       "nameLabel": "Change name",
       "namePlaceholder": "First name Last name",

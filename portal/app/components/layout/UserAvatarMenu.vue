@@ -110,7 +110,12 @@ const container = ref<HTMLElement>()
 
 const currentUser = computed(() => auth.user.value)
 
-const profilePictureUrl = computed(() => currentUser.value?.profilePictureUrl ?? null)
+const avatarPreference = computed(() => currentUser.value?.avatarPreference ?? 'sso')
+
+const profilePictureUrl = computed(() => {
+  if (avatarPreference.value === 'initials') return null
+  return currentUser.value?.profilePictureUrl ?? null
+})
 
 const accentColor = computed(() => {
   return auth.branding.value?.activeTheme.accentColor || '#1C6DD0'
