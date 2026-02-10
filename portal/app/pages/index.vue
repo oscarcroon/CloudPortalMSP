@@ -10,7 +10,8 @@
         {{ t('dashboard.subtitle') }}
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
-        <StatusPill variant="success" dot>{{ t('dashboard.allSystemsOperational') }}</StatusPill>
+        <StatusPill v-if="!newsLoading && activeIncidents.length === 0" variant="success" dot>{{ t('dashboard.allSystemsOperational') }}</StatusPill>
+        <StatusPill v-else-if="activeIncidents.length > 0" :variant="worstIncidentVariant" dot>{{ activeIncidents.length }} {{ t('dashboard.activeIncidents').toLowerCase() }}</StatusPill>
         <StatusPill variant="info">{{ t('dashboard.organizations') }}: {{ organisations.length }}</StatusPill>
       </div>
     </div>
@@ -269,6 +270,13 @@ function getModuleDescription(module: { descriptionKey?: string; description?: s
 }
 
 const organisations = auth.organizations
+
+const worstIncidentVariant = computed(() => {
+  const severities = activeIncidents.value.map((i) => i.severity)
+  if (severities.includes('critical')) return 'danger'
+  if (severities.includes('outage')) return 'warning'
+  return 'info'
+})
 
 function dashboardIncidentIcon(severity: string): string {
   switch (severity) {
