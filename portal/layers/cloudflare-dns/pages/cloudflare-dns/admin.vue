@@ -1,5 +1,27 @@
 <template>
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
+    <!-- Access denied -->
+    <div
+      v-if="accessDenied"
+      class="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800 shadow-sm dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
+    >
+      <div class="flex items-start gap-3">
+        <Icon icon="mdi:shield-lock-outline" class="mt-0.5 h-5 w-5 flex-shrink-0" />
+        <div class="space-y-2">
+          <p class="font-semibold">{{ t('cloudflareDns.admin.accessDenied') }}</p>
+          <p>{{ t('cloudflareDns.admin.accessDeniedDescription') }}</p>
+          <NuxtLink
+            to="/cloudflare-dns"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px]"
+          >
+            <Icon icon="mdi:arrow-left" class="h-4 w-4" />
+            {{ t('cloudflareDns.admin.backToZones') }}
+          </NuxtLink>
+        </div>
+      </div>
+    </div>
+
+    <template v-else>
     <header class="flex flex-col gap-2">
       <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {{ t('cloudflareDns.admin.label') }}
@@ -179,6 +201,7 @@
         <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
       </form>
     </section>
+    </template>
   </div>
 </template>
 
@@ -187,9 +210,18 @@ import { Icon } from '@iconify/vue'
 import CloudflareStatusCard from '@cloudflare-dns/components/CloudflareStatusCard.vue'
 import { useI18n } from '#imports'
 
-const { data: config, refresh: refreshConfig } = useAsyncData('cloudflare-config', () =>
-  $fetch('/api/dns/cloudflare/config')
-)
+const accessDenied = ref(false)
+
+const { data: config, refresh: refreshConfig } = useAsyncData('cloudflare-config', async () => {
+  try {
+    return await $fetch('/api/dns/cloudflare/config')
+  } catch (err: any) {
+    if (err?.statusCode === 403 || err?.status === 403) {
+      accessDenied.value = true
+    }
+    throw err
+  }
+})
 const { data: status, refresh: refreshStatus } = useAsyncData('cloudflare-status', () =>
   $fetch('/api/dns/cloudflare/status/summary')
 )

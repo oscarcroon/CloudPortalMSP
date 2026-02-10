@@ -87,6 +87,9 @@
     },
 
     "admin": {
+      "accessDenied": "Åtkomst nekad",
+      "accessDeniedDescription": "Du saknar behörighet att hantera Cloudflare DNS-konfigurationen. Kontakta en administratör om du behöver åtkomst.",
+      "backToZones": "Tillbaka till zoner",
       "label": "Cloudflare DNS",
       "title": "Organisationens konfiguration",
       "subtitle": "Lägg in API-token per organisation och verifiera anslutningen. Token visas inte efter sparad lagring.",

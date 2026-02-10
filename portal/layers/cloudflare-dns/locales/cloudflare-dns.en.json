@@ -87,6 +87,9 @@
     },
 
     "admin": {
+      "accessDenied": "Access denied",
+      "accessDeniedDescription": "You do not have permission to manage the Cloudflare DNS configuration. Contact an administrator if you need access.",
+      "backToZones": "Back to zones",
       "label": "Cloudflare DNS",
       "title": "Organization configuration",
       "subtitle": "Store API token per organization and verify the connection. The token is not shown after save.",
