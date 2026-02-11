@@ -6,6 +6,12 @@ export interface PluginModuleManifestPermission {
   label?: string
 }
 
+export interface PluginModuleApiScope {
+  key: string
+  description: string
+  label?: string
+}
+
 export type PluginModuleRbacDefaults = Partial<Record<RbacRole, string[]>>
 
 export interface PluginModuleHealthCheck {
@@ -38,6 +44,10 @@ export interface PluginModuleManifest {
    * Optional health check configuration for tenant-admin system health card.
    */
   healthCheck?: PluginModuleHealthCheck
+  /**
+   * API token scopes registered by this module.
+   */
+  apiScopes?: PluginModuleApiScope[]
 }
 
 

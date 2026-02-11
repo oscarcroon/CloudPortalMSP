@@ -32,6 +32,12 @@ const manifest = definePluginManifest({
     { key: 'windows-dns:redirects:traefik:view', description: 'View Traefik sync status.' },
     { key: 'windows-dns:redirects:traefik:sync', description: 'Trigger Traefik configuration sync.' }
   ],
+  apiScopes: [
+    { key: 'windows-dns:read', description: 'Read DNS zones and records.' },
+    { key: 'windows-dns:write', description: 'Create, update, and delete DNS records and zones.' },
+    { key: 'windows-dns:redirects:read', description: 'Read DNS redirect configurations.' },
+    { key: 'windows-dns:redirects:write', description: 'Create, update, and delete DNS redirects.' },
+  ],
   healthCheck: {
     endpoint: '/api/dns/windows/health?mode=infra',
     label: 'DNS'

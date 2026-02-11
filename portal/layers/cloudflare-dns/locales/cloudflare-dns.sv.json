@@ -1,4 +1,8 @@
 {
+  "apiScopes": {
+    "cloudflare-dns:read": "Läsa Cloudflare DNS-zoner och poster",
+    "cloudflare-dns:write": "Skapa, uppdatera och ta bort Cloudflare DNS-poster och zoner"
+  },
   "cloudflareDns": {
     "title": "Cloudflare DNS",
     "description": "Hantera Cloudflare DNS-zoner, poster och åtkomst.",

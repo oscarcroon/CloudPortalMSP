@@ -1,4 +1,10 @@
 {
+  "apiScopes": {
+    "windows-dns:read": "Read DNS zones and records",
+    "windows-dns:write": "Create, update, and delete DNS records and zones",
+    "windows-dns:redirects:read": "Read DNS redirect configurations",
+    "windows-dns:redirects:write": "Create, update, and delete DNS redirects"
+  },
   "windowsDns": {
     "title": "DNS",
     "description": "Manage DNS zones, records and access.",

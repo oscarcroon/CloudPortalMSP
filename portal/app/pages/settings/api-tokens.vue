@@ -236,24 +236,56 @@
 
           <div>
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Behörigheter (scopes)</label>
-            <div class="mt-2 space-y-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-              <label
-                v-for="(desc, scope) in availableScopes"
-                :key="scope"
-                class="flex items-start gap-3 text-sm"
+
+            <!-- Template quick-select buttons -->
+            <div v-if="Object.keys(scopeTemplates).length > 0" class="mt-2 flex flex-wrap gap-2">
+              <button
+                v-for="(scopes, tplKey) in scopeTemplates"
+                :key="tplKey"
+                type="button"
+                class="rounded-lg border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+                @click="applyTemplate(tplKey)"
               >
-                <input
-                  v-model="createForm.scopes"
-                  type="checkbox"
-                  :value="scope"
-                  class="mt-1 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20"
-                />
-                <span>
-                  <code class="font-mono text-xs text-brand">{{ scope }}</code>
-                  <span class="block text-xs text-slate-500 dark:text-slate-400">{{ desc }}</span>
-                </span>
-              </label>
+                {{ templateLabel(tplKey) }}
+              </button>
             </div>
+
+            <!-- Loading state -->
+            <div v-if="scopesLoading" class="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 p-4 dark:border-white/10">
+              <div class="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+              <span class="text-xs text-slate-500">Laddar behörigheter...</span>
+            </div>
+
+            <!-- Grouped scopes -->
+            <div v-else class="mt-2 max-h-64 space-y-3 overflow-y-auto rounded-lg border border-slate-200 p-3 dark:border-white/10">
+              <div v-for="group in scopeGroups" :key="group.groupKey">
+                <div class="flex items-center gap-2 pb-1">
+                  <Icon v-if="group.icon" :icon="group.icon" class="h-4 w-4 text-slate-400 dark:text-slate-500" />
+                  <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {{ groupLabel(group.groupKey, group.groupName) }}
+                  </span>
+                </div>
+                <div class="space-y-1.5 pl-6">
+                  <label
+                    v-for="scope in group.scopes"
+                    :key="scope.key"
+                    class="flex items-start gap-3 text-sm"
+                  >
+                    <input
+                      v-model="createForm.scopes"
+                      type="checkbox"
+                      :value="scope.key"
+                      class="mt-1 rounded border-slate-300 text-brand focus:ring-brand dark:border-white/20"
+                    />
+                    <span>
+                      <code class="font-mono text-xs text-brand">{{ scope.key }}</code>
+                      <span class="block text-xs text-slate-500 dark:text-slate-400">{{ scopeLabel(scope.key, scope.description) }}</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <p v-if="createForm.scopes.length === 0" class="mt-1 text-xs text-red-500">
               Välj minst en behörighet
             </p>
@@ -402,12 +434,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from '#imports'
+import { ref, computed, onMounted, useI18n } from '#imports'
 import { Icon } from '@iconify/vue'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'
 
 // Types
+interface ScopeEntry {
+  key: string
+  description: string
+  label?: string
+}
+
+interface ScopeGroup {
+  groupKey: string
+  groupName: string
+  icon?: string
+  scopes: ScopeEntry[]
+}
+
 interface ApiToken {
   id: string
   prefix: string
@@ -441,6 +486,7 @@ interface CreateTokenResponse {
 // Composables
 const auth = useAuth()
 const { can } = usePermission()
+const { t, te } = useI18n()
 
 // State
 const tokens = ref<ApiToken[]>([])
@@ -468,15 +514,10 @@ const showRevokeModal = ref(false)
 const tokenToRevoke = ref<ApiToken | null>(null)
 const revokingTokenId = ref<string | null>(null)
 
-// Available scopes
-const availableScopes: Record<string, string> = {
-  'user:read': 'Läsa användarinformation',
-  'org:read': 'Läsa organisationsinformation',
-  'org:write': 'Uppdatera organisationsinställningar',
-  'dns:read': 'Läsa DNS-zoner och poster',
-  'dns:write': 'Skapa, uppdatera och ta bort DNS-poster',
-  'modules:read': 'Läsa modulkonfiguration',
-}
+// Dynamic scopes from API
+const scopeGroups = ref<ScopeGroup[]>([])
+const scopeTemplates = ref<Record<string, string[]>>({})
+const scopesLoading = ref(false)
 
 // Computed
 const currentOrgId = computed(() => auth.state.value.data?.currentOrgId ?? null)
@@ -489,7 +530,46 @@ const minExpiryDate = computed(() => {
   return tomorrow.toISOString().split('T')[0]
 })
 
+// Helpers
+function scopeLabel(scopeKey: string, fallback: string): string {
+  const i18nKey = `apiScopes.${scopeKey}`
+  return te(i18nKey) ? t(i18nKey) : fallback
+}
+
+function groupLabel(groupKey: string, fallback: string): string {
+  const i18nKey = `apiScopes.groups.${groupKey}`
+  return te(i18nKey) ? t(i18nKey) : fallback
+}
+
+function templateLabel(templateKey: string): string {
+  const i18nKey = `apiScopes.templates.${templateKey}`
+  return te(i18nKey) ? t(i18nKey) : templateKey
+}
+
+function applyTemplate(templateKey: string) {
+  const tplScopes = scopeTemplates.value[templateKey]
+  if (tplScopes) {
+    createForm.value.scopes = [...tplScopes]
+  }
+}
+
 // Methods
+async function fetchScopes() {
+  if (!currentOrgId.value) return
+  scopesLoading.value = true
+  try {
+    const response = await ($fetch as any)(
+      `/api/organizations/${currentOrgId.value}/api-tokens/scopes`
+    )
+    scopeGroups.value = response.groups
+    scopeTemplates.value = response.templates
+  } catch (err: any) {
+    console.error('Failed to load scopes:', err)
+  } finally {
+    scopesLoading.value = false
+  }
+}
+
 async function refreshTokens() {
   if (!currentOrgId.value) return
 
@@ -638,6 +718,7 @@ function formatDate(timestamp: number): string {
 onMounted(() => {
   if (currentOrgId.value) {
     refreshTokens()
+    fetchScopes()
   }
 })
 </script>

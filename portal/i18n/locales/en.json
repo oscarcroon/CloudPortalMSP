@@ -2693,6 +2693,28 @@
     "loginConsent": "By continuing, you agree to our {terms} and {privacy}.",
     "termsLink": "Terms of Service",
     "privacyLink": "Privacy Policy"
+  },
+  "apiScopes": {
+    "user:read": "Read user profile information",
+    "user:write": "Update user profile",
+    "org:read": "Read organization details",
+    "org:write": "Update organization settings",
+    "org:members:read": "Read organization members",
+    "org:members:write": "Manage organization members",
+    "modules:read": "Read module configuration",
+    "modules:write": "Update module configuration",
+    "admin:read": "Read administrative data",
+    "admin:write": "Perform administrative actions",
+    "groups": {
+      "user": "User",
+      "organization": "Organization",
+      "modules": "Modules",
+      "admin": "Administration"
+    },
+    "templates": {
+      "readOnly": "Read only",
+      "fullAccess": "Full access"
+    }
   }
 }
 

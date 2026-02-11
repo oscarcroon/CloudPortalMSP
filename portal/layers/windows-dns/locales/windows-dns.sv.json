@@ -1,4 +1,10 @@
 {
+  "apiScopes": {
+    "windows-dns:read": "Läsa DNS-zoner och poster",
+    "windows-dns:write": "Skapa, uppdatera och ta bort DNS-poster och zoner",
+    "windows-dns:redirects:read": "Läsa DNS-omdirigeringskonfigurationer",
+    "windows-dns:redirects:write": "Skapa, uppdatera och ta bort DNS-omdirigeringar"
+  },
   "windowsDns": {
     "title": "DNS",
     "description": "Hantera DNS-zoner, poster och åtkomst.",

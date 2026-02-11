@@ -16,6 +16,10 @@ const manifest = definePluginManifest({
     { key: 'cloudflare-dns:admin_zones', description: 'Create or delete zones and manage settings.' },
     { key: 'cloudflare-dns:manage_api', description: 'Manage Cloudflare API configuration for the organization.' }
   ],
+  apiScopes: [
+    { key: 'cloudflare-dns:read', description: 'Read Cloudflare DNS zones and records.' },
+    { key: 'cloudflare-dns:write', description: 'Create, update, and delete Cloudflare DNS records and zones.' },
+  ],
   healthCheck: {
     endpoint: '/api/dns/cloudflare/health',
     label: 'Cloudflare API'

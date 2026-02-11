@@ -1,4 +1,8 @@
 {
+  "apiScopes": {
+    "cloudflare-dns:read": "Read Cloudflare DNS zones and records",
+    "cloudflare-dns:write": "Create, update, and delete Cloudflare DNS records and zones"
+  },
   "cloudflareDns": {
     "title": "Cloudflare DNS",
     "description": "Manage Cloudflare DNS zones, records and access.",

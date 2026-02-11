@@ -2836,6 +2836,28 @@
     "loginConsent": "Genom att fortsätta godkänner du våra {terms} och {privacy}.",
     "termsLink": "Användarvillkor",
     "privacyLink": "Integritetspolicy"
+  },
+  "apiScopes": {
+    "user:read": "Läsa användarinformation",
+    "user:write": "Uppdatera användarprofil",
+    "org:read": "Läsa organisationsinformation",
+    "org:write": "Uppdatera organisationsinställningar",
+    "org:members:read": "Läsa organisationsmedlemmar",
+    "org:members:write": "Hantera organisationsmedlemmar",
+    "modules:read": "Läsa modulkonfiguration",
+    "modules:write": "Uppdatera modulkonfiguration",
+    "admin:read": "Läsa administrationsdata",
+    "admin:write": "Utföra administrativa åtgärder",
+    "groups": {
+      "user": "Användare",
+      "organization": "Organisation",
+      "modules": "Moduler",
+      "admin": "Administration"
+    },
+    "templates": {
+      "readOnly": "Skrivskyddad",
+      "fullAccess": "Full åtkomst"
+    }
   }
 }
 
