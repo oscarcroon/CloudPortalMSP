@@ -166,16 +166,15 @@
               <Icon v-if="module.updating" icon="mdi:loading" class="h-4 w-4 animate-spin text-brand" />
             </div>
             
-            <UTooltip :text="t('adminModules.openModule')">
-              <NuxtLink
-                :to="module.rootRoute"
-                class="inline-flex items-center justify-center rounded-lg bg-brand p-2 text-white shadow transition hover:bg-brand-600"
-                target="_blank"
-                rel="noopener"
-              >
-                <Icon icon="mdi:open-in-new" class="h-5 w-5" />
-              </NuxtLink>
-            </UTooltip>
+            <NuxtLink
+              :to="module.rootRoute"
+              :title="t('adminModules.openModule')"
+              class="inline-flex items-center justify-center rounded-lg bg-brand p-2 text-white shadow transition hover:bg-brand-600"
+              target="_blank"
+              rel="noopener"
+            >
+              <Icon icon="mdi:open-in-new" class="h-5 w-5" />
+            </NuxtLink>
           </div>
         </div>
 
@@ -194,19 +193,37 @@
           </div>
         </div>
 
-        <!-- Module details -->
-        <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div class="space-y-2">
-            <p
-              :class="[
-                'text-sm',
-                getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
-                  ? 'text-slate-400 dark:text-slate-500'
-                  : 'text-slate-600 dark:text-slate-400'
-              ]"
-            >
-              {{ module.description }}
-            </p>
+        <!-- Description + error -->
+        <div class="mt-3 flex items-start justify-between gap-4">
+          <p
+            :class="[
+              'text-sm',
+              getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                ? 'text-slate-400 dark:text-slate-500'
+                : 'text-slate-600 dark:text-slate-400'
+            ]"
+          >
+            {{ module.description }}
+          </p>
+          <p v-if="module.error" class="shrink-0 text-xs text-red-600 dark:text-red-400">
+            {{ module.error }}
+          </p>
+        </div>
+
+        <!-- Collapsible details -->
+        <div class="mt-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            @click="toggleDetails(module.key)"
+          >
+            <Icon
+              icon="mdi:chevron-right"
+              :class="['h-4 w-4 transition-transform', expandedDetails[module.key] ? 'rotate-90' : '']"
+            />
+            {{ expandedDetails[module.key] ? t('common.hideDetails') : t('common.details') }}
+          </button>
+          <div v-if="expandedDetails[module.key]" class="mt-2 space-y-2">
             <div class="flex flex-wrap gap-2">
               <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
                 {{ module.category }}
@@ -235,184 +252,31 @@
               </span>
             </div>
           </div>
+        </div>
 
-          <div class="flex flex-col items-start gap-3 md:items-end">
-            <div class="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
-                {{ t('settings.modules.policyTitle') }}
-              </p>
-              <div class="flex flex-col gap-2">
-                <label
-                  v-for="option in modeOptions"
-                  :key="option.value"
-                  class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
-                >
-                  <input
-                    :checked="module.uiMode === option.value"
-                    :disabled="module.updating || module.tenantPolicy?.mode === 'blocked'"
-                    type="radio"
-                    class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
-                    :value="option.value"
-                    :name="`policy-${module.key}`"
-                    @change="onModeChange(module, option.value as PolicyMode)"
-                  />
-                  <span>{{ t(`settings.modules.modes.${option.value}`) }}</span>
-                </label>
-              </div>
-              <div v-if="module.uiMode === 'allowlist'" class="space-y-1">
-                <div class="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs dark:border-white/10 dark:bg-white/5">
-                  <div class="flex items-center justify-between">
-                    <span class="font-semibold text-slate-700 dark:text-slate-200">Permissions (manifest)</span>
-                    <button
-                      class="rounded border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-white dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
-                      :disabled="permissionState(module.key).loading"
-                      @click="loadModulePermissions(module)"
-                    >
-                      {{ permissionState(module.key).items.length ? t('common.refresh') : t('common.load') }}
-                    </button>
-                  </div>
-                  <p v-if="permissionState(module.key).error" class="text-red-600 dark:text-red-300">
-                    {{ permissionState(module.key).error }}
-                  </p>
-                  <p v-else-if="permissionState(module.key).loading" class="text-slate-500 dark:text-slate-400">
-                    {{ t('settings.modules.loadingPermissions') }}
-                  </p>
-                  <div v-else-if="!permissionState(module.key).items.length" class="text-slate-500 dark:text-slate-400">
-                    {{ t('settings.modules.noPermissions') }}
-                  </div>
-                  <div v-else class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <label
-                      v-for="perm in permissionState(module.key).items"
-                      :key="perm.key"
-                      class="flex items-start gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
-                    >
-                      <input
-                        type="checkbox"
-                        class="mt-1 h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
-                        :checked="module.uiAllowedPermissions.includes(perm.key)"
-                        :disabled="module.updating"
-                        @change="onAllowedPermissionsChange(module, perm.key, ($event.target as HTMLInputElement).checked)"
-                      />
-                      <div class="flex-1">
-                        <p class="font-semibold">{{ perm.key }}</p>
-                        <p v-if="perm.description" class="text-[10px] text-slate-500 dark:text-slate-400">
-                          {{ perm.description }}
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <p v-if="module.error" class="text-xs text-red-600 dark:text-red-400">
-                {{ module.error }}
-              </p>
-              <p v-else-if="module.tenantPolicy?.mode === 'blocked'" class="text-xs text-slate-500 dark:text-slate-300">
-                {{ t('settings.modules.lockedByTenant') }}
-              </p>
-            </div>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-brand hover:text-brand dark:border-white/20 dark:text-white"
-              @click="openAclDialog(module)"
-            >
-              <Icon icon="mdi:shield-lock" class="h-4 w-4" />
-              {{ t('settings.modules.manageAcl') }}
-            </button>
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ t('settings.modules.routeLabel') }} {{ module.rootRoute }}
-            </p>
-          </div>
+        <!-- Permissions links -->
+        <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-3 dark:border-white/10">
+          <Icon icon="mdi:shield-key" class="h-4 w-4 text-slate-400" />
+          <span class="text-xs text-slate-500 dark:text-slate-400">{{ t('settings.modules.permissions.hint') }}</span>
+          <NuxtLink
+            to="/settings/members"
+            class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200 dark:hover:border-brand"
+          >
+            <Icon icon="mdi:account-group" class="h-3.5 w-3.5" />
+            {{ t('settings.modules.permissions.members') }}
+          </NuxtLink>
+          <NuxtLink
+            to="/settings/group-permissions"
+            class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200 dark:hover:border-brand"
+          >
+            <Icon icon="mdi:shield-account" class="h-3.5 w-3.5" />
+            {{ t('settings.modules.permissions.groupPermissions') }}
+          </NuxtLink>
         </div>
       </div>
     </div>
   </section>
 
-  <teleport to="body">
-    <div
-      v-if="aclDialog.open && aclDialog.module"
-      class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
-    >
-      <div class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
-        <div class="flex items-start justify-between">
-          <div>
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">
-              {{ t('settings.modules.aclTitle') }}
-            </p>
-            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">
-              {{ aclDialog.module.name }}
-            </h2>
-          </div>
-          <button class="text-slate-500 hover:text-slate-700 dark:text-slate-300" @click="closeAcl">
-            <Icon icon="mdi:close" class="h-5 w-5" />
-          </button>
-        </div>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          {{ t('settings.modules.aclDescription') }}
-        </p>
-
-        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div
-            v-for="operation in ['read', 'create', 'update', 'delete']"
-            :key="operation"
-            class="rounded-lg border border-slate-200 p-3 dark:border-white/10"
-          >
-            <p class="text-sm font-semibold capitalize text-slate-800 dark:text-slate-100">
-              {{ operation }}
-            </p>
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ t('settings.modules.aclOperationHint') }}
-            </p>
-            <div v-if="!groups.length" class="mt-2 rounded-md border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
-              {{ t('settings.modules.groups.empty') }}
-            </div>
-            <div v-else class="mt-2 flex flex-col gap-2">
-              <label
-                v-for="group in groups"
-                :key="group.id"
-                :class="[
-                  'flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition dark:border-white/10',
-                  isAclGroupSelected(operation as 'create' | 'read' | 'update' | 'delete', group.id)
-                    ? 'border-brand/60 bg-brand/5 text-brand-700 dark:text-brand-200'
-                    : 'border-slate-200 text-slate-700 dark:text-slate-200'
-                ]"
-              >
-                <input
-                  type="checkbox"
-                  class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
-                  :checked="isAclGroupSelected(operation as 'create' | 'read' | 'update' | 'delete', group.id)"
-                  @change="toggleAclGroup(operation as 'create' | 'read' | 'update' | 'delete', group.id)"
-                />
-                <span class="flex-1">{{ group.name }}</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="aclDialog.error" class="mt-3 rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
-          {{ aclDialog.error }}
-        </div>
-
-        <div class="mt-4 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-white"
-            @click="closeAcl"
-          >
-            {{ t('common.cancel') }}
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600 disabled:opacity-60"
-            :disabled="aclDialog.saving"
-            @click="saveAcl"
-          >
-            <Icon icon="mdi:content-save" class="h-4 w-4" />
-            {{ t('settings.modules.saveAcl') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </teleport>
 
 </template>
 
@@ -421,8 +285,7 @@ import { computed, ref, useFetch, useI18n, watch } from '#imports'
 import { Icon } from '@iconify/vue'
 import StatusPill from '~/components/shared/StatusPill.vue'
 import { useAuth } from '~/composables/useAuth'
-import type { ModuleStatus } from '~/lib/module-registry'
-import type { ModuleStatusDto, PolicyMode } from '~/types/modules'
+import type { ModuleStatusDto } from '~/types/modules'
 
 definePageMeta({
   layout: 'default'
@@ -433,18 +296,9 @@ const auth = useAuth()
 const currentOrgId = computed(() => auth.currentOrg.value?.id)
 
 type UiModule = ModuleStatusDto & {
-  uiMode: PolicyMode
-  uiAllowedPermissions: string[]
   updating?: boolean
   error?: string | null
 }
-
-const modeOptions: { value: PolicyMode }[] = [
-  { value: 'inherit' },
-  { value: 'default-closed' },
-  { value: 'allowlist' },
-  { value: 'blocked' }
-]
 
 const { data, pending, error, refresh } = await (useFetch as any)(() =>
   currentOrgId.value ? `/api/organizations/${currentOrgId.value}/modules` : (null as unknown as string)
@@ -470,87 +324,24 @@ const groupsErrorMessage = computed(() => groupsError.value?.message ?? '')
 const newGroupName = ref('')
 const newGroupDescription = ref('')
 const newGroupMembers = ref('')
-const aclDialog = ref<{
-  open: boolean
-  module: UiModule | null
-  operations: Record<'create' | 'read' | 'update' | 'delete', string[]>
-  saving: boolean
-  error: string | null
-}>({
-  open: false,
-  module: null,
-  operations: {
-    create: [],
-    read: [],
-    update: [],
-    delete: []
-  },
-  saving: false,
-  error: null
-})
-
-const permissionCache = ref<
-  Record<
-    string,
-    {
-      loading: boolean
-      error: string
-      items: { key: string; description?: string | null }[]
-    }
-  >
->({})
-
-const permissionState = (moduleKey: string) => {
-  if (!permissionCache.value[moduleKey]) {
-    permissionCache.value[moduleKey] = { loading: false, error: '', items: [] }
-  }
-  return permissionCache.value[moduleKey]!
-}
-
-const loadModulePermissions = async (module: UiModule) => {
-  const state = permissionState(module.key)
-  if (state.loading || state.items.length) return
-  state.loading = true
-  state.error = ''
-  try {
-    const res = await ($fetch as any)(
-      `/api/modules/${module.key}/permissions`
-    )
-    state.items = res.permissions ?? []
-  } catch (err) {
-    const anyErr = err as any
-    state.error = anyErr?.data?.message ?? anyErr?.message ?? 'Kunde inte hämta permissions.'
-  } finally {
-    state.loading = false
-  }
-}
-
-const ensurePermissionsLoaded = (module: UiModule) => {
-  const state = permissionState(module.key)
-  if (module.uiMode === 'allowlist' && !state.loading && state.items.length === 0) {
-    void loadModulePermissions(module)
-  }
-}
 
 watch(
   modules,
   (list?: ModuleStatusDto[]) => {
     moduleRows.value =
       list?.map((module) => ({
-      ...module,
-      uiMode: module.orgPolicy?.mode ?? 'inherit',
-        uiAllowedPermissions:
-          module.orgPolicy?.allowedPermissions ??
-          module.effectivePolicy.allowedPermissions ??
-          module.requiredPermissions ??
-          [],
-      updating: false,
-      error: null
+        ...module,
+        updating: false,
+        error: null
       })) ?? []
-    moduleRows.value.forEach(ensurePermissionsLoaded)
   },
   { immediate: true }
 )
+
+const expandedDetails = ref<Record<string, boolean>>({})
+const toggleDetails = (key: string) => {
+  expandedDetails.value[key] = !expandedDetails.value[key]
+}
 
 const searchInput = ref('')
 const categoryFilter = ref<string>('all')
@@ -581,43 +372,20 @@ const filteredModules = computed(() => {
   })
 })
 
-const statusVariant = (status: ModuleStatus | undefined) => {
-  switch (status) {
-    case 'beta':
-      return 'warning'
-    case 'deprecated':
-      return 'danger'
-    case 'coming-soon':
-      return 'info'
-    default:
-      return 'success'
-  }
-}
-
-const updatePolicy = async (
+const updateModuleStatus = async (
   module: UiModule,
   patch: {
-    mode?: PolicyMode
-    allowedPermissions?: string[]
     enabled?: boolean
     disabled?: boolean
     comingSoonMessage?: string | null
   }
 ) => {
-  if (module.tenantPolicy?.mode === 'blocked') {
-    return
-  }
-
   module.updating = true
   module.error = null
 
   const payload: any = {
     moduleKey: module.key,
-    mode: patch.mode ?? module.uiMode,
-    allowedPermissions:
-      (patch.mode ?? module.uiMode) === 'allowlist'
-        ? patch.allowedPermissions ?? module.uiAllowedPermissions
-        : []
+    mode: module.orgPolicy?.mode ?? 'inherit'
   }
 
   if (patch.enabled !== undefined) payload.enabled = patch.enabled
@@ -633,10 +401,7 @@ const updatePolicy = async (
       }
     )
 
-    module.uiMode = response.orgPolicy?.mode ?? 'inherit'
-    // Update the module with response data, including status fields
     Object.assign(module, response)
-    // Ensure orgPolicy is updated with the new enabled/disabled values
     if (response.orgPolicy) {
       module.orgPolicy = response.orgPolicy
     }
@@ -648,110 +413,20 @@ const updatePolicy = async (
   }
 }
 
-const openAclDialog = async (module: UiModule) => {
-  if (!currentOrgId.value) return
-  aclDialog.value = {
-    open: true,
-    module,
-    operations: {
-      create: [],
-      read: [],
-      update: [],
-      delete: []
-    },
-    saving: false,
-    error: null
-  }
-
-  try {
-    const res = await ($fetch as any)(`/api/organizations/${currentOrgId.value}/plugins/${module.key}/acl`)
-    aclDialog.value.operations = {
-      create: res.acl.create.map((item: any) => item.groupId),
-      read: res.acl.read.map((item: any) => item.groupId),
-      update: res.acl.update.map((item: any) => item.groupId),
-      delete: res.acl.delete.map((item: any) => item.groupId)
-    }
-  } catch (err: any) {
-    aclDialog.value.error = err?.data?.message ?? err?.message ?? 'Kunde inte läsa ACL'
-  }
-}
-
-const saveAcl = async () => {
-  if (!currentOrgId.value || !aclDialog.value.module) return
-  aclDialog.value.saving = true
-  aclDialog.value.error = null
-  try {
-    await ($fetch as any)(`/api/organizations/${currentOrgId.value}/plugins/${aclDialog.value.module.key}/acl`, {
-      method: 'PUT',
-      body: { operations: aclDialog.value.operations }
-    })
-    aclDialog.value.open = false
-  } catch (err: any) {
-    aclDialog.value.error = err?.data?.message ?? err?.message ?? 'Kunde inte spara ACL'
-  } finally {
-    aclDialog.value.saving = false
-  }
-}
-
-const closeAcl = () => {
-  aclDialog.value.open = false
-}
-
-const onModeChange = async (module: UiModule, mode: PolicyMode) => {
-  module.uiMode = mode
-  if (mode !== 'allowlist') {
-    module.uiAllowedPermissions = []
-  } else {
-    ensurePermissionsLoaded(module)
-  }
-  await updatePolicy(module, {
-    mode,
-    allowedPermissions: module.uiAllowedPermissions
-  })
-}
-
-const onAllowedPermissionsChange = async (module: UiModule, key: string, checked: boolean) => {
-  const next = new Set(module.uiAllowedPermissions)
-  if (checked) {
-    next.add(key)
-  } else {
-    next.delete(key)
-  }
-  module.uiAllowedPermissions = Array.from(next)
-  await updatePolicy(module, {
-    allowedPermissions: module.uiAllowedPermissions
-  })
-}
-
-type AclOperation = 'create' | 'read' | 'update' | 'delete'
-
-const isAclGroupSelected = (operation: AclOperation, groupId: string) =>
-  (aclDialog.value.operations[operation] ?? []).includes(groupId)
-
-const toggleAclGroup = (operation: AclOperation, groupId: string) => {
-  const current = new Set(aclDialog.value.operations[operation] ?? [])
-  if (current.has(groupId)) {
-    current.delete(groupId)
-  } else {
-    current.add(groupId)
-  }
-  aclDialog.value.operations[operation] = Array.from(current)
-}
-
 type ModuleStatusValue = 'active' | 'disabled' | 'hidden' | 'coming-soon'
 
 const getStatusSelectClass = (status: ModuleStatusValue) => {
   switch (status) {
     case 'active':
-      return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300'
+      return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-slate-800 dark:text-emerald-400'
     case 'disabled':
-      return 'border-slate-300 bg-slate-100 text-slate-600 dark:border-white/20 dark:bg-slate-800 dark:text-slate-300'
+      return 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-300'
     case 'hidden':
-      return 'border-red-300 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-900/30 dark:text-red-300'
+      return 'border-red-300 bg-red-50 text-red-700 dark:border-red-500 dark:bg-slate-800 dark:text-red-400'
     case 'coming-soon':
-      return 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/30 dark:text-amber-300'
+      return 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-slate-800 dark:text-amber-400'
     default:
-      return 'border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200'
+      return 'border-slate-200 bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
   }
 }
 
@@ -817,11 +492,11 @@ const onStatusChange = async (module: UiModule, newStatus: ModuleStatusValue) =>
       break
   }
 
-  await updatePolicy(module, {
+  await updateModuleStatus(module, {
     enabled,
     disabled,
     comingSoonMessage
-  } as any)
+  })
 }
 
 const onComingSoonMessageChange = async (module: UiModule, message: string) => {
@@ -830,11 +505,11 @@ const onComingSoonMessageChange = async (module: UiModule, message: string) => {
   const currentMessage = module.orgPolicy?.comingSoonMessage ?? ''
   if (trimmed === currentMessage) return
 
-  await updatePolicy(module, {
+  await updateModuleStatus(module, {
     enabled: true,
     disabled: true,
     comingSoonMessage: trimmed || null
-  } as any)
+  })
 }
 
 const getModuleStatus = (module: UiModule): ModuleStatusValue => {
@@ -868,27 +543,6 @@ const getModuleStatusClass = (module: UiModule) => {
     return 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30 opacity-75'
   }
   return 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5'
-}
-
-const getModuleStatusBadgeVariant = (module: UiModule) => {
-  const status = getModuleStatus(module)
-  switch (status) {
-    case 'active':
-      return 'success'
-    case 'disabled':
-      return 'warning'
-    case 'hidden':
-      return 'danger'
-    case 'coming-soon':
-      return 'info'
-    default:
-      return 'success'
-  }
-}
-
-const getModuleStatusLabel = (module: UiModule) => {
-  const status = getModuleStatus(module)
-  return t(`modules.statusModal.options.${status === 'coming-soon' ? 'comingSoon' : status}.title`)
 }
 
 const getModuleComingSoonMessage = (module: UiModule) => {

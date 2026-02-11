@@ -149,11 +149,12 @@ export default defineEventHandler(async (event) => {
             .where(eq(users.id, auth.user.id))
         }
 
-        // Initialize organization with blocked modules and default groups
+        // Initialize organization with module defaults and default groups
         try {
           const setupResult = await initializeNewOrganization({
             orgId: organizationId,
-            ownerUserId: auth.user.id
+            ownerUserId: auth.user.id,
+            tenantId: invitation.tenantId
           })
           console.log(`[invite] Initialized org ${organizationId}: ${setupResult.modulesBlocked} modules blocked`)
         } catch (initError) {

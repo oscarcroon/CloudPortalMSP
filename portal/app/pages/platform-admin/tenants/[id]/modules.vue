@@ -91,22 +91,23 @@
           getModuleStatusClass(module)
         ]"
       >
-        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div class="space-y-2">
-            <div class="flex items-center gap-2">
-              <Icon
-                v-if="module.icon"
-                :icon="module.icon"
-                :class="[
-                  'h-6 w-6 flex-shrink-0',
-                  getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
-                    ? 'text-slate-400 dark:text-slate-500'
-                    : 'text-brand'
-                ]"
-              />
+        <!-- Top row: Module name + Status dropdown + Open button -->
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex min-w-0 flex-1 items-center gap-3">
+            <Icon
+              v-if="module.icon"
+              :icon="module.icon"
+              :class="[
+                'h-7 w-7 flex-shrink-0',
+                getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                  ? 'text-slate-400 dark:text-slate-500'
+                  : 'text-brand'
+              ]"
+            />
+            <div class="min-w-0 flex-1">
               <p
                 :class="[
-                  'text-lg font-semibold',
+                  'text-lg font-semibold truncate',
                   getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
                     ? 'text-slate-400 dark:text-slate-500'
                     : 'text-slate-900 dark:text-white'
@@ -114,30 +115,124 @@
               >
                 {{ module.name }}
               </p>
-              <StatusPill :variant="getModuleStatusBadgeVariant(module)">
-                {{ getModuleStatusLabel(module) }}
-              </StatusPill>
-              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700 dark:bg-white/10 dark:text-slate-200">
-                Layer: {{ module.layerKey }}
-              </span>
+              <span class="text-xs text-slate-500 dark:text-slate-400">{{ module.category }} · {{ module.layerKey }}</span>
             </div>
-            <p
-              :class="[
-                'text-sm',
-                getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
-                  ? 'text-slate-400 dark:text-slate-500'
-                  : 'text-slate-600 dark:text-slate-400'
-              ]"
-            >
-              {{ module.description }}
-            </p>
-            <div
-              v-if="getModuleStatus(module) === 'coming-soon' && getModuleComingSoonMessage(module)"
-              class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
-            >
-              <p class="font-semibold">{{ t('modules.statusModal.options.comingSoon.title') }}</p>
-              <p class="mt-1">{{ getModuleComingSoonMessage(module) }}</p>
+          </div>
+
+          <!-- Status + Open button (always on the right, horizontal) -->
+          <div class="flex shrink-0 items-center gap-2">
+            <!-- Status icon + dropdown -->
+            <div class="flex items-center gap-1.5">
+              <Icon
+                :icon="getStatusIcon(getModuleStatus(module))"
+                :class="['h-5 w-5', getStatusIconClass(getModuleStatus(module))]"
+              />
+              <select
+                :value="getModuleStatus(module)"
+                :disabled="!canManageModuleStatus(module) || module.updating"
+                :class="[
+                  'rounded-lg border px-3 py-1.5 text-sm font-medium transition focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand',
+                  canManageModuleStatus(module)
+                    ? getStatusSelectClass(getModuleStatus(module))
+                    : 'border-slate-300 bg-slate-100 text-slate-400 cursor-not-allowed dark:border-white/10 dark:bg-slate-800 dark:text-slate-500'
+                ]"
+                @change="onStatusChange(module, ($event.target as HTMLSelectElement).value as ModuleStatusValue)"
+              >
+                <option value="active">{{ t('modules.statusModal.options.active.title') }}</option>
+                <option value="disabled">{{ t('modules.statusModal.options.disabled.title') }}</option>
+                <option value="hidden">{{ t('modules.statusModal.options.hidden.title') }}</option>
+                <option value="coming-soon">{{ t('modules.statusModal.options.comingSoon.title') }}</option>
+              </select>
+              <Icon v-if="module.updating" icon="mdi:loading" class="h-4 w-4 animate-spin text-brand" />
             </div>
+
+            <NuxtLink
+              :to="module.rootRoute"
+              :title="t('adminModules.openModule')"
+              class="inline-flex items-center justify-center rounded-lg bg-brand p-2 text-white shadow transition hover:bg-brand-600"
+              target="_blank"
+              rel="noopener"
+            >
+              <Icon icon="mdi:open-in-new" class="h-5 w-5" />
+            </NuxtLink>
+          </div>
+        </div>
+
+        <!-- Coming soon message input (below top row) -->
+        <div v-if="getModuleStatus(module) === 'coming-soon'" class="mt-3">
+          <div class="flex items-center gap-2">
+            <Icon icon="mdi:message-text-outline" class="h-4 w-4 text-amber-500" />
+            <input
+              :value="getModuleComingSoonMessage(module) ?? ''"
+              type="text"
+              :placeholder="t('modules.statusModal.comingSoonMessage.placeholder')"
+              class="flex-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-amber-900 placeholder:text-amber-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-100 dark:placeholder:text-amber-600"
+              @blur="onComingSoonMessageChange(module, ($event.target as HTMLInputElement).value)"
+              @keydown.enter="onComingSoonMessageChange(module, ($event.target as HTMLInputElement).value)"
+            />
+          </div>
+        </div>
+
+        <!-- Default for new organizations -->
+        <div class="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 dark:border-indigo-800 dark:bg-indigo-900/20">
+          <Icon icon="mdi:office-building-plus" class="h-4 w-4 text-indigo-500" />
+          <span class="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+            {{ t('adminTenants.modules.defaultOrgState') }}
+          </span>
+          <select
+            :value="module.uiDefaultOrgState"
+            :disabled="module.updating"
+            class="rounded-lg border border-indigo-300 bg-white px-3 py-1 text-xs font-medium text-indigo-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-indigo-500 dark:bg-slate-800 dark:text-indigo-300"
+            @change="onDefaultOrgStateChange(module, ($event.target as HTMLSelectElement).value as DefaultOrgState)"
+          >
+            <option value="active">{{ t('adminTenants.modules.defaultOrgStates.active') }}</option>
+            <option value="disabled">{{ t('adminTenants.modules.defaultOrgStates.disabled') }}</option>
+            <option value="hidden">{{ t('adminTenants.modules.defaultOrgStates.hidden') }}</option>
+            <option value="coming-soon">{{ t('adminTenants.modules.defaultOrgStates.comingSoon') }}</option>
+          </select>
+          <div v-if="module.uiDefaultOrgState === 'coming-soon'" class="flex flex-1 items-center gap-2">
+            <input
+              :value="module.uiDefaultOrgComingSoonMessage ?? ''"
+              type="text"
+              :placeholder="t('adminTenants.modules.defaultOrgComingSoonMessage')"
+              class="flex-1 rounded-lg border border-indigo-300 bg-white px-3 py-1 text-xs text-indigo-900 placeholder:text-indigo-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-100 dark:placeholder:text-indigo-500"
+              @blur="onDefaultOrgComingSoonMessageChange(module, ($event.target as HTMLInputElement).value)"
+              @keydown.enter="onDefaultOrgComingSoonMessageChange(module, ($event.target as HTMLInputElement).value)"
+            />
+          </div>
+        </div>
+
+        <!-- Description + error -->
+        <div class="mt-3 flex items-start justify-between gap-4">
+          <p
+            :class="[
+              'text-sm',
+              getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                ? 'text-slate-400 dark:text-slate-500'
+                : 'text-slate-600 dark:text-slate-400'
+            ]"
+          >
+            {{ module.description }}
+          </p>
+          <p v-if="module.error" class="shrink-0 text-xs text-red-600 dark:text-red-400">
+            {{ module.error }}
+          </p>
+        </div>
+
+        <!-- Collapsible details -->
+        <div class="mt-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            @click="toggleDetails(module.key)"
+          >
+            <Icon
+              icon="mdi:chevron-right"
+              :class="['h-4 w-4 transition-transform', expandedDetails[module.key] ? 'rotate-90' : '']"
+            />
+            {{ expandedDetails[module.key] ? t('common.hideDetails') : t('common.details') }}
+          </button>
+          <div v-if="expandedDetails[module.key]" class="mt-2 space-y-2">
             <div class="flex flex-wrap gap-2">
               <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
                 {{ module.category }}
@@ -166,129 +261,18 @@
               </span>
             </div>
           </div>
-
-          <div class="flex flex-col items-start gap-3 md:items-end">
-            <div class="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
-                {{ t('adminTenants.modules.policyTitle') }}
-              </p>
-              <div class="flex flex-col gap-2">
-                <label
-                  v-for="option in modeOptions"
-                  :key="option.value"
-                  class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
-                >
-                  <input
-                    :checked="module.uiMode === option.value"
-                    :disabled="module.updating"
-                    type="radio"
-                    class="h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
-                    :value="option.value"
-                    :name="`policy-${module.key}`"
-                    @change="onModeChange(module, option.value as PolicyMode)"
-                  />
-                  <span>{{ t(`adminTenants.modules.modes.${option.value}`) }}</span>
-                </label>
-              </div>
-              <div v-if="module.uiMode === 'allowlist'" class="space-y-1">
-                <div class="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs dark:border-white/10 dark:bg-white/5">
-                  <div class="flex items-center justify-between">
-                    <span class="font-semibold text-slate-700 dark:text-slate-200">Permissions (manifest)</span>
-                    <button
-                      class="rounded border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-white dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
-                      :disabled="permissionState(module.key).loading"
-                      @click="loadModulePermissions(module)"
-                    >
-                      {{ permissionState(module.key).items.length ? t('common.refresh') : t('common.load') }}
-                    </button>
-                  </div>
-                  <p v-if="permissionState(module.key).error" class="text-red-600 dark:text-red-300">
-                    {{ permissionState(module.key).error }}
-                  </p>
-                  <p v-else-if="permissionState(module.key).loading" class="text-slate-500 dark:text-slate-400">
-                    {{ t('adminTenants.modules.loadingPermissions') }}
-                  </p>
-                  <div v-else-if="!permissionState(module.key).items.length" class="text-slate-500 dark:text-slate-400">
-                    {{ t('adminTenants.modules.noPermissions') }}
-                  </div>
-                  <div v-else class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <label
-                      v-for="perm in permissionState(module.key).items"
-                      :key="perm.key"
-                      class="flex items-start gap-2 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
-                    >
-                      <input
-                        type="checkbox"
-                        class="mt-1 h-4 w-4 text-brand focus:ring-brand dark:border-white/20"
-                        :checked="module.uiAllowedPermissions.includes(perm.key)"
-                        :disabled="module.updating"
-                        @change="onAllowedPermissionsChange(module, perm.key, ($event.target as HTMLInputElement).checked)"
-                      />
-                      <div class="flex-1">
-                        <p class="font-semibold">{{ perm.key }}</p>
-                        <p v-if="perm.description" class="text-[10px] text-slate-500 dark:text-slate-400">
-                          {{ perm.description }}
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <p v-if="module.error" class="text-xs text-red-600 dark:text-red-400">
-                {{ module.error }}
-              </p>
-            </div>
-            <button
-              type="button"
-              :disabled="!canManageModuleStatus(module)"
-              :class="[
-                'inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition',
-                canManageModuleStatus(module)
-                  ? 'border-slate-200 text-slate-800 hover:border-brand hover:text-brand dark:border-white/20 dark:text-white'
-                  : 'border-slate-300 bg-slate-100 text-slate-400 cursor-not-allowed dark:border-white/10 dark:bg-slate-800 dark:text-slate-500'
-              ]"
-              @click="canManageModuleStatus(module) && openStatusModal(module)"
-            >
-              <Icon icon="mdi:cog" class="h-4 w-4" />
-              {{ t('adminTenants.modules.manageStatus') }}
-            </button>
-            <NuxtLink
-              :to="module.rootRoute"
-              class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-brand-600"
-              target="_blank"
-              rel="noopener"
-            >
-              <Icon icon="mdi:open-in-new" class="h-4 w-4" />
-              {{ t('adminModules.openModule') }}
-            </NuxtLink>
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ t('adminTenants.modules.routeLabel') }} {{ module.rootRoute }}
-            </p>
-          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <ModuleStatusModal
-    :open="statusModal.open"
-    :module="statusModal.module as any"
-    :current-enabled="statusModal.module?.tenantEnabled ?? true"
-    :current-disabled="statusModal.module?.tenantDisabled ?? false"
-    :current-coming-soon-message="statusModal.module?.tenantPolicy?.comingSoonMessage ?? null"
-    @close="closeStatusModal"
-    @save="onStatusSave"
-  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, useFetch, useI18n, useRoute, watch } from '#imports'
 import { useAuth } from '~/composables/useAuth'
 import { Icon } from '@iconify/vue'
-import StatusPill from '~/components/shared/StatusPill.vue'
-import ModuleStatusModal from '~/components/modules/ModuleStatusModal.vue'
-import type { ModuleStatus } from '~/lib/module-registry'
-import type { ModuleStatusDto, PolicyMode } from '~/types/modules'
+import type { DefaultOrgState, ModuleStatusDto } from '~/types/modules'
 
 definePageMeta({
   layout: 'default'
@@ -301,18 +285,11 @@ const { user } = useAuth()
 const isSuperAdmin = computed(() => user.value?.isSuperAdmin ?? false)
 
 type UiModule = ModuleStatusDto & {
-  uiMode: PolicyMode
-  uiAllowedPermissions: string[]
+  uiDefaultOrgState: DefaultOrgState
+  uiDefaultOrgComingSoonMessage: string | null
   updating?: boolean
   error?: string | null
 }
-
-const modeOptions: { value: PolicyMode }[] = [
-  { value: 'inherit' },
-  { value: 'default-closed' },
-  { value: 'allowlist' },
-  { value: 'blocked' }
-]
 
 const { data: tenantResponse } = await (useFetch as any)(() =>
   `/api/admin/tenants/${tenantId.value}`
@@ -321,48 +298,6 @@ const { data: tenantResponse } = await (useFetch as any)(() =>
 const { data, pending, error, refresh } = await (useFetch as any)(() =>
   tenantId.value ? `/api/admin/tenants/${tenantId.value}/modules` : (null as unknown as string)
 )
-
-const permissionCache = ref<
-  Record<
-    string,
-    {
-      loading: boolean
-      error: string
-      items: { key: string; description?: string | null }[]
-    }
-  >
->({})
-
-const permissionState = (moduleKey: string) => {
-  if (!permissionCache.value[moduleKey]) {
-    permissionCache.value[moduleKey] = { loading: false, error: '', items: [] }
-  }
-  return permissionCache.value[moduleKey]!
-}
-
-const loadModulePermissions = async (module: UiModule) => {
-  const state = permissionState(module.key)
-  if (state.loading || state.items.length) return
-  state.loading = true
-  state.error = ''
-  try {
-    const res = await ($fetch as any)(
-      `/api/modules/${module.key}/permissions`
-    )
-    state.items = res.permissions ?? []
-  } catch (err: any) {
-    state.error = err?.data?.message ?? err?.message ?? 'Kunde inte hämta permissions.'
-  } finally {
-    state.loading = false
-  }
-}
-
-const ensurePermissionsLoaded = (module: UiModule) => {
-  const state = permissionState(module.key)
-  if (module.uiMode === 'allowlist' && !state.loading && state.items.length === 0) {
-    void loadModulePermissions(module)
-  }
-}
 
 const modules = computed(() => (data.value as { modules: ModuleStatusDto[] } | null)?.modules ?? [])
 const moduleRows = ref<UiModule[]>([])
@@ -392,19 +327,19 @@ watch(
     const safeList = list ?? []
     moduleRows.value = safeList.map((module: ModuleStatusDto) => ({
       ...module,
-      uiMode: module.tenantPolicy?.mode ?? 'inherit',
-      uiAllowedPermissions:
-        module.tenantPolicy?.allowedPermissions ??
-        module.effectivePolicy.allowedPermissions ??
-        module.requiredPermissions ??
-        [],
+      uiDefaultOrgState: (module.tenantPolicy?.defaultOrgState as DefaultOrgState) ?? 'disabled',
+      uiDefaultOrgComingSoonMessage: module.tenantPolicy?.defaultOrgComingSoonMessage ?? null,
       updating: false,
       error: null
     }))
-    moduleRows.value.forEach(ensurePermissionsLoaded)
   },
   { immediate: true }
 )
+
+const expandedDetails = ref<Record<string, boolean>>({})
+const toggleDetails = (key: string) => {
+  expandedDetails.value[key] = !expandedDetails.value[key]
+}
 
 const searchInput = ref('')
 const categoryFilter = ref<string>('all')
@@ -435,27 +370,14 @@ const filteredModules = computed(() => {
   })
 })
 
-const statusVariant = (status: ModuleStatus | undefined) => {
-  switch (status) {
-    case 'beta':
-      return 'warning'
-    case 'deprecated':
-      return 'danger'
-    case 'coming-soon':
-      return 'info'
-    default:
-      return 'success'
-  }
-}
-
 const updatePolicy = async (
   module: UiModule,
   patch: {
-    mode?: PolicyMode
-    allowedPermissions?: string[]
     enabled?: boolean
     disabled?: boolean
     comingSoonMessage?: string | null
+    defaultOrgState?: DefaultOrgState
+    defaultOrgComingSoonMessage?: string | null
   }
 ) => {
   module.updating = true
@@ -463,11 +385,8 @@ const updatePolicy = async (
 
   const payload: any = {
     moduleKey: module.key,
-    mode: patch.mode ?? module.uiMode,
-    allowedPermissions:
-      (patch.mode ?? module.uiMode) === 'allowlist'
-        ? patch.allowedPermissions ?? module.uiAllowedPermissions
-        : []
+    defaultOrgState: patch.defaultOrgState ?? module.uiDefaultOrgState,
+    defaultOrgComingSoonMessage: patch.defaultOrgComingSoonMessage !== undefined ? patch.defaultOrgComingSoonMessage : module.uiDefaultOrgComingSoonMessage
   }
 
   if (patch.enabled !== undefined) payload.enabled = patch.enabled
@@ -480,15 +399,9 @@ const updatePolicy = async (
       body: payload
     })
 
-    module.uiMode = response.tenantPolicy?.mode ?? 'inherit'
-    module.uiAllowedPermissions =
-      response.tenantPolicy?.allowedPermissions ??
-      response.effectivePolicy.allowedPermissions ??
-      module.requiredPermissions ??
-      []
-    // Update the module with response data, including status fields
+    module.uiDefaultOrgState = (response.tenantPolicy?.defaultOrgState as DefaultOrgState) ?? 'disabled'
+    module.uiDefaultOrgComingSoonMessage = response.tenantPolicy?.defaultOrgComingSoonMessage ?? null
     Object.assign(module, response)
-    // Ensure tenantPolicy is updated with the new enabled/disabled values
     if (response.tenantPolicy) {
       module.tenantPolicy = response.tenantPolicy
     }
@@ -500,75 +413,135 @@ const updatePolicy = async (
   }
 }
 
-const onModeChange = async (module: UiModule, mode: PolicyMode) => {
-  module.uiMode = mode
-  if (mode !== 'allowlist') {
-    module.uiAllowedPermissions = []
-  } else {
-    ensurePermissionsLoaded(module)
+type ModuleStatusValue = 'active' | 'disabled' | 'hidden' | 'coming-soon'
+
+const getStatusSelectClass = (status: ModuleStatusValue) => {
+  switch (status) {
+    case 'active':
+      return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-slate-800 dark:text-emerald-400'
+    case 'disabled':
+      return 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-300'
+    case 'hidden':
+      return 'border-red-300 bg-red-50 text-red-700 dark:border-red-500 dark:bg-slate-800 dark:text-red-400'
+    case 'coming-soon':
+      return 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-slate-800 dark:text-amber-400'
+    default:
+      return 'border-slate-200 bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
   }
+}
+
+const getStatusIcon = (status: ModuleStatusValue) => {
+  switch (status) {
+    case 'active':
+      return 'mdi:check-circle'
+    case 'disabled':
+      return 'mdi:pause-circle'
+    case 'hidden':
+      return 'mdi:eye-off'
+    case 'coming-soon':
+      return 'mdi:clock-outline'
+    default:
+      return 'mdi:help-circle'
+  }
+}
+
+const getStatusIconClass = (status: ModuleStatusValue) => {
+  switch (status) {
+    case 'active':
+      return 'text-emerald-500 dark:text-emerald-400'
+    case 'disabled':
+      return 'text-slate-400 dark:text-slate-500'
+    case 'hidden':
+      return 'text-red-500 dark:text-red-400'
+    case 'coming-soon':
+      return 'text-amber-500 dark:text-amber-400'
+    default:
+      return 'text-slate-400'
+  }
+}
+
+const onStatusChange = async (module: UiModule, newStatus: ModuleStatusValue) => {
+  let enabled = true
+  let disabled = false
+  let comingSoonMessage: string | null = null
+
+  switch (newStatus) {
+    case 'active':
+      enabled = true
+      disabled = false
+      comingSoonMessage = null
+      break
+    case 'disabled':
+      enabled = true
+      disabled = true
+      comingSoonMessage = null
+      break
+    case 'hidden':
+      enabled = false
+      disabled = false
+      comingSoonMessage = null
+      break
+    case 'coming-soon':
+      enabled = true
+      disabled = true
+      // Keep existing message if switching to coming-soon, otherwise use default
+      // Filter out broken translation key if it was saved by mistake
+      const existingMessage = module.tenantPolicy?.comingSoonMessage
+      const isValidMessage = existingMessage && !existingMessage.startsWith('modules.')
+      comingSoonMessage = isValidMessage ? existingMessage : 'Kommer snart! Kontakta oss för mer information.'
+      break
+  }
+
   await updatePolicy(module, {
-    mode,
-    allowedPermissions: module.uiAllowedPermissions
+    enabled,
+    disabled,
+    comingSoonMessage
   })
 }
 
-const onAllowedPermissionsChange = async (module: UiModule, key: string, checked: boolean) => {
-  const next = new Set(module.uiAllowedPermissions)
-  if (checked) {
-    next.add(key)
-  } else {
-    next.delete(key)
-  }
-  module.uiAllowedPermissions = Array.from(next)
+const onComingSoonMessageChange = async (module: UiModule, message: string) => {
+  const trimmed = message.trim()
+  // Only update if message actually changed
+  const currentMessage = module.tenantPolicy?.comingSoonMessage ?? ''
+  if (trimmed === currentMessage) return
+
   await updatePolicy(module, {
-    allowedPermissions: module.uiAllowedPermissions
+    enabled: true,
+    disabled: true,
+    comingSoonMessage: trimmed || null
   })
 }
 
-const statusModal = ref<{
-  open: boolean
-  module: UiModule | null
-}>({
-  open: false,
-  module: null
-})
-
-const openStatusModal = (module: UiModule) => {
-  statusModal.value = {
-    open: true,
-    module
+const onDefaultOrgStateChange = async (module: UiModule, newState: DefaultOrgState) => {
+  module.uiDefaultOrgState = newState
+  if (newState !== 'coming-soon') {
+    module.uiDefaultOrgComingSoonMessage = null
   }
-}
-
-const closeStatusModal = () => {
-  statusModal.value = {
-    open: false,
-    module: null
-  }
-}
-
-const onStatusSave = async (data: { enabled: boolean; disabled: boolean; comingSoonMessage: string | null }) => {
-  if (!statusModal.value.module) return
-
-  const module = statusModal.value.module
   await updatePolicy(module, {
-    enabled: data.enabled,
-    disabled: data.disabled,
-    comingSoonMessage: data.comingSoonMessage
-  } as any)
-  closeStatusModal()
+    defaultOrgState: newState,
+    defaultOrgComingSoonMessage: newState === 'coming-soon' ? (module.uiDefaultOrgComingSoonMessage ?? null) : null
+  })
 }
 
-const getModuleStatus = (module: UiModule): 'active' | 'disabled' | 'hidden' | 'coming-soon' => {
+const onDefaultOrgComingSoonMessageChange = async (module: UiModule, message: string) => {
+  const trimmed = message.trim()
+  if (trimmed === (module.uiDefaultOrgComingSoonMessage ?? '')) return
+  module.uiDefaultOrgComingSoonMessage = trimmed || null
+  await updatePolicy(module, {
+    defaultOrgState: 'coming-soon',
+    defaultOrgComingSoonMessage: trimmed || null
+  })
+}
+
+const getModuleStatus = (module: UiModule): ModuleStatusValue => {
   // Check tenantDisabled which cascades from global -> tenant
   const isDisabled = module.tenantDisabled === true
   // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
-  const comingSoonMessage = module.comingSoonMessage ?? 
-    module.effectivePolicy?.comingSoonMessage ?? 
-    module.tenantPolicy?.comingSoonMessage ?? 
+  const comingSoonMessage = module.comingSoonMessage ??
+    module.effectivePolicy?.comingSoonMessage ??
+    module.tenantPolicy?.comingSoonMessage ??
     null
-  
+
   if (isDisabled && comingSoonMessage) {
     return 'coming-soon'
   }
@@ -592,33 +565,17 @@ const getModuleStatusClass = (module: UiModule) => {
   return 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5'
 }
 
-const getModuleStatusBadgeVariant = (module: UiModule) => {
-  const status = getModuleStatus(module)
-  switch (status) {
-    case 'active':
-      return 'success'
-    case 'disabled':
-      return 'warning'
-    case 'hidden':
-      return 'danger'
-    case 'coming-soon':
-      return 'info'
-    default:
-      return 'success'
-  }
-}
-
-const getModuleStatusLabel = (module: UiModule) => {
-  const status = getModuleStatus(module)
-  return t(`modules.statusModal.options.${status === 'coming-soon' ? 'comingSoon' : status}.title`)
-}
-
 const getModuleComingSoonMessage = (module: UiModule) => {
   // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
-  return module.comingSoonMessage ?? 
-    module.effectivePolicy?.comingSoonMessage ?? 
-    module.tenantPolicy?.comingSoonMessage ?? 
+  const message = module.comingSoonMessage ??
+    module.effectivePolicy?.comingSoonMessage ??
+    module.tenantPolicy?.comingSoonMessage ??
     null
+  // Filter out broken translation keys that were saved by mistake
+  if (message && message.startsWith('modules.')) {
+    return null
+  }
+  return message
 }
 
 // Kontrollera om modulen kan hanteras på tenant-nivå
@@ -630,7 +587,7 @@ const getModuleComingSoonMessage = (module: UiModule) => {
 const canManageModuleStatus = (module: UiModule): boolean => {
   // Modulen finns i listan = den är enabled globalt
   // Så vi kan alltid hantera tenant's egen enabled/disabled status
-  
+
   // Kontrollera om modulen är DISABLED på GLOBAL eller DISTRIBUTÖR nivå
   // Vi kan inte överskriva global/distributör disabled-status
   // tenantDisabled inkluderar global+distributör disabled, så vi behöver kontrollera
@@ -642,9 +599,8 @@ const canManageModuleStatus = (module: UiModule): boolean => {
   if (disabledByHigherLevel) {
     return false
   }
-  
+
   // Tenant kan alltid hantera sin egen status (enabled/disabled)
   return true
 }
 </script>
-

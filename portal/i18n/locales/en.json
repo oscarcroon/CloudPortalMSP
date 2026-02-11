@@ -97,7 +97,9 @@
     "refresh": "Refresh",
     "redirecting": "Redirecting...",
     "all": "All",
-    "edit": "Edit"
+    "edit": "Edit",
+    "details": "Details",
+    "hideDetails": "Hide details"
   },
   "auth": {
     "logout": "Log out",
@@ -524,7 +526,7 @@
       "description": "Manage which modules are visible and which permissions are available for the organization.",
       "cta": "Manage module access",
       "empty": "No modules available right now.",
-      "pageDescription": "Manage module policy (inherit/default-closed/allowlist/blocked) and which permissions are allowed.",
+      "pageDescription": "Manage module status for your organization.",
       "searchPlaceholder": "Search module",
       "results": "{count} modules",
       "filters": {
@@ -532,23 +534,12 @@
       },
       "loading": "Loading modules...",
       "noModules": "No modules are available for your organization. Contact your tenant admin if something is missing.",
-      "policyTitle": "Policy",
-      "tenantBlocked": "Blocked by tenant",
-      "lockedByTenant": "Locked by tenant policy",
-      "modes": {
-        "inherit": "Inherit",
-        "default-closed": "Default closed",
-        "allowlist": "Allowlist",
-        "blocked": "Blocked"
-      },
-      "loadingPermissions": "Loading permissions...",
-      "noPermissions": "No permissions declared",
       "updateFailed": "Failed to update module policy",
-      "manageAcl": "Manage ACL",
-      "aclTitle": "Plugin ACL",
-      "aclDescription": "Map CRUD operations to access groups for the plugin.",
-      "aclOperationHint": "Choose which groups may perform this operation.",
-      "saveAcl": "Save ACL",
+      "permissions": {
+        "hint": "Manage permissions via:",
+        "members": "Members",
+        "groupPermissions": "Group Permissions"
+      },
       "showAll": "Show all permissions",
       "hideAll": "Hide all permissions",
       "noSearchResults": "No modules matched your search",
@@ -1981,19 +1972,15 @@
       "loading": "Loading modules...",
       "empty": "No modules available yet.",
       "routeLabel": "Route:",
-      "policyTitle": "Module policy",
-      "modes": {
-        "inherit": "Inherit upstream",
-        "default-closed": "Default off (user override only)",
-        "allowlist": "Allow specific permissions",
-        "blocked": "Blocked"
-      },
-      "allowedRolesLabel": "Allowed roles",
-      "loadingPermissions": "Loading permissions...",
-      "noPermissions": "No permissions declared",
       "updateFailed": "Could not update module policy.",
-      "manageStatus": "Manage Status",
-      "cannotManageStatusReason": "The module must be enabled globally to manage status here."
+      "defaultOrgState": "Default for new organizations",
+      "defaultOrgStates": {
+        "active": "Active",
+        "disabled": "Disabled",
+        "hidden": "Hidden",
+        "comingSoon": "Coming Soon"
+      },
+      "defaultOrgComingSoonMessage": "Message (Coming Soon)"
     },
     "emailOverride": {
       "active": "Email override active",

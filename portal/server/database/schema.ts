@@ -1042,6 +1042,11 @@ export const tenantModulePolicies = mysqlTable(
     // JSON array storing allowed module roles for this tenant
     // null => inherit defaults, [] => block, ["dns-admin"] => override
     allowedRoles: text('allowed_roles'),
+    // Default state for new organizations created under this tenant
+    // Values: 'active', 'disabled', 'hidden', 'coming-soon'
+    defaultOrgState: varchar('default_org_state', { length: 20 }).default('disabled'),
+    // Coming soon message used when defaultOrgState is 'coming-soon'
+    defaultOrgComingSoonMessage: varchar('default_org_coming_soon_message', { length: 500 }),
     ...timestampColumns()
   },
   table => ({
@@ -1089,31 +1094,6 @@ export const organizationModulePolicies = mysqlTable(
       table.moduleId
     ),
     orgIdx: index('organization_module_policy_org_idx').on(table.organizationId)
-  })
-)
-
-export const pluginAclEntries = mysqlTable(
-  'plugin_acl_entries',
-  {
-    id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
-    organizationId: varchar('organization_id', { length: 128 })
-      .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
-    pluginKey: varchar('plugin_key', { length: 255 }).notNull(),
-    operation: varchar('operation', { length: 255 }).notNull(),
-    groupId: varchar('group_id', { length: 128 })
-      .notNull()
-      .references(() => orgGroups.id, { onDelete: 'cascade' }),
-    ...timestampColumns()
-  },
-  (table) => ({
-    orgPluginOpIdx: index('plugin_acl_org_plugin_op_idx').on(table.organizationId, table.pluginKey, table.operation),
-    orgPluginGroupUnique: uniqueIndex('plugin_acl_unique').on(
-      table.organizationId,
-      table.pluginKey,
-      table.operation,
-      table.groupId
-    )
   })
 )
 

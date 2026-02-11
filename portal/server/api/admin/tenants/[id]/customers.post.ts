@@ -141,7 +141,8 @@ export default defineEventHandler(async (event) => {
   try {
     const setupResult = await initializeNewOrganization({
       orgId: organizationId,
-      ownerUserId
+      ownerUserId,
+      tenantId: distributorTenantId
     })
     console.log(`[customers.post] Initialized org ${organizationId}: ${setupResult.modulesBlocked} modules blocked`)
   } catch (initError) {

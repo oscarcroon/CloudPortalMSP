@@ -92,7 +92,9 @@
     "refresh": "Uppdatera",
     "redirecting": "Omdirigerar...",
     "all": "Alla",
-    "edit": "Redigera"
+    "edit": "Redigera",
+    "details": "Detaljer",
+    "hideDetails": "Dölj detaljer"
   },
   "auth": {
     "logout": "Logga ut",
@@ -519,7 +521,7 @@
       "description": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för organisationen.",
       "cta": "Hantera modulåtkomst",
       "empty": "Inga moduler tillgängliga just nu.",
-      "pageDescription": "Hantera modulpolicy (inherit/default-closed/allowlist/blocked) och vilka permissions som får användas.",
+      "pageDescription": "Hantera modulstatus för din organisation.",
       "searchPlaceholder": "Sök modul",
       "results": "{count} moduler",
       "filters": {
@@ -527,23 +529,12 @@
       },
       "loading": "Laddar moduler...",
       "noModules": "Inga moduler är tillgängliga för organisationen. Kontakta tenant-admin om något saknas.",
-      "policyTitle": "Policy",
-      "tenantBlocked": "Blockerad av tenant",
-      "lockedByTenant": "Låst av tenant-policy",
-      "modes": {
-        "inherit": "Ärv",
-        "default-closed": "Default stängd",
-        "allowlist": "Allowlist",
-        "blocked": "Blockerad"
-      },
-      "loadingPermissions": "Laddar permissions...",
-      "noPermissions": "Inga permissions deklarerade",
       "updateFailed": "Kunde inte uppdatera modulpolicy",
-      "manageAcl": "Hantera ACL",
-      "aclTitle": "Plugin-ACL",
-      "aclDescription": "Koppla CRUD-operationer till åtkomstgrupper för pluginet.",
-      "aclOperationHint": "Välj grupper som får utföra operationen.",
-      "saveAcl": "Spara ACL",
+      "permissions": {
+        "hint": "Hantera behörigheter via:",
+        "members": "Medlemmar",
+        "groupPermissions": "Gruppbehörigheter"
+      },
       "showAll": "Visa alla rättigheter",
       "hideAll": "Dölj alla rättigheter",
       "noSearchResults": "Inga moduler matchade sökningen",
@@ -1981,19 +1972,15 @@
       "loading": "Laddar moduler...",
       "empty": "Inga moduler tillgängliga ännu.",
       "routeLabel": "Route:",
-      "policyTitle": "Modulpolicy",
-      "modes": {
-        "inherit": "Ärver uppströms",
-        "default-closed": "Default av (endast användaröverskrivningar)",
-        "allowlist": "Tillåt specifika rättigheter",
-        "blocked": "Blockerad"
-      },
-      "allowedRolesLabel": "Tillåtna roller",
-      "loadingPermissions": "Laddar permissions...",
-      "noPermissions": "Inga permissions deklarerade",
       "updateFailed": "Kunde inte uppdatera modulpolicy.",
-      "manageStatus": "Hantera status",
-      "cannotManageStatusReason": "Modulen måste vara aktiverad globalt för att kunna hantera status här."
+      "defaultOrgState": "Standard för nya organisationer",
+      "defaultOrgStates": {
+        "active": "Aktiv",
+        "disabled": "Inaktiverad",
+        "hidden": "Avaktiverad",
+        "comingSoon": "Kommer snart"
+      },
+      "defaultOrgComingSoonMessage": "Meddelande (Kommer snart)"
     },
     "emailOverride": {
       "active": "E-post override aktiv",

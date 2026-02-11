@@ -127,16 +127,15 @@
               <Icon v-if="module.updating" icon="mdi:loading" class="h-4 w-4 animate-spin text-brand" />
             </div>
             
-            <UTooltip :text="t('adminModules.openModule')">
-              <NuxtLink
-                :to="module.rootRoute"
-                class="inline-flex items-center justify-center rounded-lg bg-brand p-2 text-white shadow transition hover:bg-brand-600"
-                target="_blank"
-                rel="noopener"
-              >
-                <Icon icon="mdi:open-in-new" class="h-5 w-5" />
-              </NuxtLink>
-            </UTooltip>
+            <NuxtLink
+              :to="module.rootRoute"
+              :title="t('adminModules.openModule')"
+              class="inline-flex items-center justify-center rounded-lg bg-brand p-2 text-white shadow transition hover:bg-brand-600"
+              target="_blank"
+              rel="noopener"
+            >
+              <Icon icon="mdi:open-in-new" class="h-5 w-5" />
+            </NuxtLink>
           </div>
         </div>
 
@@ -155,19 +154,34 @@
           </div>
         </div>
 
-        <!-- Module details -->
-        <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div class="space-y-2">
-            <p
-              :class="[
-                'text-sm',
-                getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
-                  ? 'text-slate-400 dark:text-slate-500'
-                  : 'text-slate-600 dark:text-slate-400'
-              ]"
-            >
-              {{ module.description }}
-            </p>
+        <!-- Description -->
+        <div class="mt-3">
+          <p
+            :class="[
+              'text-sm',
+              getModuleStatus(module) === 'disabled' || getModuleStatus(module) === 'coming-soon'
+                ? 'text-slate-400 dark:text-slate-500'
+                : 'text-slate-600 dark:text-slate-400'
+            ]"
+          >
+            {{ module.description }}
+          </p>
+        </div>
+
+        <!-- Collapsible details -->
+        <div class="mt-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            @click="toggleDetails(module.key)"
+          >
+            <Icon
+              icon="mdi:chevron-right"
+              :class="['h-4 w-4 transition-transform', expandedDetails[module.key] ? 'rotate-90' : '']"
+            />
+            {{ expandedDetails[module.key] ? t('common.hideDetails') : t('common.details') }}
+          </button>
+          <div v-if="expandedDetails[module.key]" class="mt-2 space-y-2">
             <div class="flex flex-wrap gap-2">
               <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-100">
                 {{ module.category }}
@@ -209,9 +223,6 @@
                 </span>
               </div>
             </div>
-          </div>
-
-          <div class="flex flex-col items-start gap-3 md:items-end">
             <p class="text-xs text-slate-500 dark:text-slate-400">
               {{ t('adminModules.routeLabel') }} {{ module.rootRoute }}
             </p>
@@ -233,8 +244,6 @@
 <script setup lang="ts">
 import { computed, ref, useI18n, useFetch } from '#imports'
 import { Icon } from '@iconify/vue'
-import StatusPill from '~/components/shared/StatusPill.vue'
-import type { ModuleStatus } from '~/lib/module-registry'
 import type { ModuleMeta } from '~/lib/module-registry'
 
 definePageMeta({
@@ -254,6 +263,12 @@ type ModuleStatusValue = 'active' | 'disabled' | 'hidden' | 'coming-soon'
 
 const { data, pending, refresh } = await (useFetch as any)('/api/admin/modules')
 const modules = computed(() => data.value?.modules ?? [])
+
+const expandedDetails = ref<Record<string, boolean>>({})
+const toggleDetails = (key: string) => {
+  expandedDetails.value[key] = !expandedDetails.value[key]
+}
+
 const searchInput = ref('')
 const categoryFilter = ref<string>('all')
 const scopeFilter = ref<'all' | 'tenant' | 'org' | 'user'>('all')
@@ -289,31 +304,18 @@ const filteredModules = computed(() => {
   })
 })
 
-const statusVariant = (status: ModuleStatus | undefined) => {
-  switch (status) {
-    case 'beta':
-      return 'warning'
-    case 'deprecated':
-      return 'danger'
-    case 'coming-soon':
-      return 'info'
-    default:
-      return 'success'
-  }
-}
-
 const getStatusSelectClass = (status: ModuleStatusValue) => {
   switch (status) {
     case 'active':
-      return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300'
+      return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500 dark:bg-slate-800 dark:text-emerald-400'
     case 'disabled':
-      return 'border-slate-300 bg-slate-100 text-slate-600 dark:border-white/20 dark:bg-slate-800 dark:text-slate-300'
+      return 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-300'
     case 'hidden':
-      return 'border-red-300 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-900/30 dark:text-red-300'
+      return 'border-red-300 bg-red-50 text-red-700 dark:border-red-500 dark:bg-slate-800 dark:text-red-400'
     case 'coming-soon':
-      return 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/30 dark:text-amber-300'
+      return 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-slate-800 dark:text-amber-400'
     default:
-      return 'border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200'
+      return 'border-slate-200 bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
   }
 }
 
@@ -447,27 +449,6 @@ const getModuleStatusClass = (module: ModuleWithEnabled) => {
     return 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30 opacity-75'
   }
   return 'border-slate-200 bg-white dark:border-white/10 dark:bg-white/5'
-}
-
-const getModuleStatusBadgeVariant = (module: ModuleWithEnabled) => {
-  const status = getModuleStatus(module)
-  switch (status) {
-    case 'active':
-      return 'success'
-    case 'disabled':
-      return 'warning'
-    case 'hidden':
-      return 'danger'
-    case 'coming-soon':
-      return 'info'
-    default:
-      return 'success'
-  }
-}
-
-const getModuleStatusLabel = (module: ModuleWithEnabled) => {
-  const status = getModuleStatus(module)
-  return t(`modules.statusModal.options.${status === 'coming-soon' ? 'comingSoon' : status}.title`)
 }
 
 const getModuleComingSoonMessage = (module: ModuleWithEnabled) => {

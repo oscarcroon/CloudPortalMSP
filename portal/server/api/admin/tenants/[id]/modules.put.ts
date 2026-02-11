@@ -18,7 +18,9 @@ const bodySchema = z.object({
   allowedPermissions: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
   disabled: z.boolean().optional(),
-  comingSoonMessage: z.string().nullable().optional()
+  comingSoonMessage: z.string().nullable().optional(),
+  defaultOrgState: z.enum(['active', 'disabled', 'hidden', 'coming-soon']).optional(),
+  defaultOrgComingSoonMessage: z.string().nullable().optional()
 })
 
 export default defineEventHandler(async (event) => {
@@ -28,7 +30,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = bodySchema.parse(await readBody(event))
-  const { moduleKey, mode, allowedRoles, allowedPermissions, enabled, disabled, comingSoonMessage } = body
+  const { moduleKey, mode, allowedRoles, allowedPermissions, enabled, disabled, comingSoonMessage, defaultOrgState, defaultOrgComingSoonMessage } = body
 
   // enabled and disabled can be explicitly false, so we need to check for undefined, not falsy
   const enabledValue = enabled !== undefined ? enabled : true
@@ -81,6 +83,8 @@ export default defineEventHandler(async (event) => {
     enabled: enabledValue,
     disabled: disabledValue,
     comingSoonMessage: comingSoonMessage ?? null,
+    defaultOrgState: defaultOrgState ?? undefined,
+    defaultOrgComingSoonMessage: defaultOrgComingSoonMessage ?? undefined,
     permissionOverrides:
       mode === 'allowlist'
         ? Object.fromEntries(normalizedAllowedPermissions.map((key) => [key, true]))

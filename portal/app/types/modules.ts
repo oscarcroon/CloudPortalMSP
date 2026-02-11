@@ -6,6 +6,7 @@ import type {
 } from '~/lib/module-registry'
 
 export type PolicyMode = 'inherit' | 'default-closed' | 'allowlist' | 'blocked'
+export type DefaultOrgState = 'active' | 'disabled' | 'hidden' | 'coming-soon'
 
 export interface ModulePolicy {
   moduleKey: string
@@ -18,6 +19,8 @@ export interface ModulePolicy {
   enabled?: boolean
   disabled?: boolean
   comingSoonMessage?: string | null
+  defaultOrgState?: DefaultOrgState
+  defaultOrgComingSoonMessage?: string | null
 }
 
 export interface ModuleStatusDto {

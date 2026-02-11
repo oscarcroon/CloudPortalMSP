@@ -205,7 +205,8 @@ export default defineEventHandler(async (event) => {
   try {
     const setupResult = await initializeNewOrganization({
       orgId: organizationId,
-      ownerUserId
+      ownerUserId,
+      tenantId: payload.tenantId ?? undefined
     })
     console.log(`[create-org] Initialized org ${organizationId}: ${setupResult.modulesBlocked} modules blocked, defaultGroupId=${setupResult.defaultGroupId}`)
   } catch (initError) {
