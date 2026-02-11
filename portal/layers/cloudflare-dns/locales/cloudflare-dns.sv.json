@@ -65,6 +65,7 @@
     "admin": {
       "accessDenied": "Åtkomst nekad",
       "accessDeniedDescription": "Du saknar behörighet att hantera Cloudflare DNS-konfigurationen. Kontakta en administratör om du behöver åtkomst.",
+      "accessDeniedHint": "Om du tror att detta är fel kan modulpolicyn behöva uppdateras. Administratörer kan kontrollera diagnostikändpunkten för detaljer.",
       "backToZones": "Tillbaka till zoner",
       "label": "Cloudflare DNS",
       "title": "Organisationens konfiguration",

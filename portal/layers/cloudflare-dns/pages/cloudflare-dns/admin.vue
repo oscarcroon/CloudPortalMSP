@@ -15,13 +15,27 @@
         <div class="space-y-2">
           <p class="font-semibold">{{ t('cloudflareDns.admin.accessDenied') }}</p>
           <p>{{ t('cloudflareDns.admin.accessDeniedDescription') }}</p>
-          <NuxtLink
-            to="/cloudflare-dns"
-            class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px]"
-          >
-            <Icon icon="mdi:arrow-left" class="h-4 w-4" />
-            {{ t('cloudflareDns.admin.backToZones') }}
-          </NuxtLink>
+          <p class="text-xs text-red-600 dark:text-red-300">
+            {{ t('cloudflareDns.admin.accessDeniedHint') }}
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            <NuxtLink
+              to="/cloudflare-dns"
+              class="inline-flex items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-[1px]"
+            >
+              <Icon icon="mdi:arrow-left" class="h-4 w-4" />
+              {{ t('cloudflareDns.admin.backToZones') }}
+            </NuxtLink>
+            <a
+              href="/api/dns/cloudflare/debug-permissions"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:border-red-400 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+            >
+              <Icon icon="mdi:bug-outline" class="h-4 w-4" />
+              Debug permissions
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -213,13 +227,16 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import CloudflareStatusCard from '@cloudflare-dns/components/CloudflareStatusCard.vue'
-import { useI18n } from '#imports'
+import { useI18n, useRequestHeaders } from '#imports'
+
+const headers = useRequestHeaders(['cookie'])
+const ssrHeaders = import.meta.server ? headers : undefined
 
 const { data: config, error: configError, pending: configPending, refresh: refreshConfig } = useAsyncData('cloudflare-config', () =>
-  $fetch('/api/dns/cloudflare/config')
+  $fetch('/api/dns/cloudflare/config', { headers: ssrHeaders })
 )
 const { data: status, refresh: refreshStatus } = useAsyncData('cloudflare-status', () =>
-  $fetch('/api/dns/cloudflare/status/summary'),
+  $fetch('/api/dns/cloudflare/status/summary', { headers: ssrHeaders }),
   { lazy: true }
 )
 

@@ -15,7 +15,12 @@ export default defineEventHandler(async (event) => {
 
   const orgId = auth.currentOrgId
   const orgRole = auth.orgRoles?.[orgId]
-  const moduleRights = await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
+  const isSuperAdmin = auth.user.isSuperAdmin === true
+
+  // For super admin, grant all module rights; for others, resolve from policy
+  const moduleRights = isSuperAdmin
+    ? { canView: true, canEditRecords: true, canExport: true, canImport: true, canManageZones: true, canManageApi: true, roles: [] as string[] }
+    : await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
 
   if (!moduleRights.canView) {
     throw createError({ statusCode: 403, message: 'Ingen behörighet att se Cloudflare-zoner.' })
@@ -110,7 +115,19 @@ export default defineEventHandler(async (event) => {
         error: error?.message ?? 'Kunde inte hämta zoner från Cloudflare, visar cache.'
       }
     }
-    throw error
+    // No cache — still return moduleRights so the UI can show the admin button
+    throw createError({
+      statusCode: 400,
+      data: {
+        moduleRights: {
+          canManageZones: moduleRights.canManageZones,
+          canEditRecords: moduleRights.canEditRecords,
+          canExport: moduleRights.canExport,
+          canManageApi: moduleRights.canManageApi
+        }
+      },
+      message: error?.message ?? 'Kunde inte hämta zoner från Cloudflare.'
+    })
   }
 
   const result = []

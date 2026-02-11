@@ -65,6 +65,7 @@
     "admin": {
       "accessDenied": "Access denied",
       "accessDeniedDescription": "You do not have permission to manage the Cloudflare DNS configuration. Contact an administrator if you need access.",
+      "accessDeniedHint": "If you believe this is an error, the module policy may need to be updated. Admins can check the diagnostics endpoint for details.",
       "backToZones": "Back to zones",
       "label": "Cloudflare DNS",
       "title": "Organization configuration",

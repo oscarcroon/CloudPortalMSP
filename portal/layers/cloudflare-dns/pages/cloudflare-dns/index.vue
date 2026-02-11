@@ -152,9 +152,10 @@ const loadZones = async (forceRefresh = false): Promise<ZonesResponse> => {
     return res
   } catch (err: any) {
     const message = err?.data?.message ?? err?.message ?? 'Kunde inte hämta zoner.'
+    const rights = err?.data?.data?.moduleRights
     return {
       zones: [],
-      moduleRights: { canManageZones: false },
+      moduleRights: rights ?? { canManageZones: false },
       fromCache: false,
       stale: false,
       // @ts-expect-error keep for UI
@@ -169,7 +170,7 @@ const fetchZones = async (forceRefresh = false) => {
   const res = await loadZones(forceRefresh)
   if ((res as any).error) {
     state.error = (res as any).error
-    state.data = { zones: [], moduleRights: { canManageZones: false } }
+    state.data = { zones: [], moduleRights: res.moduleRights }
   } else {
     state.data = res
   }

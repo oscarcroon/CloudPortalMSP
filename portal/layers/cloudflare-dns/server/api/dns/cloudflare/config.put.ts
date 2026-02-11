@@ -12,12 +12,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const orgId = auth.currentOrgId
-  const access = await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
-  if (!access.canManageApi) {
-    throw createError({
-      statusCode: 403,
-      message: 'Saknar behörighet att hantera Cloudflare-konfiguration.'
-    })
+
+  // Super admin bypass (consistent with requireModulePermission)
+  if (!auth.user.isSuperAdmin) {
+    const access = await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
+    if (!access.canManageApi) {
+      throw createError({
+        statusCode: 403,
+        message: 'Saknar behörighet att hantera Cloudflare-konfiguration.'
+      })
+    }
   }
 
   const body = await readBody<{ apiToken?: string; accountId?: string | null }>(event)
