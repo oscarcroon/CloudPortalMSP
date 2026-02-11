@@ -5,6 +5,14 @@
     "cta": "Skapa zon",
     "empty": "Inga zoner ännu.",
 
+    "sort": {
+      "label": "Sortera",
+      "nameAsc": "Namn (A→Ö)",
+      "nameDesc": "Namn (Ö→A)",
+      "recordsDesc": "Flest records",
+      "recordsAsc": "Färst records"
+    },
+
     "statusCard": {
       "label": "Status",
       "title": "DNS",

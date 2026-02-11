@@ -11,14 +11,25 @@
         <p class="text-sm text-slate-600 dark:text-slate-300">
           {{ $t('windowsDns.index.subtitle') }}
         </p>
-        <div class="mt-1 relative w-full max-w-md">
-          <Icon icon="mdi:magnify" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            v-model="searchTerm"
-            type="search"
-            :placeholder="$t('windowsDns.index.searchPlaceholder')"
-            class="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
-          />
+        <div class="mt-1 flex items-center gap-2 w-full max-w-xl">
+          <div class="relative flex-1 max-w-md">
+            <Icon icon="mdi:magnify" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              v-model="searchTerm"
+              type="search"
+              :placeholder="$t('windowsDns.index.searchPlaceholder')"
+              class="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
+            />
+          </div>
+          <select
+            v-model="sortOption"
+            class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-brand focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50"
+          >
+            <option value="name-asc">{{ $t('windowsDns.sort.nameAsc') }}</option>
+            <option value="name-desc">{{ $t('windowsDns.sort.nameDesc') }}</option>
+            <option value="records-desc">{{ $t('windowsDns.sort.recordsDesc') }}</option>
+            <option value="records-asc">{{ $t('windowsDns.sort.recordsAsc') }}</option>
+          </select>
         </div>
         <p v-if="state.data" class="text-xs text-slate-500 dark:text-slate-400">
           {{ $t('windowsDns.index.showing', { filtered: filteredZones.length, total: state.data.zones.length }) }}
@@ -144,6 +155,7 @@ type Zone = {
   zoneType: string
   owned: boolean
   claimable: boolean
+  recordCount?: number
 }
 
 type AutoSetupInfo = {
@@ -183,13 +195,23 @@ const state = reactive<{
 })
 
 const searchTerm = ref('')
+const sortOption = ref<'name-asc' | 'name-desc' | 'records-desc' | 'records-asc'>('name-asc')
 const showManageModal = ref(false)
 
 const filteredZones = computed(() => {
-  const zones = state.data?.zones ?? []
+  let zones = state.data?.zones ?? []
   const term = searchTerm.value.trim().toLowerCase()
-  if (!term) return zones
-  return zones.filter((z) => z.zoneName.toLowerCase().includes(term))
+  if (term) {
+    zones = zones.filter((z) => z.zoneName.toLowerCase().includes(term))
+  }
+  return [...zones].sort((a, b) => {
+    switch (sortOption.value) {
+      case 'name-desc': return b.zoneName.localeCompare(a.zoneName)
+      case 'records-desc': return (b.recordCount ?? 0) - (a.recordCount ?? 0)
+      case 'records-asc': return (a.recordCount ?? 0) - (b.recordCount ?? 0)
+      default: return a.zoneName.localeCompare(b.zoneName)
+    }
+  })
 })
 
 const fetchZones = async (forceRefresh = false) => {

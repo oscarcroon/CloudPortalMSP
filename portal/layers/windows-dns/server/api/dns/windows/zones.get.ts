@@ -2,14 +2,41 @@ import { createError, defineEventHandler, getQuery } from 'h3'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { getClientForOrg, ensureAccount, WindowsDnsClient } from '@windows-dns/server/lib/windows-dns/client'
-import { 
-  getOrgConfig, 
-  getOrgCoreId, 
-  clearAccountId, 
+import {
+  getOrgConfig,
+  getOrgCoreId,
+  clearAccountId,
   getAllowedZoneIds,
   addAllowedZones,
   saveLastDiscovery
 } from '@windows-dns/server/lib/windows-dns/org-config'
+import type { WindowsDnsZoneSummary } from '@windows-dns/server/lib/windows-dns/types'
+
+/**
+ * Enrich zones with record counts fetched in parallel.
+ * Failures for individual zones are silently ignored (recordCount stays undefined).
+ */
+async function enrichWithRecordCounts(
+  client: WindowsDnsClient,
+  zones: WindowsDnsZoneSummary[]
+): Promise<WindowsDnsZoneSummary[]> {
+  const counts = await Promise.allSettled(
+    zones.map(async (z) => {
+      const records = await client.listRecords(z.id)
+      return { id: z.id, count: records.length }
+    })
+  )
+  const countMap = new Map<string, number>()
+  for (const result of counts) {
+    if (result.status === 'fulfilled') {
+      countMap.set(result.value.id, result.value.count)
+    }
+  }
+  return zones.map((z) => ({
+    ...z,
+    recordCount: countMap.get(z.id)
+  }))
+}
 
 /**
  * Helper to run autodiscover and auto-activate zones for first-time setup.
@@ -263,9 +290,10 @@ export default defineEventHandler(async (event) => {
     // Normal case: zones already activated, list only allowed zones
     // Portal is source of truth - pass allowedZoneIds to layer
     const zones = await client.listZones(existingAllowedZones)
+    const enrichedZones = await enrichWithRecordCounts(client, zones)
 
     return {
-      zones,
+      zones: enrichedZones,
       moduleRights: {
         canManageZones: moduleRights.canCreateZones || moduleRights.canEditZones,
         canEditRecords: moduleRights.canEditRecords,

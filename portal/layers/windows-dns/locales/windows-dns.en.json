@@ -5,6 +5,14 @@
     "cta": "Create zone",
     "empty": "No zones yet.",
 
+    "sort": {
+      "label": "Sort",
+      "nameAsc": "Name (A→Z)",
+      "nameDesc": "Name (Z→A)",
+      "recordsDesc": "Most records",
+      "recordsAsc": "Fewest records"
+    },
+
     "statusCard": {
       "label": "Status",
       "title": "DNS",

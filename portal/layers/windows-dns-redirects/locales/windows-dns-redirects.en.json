@@ -4,6 +4,14 @@
         "title": "Manage Redirects",
       "description": "Manage HTTP redirects for your domains",
 
+      "sort": {
+        "label": "Sort",
+        "nameAsc": "Name (A→Z)",
+        "nameDesc": "Name (Z→A)",
+        "redirectsDesc": "Most redirects",
+        "redirectsAsc": "Fewest redirects"
+      },
+
       "zone_selection": {
         "title": "Select Zone",
         "description": "Choose a DNS zone to manage its redirects",

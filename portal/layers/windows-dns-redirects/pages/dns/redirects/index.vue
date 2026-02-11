@@ -21,16 +21,27 @@ interface ZoneResponse {
 const zones = ref<any[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
+const sortOption = ref<'name-asc' | 'name-desc' | 'redirects-desc' | 'redirects-asc'>('name-asc')
 const dataSource = ref<'api' | 'mock'>('mock')
 const apiError = ref<string | null>(null)
 
-// Filtered zones based on search
+// Filtered and sorted zones
 const filteredZones = computed(() => {
-  if (!searchQuery.value) return zones.value
-  const query = searchQuery.value.toLowerCase()
-  return zones.value.filter((zone) =>
-    zone.name.toLowerCase().includes(query)
-  )
+  let result = [...zones.value]
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter((zone) =>
+      zone.name.toLowerCase().includes(query)
+    )
+  }
+  return result.sort((a, b) => {
+    switch (sortOption.value) {
+      case 'name-desc': return b.name.localeCompare(a.name)
+      case 'redirects-desc': return (b.redirectCount || 0) - (a.redirectCount || 0)
+      case 'redirects-asc': return (a.redirectCount || 0) - (b.redirectCount || 0)
+      default: return a.name.localeCompare(b.name)
+    }
+  })
 })
 
 // Check if using mock data
@@ -86,14 +97,23 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="mb-6">
+    <!-- Search & Sort -->
+    <div class="mb-6 flex items-center gap-2 max-w-xl">
       <input
         v-model="searchQuery"
         type="text"
         :placeholder="t('windowsDns.redirects.zone_selection.search_placeholder')"
-        class="w-full max-w-md px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        class="flex-1 max-w-md px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
+      <select
+        v-model="sortOption"
+        class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      >
+        <option value="name-asc">{{ t('windowsDns.redirects.sort.nameAsc') }}</option>
+        <option value="name-desc">{{ t('windowsDns.redirects.sort.nameDesc') }}</option>
+        <option value="redirects-desc">{{ t('windowsDns.redirects.sort.redirectsDesc') }}</option>
+        <option value="redirects-asc">{{ t('windowsDns.redirects.sort.redirectsAsc') }}</option>
+      </select>
     </div>
 
     <!-- Loading State -->

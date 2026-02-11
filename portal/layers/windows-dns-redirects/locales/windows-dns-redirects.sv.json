@@ -4,6 +4,14 @@
         "title": "Hantera omdirigeringar",
       "description": "Hantera HTTP-omdirigeringar för dina domäner",
 
+      "sort": {
+        "label": "Sortera",
+        "nameAsc": "Namn (A→Ö)",
+        "nameDesc": "Namn (Ö→A)",
+        "redirectsDesc": "Flest omdirigeringar",
+        "redirectsAsc": "Färst omdirigeringar"
+      },
+
       "zone_selection": {
         "title": "Välj zon",
         "description": "Välj en DNS-zon för att hantera dess omdirigeringar",
