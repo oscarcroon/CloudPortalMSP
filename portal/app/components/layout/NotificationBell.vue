@@ -36,7 +36,7 @@
       <div
         v-if="open"
         role="menu"
-        class="absolute right-0 top-full z-[60] mt-2 w-80 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800"
+        class="fixed inset-x-0 top-14 z-[60] mx-2 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800 sm:absolute sm:inset-x-auto sm:top-full sm:mx-0 sm:mt-2 sm:right-0 sm:w-80"
         @click.stop
       >
         <!-- Header -->

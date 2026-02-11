@@ -46,7 +46,7 @@
     </main>
 
     <footer class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-      © {{ new Date().getFullYear() }} Cloud Portal. All rights reserved.
+      &copy; {{ new Date().getFullYear() }} Cloud Portal - <a href="https://www.coreit.se" target="_blank" rel="noopener" class="hover:text-slate-600 dark:hover:text-slate-300 transition">CoreIT</a>. All rights reserved.
     </footer>
   </div>
 </template>

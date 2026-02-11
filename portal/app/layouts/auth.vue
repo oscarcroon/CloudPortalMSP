@@ -20,7 +20,7 @@
       <slot />
     </main>
     <p class="mt-6 text-center text-xs text-slate-400/70 dark:text-slate-500/70">
-      &copy; {{ new Date().getFullYear() }} <a href="https://www.coreit.se" target="_blank" rel="noopener" class="hover:text-slate-600 dark:hover:text-slate-300 transition">CoreIT</a>
+      &copy; {{ new Date().getFullYear() }} Cloud Portal - <a href="https://www.coreit.se" target="_blank" rel="noopener" class="hover:text-slate-600 dark:hover:text-slate-300 transition">CoreIT</a>. All rights reserved.
     </p>
   </div>
 </template>

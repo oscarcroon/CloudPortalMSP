@@ -69,6 +69,42 @@
           </p>
         </div>
 
+        <!-- Theme preference -->
+        <div class="space-y-2">
+          <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {{ t('profile.theme.label') }}
+          </label>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ t('profile.theme.description') }}
+          </p>
+          <div class="flex items-center gap-3">
+            <button
+              v-for="option in themeOptions"
+              :key="option.value"
+              type="button"
+              class="flex flex-col items-center gap-1.5 rounded-lg p-2 transition"
+              :class="option.value === colorMode.preference ? 'ring-2 ring-brand' : 'opacity-60 hover:opacity-100'"
+              @click="setThemePreference(option.value)"
+            >
+              <span
+                class="inline-flex h-10 w-10 items-center justify-center rounded-full border-2"
+                :class="option.value === colorMode.preference ? 'border-brand text-brand dark:text-brand' : 'border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400'"
+              >
+                <Icon :icon="option.icon" class="h-5 w-5" />
+              </span>
+              <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300">{{ t(option.labelKey) }}</span>
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ colorMode.preference === 'system'
+              ? t('profile.theme.usingSystem')
+              : colorMode.preference === 'light'
+                ? t('profile.theme.usingLight')
+                : t('profile.theme.usingDark')
+            }}
+          </p>
+        </div>
+
         <!-- Avatar preference -->
         <div v-if="user?.profilePictureUrl" class="space-y-2">
           <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -435,7 +471,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch, useI18n } from '#imports'
+import { computed, reactive, ref, watch, useI18n, useColorMode } from '#imports'
+import { Icon } from '@iconify/vue'
 import { passwordRequirements } from '~/constants/password'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type SupportedLocaleCode } from '~/constants/i18n'
 import { useAuth } from '~/composables/useAuth'
@@ -446,6 +483,19 @@ definePageMeta({
 
 const { t, setLocale } = useI18n()
 const auth = useAuth()
+const colorMode = useColorMode()
+
+type ThemePreference = 'system' | 'light' | 'dark'
+
+const themeOptions: Array<{ value: ThemePreference; icon: string; labelKey: string }> = [
+  { value: 'system', icon: 'mdi:monitor', labelKey: 'theme.options.system' },
+  { value: 'light', icon: 'mdi:white-balance-sunny', labelKey: 'theme.options.light' },
+  { value: 'dark', icon: 'mdi:weather-night', labelKey: 'theme.options.dark' }
+]
+
+function setThemePreference(value: ThemePreference) {
+  colorMode.preference = value
+}
 const supportedLocales = SUPPORTED_LOCALES
 const passwordRequirementKeys = passwordRequirements
 

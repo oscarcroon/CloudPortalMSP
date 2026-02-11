@@ -347,6 +347,8 @@
   },
   "theme": {
     "ariaLabel": "Change theme",
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode",
     "options": {
       "system": "System",
       "light": "Light",
@@ -397,6 +399,13 @@
     "language": {
       "label": "Language",
       "description": "Choose which language you want to use in the portal."
+    },
+    "theme": {
+      "label": "Appearance",
+      "description": "Choose how the portal looks. System follows your device settings.",
+      "usingSystem": "Following your system settings.",
+      "usingLight": "Using light mode.",
+      "usingDark": "Using dark mode."
     },
     "avatar": {
       "label": "Profile picture",

@@ -342,6 +342,8 @@
   },
   "theme": {
     "ariaLabel": "Ändra tema",
+    "switchToLight": "Byt till ljust läge",
+    "switchToDark": "Byt till mörkt läge",
     "options": {
       "system": "System",
       "light": "Ljust",
@@ -392,6 +394,13 @@
     "language": {
       "label": "Språk",
       "description": "Välj vilket språk du vill använda i portalen."
+    },
+    "theme": {
+      "label": "Utseende",
+      "description": "Välj hur portalen ser ut. System följer enhetens inställningar.",
+      "usingSystem": "Följer systemets inställningar.",
+      "usingLight": "Använder ljust läge.",
+      "usingDark": "Använder mörkt läge."
     },
     "avatar": {
       "label": "Profilbild",
