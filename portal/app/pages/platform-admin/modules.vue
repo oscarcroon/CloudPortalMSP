@@ -394,7 +394,6 @@ const onStatusChange = async (module: ModuleWithEnabled, newStatus: ModuleStatus
     module.enabled = enabled
     module.disabled = disabled
     module.comingSoonMessage = comingSoonMessage
-    await refresh()
   } catch (error: any) {
     console.error('Failed to update module status:', error)
   } finally {
@@ -419,7 +418,6 @@ const onComingSoonMessageChange = async (module: ModuleWithEnabled, message: str
       }
     })
     module.comingSoonMessage = trimmed || null
-    await refresh()
   } catch (error: any) {
     console.error('Failed to update coming soon message:', error)
   } finally {

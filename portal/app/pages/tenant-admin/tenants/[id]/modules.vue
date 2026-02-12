@@ -409,7 +409,6 @@ const updatePolicy = async (
     module.error = err?.data?.message ?? err?.message ?? t('adminTenants.modules.updateFailed')
   } finally {
     module.updating = false
-    await refresh()
   }
 }
 

@@ -13,7 +13,7 @@ import { logTenantAction } from '~~/server/utils/audit'
 
 const bodySchema = z.object({
   moduleKey: z.string(),
-  mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']),
+  mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']).optional().default('inherit'),
   allowedRoles: z.array(z.string()).optional(),
   allowedPermissions: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),

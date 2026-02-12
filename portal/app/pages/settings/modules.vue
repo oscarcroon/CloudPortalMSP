@@ -409,7 +409,6 @@ const updateModuleStatus = async (
     module.error = err?.data?.message ?? err?.message ?? t('settings.modules.updateFailed')
   } finally {
     module.updating = false
-    await refresh()
   }
 }
 
