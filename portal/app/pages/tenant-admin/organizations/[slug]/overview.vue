@@ -119,9 +119,9 @@
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Standardroll</label>
             <select
               v-model="form.defaultRole"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-slate-900 dark:text-white"
             >
-              <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+              <option v-for="role in roles" :key="role" :value="role" class="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">{{ role }}</option>
             </select>
           </div>
           <div>

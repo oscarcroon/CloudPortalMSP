@@ -13,7 +13,7 @@ import { logTenantAction } from '~~/server/utils/audit'
 
 const bodySchema = z.object({
   moduleKey: z.string(),
-  mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']).optional().default('inherit'),
+  mode: z.enum(['inherit', 'default-closed', 'allowlist', 'blocked']).optional(),
   allowedRoles: z.array(z.string()).optional(),
   allowedPermissions: z.array(z.string()).optional(),
   enabled: z.boolean().optional(),
@@ -32,16 +32,20 @@ export default defineEventHandler(async (event) => {
   const body = bodySchema.parse(await readBody(event))
   const { moduleKey, mode, allowedRoles, allowedPermissions, enabled, disabled, comingSoonMessage, defaultOrgState, defaultOrgComingSoonMessage } = body
 
-  // enabled and disabled can be explicitly false, so we need to check for undefined, not falsy
-  const enabledValue = enabled !== undefined ? enabled : true
-  const disabledValue = disabled !== undefined ? disabled : false
-
   await requireTenantPermission(event, 'tenants:manage', tenantId)
 
   const module = getModuleById(moduleKey as ModuleId)
   if (!module) {
     throw createError({ statusCode: 400, message: `Invalid module key: ${moduleKey}` })
   }
+
+  // Fetch existing policy first so we can preserve values not explicitly sent
+  const previousPolicy = await getTenantModulePolicy(tenantId, moduleKey as ModuleId)
+
+  // enabled and disabled: preserve existing values if not explicitly sent
+  const enabledValue = enabled !== undefined ? enabled : (previousPolicy?.enabled ?? true)
+  const disabledValue = disabled !== undefined ? disabled : (previousPolicy?.disabled ?? false)
+  const comingSoonValue = comingSoonMessage !== undefined ? comingSoonMessage : (previousPolicy?.comingSoonMessage ?? null)
 
   if (allowedRoles && allowedRoles.length > 0) {
     const validRoleKeys = new Set((module.moduleRoles ?? module.roles ?? []).map((role) => role.key))
@@ -54,17 +58,18 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const effectiveMode = mode ?? previousPolicy?.mode ?? 'inherit'
   const allRoleKeys = (module.moduleRoles ?? module.roles ?? []).map((role) => role.key)
   const allPermissionKeys = module.requiredPermissions ?? []
 
   const normalizedAllowedRoles =
-    mode === 'allowlist'
+    effectiveMode === 'allowlist'
       ? Array.from(
           new Set((allowedRoles && allowedRoles.length ? allowedRoles : allRoleKeys).filter(Boolean))
         )
       : []
   const normalizedAllowedPermissions =
-    mode === 'allowlist'
+    effectiveMode === 'allowlist'
       ? Array.from(
           new Set(
             (allowedPermissions && allowedPermissions.length ? allowedPermissions : allPermissionKeys).filter(Boolean)
@@ -72,21 +77,19 @@ export default defineEventHandler(async (event) => {
         )
       : []
 
-  const previousPolicy = await getTenantModulePolicy(tenantId, moduleKey as ModuleId)
-
   const policy: ModulePolicy = {
     moduleKey,
-    mode,
+    mode: effectiveMode,
     allowedRoles: normalizedAllowedRoles,
     allowedPermissions: normalizedAllowedPermissions,
     // enabled/disabled flags påverkar synlighet på tenant-nivå
     enabled: enabledValue,
     disabled: disabledValue,
-    comingSoonMessage: comingSoonMessage ?? null,
-    defaultOrgState: defaultOrgState ?? undefined,
-    defaultOrgComingSoonMessage: defaultOrgComingSoonMessage ?? undefined,
+    comingSoonMessage: comingSoonValue ?? null,
+    defaultOrgState: defaultOrgState ?? previousPolicy?.defaultOrgState ?? undefined,
+    defaultOrgComingSoonMessage: defaultOrgComingSoonMessage !== undefined ? defaultOrgComingSoonMessage : (previousPolicy?.defaultOrgComingSoonMessage ?? undefined),
     permissionOverrides:
-      mode === 'allowlist'
+      effectiveMode === 'allowlist'
         ? Object.fromEntries(normalizedAllowedPermissions.map((key) => [key, true]))
         : undefined
   } as any

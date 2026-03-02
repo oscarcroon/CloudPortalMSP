@@ -39,11 +39,10 @@ export interface InitializeOrgResult {
  * This function is idempotent - it can be called multiple times safely.
  * 
  * It will:
- * 1. Set organization setupStatus to 'pending' (only if not already set)
- * 2. Create standard organization groups (idempotent)
- * 3. Add the owner to the Org Admins group
- * 4. Set the default group for new members to "Members"
- * 5. Create module policies using tenant defaults (or 'disabled' fallback)
+ * 1. Create standard organization groups (idempotent)
+ * 2. Add the owner to the Org Admins group
+ * 3. Set the default group for new members to "Members"
+ * 4. Create module policies using tenant defaults (or 'disabled' fallback)
  *
  * @param orgId - The organization ID
  * @param ownerUserId - The owner's user ID (will be added to Org Admins group)
@@ -56,24 +55,6 @@ export async function initializeNewOrganization(params: {
 }): Promise<InitializeOrgResult> {
   const { orgId, ownerUserId, tenantId } = params
   const db = getDb()
-  
-  // Check if organization already has setup complete
-  const [existingOrg] = await db
-    .select({ setupStatus: organizations.setupStatus })
-    .from(organizations)
-    .where(eq(organizations.id, orgId))
-    .limit(1)
-
-  // If already complete, skip initialization
-  if (existingOrg?.setupStatus === 'complete') {
-    console.log(`[orgSetup] Organization ${orgId} already has setupStatus=complete, skipping init`)
-    return {
-      groupIds: {},
-      defaultGroupId: '',
-      modulesBlocked: 0,
-      initialized: false
-    }
-  }
 
   // Get all modules from registry
   const allModules = getAllRegistryModules()
@@ -87,12 +68,7 @@ export async function initializeNewOrganization(params: {
 
   // Use transaction for atomic operations
   await db.transaction(async (tx) => {
-    // 1. Set setupStatus to pending (if not already)
-    await tx.update(organizations)
-      .set({ setupStatus: 'pending' })
-      .where(eq(organizations.id, orgId))
-
-    // 2. Create default organization groups (idempotent - check if exists first)
+    // 1. Create default organization groups (idempotent - check if exists first)
     for (const groupTemplate of DEFAULT_ORG_GROUPS) {
       // Check if group already exists
       const [existingGroup] = await tx
@@ -125,7 +101,7 @@ export async function initializeNewOrganization(params: {
     // Set defaultGroupId to "members" group
     defaultGroupId = groupIds['members'] ?? ''
 
-    // 3. Add owner to Org Admins group (idempotent)
+    // 2. Add owner to Org Admins group (idempotent)
     const adminsGroupId = groupIds['org-admins']
     if (adminsGroupId && ownerUserId) {
       // Check if membership already exists
@@ -149,7 +125,7 @@ export async function initializeNewOrganization(params: {
       }
     }
 
-    // 4. Update organization with default group (if not set)
+    // 3. Update organization with default group (if not set)
     if (defaultGroupId) {
       await tx.update(organizations)
         .set({ defaultGroupId })
@@ -160,7 +136,7 @@ export async function initializeNewOrganization(params: {
         )
     }
 
-    // 5. Create module policies for all modules using tenant defaults (idempotent)
+    // 4. Create module policies for all modules using tenant defaults (idempotent)
     for (const module of allModules) {
       // Check if policy already exists
       const [existingPolicy] = await tx

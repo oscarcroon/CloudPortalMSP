@@ -158,6 +158,11 @@
           </div>
         </div>
 
+        <!-- Status hint -->
+        <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+          {{ t('adminTenants.modules.statusHints.' + getStatusHintKey(getModuleStatus(module))) }}
+        </p>
+
         <!-- Coming soon message input (below top row) -->
         <div v-if="getModuleStatus(module) === 'coming-soon'" class="mt-3">
           <div class="flex items-center gap-2">
@@ -200,6 +205,9 @@
               @keydown.enter="onDefaultOrgComingSoonMessageChange(module, ($event.target as HTMLInputElement).value)"
             />
           </div>
+          <p class="mt-1 w-full text-xs text-indigo-500/80 dark:text-indigo-400/70">
+            {{ t('adminTenants.modules.statusHints.' + getStatusHintKey(module.uiDefaultOrgState)) }}
+          </p>
         </div>
 
         <!-- Description + error -->
@@ -427,6 +435,10 @@ const getStatusSelectClass = (status: ModuleStatusValue) => {
     default:
       return 'border-slate-200 bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
   }
+}
+
+const getStatusHintKey = (status: string) => {
+  return status === 'coming-soon' ? 'comingSoon' : status
 }
 
 const getStatusIcon = (status: ModuleStatusValue) => {

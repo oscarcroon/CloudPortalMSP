@@ -122,11 +122,18 @@ async function findLogoByOrgId(organizationId: string): Promise<string | null> {
     // Sök efter filer som matchar organizationId
     // Nya filer har formatet: organization-{orgId}-{variant}-{timestamp}.{ext}
     // Gamla filer kan ha formatet: {orgId}-{timestamp}.{ext}
-    // Prioritera nya filer (organization-*) över gamla
+    // Prioritera nya filer (organization-*) över gamla, and non-SVG over SVG
     const files = fs.readdirSync(logosDir)
-    const newFormatFile = files.find((file) => file.startsWith(`organization-${organizationId}-`))
+    const isSvg = (f: string) => path.extname(f).toLowerCase() === '.svg'
+    const newFormatFiles = files.filter((file) => file.startsWith(`organization-${organizationId}-`))
+    const oldFormatFiles = files.filter((file) => file.startsWith(`${organizationId}-`))
+    // Prefer non-SVG files (Outlook does not support SVG)
     const matchingFile =
-      newFormatFile ?? files.find((file) => file.startsWith(`${organizationId}-`))
+      newFormatFiles.find((f) => !isSvg(f)) ??
+      oldFormatFiles.find((f) => !isSvg(f)) ??
+      newFormatFiles[0] ??
+      oldFormatFiles[0] ??
+      null
 
     if (!matchingFile) {
       console.warn('[mailer] No logo found for organization:', organizationId)
@@ -143,6 +150,12 @@ async function findLogoByOrgId(organizationId: string): Promise<string | null> {
       '.jpeg': 'image/jpeg',
       '.svg': 'image/svg+xml',
       '.webp': 'image/webp'
+    }
+
+    // Outlook/Exchange Online does not support SVG — skip it
+    if (extension === '.svg') {
+      console.warn('[mailer] Skipping SVG logo (unsupported by Outlook):', matchingFile)
+      return null
     }
 
     const mimeType = mimeTypes[extension] || 'image/png'
@@ -272,6 +285,16 @@ async function convertLogoToDataUri(
       '.jpeg': 'image/jpeg',
       '.svg': 'image/svg+xml',
       '.webp': 'image/webp'
+    }
+
+    // Outlook/Exchange Online does not support SVG — skip it
+    if (extension === '.svg') {
+      console.warn('[mailer] Skipping SVG logo (unsupported by Outlook):', filename)
+      // Fall back to org ID search for a non-SVG alternative
+      if (organizationId) {
+        return await findLogoByOrgId(organizationId)
+      }
+      return null
     }
 
     const mimeType = mimeTypes[extension] || 'image/png'

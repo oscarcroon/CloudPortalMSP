@@ -1980,7 +1980,13 @@
         "hidden": "Hidden",
         "comingSoon": "Coming Soon"
       },
-      "defaultOrgComingSoonMessage": "Message (Coming Soon)"
+      "defaultOrgComingSoonMessage": "Message (Coming Soon)",
+      "statusHints": {
+        "active": "Module is enabled and visible in the dashboard.",
+        "disabled": "Module is shown grayed out and cannot be opened.",
+        "hidden": "Module is completely hidden from the dashboard.",
+        "comingSoon": "Module is shown grayed out with an optional message."
+      }
     },
     "emailOverride": {
       "active": "Email override active",

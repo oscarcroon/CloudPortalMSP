@@ -45,15 +45,21 @@ const blendWithWhite = (hex: string, amount = 0.12) => {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
 }
 
+/** Convert basic inline markdown (**bold**, *italic*) to HTML. Input must already be HTML-escaped. */
+const inlineMarkdown = (escaped: string) =>
+  escaped
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+
 const renderLines = (lines: string[], isDark = false) =>
   lines
     .map((line) => line.trim())
     .filter(Boolean)
     .map(
       (line) =>
-        `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${isDark ? DEFAULT_TEXT_SECONDARY : '#0f172a'};">${escapeHtml(
+        `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${isDark ? DEFAULT_TEXT_SECONDARY : '#0f172a'};">${inlineMarkdown(escapeHtml(
           line
-        )}</p>`
+        ))}</p>`
     )
     .join('')
 
@@ -97,14 +103,17 @@ export const renderBrandedTemplate = (
   const bodyLines = input.body ?? []
   const outroLines = input.outro ?? []
   let text = renderText(introLines, bodyLines, outroLines, input.action)
+  const year = new Date().getFullYear()
   const footerMessage: Record<EmailLocale, string> = {
-    sv: 'Detta är ett automatiskt meddelande.',
-    en: 'This is an automated message.'
+    sv: `© ${year} Cloud Portal. Alla rättigheter förbehållna.<br/>Du får detta e-postmeddelande eftersom du har ett konto hos Cloud Portal, eller någon har skapat ett åt dig.`,
+    en: `© ${year} Cloud Portal. All rights reserved.<br/>You're receiving this email because you have an account with Cloud Portal, or someone created one on your behalf.`
   }
   if (branding?.footerTextPlain) {
     text = `${text}\n\n${branding.footerTextPlain}`
   } else if (branding?.footerText) {
     text = `${text}\n\n${stripHtml(branding.footerText)}`
+  } else {
+    text = `${text}\n\n© ${year} Cloud Portal. ${locale === 'en' ? 'All rights reserved.' : 'Alla rättigheter förbehållna.'}\n${locale === 'en' ? "You're receiving this email because you have an account with Cloud Portal, or someone created one on your behalf." : 'Du får detta e-postmeddelande eftersom du har ett konto hos Cloud Portal, eller någon har skapat ett åt dig.'}`
   }
   
   const html = `

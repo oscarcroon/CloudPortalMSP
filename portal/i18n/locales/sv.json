@@ -1980,7 +1980,13 @@
         "hidden": "Avaktiverad",
         "comingSoon": "Kommer snart"
       },
-      "defaultOrgComingSoonMessage": "Meddelande (Kommer snart)"
+      "defaultOrgComingSoonMessage": "Meddelande (Kommer snart)",
+      "statusHints": {
+        "active": "Modulen är aktiverad och synlig i dashboarden.",
+        "disabled": "Modulen visas som utgråad och går inte att öppna.",
+        "hidden": "Modulen är helt dold från dashboarden.",
+        "comingSoon": "Modulen visas utgråad med ett valfritt meddelande."
+      }
     },
     "emailOverride": {
       "active": "E-post override aktiv",
