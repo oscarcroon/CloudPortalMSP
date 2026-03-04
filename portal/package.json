@@ -6,8 +6,9 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "predev": "npm run generate:rbac-types && npm run generate:openapi",
-    "prebuild": "npm run generate:rbac-types && npm run generate:openapi",
+    "predev": "npm run generate:layer-schemas && npm run generate:rbac-types && npm run generate:openapi",
+    "prebuild": "npm run generate:layer-schemas && npm run generate:rbac-types && npm run generate:openapi",
+    "generate:layer-schemas": "tsx scripts/generate-layer-schemas.ts",
     "generate:rbac-types": "tsx scripts/generate-rbac-types.ts",
     "generate:openapi": "tsx scripts/generate-openapi-routes.ts && tsx scripts/generate-public-operations.ts",
     "dev": "nuxt dev",

@@ -1,8 +1,16 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { existsSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// Auto-discover layers: any dir in layers/ with module.manifest.ts is a top-level layer
+const layersScanDir = resolve(__dirname, 'layers')
+const discoveredLayers = readdirSync(layersScanDir, { withFileTypes: true })
+  .filter(d => d.isDirectory() && !d.name.startsWith('_') && !d.name.startsWith('.') && d.name !== 'plugin-template')
+  .filter(d => existsSync(resolve(layersScanDir, d.name, 'module.manifest.ts')))
+  .map(d => `./layers/${d.name}`)
 
 // i18n constants defined inline to avoid importing from app/ directory
 // which causes "Vue app aliases are not allowed in server runtime" error in Nitro
@@ -19,7 +27,7 @@ const loginBrandingSlugSuffixes = (process.env.LOGIN_BRANDING_SLUG_SUFFIXES || '
   .filter(Boolean)
 
 export default defineNuxtConfig({
-  extends: ['./layers/cloudflare-dns', './layers/windows-dns'],
+  extends: discoveredLayers,
   imports: {
     dirs: ['layers']
   },

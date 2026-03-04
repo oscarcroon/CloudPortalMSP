@@ -1,9 +1,7 @@
-import { eq, and, inArray, sql } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { manifests } from '../../../layers/plugin-manifests'
 import { modules, modulePermissions } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
-
-const uniqueManifests = Array.from(new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values())
 
 export interface SyncResult {
   modulesUpdated: number
@@ -14,6 +12,8 @@ export interface SyncResult {
 
 export async function syncPluginRegistry(): Promise<SyncResult> {
   const db = getDb()
+
+  const uniqueManifests = Array.from(new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values())
 
   // Check if enabled column exists by trying to query it
   let hasEnabledColumn = false
@@ -205,5 +205,3 @@ export async function syncPluginRegistry(): Promise<SyncResult> {
     permissionsReactivated
   }
 }
-
-
