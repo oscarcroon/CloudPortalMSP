@@ -120,25 +120,10 @@ step_install_node() {
 }
 
 # =============================================================================
-# STEG 3: pnpm globalt
-# =============================================================================
-step_install_pnpm() {
-    log_info "=== Steg 3: Installerar pnpm ==="
-
-    if command -v pnpm &>/dev/null; then
-        log_info "pnpm redan installerad: $(pnpm --version)"
-        return
-    fi
-
-    npm install -g pnpm
-    log_info "pnpm installerad: $(pnpm --version)"
-}
-
-# =============================================================================
-# STEG 4: Skapa applikationsanvändare (nologin-shell)
+# STEG 3: Skapa applikationsanvändare (nologin-shell)
 # =============================================================================
 step_create_user() {
-    log_info "=== Steg 4: Skapar applikationsanvändare '${APP_USER}' ==="
+    log_info "=== Steg 3: Skapar applikationsanvändare '${APP_USER}' ==="
 
     if id "$APP_USER" &>/dev/null; then
         log_info "Användare '${APP_USER}' finns redan"
@@ -154,10 +139,10 @@ step_create_user() {
 }
 
 # =============================================================================
-# STEG 5: Katalogstruktur
+# STEG 4: Katalogstruktur
 # =============================================================================
 step_create_directories() {
-    log_info "=== Steg 5: Skapar katalogstruktur ==="
+    log_info "=== Steg 4: Skapar katalogstruktur ==="
 
     mkdir -p "${APP_DIR}/releases"
     mkdir -p "${APP_DIR}/shared/uploads"
@@ -177,10 +162,10 @@ step_create_directories() {
 }
 
 # =============================================================================
-# STEG 6: Sudoers (begränsad systemctl-åtkomst)
+# STEG 5: Sudoers (begränsad systemctl-åtkomst)
 # =============================================================================
 step_configure_sudoers() {
-    log_info "=== Steg 6: Konfigurerar sudoers ==="
+    log_info "=== Steg 5: Konfigurerar sudoers ==="
 
     cat > /etc/sudoers.d/cloudportal << 'SUDOERS'
 # CloudPortal MSP - Tillåt applikationsanvändaren att hantera tjänsten
@@ -197,10 +182,10 @@ SUDOERS
 }
 
 # =============================================================================
-# STEG 7: Systemd service unit
+# STEG 6: Systemd service unit
 # =============================================================================
 step_create_systemd_service() {
-    log_info "=== Steg 7: Skapar systemd service ==="
+    log_info "=== Steg 6: Skapar systemd service ==="
 
     cat > /etc/systemd/system/cloudportal.service << EOF
 [Unit]
@@ -248,10 +233,10 @@ EOF
 }
 
 # =============================================================================
-# STEG 8: UFW-brandvägg
+# STEG 7: UFW-brandvägg
 # =============================================================================
 step_configure_ufw() {
-    log_info "=== Steg 8: Konfigurerar UFW-brandvägg ==="
+    log_info "=== Steg 7: Konfigurerar UFW-brandvägg ==="
 
     apt-get install -y -qq ufw
 
@@ -279,10 +264,10 @@ step_configure_ufw() {
 }
 
 # =============================================================================
-# STEG 9: SSH-härdning
+# STEG 8: SSH-härdning
 # =============================================================================
 step_harden_ssh() {
-    log_info "=== Steg 9: SSH-härdning ==="
+    log_info "=== Steg 8: SSH-härdning ==="
 
     local sshd_config="/etc/ssh/sshd_config"
 
@@ -324,10 +309,10 @@ EOF
 }
 
 # =============================================================================
-# STEG 10: fail2ban (SSH brute-force-skydd)
+# STEG 9: fail2ban (SSH brute-force-skydd)
 # =============================================================================
 step_install_fail2ban() {
-    log_info "=== Steg 10: Installerar fail2ban ==="
+    log_info "=== Steg 9: Installerar fail2ban ==="
 
     apt-get install -y -qq fail2ban
 
@@ -352,10 +337,10 @@ EOF
 }
 
 # =============================================================================
-# STEG 11: Kernel/sysctl-härdning
+# STEG 10: Kernel/sysctl-härdning
 # =============================================================================
 step_harden_kernel() {
-    log_info "=== Steg 11: Kernel/sysctl-härdning ==="
+    log_info "=== Steg 10: Kernel/sysctl-härdning ==="
 
     cat > /etc/sysctl.d/99-cloudportal-hardening.conf << 'EOF'
 # CloudPortal MSP - Kernel-härdning
@@ -403,10 +388,10 @@ EOF
 }
 
 # =============================================================================
-# STEG 12: unattended-upgrades (automatiska säkerhetspatchar)
+# STEG 11: unattended-upgrades (automatiska säkerhetspatchar)
 # =============================================================================
 step_configure_unattended_upgrades() {
-    log_info "=== Steg 12: Konfigurerar unattended-upgrades ==="
+    log_info "=== Steg 11: Konfigurerar unattended-upgrades ==="
 
     apt-get install -y -qq unattended-upgrades apt-listchanges
 
@@ -434,10 +419,10 @@ EOF
 }
 
 # =============================================================================
-# STEG 13: Persistent journald
+# STEG 12: Persistent journald
 # =============================================================================
 step_configure_journald() {
-    log_info "=== Steg 13: Konfigurerar persistent journald ==="
+    log_info "=== Steg 12: Konfigurerar persistent journald ==="
 
     mkdir -p /var/log/journal
 
@@ -456,20 +441,20 @@ EOF
 }
 
 # =============================================================================
-# STEG 14: MariaDB-klient (felsökning)
+# STEG 13: MariaDB-klient (felsökning)
 # =============================================================================
 step_install_mariadb_client() {
-    log_info "=== Steg 14: Installerar MariaDB-klient ==="
+    log_info "=== Steg 13: Installerar MariaDB-klient ==="
 
     apt-get install -y -qq mariadb-client
     log_info "MariaDB-klient installerad: $(mysql --version)"
 }
 
 # =============================================================================
-# STEG 15: Kopiera env-mall
+# STEG 14: Kopiera env-mall
 # =============================================================================
 step_copy_env_template() {
-    log_info "=== Steg 15: Miljövariabler (.env) ==="
+    log_info "=== Steg 14: Miljövariabler (.env) ==="
 
     local env_file="${APP_DIR}/shared/.env"
 
@@ -503,7 +488,7 @@ print_summary() {
     echo ""
     echo "Installerat:"
     echo "  - Node.js $(node --version)"
-    echo "  - pnpm $(pnpm --version)"
+    echo "  - npm $(npm --version)"
     echo "  - MariaDB-klient"
     echo "  - fail2ban, UFW, unattended-upgrades"
     echo ""
@@ -544,7 +529,6 @@ main() {
 
     step_system_update
     step_install_node
-    step_install_pnpm
     step_create_user
     step_create_directories
     step_configure_sudoers
