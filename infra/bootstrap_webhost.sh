@@ -135,7 +135,7 @@ step_install_pnpm() {
 }
 
 # =============================================================================
-# STEG 4: Skapa applikationsanvändare (nologin-shell)
+# STEG 4: Skapa applikationsanvändare (bash-shell)
 # =============================================================================
 step_create_user() {
     log_info "=== Steg 4: Skapar applikationsanvändare '${APP_USER}' ==="
@@ -145,11 +145,11 @@ step_create_user() {
     else
         useradd \
             --system \
-            --shell /usr/sbin/nologin \
+            --shell /bin/bash \
             --home-dir "/home/${APP_USER}" \
             --create-home \
             "$APP_USER"
-        log_info "Systemanvändare '${APP_USER}' skapad (nologin-shell)"
+        log_info "Systemanvändare '${APP_USER}' skapad (bash-shell)"
     fi
 }
 
@@ -508,7 +508,7 @@ print_summary() {
     echo "  - fail2ban, UFW, unattended-upgrades"
     echo ""
     echo "Konfigurerat:"
-    echo "  - Användare:    ${APP_USER} (systemkonto, nologin)"
+    echo "  - Användare:    ${APP_USER} (systemkonto, bash-shell)"
     echo "  - App-katalog:  ${APP_DIR}/"
     echo "  - Systemd:      cloudportal.service"
     echo "  - Brandvägg:    SSH (port ${SSH_PORT}), Traefik ${TRAEFIK_IP} -> port ${APP_PORT}"
