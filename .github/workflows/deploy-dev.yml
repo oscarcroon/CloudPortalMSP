@@ -21,16 +21,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Build application
-        run: pnpm --filter portal build
+        run: npm run build
 
       - name: Setup SSH
         run: |

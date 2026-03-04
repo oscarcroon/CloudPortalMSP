@@ -177,26 +177,7 @@ node --version
 npm --version
 ```
 
-### 1.4 Installera pnpm globalt
-
-**[DEV-SERVER]**
-```bash
-sudo npm install -g pnpm
-
-# Verifiera
-pnpm --version
-# Förväntat: 9.x.x
-```
-
-**[PROD-SERVER]**
-```bash
-sudo npm install -g pnpm
-
-# Verifiera
-pnpm --version
-```
-
-### 1.5 Skapa applikationsanvändare
+### 1.4 Skapa applikationsanvändare
 
 **[DEV-SERVER]**
 ```bash
@@ -214,7 +195,7 @@ sudo useradd -m -s /bin/bash cloudportal
 id cloudportal
 ```
 
-### 1.6 Skapa katalogstruktur
+### 1.5 Skapa katalogstruktur
 
 **[DEV-SERVER]**
 ```bash
@@ -249,7 +230,7 @@ sudo chown -R cloudportal:cloudportal /opt/cloudportal
 ls -la /opt/cloudportal/
 ```
 
-### 1.7 Konfigurera SSH för cloudportal-användaren
+### 1.6 Konfigurera SSH för cloudportal-användaren
 
 **[DEV-SERVER]**
 ```bash
@@ -278,7 +259,7 @@ sudo chmod 600 /home/cloudportal/.ssh/authorized_keys
 ls -la /home/cloudportal/.ssh/
 ```
 
-### 1.8 Skapa miljövariabelfil (.env)
+### 1.7 Skapa miljövariabelfil (.env)
 
 **[DEV-SERVER]**
 ```bash
@@ -378,7 +359,7 @@ sudo chown cloudportal:cloudportal /opt/cloudportal/shared/.env
 
 > **VIKTIGT:** Använd ALDRIG samma secrets för dev och prod! Generera unika värden för varje miljö.
 
-### 1.9 Skapa systemd service
+### 1.8 Skapa systemd service
 
 **[DEV-SERVER]**
 ```bash
@@ -479,7 +460,7 @@ sudo systemctl enable cloudportal
 sudo systemctl status cloudportal
 ```
 
-### 1.10 Konfigurera sudo för deployment
+### 1.9 Konfigurera sudo för deployment
 
 GitHub Actions behöver kunna starta om tjänsten utan lösenord.
 
@@ -520,7 +501,7 @@ sudo visudo -c -f /etc/sudoers.d/cloudportal
 sudo -u cloudportal sudo systemctl status cloudportal
 ```
 
-### 1.11 Konfigurera brandvägg (UFW)
+### 1.10 Konfigurera brandvägg (UFW)
 
 **[DEV-SERVER]**
 ```bash
@@ -1078,16 +1059,34 @@ docker exec traefik traefik healthcheck
 
 ## Del 7: Första deployment
 
-### 7.1 Verifiera att workflow-filer finns
+### 7.1 Skapa GitHub Actions workflow-filer
 
-Kontrollera att följande filer finns i ditt repository:
+Skapa katalogstrukturen och workflow-filerna i ditt repository:
 
+**[LOKAL DATOR]**
+```bash
+mkdir -p .github/workflows
 ```
-.github/
-└── workflows/
-    ├── ci.yml           # CI pipeline (lint, test, build)
-    ├── deploy-dev.yml   # Deploy till development
-    └── deploy-prod.yml  # Deploy till production
+
+Skapa tre filer med innehållet nedan. Det fullständiga filinnehållet finns i [Bilaga: Workflow-filer](#bilaga-workflow-filer).
+
+| Fil | Syfte | Trigger |
+|-----|-------|---------|
+| `.github/workflows/ci.yml` | Lint, test, bygg | Push/PR till `main` eller `dev` |
+| `.github/workflows/deploy-dev.yml` | Deploya till dev-server | Push till `dev` |
+| `.github/workflows/deploy-prod.yml` | Deploya till prod-server | Push till `main` (kräver godkännande) |
+
+```bash
+# Verifiera att filerna skapades
+ls -la .github/workflows/
+# Förväntat:
+# ci.yml
+# deploy-dev.yml
+# deploy-prod.yml
+
+# Committa filerna
+git add .github/workflows/
+git commit -m "Add CI/CD workflow files"
 ```
 
 ### 7.2 Pusha till dev-branchen
@@ -1397,19 +1396,323 @@ sudo -u cloudportal rm -rf 20240101_120000_old1234
 
 ---
 
-## Bilaga: Genererade workflow-filer
+## Bilaga: Workflow-filer
+
+Skapa dessa tre filer i `.github/workflows/`. Anpassa secrets-namnen om du valt andra namn i [Del 3](#del-3-konfigurera-github-repository).
 
 ### .github/workflows/ci.yml
 
-Denna fil kör tester och bygger applikationen vid varje push och pull request.
+Kör lint, tester och bygge vid varje push och pull request till `main` eller `dev`.
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm --prefix portal run lint
+
+      - name: Run unit tests
+        run: npm --prefix portal run test:unit
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+          path: portal/.output
+          retention-days: 7
+```
 
 ### .github/workflows/deploy-dev.yml
 
-Denna fil deployar automatiskt till dev-servern vid push till `dev`-branchen.
+Deployar automatiskt till dev-servern vid push till `dev`-branchen.
+
+```yaml
+name: Deploy to Development
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.SSH_KNOWN_HOSTS_DEV }}" >> ~/.ssh/known_hosts
+
+      - name: Create release directory
+        run: |
+          RELEASE_DIR="releases/$(date +%Y%m%d_%H%M%S)_${GITHUB_SHA:0:7}"
+          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
+
+      - name: Deploy to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # Create release directory on server
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "mkdir -p /opt/cloudportal/${RELEASE_DIR}"
+
+          # Copy build artifacts
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            portal/.output/ \
+            ${SSH_USER}@${SSH_HOST}:/opt/cloudportal/${RELEASE_DIR}/.output/
+
+          # Copy package.json for reference
+          rsync -avz \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            portal/package.json \
+            ${SSH_USER}@${SSH_HOST}:/opt/cloudportal/${RELEASE_DIR}/
+
+          # Create portal directory structure and symlink to .env
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "mkdir -p /opt/cloudportal/${RELEASE_DIR}/portal && \
+             ln -sf /opt/cloudportal/shared/.env /opt/cloudportal/${RELEASE_DIR}/portal/.env && \
+             mv /opt/cloudportal/${RELEASE_DIR}/.output /opt/cloudportal/${RELEASE_DIR}/portal/"
+
+          # Update current symlink
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "ln -sfn /opt/cloudportal/${RELEASE_DIR} /opt/cloudportal/current"
+
+          # Run database migrations automatically
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "cd /opt/cloudportal/current/portal && npx drizzle-kit push --force"
+
+          # Restart application
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "sudo systemctl restart cloudportal"
+
+          # Wait for application to start
+          sleep 5
+
+          # Verify service is running
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "sudo systemctl is-active cloudportal"
+
+      - name: Health check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # Wait for application to be ready
+          for i in {1..30}; do
+            if ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+              "curl -sf http://localhost:3000/api/health" > /dev/null 2>&1; then
+              echo "Health check passed!"
+              exit 0
+            fi
+            echo "Waiting for app to be ready... ($i/30)"
+            sleep 2
+          done
+          echo "Health check failed!"
+          exit 1
+
+      - name: Cleanup old releases
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # Keep only the 5 most recent releases
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "cd /opt/cloudportal/releases && ls -t | tail -n +6 | xargs -r rm -rf"
+```
 
 ### .github/workflows/deploy-prod.yml
 
-Denna fil deployar till prod-servern vid push till `main`-branchen, men kräver manuellt godkännande i GitHub.
+Deployar till prod-servern vid push till `main`-branchen. Kräver manuellt godkännande i GitHub (konfigurerat via Environment protection rules i [Del 3](#del-3-konfigurera-github-repository)).
+
+```yaml
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.SSH_KNOWN_HOSTS_PROD }}" >> ~/.ssh/known_hosts
+
+      - name: Create release directory
+        run: |
+          RELEASE_DIR="releases/$(date +%Y%m%d_%H%M%S)_${GITHUB_SHA:0:7}"
+          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
+
+      - name: Deploy to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # Create release directory on server
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "mkdir -p /opt/cloudportal/${RELEASE_DIR}"
+
+          # Copy build artifacts
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            portal/.output/ \
+            ${SSH_USER}@${SSH_HOST}:/opt/cloudportal/${RELEASE_DIR}/.output/
+
+          # Copy package.json for reference
+          rsync -avz \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            portal/package.json \
+            ${SSH_USER}@${SSH_HOST}:/opt/cloudportal/${RELEASE_DIR}/
+
+          # Create portal directory structure and symlink to .env
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "mkdir -p /opt/cloudportal/${RELEASE_DIR}/portal && \
+             ln -sf /opt/cloudportal/shared/.env /opt/cloudportal/${RELEASE_DIR}/portal/.env && \
+             mv /opt/cloudportal/${RELEASE_DIR}/.output /opt/cloudportal/${RELEASE_DIR}/portal/"
+
+          # Update current symlink
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "ln -sfn /opt/cloudportal/${RELEASE_DIR} /opt/cloudportal/current"
+
+          # Run database migrations automatically
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "cd /opt/cloudportal/current/portal && npx drizzle-kit push --force"
+
+          # Restart application
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "sudo systemctl restart cloudportal"
+
+          # Wait for application to start
+          sleep 5
+
+          # Verify service is running
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "sudo systemctl is-active cloudportal"
+
+      - name: Health check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # Wait for application to be ready
+          for i in {1..30}; do
+            if ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+              "curl -sf http://localhost:3000/api/health" > /dev/null 2>&1; then
+              echo "Health check passed!"
+              exit 0
+            fi
+            echo "Waiting for app to be ready... ($i/30)"
+            sleep 2
+          done
+          echo "Health check failed!"
+          exit 1
+
+      - name: Cleanup old releases
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # Keep only the 5 most recent releases
+          ssh -i ~/.ssh/deploy_key ${SSH_USER}@${SSH_HOST} \
+            "cd /opt/cloudportal/releases && ls -t | tail -n +6 | xargs -r rm -rf"
+```
 
 ---
 
@@ -1417,14 +1720,20 @@ Denna fil deployar till prod-servern vid push till `main`-branchen, men kräver 
 
 Efter att ha följt denna guide har du:
 
-1. ✅ Två Ubuntu-servrar konfigurerade med Node.js 22 LTS och pnpm
-2. ✅ Dedikerad `cloudportal`-användare med rätt behörigheter
-3. ✅ Systemd-tjänst för automatisk start och övervakning
-4. ✅ SSH-nycklar för säker deployment från GitHub Actions
-5. ✅ GitHub Environments med skydd för produktion
-6. ✅ CI/CD pipeline som automatiskt testar, bygger och deployar
-7. ✅ Health check endpoint för övervakning
-8. ✅ Traefik-routing med SSL och säkerhetsheaders
-9. ✅ Dokumenterad rollback-procedur
+1. Två Ubuntu-servrar konfigurerade med Node.js 22 LTS
+2. Dedikerad `cloudportal`-användare med rätt behörigheter
+3. Systemd-tjänst för automatisk start och övervakning
+4. SSH-nycklar för säker deployment från GitHub Actions
+5. GitHub Environments med skydd för produktion
+6. CI/CD pipeline som automatiskt testar, bygger och deployar
+7. Health check endpoint för övervakning
+8. Traefik-routing med SSL och säkerhetsheaders
+9. Dokumenterad rollback-procedur
+
+### Relaterade guider
+
+- **[docs/DEPLOY.md](DEPLOY.md)** - Detaljerad deploy & rollback-guide med manuellt deploy-script
+- **[infra/bootstrap_webhost.sh](../infra/bootstrap_webhost.sh)** - Automatiserat server-provisioning
+- **[infra/env.prod.example](../infra/env.prod.example)** - Komplett mall för miljövariabler
 
 Vid frågor eller problem, kontrollera först [Felsökning](#felsökning)-sektionen.
