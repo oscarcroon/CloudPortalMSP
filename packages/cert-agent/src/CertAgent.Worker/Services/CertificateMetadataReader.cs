@@ -171,7 +171,9 @@ public sealed class CertificateMetadataReader
     private static bool CertMatchesDomain(X509Certificate2 cert, string domain)
     {
         // Check subject CN
-        if (cert.Subject.Contains(domain, StringComparison.OrdinalIgnoreCase))
+        var commonName = cert.GetNameInfo(X509NameType.SimpleName, forIssuer: false);
+        if (!string.IsNullOrWhiteSpace(commonName) &&
+            commonName.Equals(domain, StringComparison.OrdinalIgnoreCase))
             return true;
 
         // Check SANs

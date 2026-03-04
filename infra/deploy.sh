@@ -92,8 +92,15 @@ get_previous_release() {
         return
     fi
 
-    # Sortera releases kronologiskt (nyast först), hitta den efter current
-    ls -1t "$RELEASES_DIR" 2>/dev/null | grep -A1 "^${current}$" | tail -1
+    # Sortera releases, hitta den som kommer precis före current
+    ls -1t "$RELEASES_DIR" 2>/dev/null | awk -v current="$current" '
+        $0 == current {
+            if (getline next_release) {
+                print next_release
+            }
+            exit
+        }
+    '
 }
 
 # Gemensam funktion som kör steg 3-9 (symlinks, migration, swap, restart, health)
