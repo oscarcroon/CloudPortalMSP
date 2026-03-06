@@ -99,7 +99,7 @@ Denna guide beskriver steg för steg hur du sätter upp GitHub Actions CI/CD fö
 Innan du börjar, säkerställ att du har:
 
 - [ ] Två Ubuntu 24.04 LTS-servrar (dev och prod) med SSH-åtkomst
-- [ ] MariaDB Galera Cluster uppsatt och tillgängligt
+- [ ] MariaDB Galera Cluster uppsatt och tillgängligt (se [`docs/MARIADB-GALERA-SETUP.md`](MARIADB-GALERA-SETUP.md) för installationsguide)
 - [ ] Traefik uppsatt i DMZ (se [`docs/TRAEFIK-INSTALL.md`](TRAEFIK-INSTALL.md) för installationsguide)
 - [ ] DNS-poster konfigurerade (t.ex. `dev.portal.example.com` och `portal.example.com`)
 - [ ] GitHub-repository med admin-rättigheter
