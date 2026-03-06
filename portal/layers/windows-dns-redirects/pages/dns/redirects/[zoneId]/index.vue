@@ -252,7 +252,7 @@ function handleSaved(redirect: WindowsDnsRedirect) {
 // Fetch zone info
 async function fetchZoneInfo() {
   try {
-    const response = await $fetch<{ zones: Array<{ id: string; name: string }> }>('/api/dns/windows/redirects/zones')
+    const response = await ($fetch as any)('/api/dns/windows/redirects/zones')
     const zone = response.zones?.find(z => z.id === zoneId.value)
     if (zone) {
       zoneName.value = zone.name

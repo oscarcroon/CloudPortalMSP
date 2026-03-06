@@ -7,7 +7,7 @@ const DEFAULT_LIGHT_BACKGROUND = '#f5f7fb'
 
 export const useLoginBranding = () => {
   const { data, pending, error, refresh } = useAsyncData('login-branding', () =>
-    $fetch<BrandingState>('/api/login-branding', { credentials: 'include' })
+    ($fetch as any)('/api/login-branding', { credentials: 'include' }) as Promise<BrandingState>
   )
   const colorMode = useColorMode()
 

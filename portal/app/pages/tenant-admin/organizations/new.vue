@@ -2,7 +2,7 @@
   <section class="space-y-8">
     <header class="space-y-1">
       <NuxtLink
-        to="/admin"
+        to="/tenant-admin"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
         ← Tillbaka
@@ -262,11 +262,11 @@ interface TenantsResponse {
   distributorProviderLinks?: any[]
 }
 
-const { data: providersData } = await useFetch<TenantsResponse>('/api/admin/tenants', {
+const { data: providersData } = await (useFetch as any)('/api/admin/tenants', {
   query: { type: 'provider' }
 })
 
-const providers = computed(() => providersData.value?.tenants ?? [])
+const providers = computed(() => (providersData.value as TenantsResponse | null)?.tenants ?? [])
 
 // Get prefill tenant name
 const prefillTenantName = computed(() => {
@@ -312,7 +312,7 @@ const canContinue = computed(() => {
 // Check if user exists when email is entered
 watch(
   () => form.ownerEmail,
-  async (newEmail, oldEmail) => {
+  async (newEmail: string, oldEmail: string | undefined) => {
     // Reset confirmation if email changed
     if (newEmail !== oldEmail) {
       userConfirmed.value = false
@@ -336,13 +336,13 @@ watch(
 
     checkingEmail.value = true
     try {
-      const result = await $fetch<{ exists: boolean; user?: { email: string; fullName: string | null; status: string } }>(
+      const result = await ($fetch as any)(
         '/api/admin/users/check-email',
         {
           method: 'POST',
           body: { email: newEmail }
         }
-      )
+      ) as { exists: boolean; user?: { email: string; fullName: string | null; status: string } }
 
       if (result.exists && result.user) {
         existingUserInfo.value = result.user
@@ -364,7 +364,7 @@ watch(
       checkingEmail.value = false
     }
   },
-  { debounce: 500 }
+  { debounce: 500 } as any
 )
 
 // Show confirmation dialog when entering step 2 if user exists
@@ -389,7 +389,7 @@ const goToPreviousStep = () => {
     if (tenantId) {
       router.push(`/tenant-admin/tenants/${tenantId}`)
     } else {
-      router.push('/admin')
+      router.push('/tenant-admin')
     }
     return
   }
@@ -411,12 +411,19 @@ const handleSubmit = async () => {
   errorMessage.value = ''
 
   try {
-    const payload = {
+    const payload: {
+      name: string
+      tenantId: string
+      owner: { email: string; fullName?: string }
+      slug?: string
+      billingEmail?: string
+      coreId?: string
+    } = {
       name: form.name.trim(),
       tenantId: form.tenantId,
       owner: {
         email: form.ownerEmail.trim()
-      } as { email: string; fullName?: string }
+      }
     }
 
     if (form.slug.trim()) {
@@ -427,10 +434,10 @@ const handleSubmit = async () => {
     }
     payload.coreId = form.coreId.trim().toUpperCase()
 
-    const response = await $fetch<AdminCreateOrganizationResponse>('/api/admin/organizations', {
+    const response = await ($fetch as any)('/api/admin/organizations', {
       method: 'POST',
       body: payload
-    })
+    }) as AdminCreateOrganizationResponse
 
     await router.push({
       path: `/tenant-admin/organizations/${response.organization.slug}/overview`,

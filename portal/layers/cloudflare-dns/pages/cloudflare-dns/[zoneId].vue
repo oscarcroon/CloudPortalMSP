@@ -1,5 +1,13 @@
 <template>
   <div class="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 lg:px-0">
+    <NuxtLink
+      to="/cloudflare-dns"
+      class="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-brand dark:text-slate-400 dark:hover:text-brand"
+    >
+      <Icon icon="mdi:arrow-left" class="h-4 w-4" />
+      {{ t('cloudflareDns.zone.back') }}
+    </NuxtLink>
+
     <header class="flex flex-col gap-2">
       <p class="text-sm uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {{ t('cloudflareDns.zone.label') }}
@@ -13,13 +21,25 @@
             </span>
             <span v-else>{{ zoneData?.zone?.name ?? '—' }}</span>
           </h1>
-          <NuxtLink
-            to="/cloudflare-dns"
-            class="inline-flex items-center gap-1 text-sm text-brand hover:underline"
+          <button
+            v-if="recordsData?.access?.canExport"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+            :disabled="exporting"
+            @click="exportZone"
           >
-            <Icon icon="mdi:arrow-left" class="h-4 w-4" />
-            {{ t('cloudflareDns.zone.back') }}
-          </NuxtLink>
+            <Icon icon="mdi:download" class="h-4 w-4" />
+            {{ t('cloudflareDns.zone.export') }}
+          </button>
+          <button
+            v-if="recordsData?.access?.canImport"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
+            @click="openImportModal"
+          >
+            <Icon icon="mdi:upload" class="h-4 w-4" />
+            {{ t('cloudflareDns.zone.import') }}
+          </button>
         </div>
         <p class="text-sm text-slate-600 dark:text-slate-300">
           <template v-if="zonePending">
@@ -32,17 +52,8 @@
             {{ t('cloudflareDns.zone.statusLine', { status: zoneData?.zone?.status ?? t('cloudflareDns.zone.unknown'), plan: zoneData?.zone?.plan ?? t('cloudflareDns.zone.unknown') }) }}
           </template>
         </p>
-        <div class="flex items-center gap-2">
-          <span class="mod-cloudflare-dns-badge">
-            <Icon icon="mdi:shield-check-outline" class="h-4 w-4" />
-            <template v-if="zonePending">
-              <Icon icon="mdi:loading" class="h-4 w-4 animate-spin" />
-            </template>
-            <template v-else>
-              {{ zoneData?.access?.zoneRole ?? 'inherit' }}
-            </template>
-          </span>
-        </div>
+        <p v-if="exportError" class="text-xs text-red-600 dark:text-red-400">{{ exportError }}</p>
+        <p v-if="importSuccess" class="text-xs text-green-600 dark:text-green-400">{{ importSuccess }}</p>
       </div>
     </header>
 
@@ -68,21 +79,19 @@
       </div>
     </div>
 
+    <CloudflareZoneInfoPanel
+      v-if="soaRecord"
+      :zone-name="zoneData?.zone?.name"
+      :soa-record="soaRecord"
+    />
+
     <CloudflareZoneRecordsTable
       v-if="zoneId && recordsData?.records"
       :zone-id="zoneId"
       :zone-name="zoneData?.zone?.name ?? ''"
-      :records="recordsData.records"
+      :records="tableRecords"
       :can-edit="recordsData.access?.canEditRecords ?? false"
       @refresh="refreshRecords"
-    />
-
-    <CloudflareAclEditor
-      v-if="zoneId && zoneData?.access?.canManageAcls"
-      :zone-id="zoneId"
-      :entries="aclData?.entries ?? []"
-      :can-manage="true"
-      @refreshed="refreshAcl"
     />
 
     <section
@@ -109,6 +118,14 @@
       </header>
       <p v-if="deleteError" class="text-xs text-red-700 dark:text-red-200">{{ deleteError }}</p>
     </section>
+
+    <CloudflareZoneImportModal
+      :is-open="showImportModal"
+      :zone-id="zoneId"
+      :zone-name="zoneData?.zone?.name ?? ''"
+      @close="closeImportModal"
+      @imported="handleImported"
+    />
 
     <Teleport to="body">
       <div
@@ -166,7 +183,8 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import CloudflareZoneRecordsTable from '@cloudflare-dns/components/CloudflareZoneRecordsTable.vue'
-import CloudflareAclEditor from '@cloudflare-dns/components/CloudflareAclEditor.vue'
+import CloudflareZoneInfoPanel from '@cloudflare-dns/components/CloudflareZoneInfoPanel.vue'
+import CloudflareZoneImportModal from '@cloudflare-dns/components/CloudflareZoneImportModal.vue'
 import { useRouter } from '#app'
 import { useI18n } from '#imports'
 import { useEntityNames } from '~/composables/useEntityNames'
@@ -187,16 +205,15 @@ const { data: recordsData, refresh: refreshRecords } = useAsyncData(
   { watch: [zoneId] }
 )
 
-const { data: aclData, refresh: refreshAcl } = useAsyncData(
-  () =>
-    zoneData.value?.access?.canManageAcls
-      ? $fetch(`/api/dns/cloudflare/zones/${zoneId.value}/acl`)
-      : Promise.resolve({ entries: [] }),
-  {
-    watch: [zoneData, zoneId],
-    key: computed(() => `cloudflare-acl-${zoneId.value}`)
-  }
-)
+const soaRecord = computed(() => {
+  if (!recordsData.value?.records) return null
+  return recordsData.value.records.find((r: any) => r.type === 'SOA') ?? null
+})
+
+const tableRecords = computed(() => {
+  if (!recordsData.value?.records) return []
+  return recordsData.value.records.filter((r: any) => r.type !== 'SOA')
+})
 
 // Cache zone name for breadcrumbs
 watch(zoneData, (value) => {
@@ -205,14 +222,8 @@ watch(zoneData, (value) => {
   }
 }, { immediate: true })
 
-watch(zoneData, async (value) => {
-  if (value?.access?.canManageAcls) {
-    await refreshAcl()
-  }
-})
-
 const refreshAll = async () => {
-  await Promise.all([refreshZone(), refreshRecords(), refreshAcl()])
+  await Promise.all([refreshZone(), refreshRecords()])
 }
 
 const isPending = (status?: string | null) => {
@@ -220,6 +231,63 @@ const isPending = (status?: string | null) => {
   return status.toLowerCase().includes('pending')
 }
 
+// Export
+const exporting = ref(false)
+const exportError = ref<string | null>(null)
+
+const exportZone = async () => {
+  if (!zoneId.value) return
+  exporting.value = true
+  exportError.value = null
+  try {
+    const content = await $fetch(`/api/dns/cloudflare/zones/${zoneId.value}/export`, {
+      responseType: 'text'
+    }) as string
+    const zoneName = zoneData.value?.zone?.name ?? zoneId.value
+    const fileName = `${zoneName.replace(/\./g, '_')}.txt`
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    exportError.value = err?.data?.message ?? err?.message ?? t('cloudflareDns.zone.exportError')
+  } finally {
+    exporting.value = false
+  }
+}
+
+// Import
+const showImportModal = ref(false)
+const importSuccess = ref<string | null>(null)
+let importSuccessTimer: ReturnType<typeof setTimeout> | undefined
+
+const openImportModal = () => {
+  importSuccess.value = null
+  showImportModal.value = true
+}
+
+const closeImportModal = () => {
+  showImportModal.value = false
+}
+
+const handleImported = (result: { recsAdded: number; totalRecordsParsed: number }) => {
+  closeImportModal()
+  importSuccess.value = t('cloudflareDns.import.success', {
+    added: result.recsAdded,
+    parsed: result.totalRecordsParsed
+  })
+  // Auto-dismiss after 5s
+  clearTimeout(importSuccessTimer)
+  importSuccessTimer = setTimeout(() => {
+    importSuccess.value = null
+  }, 5000)
+  refreshRecords()
+}
+
+// Delete
 const deleting = ref(false)
 const deleteError = ref<string | null>(null)
 const showDeleteModal = ref(false)
@@ -264,5 +332,3 @@ onMounted(() => {
   void refreshAll()
 })
 </script>
-
-

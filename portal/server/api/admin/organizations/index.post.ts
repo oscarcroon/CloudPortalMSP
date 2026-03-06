@@ -17,7 +17,7 @@ import { slugify } from '../../../utils/auth'
 import { requireSuperAdmin, requireTenantPermission } from '../../../utils/rbac'
 import { ensureAuthState } from '../../../utils/session'
 import { ensureOrganizationAuthSettings, serializeAuthSettings, slugRegex, createInviteToken } from './utils'
-import { sendInvitationEmail } from '~~/server/utils/mailer'
+import { sendInvitationEmail, sendOrganizationCreatedEmail } from '~~/server/utils/mailer'
 import { describeEmailSendError } from '~~/server/utils/emailTest'
 import { logOrganizationAction } from '../../../utils/audit'
 import { initializeNewOrganization } from '../../../utils/orgSetup'
@@ -45,8 +45,6 @@ const INVITE_VALIDITY_MS = 1000 * 60 * 60 * 24 * 14
 export default defineEventHandler(async (event) => {
   const payload = createOrgSchema.parse(await readBody(event))
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   // Check permissions - either super admin or tenant permission
   const auth = await ensureAuthState(event)
@@ -88,172 +86,86 @@ export default defineEventHandler(async (event) => {
   const inviteId = createId()
 
   try {
-    if (isSqlite) {
-      db.transaction((tx) => {
-        const organizationValues: typeof organizations.$inferInsert = {
-          id: organizationId,
-          name: payload.name,
-          slug: payload.slug ?? slugify(payload.name),
-          tenantId: payload.tenantId ?? null,
-          status: 'active',
-          billingEmail: payload.billingEmail,
-          requireSso: false,
-          allowSelfSignup: false,
-          defaultRole: payload.defaultRole ?? 'viewer',
-          coreId: payload.coreId ? payload.coreId.toUpperCase() : null
-        }
+    await db.transaction(async (tx) => {
+      const organizationValues: typeof organizations.$inferInsert = {
+        id: organizationId,
+        name: payload.name,
+        slug: payload.slug ?? slugify(payload.name),
+        tenantId: payload.tenantId ?? null,
+        status: 'active',
+        billingEmail: payload.billingEmail,
+        requireSso: false,
+        allowSelfSignup: false,
+        defaultRole: payload.defaultRole ?? 'viewer',
+        coreId: payload.coreId ? payload.coreId.toUpperCase() : null
+      }
 
-        tx.insert(organizations).values(organizationValues).run()
-        tx.insert(organizationAuthSettings)
-          .values({
-            organizationId,
-            idpType: 'none',
-            ssoEnforced: organizationValues.requireSso ?? false,
-            allowLocalLoginForOwners: true
-          })
-          .run()
-
-        if (!existingUser) {
-          tx.insert(users)
-            .values({
-              id: ownerUserId,
-              email: normalizedOwnerEmail,
-              passwordHash: null,
-              fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
-              status: 'active',
-              defaultOrgId: organizationId,
-              forcePasswordReset: true
-            })
-            .run()
-        } else {
-          const updates: Partial<typeof users.$inferInsert> = {}
-          if (!existingUser.defaultOrgId) {
-            updates.defaultOrgId = organizationId
-          }
-          if (payload.owner.fullName && !existingUser.fullName) {
-            updates.fullName = payload.owner.fullName.trim()
-          }
-          if (Object.keys(updates).length) {
-            tx.update(users).set(updates).where(eq(users.id, existingUser.id)).run()
-          }
-        }
-
-        const membershipExists = tx
-          .select({ id: organizationMemberships.id })
-          .from(organizationMemberships)
-          .where(
-            and(
-              eq(organizationMemberships.organizationId, organizationId),
-              eq(organizationMemberships.userId, ownerUserId)
-            )
-          )
-          .all()
-
-        if (!membershipExists.length) {
-          tx.insert(organizationMemberships)
-            .values({
-              id: createId(),
-              organizationId,
-              userId: ownerUserId,
-              role: 'owner',
-              status: 'active'
-            })
-            .run()
-        }
-
-        // Always create invitation for owner when creating new organization
-        tx.insert(organizationInvitations)
-          .values({
-            id: inviteId,
-            organizationId,
-            email: normalizedOwnerEmail,
-            role: 'owner',
-            token: inviteToken,
-            status: 'pending',
-            invitedByUserId: auth.user.id,
-            expiresAt: inviteExpiresAt
-          })
-          .run()
+      await tx.insert(organizations).values(organizationValues)
+      await tx.insert(organizationAuthSettings).values({
+        organizationId,
+        idpType: 'none',
+        ssoEnforced: organizationValues.requireSso ?? false,
+        allowLocalLoginForOwners: true
       })
-    } else {
-      await db.transaction(async (tx) => {
-        const organizationValues: typeof organizations.$inferInsert = {
-          id: organizationId,
-          name: payload.name,
-          slug: payload.slug ?? slugify(payload.name),
-          tenantId: payload.tenantId ?? null,
-          status: 'active',
-          billingEmail: payload.billingEmail,
-          requireSso: false,
-          allowSelfSignup: false,
-          defaultRole: payload.defaultRole ?? 'viewer',
-          coreId: payload.coreId ? payload.coreId.toUpperCase() : null
-        }
 
-        await tx.insert(organizations).values(organizationValues)
-        await tx.insert(organizationAuthSettings).values({
-          organizationId,
-          idpType: 'none',
-          ssoEnforced: organizationValues.requireSso ?? false,
-          allowLocalLoginForOwners: true
-        })
-
-        if (!existingUser) {
-          await tx.insert(users).values({
-            id: ownerUserId,
-            email: normalizedOwnerEmail,
-            passwordHash: null,
-            fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
-            status: 'active',
-            defaultOrgId: organizationId,
-            forcePasswordReset: true
-          })
-        } else {
-          const updates: Partial<typeof users.$inferInsert> = {}
-          if (!existingUser.defaultOrgId) {
-            updates.defaultOrgId = organizationId
-          }
-          if (payload.owner.fullName && !existingUser.fullName) {
-            updates.fullName = payload.owner.fullName.trim()
-          }
-          if (Object.keys(updates).length) {
-            await tx.update(users).set(updates).where(eq(users.id, existingUser.id))
-          }
-        }
-
-        const membershipExists = await tx
-          .select({ id: organizationMemberships.id })
-          .from(organizationMemberships)
-          .where(
-            and(
-              eq(organizationMemberships.organizationId, organizationId),
-              eq(organizationMemberships.userId, ownerUserId)
-            )
-          )
-
-        if (!membershipExists.length) {
-          await tx.insert(organizationMemberships).values({
-            id: createId(),
-            organizationId,
-            userId: ownerUserId,
-            role: 'owner',
-            status: 'active'
-          })
-        }
-
-        // Always create invitation for owner when creating new organization
-        await tx.insert(organizationInvitations).values({
-          id: inviteId,
-          organizationId,
+      if (!existingUser) {
+        await tx.insert(users).values({
+          id: ownerUserId,
           email: normalizedOwnerEmail,
-          role: 'owner',
-          token: inviteToken,
-          status: 'pending',
-          invitedByUserId: auth.user.id,
-          expiresAt: inviteExpiresAt
+          passwordHash: null,
+          fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
+          status: 'active',
+          defaultOrgId: organizationId,
+          forcePasswordReset: true
         })
+      } else {
+        const updates: Partial<typeof users.$inferInsert> = {}
+        if (!existingUser.defaultOrgId) {
+          updates.defaultOrgId = organizationId
+        }
+        if (payload.owner.fullName && !existingUser.fullName) {
+          updates.fullName = payload.owner.fullName.trim()
+        }
+        if (Object.keys(updates).length) {
+          await tx.update(users).set(updates).where(eq(users.id, existingUser.id))
+        }
+      }
+
+      const membershipExists = await tx
+        .select({ id: organizationMemberships.id })
+        .from(organizationMemberships)
+        .where(
+          and(
+            eq(organizationMemberships.organizationId, organizationId),
+            eq(organizationMemberships.userId, ownerUserId)
+          )
+        )
+
+      if (!membershipExists.length) {
+        await tx.insert(organizationMemberships).values({
+          id: createId(),
+          organizationId,
+          userId: ownerUserId,
+          role: 'owner',
+          status: 'active'
+        })
+      }
+
+      // Create invitation for owner - if existing user with membership, mark as accepted
+      const inviteStatus = existingUser ? 'accepted' : 'pending'
+      const inviteAcceptedAt = existingUser ? new Date() : null
+      await tx.insert(organizationInvitations).values({
+        id: inviteId,
+        organizationId,
+        email: normalizedOwnerEmail,
+        role: 'owner',
+        token: inviteToken,
+        status: inviteStatus,
+        invitedByUserId: auth.user.id,
+        expiresAt: inviteExpiresAt,
+        acceptedAt: inviteAcceptedAt
       })
-    }
+    })
   } catch (error: any) {
     if (
       typeof error?.message === 'string' &&
@@ -293,7 +205,8 @@ export default defineEventHandler(async (event) => {
   try {
     const setupResult = await initializeNewOrganization({
       orgId: organizationId,
-      ownerUserId
+      ownerUserId,
+      tenantId: payload.tenantId ?? undefined
     })
     console.log(`[create-org] Initialized org ${organizationId}: ${setupResult.modulesBlocked} modules blocked, defaultGroupId=${setupResult.defaultGroupId}`)
   } catch (initError) {
@@ -303,23 +216,34 @@ export default defineEventHandler(async (event) => {
 
   const authSettings = await ensureOrganizationAuthSettings(db, organizationId)
 
-  // Always send invitation email to owner when creating new organization
-  const invitedByLabel = auth.user.fullName?.trim() || auth.user.email
+  // Send appropriate email to owner
+  const createdByLabel = auth.user.fullName?.trim() || auth.user.email
   try {
-    await sendInvitationEmail({
-      organizationId: organization.id,
-      organizationName: organization.name,
-      invitedBy: invitedByLabel,
-      role: 'owner',
-      to: normalizedOwnerEmail,
-      expiresAt: inviteExpiresAtMs,
-      token: inviteToken,
-      organizationLogo: organization.logoUrl ?? null
-    })
+    if (existingUser) {
+      // Existing user: send confirmation email (no invite needed, they're already a member)
+      await sendOrganizationCreatedEmail({
+        organizationId: organization.id,
+        organizationName: organization.name,
+        createdBy: createdByLabel,
+        to: normalizedOwnerEmail,
+        organizationLogo: organization.logoUrl ?? null
+      })
+    } else {
+      // New user: send invitation email with link to set password
+      await sendInvitationEmail({
+        organizationId: organization.id,
+        organizationName: organization.name,
+        invitedBy: createdByLabel,
+        role: 'owner',
+        to: normalizedOwnerEmail,
+        expiresAt: inviteExpiresAtMs,
+        token: inviteToken,
+        organizationLogo: organization.logoUrl ?? null
+      })
+    }
   } catch (error) {
-    console.error('[create-org] Failed to send invitation email to owner', error)
+    console.error('[create-org] Failed to send email to owner', error)
     // Don't fail the request if email fails, but log it
-    // In production, you might want to throw an error or queue the email for retry
   }
 
   return {

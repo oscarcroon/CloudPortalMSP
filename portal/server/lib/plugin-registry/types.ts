@@ -6,7 +6,22 @@ export interface PluginModuleManifestPermission {
   label?: string
 }
 
+export interface PluginModuleApiScope {
+  key: string
+  description: string
+  label?: string
+}
+
 export type PluginModuleRbacDefaults = Partial<Record<RbacRole, string[]>>
+
+export interface PluginModuleHealthCheck {
+  /** Server-side API path the layer exposes (e.g. '/api/dns/cloudflare/health') */
+  endpoint: string
+  /** Display label (e.g. 'Cloudflare API') */
+  label: string
+  /** Timeout in ms (default 5000) */
+  timeout?: number
+}
 
 export interface PluginModuleManifest {
   module: {
@@ -25,6 +40,14 @@ export interface PluginModuleManifest {
    * Inga modul-specifika roller längre.
    */
   rbacDefaults: PluginModuleRbacDefaults
+  /**
+   * Optional health check configuration for tenant-admin system health card.
+   */
+  healthCheck?: PluginModuleHealthCheck
+  /**
+   * API token scopes registered by this module.
+   */
+  apiScopes?: PluginModuleApiScope[]
 }
 
 

@@ -1,4 +1,8 @@
 {
+  "apiScopes": {
+    "cloudflare-dns:read": "Läsa Cloudflare DNS-zoner och poster",
+    "cloudflare-dns:write": "Skapa, uppdatera och ta bort Cloudflare DNS-poster och zoner"
+  },
   "cloudflareDns": {
     "title": "Cloudflare DNS",
     "description": "Hantera Cloudflare DNS-zoner, poster och åtkomst.",
@@ -16,30 +20,6 @@
       "notValidated": "Ej verifierad"
     },
 
-    "acl": {
-      "label": "Åtkomst",
-      "title": "Zon-ACL",
-      "readOnly": "Read-only",
-      "principal": "Principal",
-      "principalPlaceholder": "user-id eller org-roll",
-      "type": "Typ",
-      "role": "Roll",
-      "actions": "Åtgärder",
-      "principalType": {
-        "user": "Användare",
-        "orgRole": "Org-roll"
-      },
-      "roleOptions": {
-        "viewer": "Viewer",
-        "recordsOnly": "Records only",
-        "editor": "Editor",
-        "admin": "Admin"
-      },
-      "addRow": "Lägg till rad",
-      "save": "Spara ACL",
-      "remove": "Ta bort"
-    },
-
     "zoneList": {
       "label": "Zoner",
       "title": "Cloudflare-zoner",
@@ -49,6 +29,7 @@
       "statusUnknown": "status okänd",
       "recordCount": "{count} records",
       "view": "Visa",
+      "export": "Exportera",
       "onboard": {
         "label": "Onboarding",
         "title": "Skapa DNS-zon",
@@ -73,7 +54,7 @@
       "label": "Cloudflare",
       "title": "DNS-zoner",
       "subtitle": "Förenklat gränssnitt för zoner och DNS records. Behörigheter styrs av modulroller och zon-ACL.",
-      "searchPlaceholder": "Sök zoner (domän, plan, status)…",
+      "searchPlaceholder": "Sök zoner...",
       "showing": "Visar {visible} av {filtered} zoner (totalt {total})",
       "forceRefreshTitle": "Tvinga uppdatering",
       "adminLink": "Admin",
@@ -86,9 +67,25 @@
     },
 
     "admin": {
+      "accessDenied": "Åtkomst nekad",
+      "accessDeniedDescription": "Du saknar behörighet att hantera Cloudflare DNS-konfigurationen. Kontakta en administratör om du behöver åtkomst.",
+      "accessDeniedHint": "Om du tror att detta är fel kan modulpolicyn behöva uppdateras. Administratörer kan kontrollera diagnostikändpunkten för detaljer.",
+      "backToZones": "Tillbaka till zoner",
       "label": "Cloudflare DNS",
       "title": "Organisationens konfiguration",
       "subtitle": "Lägg in API-token per organisation och verifiera anslutningen. Token visas inte efter sparad lagring.",
+      "guide": {
+        "title": "Så skapar du en API-token",
+        "step1": "Logga in på {link}.",
+        "step2": "Gå till {manageAccount} > {accountApiTokens}.",
+        "step3": "Klicka {createToken} > {createCustomToken}.",
+        "step4": "Ange ett namn, t.ex. \"CloudPortal\".",
+        "step5": "Sätt Permissions: {zoneRead} och {dnsEdit}.",
+        "step6": "Sätt Zone Resources: {includeAll} (eller specifika zoner).",
+        "step7": "Klicka {continue} > {create}.",
+        "step8": "Kopiera token och klistra in nedan.",
+        "dashboardLink": "Öppna Cloudflare Dashboard"
+      },
       "token": {
         "label": "API-token",
         "title": "Cloudflare credentials",
@@ -99,7 +96,7 @@
         "apiTokenPlaceholder": "Cloudflare API token",
         "lastSaved": "Senast sparad: {value}",
         "none": "ingen",
-        "accountId": "Account ID (valfritt)",
+        "accountId": "Account ID",
         "accountIdPlaceholder": "Account ID",
         "accountIdHelper": "Används vid skapande av zoner. Lämna tomt om token redan är scoperad."
       },
@@ -123,6 +120,9 @@
       "label": "Cloudflare",
       "loadingZone": "Laddar zon...",
       "back": "Tillbaka",
+      "export": "Exportera",
+      "import": "Importera",
+      "exportError": "Kunde inte exportera zonen",
       "loadingStatus": "Hämtar status...",
       "unknown": "okänd",
       "statusLine": "Status: {status} · Plan: {plan}",
@@ -147,9 +147,25 @@
       }
     },
 
+    "zoneInfo": {
+      "title": "SOA-information",
+      "primaryNs": "Primär namnserver",
+      "responsibleParty": "Ansvarig",
+      "serial": "Serial",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "expire": "Expire",
+      "minimumTtl": "Minimum TTL",
+      "ttl": "TTL",
+      "details": "Detaljer",
+      "notFound": "Inget SOA-record hittades"
+    },
+
     "records": {
       "label": "DNS records",
       "title": "Records",
+      "lastChangedAt": "Senast ändrad",
+      "showing": "Visar {shown} av {total} records",
       "searchPlaceholder": "Sök records (typ, namn, content)…",
       "filter": {
         "all": "Alla"
@@ -193,6 +209,29 @@
         "actions": "Åtgärder"
       },
       "pagination": "Sida {page} / {pages} · visar {shown} av {total} records"
+    },
+
+    "import": {
+      "title": "Importera DNS-records",
+      "description": "Ladda upp en BIND-zonfil för att importera records till denna zon.",
+      "info": {
+        "title": "Om BIND-import",
+        "bullet1": "Befintliga records tas inte bort — import lägger bara till nya records.",
+        "bullet2": "Dubbletter hoppas över av Cloudflare.",
+        "bullet3": "Använd Exportera för att säkerhetskopiera zonen innan import."
+      },
+      "chooseFile": "Välj fil",
+      "dragDrop": "eller dra och släpp",
+      "fileHelp": "Accepterar .txt, .bind, .zone-filer (max 1 MB)",
+      "invalidFileType": "Ogiltig filtyp. Accepterade: .txt, .bind, .zone",
+      "fileTooLarge": "Filen är för stor. Maxstorlek är 1 MB.",
+      "readError": "Kunde inte läsa filen.",
+      "change": "Byt fil",
+      "confirm": "Importera records",
+      "importing": "Importerar…",
+      "success": "{added} records tillagda ({parsed} tolkade från filen).",
+      "warnings": "Meddelanden från Cloudflare:",
+      "error": "Importen misslyckades"
     }
   }
 }

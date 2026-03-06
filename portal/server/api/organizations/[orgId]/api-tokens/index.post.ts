@@ -13,7 +13,7 @@ import { createId } from '@paralleldrive/cuid2'
 import { requirePermission } from '../../../../utils/rbac'
 import { getDb } from '../../../../utils/db'
 import { orgApiTokens } from '../../../../database/schema'
-import { createApiToken } from '../../../../security/apiTokens'
+import { createApiToken, validateScopes } from '../../../../security/apiTokens'
 import { logAuditEvent } from '../../../../utils/audit'
 
 // Request schema
@@ -47,6 +47,12 @@ export default defineEventHandler(async (event) => {
 
   const { description, scopes, resourceConstraints, expiresAt } = parsed.data
 
+  // Validate scopes against known scope registry
+  const scopeValidation = validateScopes(scopes)
+  if (!scopeValidation.valid) {
+    throw createError({ statusCode: 400, message: `Unknown scopes: ${scopeValidation.unknown.join(', ')}` })
+  }
+
   // Create the token
   const tokenResult = await createApiToken()
 
@@ -56,7 +62,7 @@ export default defineEventHandler(async (event) => {
   const tokenId = createId()
   const now = new Date()
 
-  db.insert(orgApiTokens)
+  await db.insert(orgApiTokens)
     .values({
       id: tokenId,
       organizationId: orgId,
@@ -75,7 +81,6 @@ export default defineEventHandler(async (event) => {
       createdAt: now,
       updatedAt: now,
     })
-    .run()
 
   // Audit log
   await logAuditEvent(event, 'API_TOKEN_CREATED', {

@@ -310,8 +310,17 @@
                       <span class="hidden sm:inline">{{ $t('windowsDns.records.redirectManaged.openRedirects') }}</span>
                     </NuxtLink>
                   </template>
-                  <!-- Normal records: edit/delete buttons -->
+                  <!-- Normal records: info/edit/delete buttons -->
                   <template v-else>
+                    <!-- Info icon for audit history -->
+                    <button
+                      v-if="record.id && auditSummaries[record.id]"
+                      class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-400"
+                      type="button"
+                      :title="formatAuditTooltip(record.id)"
+                    >
+                      <Icon icon="mdi:information-outline" class="h-4 w-4" />
+                    </button>
                     <button
                       class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
                       type="button"
@@ -597,6 +606,84 @@ watch(
 
 const recordTypes = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'SRV', 'NS', 'PTR', 'CAA', 'TLSA']
 
+// Audit summaries for "last changed" info
+interface AuditSummary {
+  lastChangedAt: string
+  eventType: string
+  user: {
+    id: string
+    email: string | null
+    fullName: string | null
+  } | null
+}
+
+const auditSummaries = ref<Record<string, AuditSummary>>({})
+const loadingAuditSummaries = ref(false)
+
+// Fetch audit summaries for current page of records
+const fetchAuditSummaries = async () => {
+  const recordIds = pagedRecords.value
+    .map((r: any) => r.id)
+    .filter((id: string | undefined) => id != null)
+
+  if (recordIds.length === 0) {
+    auditSummaries.value = {}
+    return
+  }
+
+  loadingAuditSummaries.value = true
+  try {
+    const response = await ($fetch as any)(
+      `/api/dns/windows/zones/${props.zoneId}/records/audit-summaries`,
+      {
+        method: 'POST',
+        body: { recordIds }
+      }
+    ) as { summaries: Record<string, AuditSummary> }
+    auditSummaries.value = response.summaries || {}
+  } catch (err) {
+    console.warn('[windows-dns] Failed to fetch audit summaries:', err)
+    auditSummaries.value = {}
+  } finally {
+    loadingAuditSummaries.value = false
+  }
+}
+
+// Watch for paged records changes and fetch audit summaries
+watch(
+  () => pagedRecords.value,
+  () => {
+    fetchAuditSummaries()
+  },
+  { immediate: true }
+)
+
+// Format audit tooltip text
+const formatAuditTooltip = (recordId: string): string => {
+  const { $i18n } = useNuxtApp()
+  const summary = auditSummaries.value[recordId]
+
+  if (!summary) {
+    return $i18n.t('windowsDns.records.auditUnknown') || 'Ingen ändringshistorik'
+  }
+
+  const date = new Date(summary.lastChangedAt)
+  const formattedDate = date.toLocaleString('sv-SE', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
+  const userName = summary.user?.fullName || summary.user?.email || ($i18n.t('windowsDns.records.auditUnknownUser') || 'Okänd användare')
+
+  const lastChangedAt = $i18n.t('windowsDns.records.lastChangedAt') || 'Senast ändrad'
+  const lastChangedBy = $i18n.t('windowsDns.records.lastChangedBy') || 'Av'
+
+  return `${lastChangedAt}: ${formattedDate}\n${lastChangedBy}: ${userName}`
+}
+
 const ttlOptions = [
   { value: 300, label: '5 min' },
   { value: 600, label: '10 min' },
@@ -720,7 +807,7 @@ const parseContent = (type: string, content: string, record?: any) => {
     case 'MX': {
       // Priority may be stored separately (record.priority) or embedded in content (legacy)
       // Check if first part looks like a priority number
-      const firstPartIsNumber = parts.length > 0 && /^\d+$/.test(parts[0])
+      const firstPartIsNumber = parts.length > 0 && /^\d+$/.test(parts[0] ?? '')
       if (record?.priority !== undefined && record.priority !== null) {
         // Priority is stored separately - content is just the exchange
         return {
@@ -730,7 +817,7 @@ const parseContent = (type: string, content: string, record?: any) => {
       } else if (firstPartIsNumber && parts.length > 1) {
         // Legacy: priority embedded in content (e.g., "10 mail.example.com")
         return {
-          mxPriority: parseInt(parts[0], 10) || 10,
+          mxPriority: parseInt(parts[0] ?? '', 10) || 10,
           mxExchange: parts.slice(1).join(' ') || ''
         }
       } else {
@@ -743,22 +830,22 @@ const parseContent = (type: string, content: string, record?: any) => {
     }
     case 'SRV':
       return {
-        srvPriority: parseInt(parts[0], 10) || 0,
-        srvWeight: parseInt(parts[1], 10) || 0,
-        srvPort: parseInt(parts[2], 10) || 0,
+        srvPriority: parseInt(parts[0] ?? '', 10) || 0,
+        srvWeight: parseInt(parts[1] ?? '', 10) || 0,
+        srvPort: parseInt(parts[2] ?? '', 10) || 0,
         srvTarget: parts.slice(3).join(' ') || ''
       }
     case 'CAA':
       return {
-        caaFlags: parseInt(parts[0], 10) || 0,
+        caaFlags: parseInt(parts[0] ?? '', 10) || 0,
         caaTag: parts[1] || 'issue',
         caaValue: parts.slice(2).join(' ').replace(/^"|"$/g, '') || ''
       }
     case 'TLSA':
       return {
-        tlsaUsage: parseInt(parts[0], 10) || 3,
-        tlsaSelector: parseInt(parts[1], 10) || 1,
-        tlsaMatchingType: parseInt(parts[2], 10) || 1,
+        tlsaUsage: parseInt(parts[0] ?? '', 10) || 3,
+        tlsaSelector: parseInt(parts[1] ?? '', 10) || 1,
+        tlsaMatchingType: parseInt(parts[2] ?? '', 10) || 1,
         tlsaCertData: parts.slice(3).join('') || ''
       }
     default:
@@ -899,7 +986,7 @@ const createRecord = async () => {
       payload.comment = newRecord.comment.trim()
     }
 
-    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+    await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records`, {
       method: 'POST',
       body: payload
     })
@@ -1101,7 +1188,7 @@ const updateRecord = async () => {
 
       // 1) Delete old record first
       try {
-        await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+        await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records`, {
           method: 'DELETE',
           body: {
             name: original.name,
@@ -1121,7 +1208,7 @@ const updateRecord = async () => {
       }
 
       // 2) Create new record
-      await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+      await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records`, {
         method: 'POST',
         body: createPayload
       })
@@ -1153,7 +1240,7 @@ const updateRecord = async () => {
       payload.comment = editForm.comment?.trim() || null
     }
 
-    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records/${recordId}`, {
+    await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records/${recordId}`, {
       method: 'PATCH',
       body: payload
     })
@@ -1173,12 +1260,14 @@ const deleteRecord = async (record: any) => {
   const confirmMessage = $i18n.t('windowsDns.records.deleteConfirm', { type: record.type, name: record.name || '@' })
   if (!confirm(confirmMessage)) return
   try {
-    await $fetch(`/api/dns/windows/zones/${props.zoneId}/records`, {
+    await ($fetch as any)(`/api/dns/windows/zones/${props.zoneId}/records`, {
       method: 'DELETE',
       body: {
         name: record.name,
         type: record.type,
-        content: record.content || record.value || record.data
+        content: record.content || record.value || record.data,
+        // Include recordId for better audit logging
+        recordId: record.id
       }
     })
     emit('refresh')

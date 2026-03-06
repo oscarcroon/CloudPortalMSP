@@ -69,7 +69,7 @@ export default defineEventHandler(async (event) => {
       severity: incident.severity,
       status: incident.status
     },
-    incident.sourceTenantId
+    incident.sourceTenantId ?? undefined
   )
 
   return { success: true, deleted: true }

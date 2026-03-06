@@ -85,10 +85,12 @@
                   'rounded-full px-2.5 py-1 font-medium ring-1',
                   incident.sourceTenant.type === 'distributor'
                     ? 'bg-purple-500/10 text-purple-700 ring-purple-500/20 dark:bg-purple-500/15 dark:text-purple-200 dark:ring-purple-400/20'
-                    : 'bg-blue-500/10 text-blue-700 ring-blue-500/20 dark:bg-blue-500/15 dark:text-blue-200 dark:ring-blue-400/20'
+                    : incident.sourceTenant.type === 'organization'
+                      ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/20'
+                      : 'bg-blue-500/10 text-blue-700 ring-blue-500/20 dark:bg-blue-500/15 dark:text-blue-200 dark:ring-blue-400/20'
                 ]"
               >
-                {{ incident.sourceTenant.type === 'distributor' ? t('incident.distributor') : t('incident.provider') }}
+                {{ t(`incident.${incident.sourceTenant.type}`) }}
               </span>
               <span class="text-slate-600 dark:text-slate-300">{{ incident.sourceTenant.name }}</span>
             </div>
@@ -202,7 +204,7 @@ const route = useRoute()
 
 const slug = computed(() => route.params.slug as string)
 
-const { data, pending, error } = await useFetch<IncidentResponse>(
+const { data, pending, error } = await (useFetch as any)(
   () => `/api/operations/incidents/${slug.value}`,
   {
     credentials: 'include'

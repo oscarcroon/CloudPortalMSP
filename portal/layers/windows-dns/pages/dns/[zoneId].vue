@@ -44,7 +44,7 @@
           </NuxtLink>
           <!-- Export zone button -->
           <button
-            v-if="zoneId && isValidZoneId && zoneData?.zone"
+            v-if="zoneId && isValidZoneId && zoneData?.zone && recordsData?.access?.canExport"
             type="button"
             class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="exporting"
@@ -220,7 +220,7 @@ const zoneData = ref<{
 const recordsPending = ref(true)
 const recordsData = ref<{
   records: any[]
-  access: { canEditRecords: boolean; canEditZones: boolean }
+  access: { canEditRecords: boolean; canEditZones: boolean; canExport: boolean }
 } | null>(null)
 
 // Extract SOA record (case-insensitive) for Zone Info panel
@@ -252,7 +252,7 @@ const fetchZone = async () => {
   zoneError.value = null
   try {
     // Fetch zone info from the zones list and find this zone
-    const res = await $fetch<{ zones: any[] }>('/api/dns/windows/zones')
+    const res = await ($fetch as any)('/api/dns/windows/zones')
     const zone = res.zones.find(z => z.id === zoneId.value)
     if (zone) {
       zoneData.value = { zone }
@@ -276,19 +276,19 @@ const fetchRecords = async () => {
   // Guard: Don't fetch if zoneId is invalid
   if (!isValidZoneId.value) {
     recordsPending.value = false
-    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false } }
+    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false, canExport: false } }
     return
   }
 
   recordsPending.value = true
   try {
-    const res = await $fetch<{ records: any[]; access: { canEditRecords: boolean } }>(
+    const res = await ($fetch as any)(
       `/api/dns/windows/zones/${zoneId.value}/records`
     )
     recordsData.value = res
   } catch (err: any) {
     console.error('Failed to fetch records:', err)
-    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false } }
+    recordsData.value = { records: [], access: { canEditRecords: false, canEditZones: false, canExport: false } }
   } finally {
     recordsPending.value = false
   }
@@ -310,7 +310,7 @@ const exportZone = async () => {
   
   exporting.value = true
   try {
-    const content = await $fetch<string>(`/api/dns/windows/zones/${zoneId.value}/export`, {
+    const content = await ($fetch as any)(`/api/dns/windows/zones/${zoneId.value}/export`, {
       responseType: 'text'
     })
     

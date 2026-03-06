@@ -108,7 +108,7 @@ const router = useRouter()
 const searchInput = ref('')
 const appliedQuery = ref('')
 
-const { data, pending, refresh, error } = await useFetch<AdminUsersResponse>('/api/admin/users', {
+const { data, pending, refresh, error } = await (useFetch as any)('/api/admin/users', {
   query: () => (appliedQuery.value ? { q: appliedQuery.value } : {}),
   watch: [appliedQuery]
 })

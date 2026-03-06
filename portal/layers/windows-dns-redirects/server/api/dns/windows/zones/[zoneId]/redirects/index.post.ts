@@ -3,6 +3,7 @@
  * Create a new redirect for a zone
  */
 import { createError, defineEventHandler, getRouterParam, readBody } from 'h3'
+import { createId } from '@paralleldrive/cuid2'
 import { eq, and } from 'drizzle-orm'
 import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
@@ -17,7 +18,8 @@ import {
   isDnsIntegrationEnabled,
   trackManagedRecord
 } from '@windows-dns-redirects/server/utils/dnsPlanRedirectRecords'
-import type { WindowsDnsRedirectCreateInput } from '../../../../types'
+import { logAuditEvent } from '~~/server/utils/audit'
+import type { WindowsDnsRedirectCreateInput } from '@windows-dns-redirects/types'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -58,7 +60,10 @@ export default defineEventHandler(async (event) => {
 
   const zoneName = allowedZone.zoneName || ''
   const body = await readBody<WindowsDnsRedirectCreateInput>(event)
-  const applyDnsChanges = body?.applyDnsChanges === true
+  if (!body) {
+    throw createError({ statusCode: 400, message: 'Request body is required.' })
+  }
+  const applyDnsChanges = body.applyDnsChanges === true
 
   // Validate required fields
   if (!body.sourcePath) {
@@ -155,7 +160,7 @@ export default defineEventHandler(async (event) => {
         data: {
           code: 'DNS_RECORD_CONFLICT',
           recordName: plan.recordName,
-          before: plan.conflicts.map(c => c.existing).filter(Boolean),
+          before: plan.conflicts.map(c => c.existing).filter((e): e is NonNullable<typeof e> => !!e),
           after: plan.entries
             .filter(e => e.action === 'create')
             .map(e => ({
@@ -233,9 +238,11 @@ export default defineEventHandler(async (event) => {
   }
 
   // Create the redirect
-  const [redirect] = await db
+  const redirectId = createId()
+  await db
     .insert(windowsDnsRedirects)
     .values({
+      id: redirectId,
       organizationId: orgId,
       zoneId,
       zoneName,
@@ -247,7 +254,16 @@ export default defineEventHandler(async (event) => {
       isActive: body.isActive !== false,
       createdBy: auth.user.id
     })
-    .returning()
+
+  const [redirect] = await db
+    .select()
+    .from(windowsDnsRedirects)
+    .where(eq(windowsDnsRedirects.id, redirectId))
+    .limit(1)
+
+  if (!redirect) {
+    throw createError({ statusCode: 500, message: 'Failed to create redirect.' })
+  }
 
   // Update managed record with redirect ID for CNAME (subdomain) records
   if (isDnsIntegrationEnabled()) {
@@ -266,6 +282,19 @@ export default defineEventHandler(async (event) => {
       }
     }
   }
+
+  // Log audit event for redirect creation (do not log destinationUrl)
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECT_CREATED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    entityId: redirect.id,
+    zoneId,
+    zoneName,
+    host,
+    sourcePath: body.sourcePath,
+    redirectType,
+    statusCode
+  })
 
   return {
     redirect: {

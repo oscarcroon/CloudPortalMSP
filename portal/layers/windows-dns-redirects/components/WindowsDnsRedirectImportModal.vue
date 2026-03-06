@@ -70,7 +70,7 @@ function parseTXT(content: string): void {
   parsedRows.value = []
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
+    const line = lines[i]?.trim()
     if (!line || line.startsWith('#')) continue
 
     const parts = line.split(/\s+/)
@@ -88,10 +88,10 @@ function parseTXT(content: string): void {
       continue
     }
 
-    const sourcePath = parts[0].trim()
-    const destinationUrl = parts[1].trim()
+    const sourcePath = (parts[0] ?? '').trim()
+    const destinationUrl = (parts[1] ?? '').trim()
     const redirectType = (parts[2] || 'simple').trim().toLowerCase()
-    const statusCode = parseInt(parts[3]) || 301
+    const statusCode = parseInt(parts[3] ?? '') || 301
 
     let valid = true
     let error = ''
@@ -148,14 +148,14 @@ function parseCSV(content: string): void {
     return
   }
 
-  const firstLine = lines[0].toLowerCase()
+  const firstLine = (lines[0] ?? '').toLowerCase()
   const hasHeader = firstLine.includes('source') || firstLine.includes('destination') || firstLine.includes('path')
   const startIndex = hasHeader ? 1 : 0
 
   parsedRows.value = []
 
   for (let i = startIndex; i < lines.length; i++) {
-    const line = lines[i].trim()
+    const line = lines[i]?.trim()
     if (!line) continue
 
     const fields = parseCSVLine(line)
@@ -173,10 +173,10 @@ function parseCSV(content: string): void {
       continue
     }
 
-    const sourcePath = fields[0].trim()
-    const destinationUrl = fields[1].trim()
+    const sourcePath = (fields[0] ?? '').trim()
+    const destinationUrl = (fields[1] ?? '').trim()
     const redirectType = (fields[2] || 'simple').trim().toLowerCase()
-    const statusCode = parseInt(fields[3]) || 301
+    const statusCode = parseInt(fields[3] ?? '') || 301
     const isActive = fields[4] ? fields[4].trim().toLowerCase() !== 'false' : true
 
     let valid = true
@@ -326,7 +326,8 @@ async function handleImport() {
         isActive: r.isActive,
       }))
 
-    const response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects/import`, {
+    const importUrl = `/api/dns/windows/zones/${props.zoneId}/redirects/import`
+    const response = await ($fetch as Function)(importUrl, {
       method: 'POST',
       body: {
         rows,
@@ -334,14 +335,14 @@ async function handleImport() {
         skipDuplicates: skipDuplicates.value,
         filename: selectedFile.value?.name || 'import.csv',
       },
-    })
+    }) as { success: boolean; totalRows: number; successfulRows: number; failedRows: number }
 
-    stopProgressAnimation(response.imported, totalRows)
+    stopProgressAnimation(response.successfulRows, totalRows)
 
     await new Promise(resolve => setTimeout(resolve, 500))
 
     if (response.success) {
-      emit('imported', response.imported)
+      emit('imported', response.successfulRows)
       emit('close')
     }
   } catch (error: any) {

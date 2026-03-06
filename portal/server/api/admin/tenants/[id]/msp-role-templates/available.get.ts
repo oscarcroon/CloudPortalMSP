@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
     if (!permissionsMap[perm.roleId]) {
       permissionsMap[perm.roleId] = []
     }
-    permissionsMap[perm.roleId].push({
+    permissionsMap[perm.roleId]!.push({
       moduleKey: perm.moduleKey,
       permissionKey: perm.permissionKey
     })
@@ -134,7 +134,7 @@ export default defineEventHandler(async (event) => {
         if (!availableByModule[perm.moduleKey]) {
           availableByModule[perm.moduleKey] = []
         }
-        availableByModule[perm.moduleKey].push(perm.permissionKey)
+        availableByModule[perm.moduleKey]!.push(perm.permissionKey)
       }
 
       const unavailableByModule: Record<string, Array<{ permissionKey: string; reason: string }>> = {}
@@ -142,7 +142,7 @@ export default defineEventHandler(async (event) => {
         if (!unavailableByModule[perm.moduleKey]) {
           unavailableByModule[perm.moduleKey] = []
         }
-        unavailableByModule[perm.moduleKey].push({
+        unavailableByModule[perm.moduleKey]!.push({
           permissionKey: perm.permissionKey,
           reason: perm.reason
         })

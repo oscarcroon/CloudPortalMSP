@@ -60,7 +60,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   { path: '/managed-server', labelKey: 'nav.managedServer', label: 'Managed Server', icon: 'mdi:server-security' },
   { path: '/wordpress', labelKey: 'nav.wordpress', label: 'WordPress', icon: 'mdi:wordpress' },
   { path: '/ncentral', labelKey: 'nav.ncentral', label: 'N-Central', icon: 'mdi:remote-desktop' },
-  { path: '/cloudflare-dns', labelKey: 'cloudflareDns.title', label: 'Cloudflare DNS', icon: 'mdi:shield-check-outline' },
+  { path: '/cloudflare-dns', labelKey: 'cloudflareDns.title', label: 'Cloudflare DNS', icon: 'mdi:cloud-outline' },
   { path: '/cloudflare-dns/admin', labelKey: 'cloudflareDns.admin.title', label: 'Administration', icon: 'mdi:cog-outline' },
   { path: '/dns', labelKey: 'windowsDns.index.title', label: 'DNS Zones', icon: 'mdi:globe' },
   { path: '/dns/autodiscover', labelKey: 'windowsDns.autodiscover.title', label: 'Autodiscover', icon: 'mdi:auto-fix' },

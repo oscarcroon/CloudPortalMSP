@@ -16,6 +16,7 @@ import {
   untrackManagedRecord
 } from '@windows-dns-redirects/server/utils/dnsPlanRedirectRecords'
 import { hostToZoneRecordName } from '@windows-dns-redirects/server/utils/normalizeHost'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -156,6 +157,17 @@ export default defineEventHandler(async (event) => {
   await db
     .delete(windowsDnsRedirects)
     .where(eq(windowsDnsRedirects.id, redirectId))
+
+  // Log audit event for redirect deletion (do not log destinationUrl)
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECT_DELETED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    entityId: redirectId,
+    zoneId,
+    zoneName,
+    host: existing.host,
+    sourcePath: existing.sourcePath
+  })
 
   return {
     success: true,

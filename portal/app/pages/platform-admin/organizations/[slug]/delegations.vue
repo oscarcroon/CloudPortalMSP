@@ -28,7 +28,7 @@
             <div>
               <p class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Aktiva delegationer</p>
               <p class="text-sm text-slate-600 dark:text-slate-300">
-                {{ visibleDelegations.filter(d => !d.revokedAt && !isExpired(d)).length }} st
+                {{ visibleDelegations.filter((d: any) => !d.revokedAt && !isExpired(d)).length }} st
                 <span v-if="groupedDelegations.length > 0" class="text-xs text-slate-500">
                   ({{ groupedDelegations.length }} användare)
                 </span>
@@ -341,7 +341,7 @@ const pendingAction = ref('')
 const expanded = ref<Set<string>>(new Set())
 const showRevoked = ref(false)
 
-const { data, pending, refresh, error } = await useFetch<AdminDelegationsResponse>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   () => `/api/admin/organizations/${slug.value}/delegations`,
   {
     watch: [slug, showRevoked],
@@ -358,7 +358,7 @@ const delegations = computed(() => data.value?.delegations ?? [])
 
 const visibleDelegations = computed(() => {
   if (showRevoked.value) return delegations.value
-  return delegations.value.filter((d) => !d.revokedAt)
+  return delegations.value.filter((d: any) => !d.revokedAt)
 })
 
 // Group delegations by user
@@ -371,15 +371,18 @@ const groupedDelegations = computed(() => {
     }
     groups.get(key)!.push(delegation)
   }
-  return Array.from(groups.entries()).map(([subjectId, delegs]) => ({
-    subjectId,
-    subjectName: delegs[0].subjectName,
-    subjectEmail: delegs[0].subjectEmail,
-    delegations: delegs,
-    activeCount: delegs.filter((d) => !d.revokedAt && !isExpired(d)).length,
-    revokedCount: delegs.filter((d) => d.revokedAt).length,
-    expiredCount: delegs.filter((d) => !d.revokedAt && isExpired(d)).length
-  }))
+  return Array.from(groups.entries()).map(([subjectId, delegs]) => {
+    const first = delegs[0]!
+    return {
+      subjectId,
+      subjectName: first.subjectName,
+      subjectEmail: first.subjectEmail,
+      delegations: delegs,
+      activeCount: delegs.filter((d: any) => !d.revokedAt && !isExpired(d)).length,
+      revokedCount: delegs.filter((d: any) => d.revokedAt).length,
+      expiredCount: delegs.filter((d: any) => !d.revokedAt && isExpired(d)).length
+    }
+  })
 })
 
 const moduleList = computed(() =>
@@ -451,7 +454,7 @@ const canCreate = computed(() => Boolean(selectedUserId.value) && selectedPermis
 const hasActiveDelegation = computed(() => {
   if (!selectedUserId.value) return false
   return visibleDelegations.value.some(
-    (d) => d.subjectId === selectedUserId.value && !d.revokedAt && !isExpired(d)
+    (d: any) => d.subjectId === selectedUserId.value && !d.revokedAt && !isExpired(d)
   )
 })
 
@@ -459,7 +462,7 @@ const hasActiveDelegation = computed(() => {
 const activeDelegationCount = computed(() => {
   if (!selectedUserId.value) return 0
   return visibleDelegations.value.filter(
-    (d) => d.subjectId === selectedUserId.value && !d.revokedAt && !isExpired(d)
+    (d: any) => d.subjectId === selectedUserId.value && !d.revokedAt && !isExpired(d)
   ).length
 })
 
@@ -471,7 +474,7 @@ const searchUsers = async () => {
   searchingUsers.value = true
   errorMessage.value = ''
   try {
-    const res = await $fetch<AdminUsersResponse>('/api/admin/users', {
+    const res = await ($fetch as any)('/api/admin/users', {
       query: { q: userQuery.value.trim() }
     })
     userResults.value = res.users ?? []
@@ -528,7 +531,7 @@ const createDelegation = async () => {
   creating.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/admin/organizations/${organization.value.id}/delegations`, {
+    await ($fetch as any)(`/api/admin/organizations/${organization.value.id}/delegations`, {
       method: 'POST',
       body: {
         subjectId: selectedUserId.value,
@@ -552,7 +555,7 @@ const revokeDelegation = async (delegation: AdminDelegation) => {
   pendingAction.value = delegation.id
   errorMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/admin/organizations/${organization.value.id}/delegations/${delegation.id}/revoke`,
       { method: 'POST' }
     )

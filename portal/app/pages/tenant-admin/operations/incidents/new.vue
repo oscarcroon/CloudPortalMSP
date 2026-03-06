@@ -218,6 +218,7 @@ import { ref, computed, nextTick } from 'vue'
 import { useI18n, useRouter } from '#imports'
 import { Icon } from '@iconify/vue'
 import { useAuth } from '~/composables/useAuth'
+import { refreshOperationsFeed } from '~/composables/useOperationsFeed'
 import { renderMarkdown } from '~~/shared/markdown'
 
 definePageMeta({
@@ -404,12 +405,13 @@ async function handleSubmit() {
       payload.endsAt = new Date(form.value.endsAt).toISOString()
     }
 
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents`, {
       method: 'POST',
       body: payload,
       credentials: 'include'
     })
 
+    await refreshOperationsFeed()
     router.push('/tenant-admin/operations/incidents')
   } catch (err: any) {
     error.value = err.data?.message || err.message || 'Failed to create incident'

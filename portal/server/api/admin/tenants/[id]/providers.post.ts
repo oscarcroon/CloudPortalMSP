@@ -51,8 +51,6 @@ export default defineEventHandler(async (event) => {
 
   const payload = createProviderSchema.parse(await readBody(event))
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
 
   // Validate distributor
   const [distributorTenant] = await db
@@ -96,92 +94,42 @@ export default defineEventHandler(async (event) => {
   const ownerUserId = existingUser?.id ?? createId()
 
   try {
-    if (isSqlite) {
-      await db.transaction((tx) => {
-        // Create provider tenant (root level)
-        tx.insert(tenants)
-          .values({
-            id: providerId,
-            name: payload.name,
-            slug: payload.slug ?? slugify(payload.name),
-            type: 'provider',
-            parentTenantId: null, // Providers are root level
-            status: 'active'
-          })
-          .run()
+    await db.transaction(async (tx) => {
+      await tx.insert(tenants).values({
+        id: providerId,
+        name: payload.name,
+        slug: payload.slug ?? slugify(payload.name),
+        type: 'provider',
+        parentTenantId: null,
+        status: 'active'
+      })
 
-        // Link provider to distributor via junction table
-        tx.insert(distributorProviders)
-          .values({
-            id: createId(),
-            distributorId,
-            providerId
-          })
-          .run()
+      await tx.insert(distributorProviders).values({
+        id: createId(),
+        distributorId,
+        providerId
+      })
 
-        if (!existingUser) {
-          tx.insert(users)
-            .values({
-              id: ownerUserId,
-              email: normalizedOwnerEmail,
-              passwordHash: null,
-              fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
-              status: 'active',
-              forcePasswordReset: true
-            })
-            .run()
-        }
+      if (!existingUser) {
+        await tx.insert(users).values({
+          id: ownerUserId,
+          email: normalizedOwnerEmail,
+          passwordHash: null,
+          fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
+          status: 'active',
+          forcePasswordReset: true
+        })
+      }
 
-        // Set admin role with includeChildren=true for provider owner
-        tx.insert(tenantMemberships)
-          .values({
-            id: createId(),
-            tenantId: providerId,
-            userId: ownerUserId,
+      await tx.insert(tenantMemberships).values({
+        id: createId(),
+        tenantId: providerId,
+        userId: ownerUserId,
         role: 'admin',
         includeChildren: true,
-            status: 'active'
-          })
-          .run()
+        status: 'active'
       })
-    } else {
-      await db.transaction(async (tx) => {
-        await tx.insert(tenants).values({
-          id: providerId,
-          name: payload.name,
-          slug: payload.slug ?? slugify(payload.name),
-          type: 'provider',
-          parentTenantId: null,
-          status: 'active'
-        })
-
-        await tx.insert(distributorProviders).values({
-          id: createId(),
-          distributorId,
-          providerId
-        })
-
-        if (!existingUser) {
-          await tx.insert(users).values({
-            id: ownerUserId,
-            email: normalizedOwnerEmail,
-            passwordHash: null,
-            fullName: payload.owner.fullName?.trim() || normalizedOwnerEmail,
-            status: 'active',
-            forcePasswordReset: true
-          })
-        }
-
-        await tx.insert(tenantMemberships).values({
-          id: createId(),
-          tenantId: providerId,
-          userId: ownerUserId,
-          role: 'admin',
-          includeChildren: true,
-          status: 'active'
-        })
-      })
-    }
+    })
   } catch (error: any) {
     if (
       typeof error?.message === 'string' &&
@@ -232,11 +180,7 @@ export default defineEventHandler(async (event) => {
         organizationData: organizationData ? JSON.stringify(organizationData) : null
       }
 
-      if (isSqlite) {
-        await db.insert(tenantInvitations).values(invitationValues).run()
-      } else {
-        await db.insert(tenantInvitations).values(invitationValues)
-      }
+      await db.insert(tenantInvitations).values(invitationValues)
 
       await sendDistributorInvitationEmail({
         tenantId: provider.id,

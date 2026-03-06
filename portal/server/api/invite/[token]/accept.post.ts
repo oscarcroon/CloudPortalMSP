@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const now = new Date()
 
   // Try tenant invitation first
-  const tenantInviteRow = await db
+  const [tenantInviteRow] = await db
     .select({
       invitation: tenantInvitations,
       tenantName: tenants.name,
@@ -38,7 +38,6 @@ export default defineEventHandler(async (event) => {
     .from(tenantInvitations)
     .leftJoin(tenants, eq(tenants.id, tenantInvitations.tenantId))
     .where(eq(tenantInvitations.token, token))
-    .get()
 
   if (tenantInviteRow?.invitation) {
     const invitation = tenantInviteRow.invitation
@@ -66,7 +65,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Create tenant membership
-    const existingMembership = await db
+    const [existingMembership] = await db
       .select({ id: tenantMemberships.id })
       .from(tenantMemberships)
       .where(
@@ -75,7 +74,6 @@ export default defineEventHandler(async (event) => {
           eq(tenantMemberships.userId, auth.user.id)
         )
       )
-      .get()
 
     if (existingMembership?.id) {
       await db
@@ -151,11 +149,12 @@ export default defineEventHandler(async (event) => {
             .where(eq(users.id, auth.user.id))
         }
 
-        // Initialize organization with blocked modules and default groups
+        // Initialize organization with module defaults and default groups
         try {
           const setupResult = await initializeNewOrganization({
             orgId: organizationId,
-            ownerUserId: auth.user.id
+            ownerUserId: auth.user.id,
+            tenantId: invitation.tenantId
           })
           console.log(`[invite] Initialized org ${organizationId}: ${setupResult.modulesBlocked} modules blocked`)
         } catch (initError) {
@@ -181,7 +180,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Fall back to organization invitation
-  const invitationRow = await db
+  const [invitationRow] = await db
     .select({
       invitation: organizationInvitations,
       invitedByEmail: users.email,
@@ -192,7 +191,6 @@ export default defineEventHandler(async (event) => {
     .leftJoin(users, eq(users.id, organizationInvitations.invitedByUserId))
     .leftJoin(organizations, eq(organizations.id, organizationInvitations.organizationId))
     .where(eq(organizationInvitations.token, token))
-    .get()
 
   const invitation = invitationRow?.invitation
 
@@ -225,11 +223,10 @@ export default defineEventHandler(async (event) => {
     eq(organizationMemberships.organizationId, invitation.organizationId),
     eq(organizationMemberships.userId, auth.user.id)
   )
-  const existingMembership = await db
+  const [existingMembership] = await db
     .select({ id: organizationMemberships.id })
     .from(organizationMemberships)
     .where(membershipSelector)
-    .get()
 
   if (existingMembership?.id) {
     await db

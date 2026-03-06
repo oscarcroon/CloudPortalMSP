@@ -35,14 +35,18 @@ export default defineEventHandler(async (event) => {
 
   if (!config) {
     // Create default config
-    ;[config] = await db
+    await db
       .insert(windowsDnsRedirectOrgConfig)
       .values({
         organizationId: orgId,
         traefikConfigPath: null,
         lastConfigSync: null
       })
-      .returning()
+    ;[config] = await db
+      .select()
+      .from(windowsDnsRedirectOrgConfig)
+      .where(eq(windowsDnsRedirectOrgConfig.organizationId, orgId))
+      .limit(1)
   }
 
   // Get SFTP configuration from environment (read-only, for display purposes)

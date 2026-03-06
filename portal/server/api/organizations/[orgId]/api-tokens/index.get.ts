@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
 
   // Get all tokens for the organization (not revoked)
-  const tokens = db
+  const tokens = await db
     .select({
       id: orgApiTokens.id,
       prefix: orgApiTokens.prefix,
@@ -42,7 +42,6 @@ export default defineEventHandler(async (event) => {
     .leftJoin(users, eq(users.id, orgApiTokens.createdByUserId))
     .where(eq(orgApiTokens.organizationId, orgId))
     .orderBy(orgApiTokens.createdAt)
-    .all()
 
   // Parse scopes and constraints
   const formattedTokens = tokens.map((token) => {

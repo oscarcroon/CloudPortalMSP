@@ -37,12 +37,27 @@
       "archived": "Archived"
     }
   },
+  "operationsPage": {
+    "title": "Operations",
+    "subtitle": "Active incidents and latest news",
+    "incidentsTitle": "Active incidents",
+    "noActiveIncidents": "No active incidents",
+    "hiddenIncidents": "Hidden incidents",
+    "noHiddenIncidents": "No hidden incidents",
+    "newsTitle": "Latest news",
+    "noNews": "No news at the moment",
+    "viewAllNews": "View all news",
+    "hideForMe": "Hide for me",
+    "showForMe": "Show again",
+    "loading": "Loading..."
+  },
   "incident": {
     "title": "Incident",
     "backToDashboard": "Back to dashboard",
     "notFound": "Incident not found or you don't have permission to view it.",
     "distributor": "Distributor",
     "provider": "Provider",
+    "organization": "Organization",
     "previous": "Previous",
     "next": "Next",
     "status": {
@@ -82,7 +97,9 @@
     "refresh": "Refresh",
     "redirecting": "Redirecting...",
     "all": "All",
-    "edit": "Edit"
+    "edit": "Edit",
+    "details": "Details",
+    "hideDetails": "Hide details"
   },
   "auth": {
     "logout": "Log out",
@@ -95,7 +112,16 @@
     "changeEmail": "Change email address",
     "forgotPassword": "Forgot password?",
     "continue": "Continue",
-    "restrictSso": "At least one organization requires SSO. Use the buttons below to initiate the SSO flow or select an org that allows passwords.",
+    "mfaPrompt": "Enter the 6-digit code from your authenticator app.",
+    "mfaCode": "Verification code",
+    "mfaCodePlaceholder": "000000",
+    "mfaTroubleLink": "Having trouble logging in?",
+    "mfaHelpBackupCodes": "If you can't access your authenticator app, you can use one of the backup codes you received when setting up two-factor authentication.",
+    "mfaHelpContact": "If you've lost your backup codes, contact your provider or organization administrator for help.",
+    "verifyMfa": "Verify",
+    "restrictSso": "Your organization requires SSO login. Use the button below to log in.",
+    "ssoLoginWith": "Log in with {provider}",
+    "ssoOrLabel": "or",
     "ssoOrganizations": "SSO-enabled organizations",
     "cloudflareNote": "Protected behind Cloudflare Zero Trust? Add your Access token in the header",
     "cloudflareCode": "CF_Authorization",
@@ -109,7 +135,9 @@
       "verifyFailed": "Could not verify the email address. Check that it is correctly formatted and try again.",
       "invalidCredentials": "Wrong email or password. Try again.",
       "ssoRequired": "The organization requires SSO. Use SSO login.",
-      "loginFailed": "Could not log in right now."
+      "loginFailed": "Could not log in right now.",
+      "invalidMfaCode": "Invalid verification code. Try again.",
+      "turnstileFailed": "Verification failed. Please try again."
     },
     "groups": {
       "title": "Groups",
@@ -134,6 +162,29 @@
       "entra": "Microsoft Entra ID",
       "openid": "OpenID Connect",
       "saml": "SAML"
+    },
+    "ssoDomains": {
+      "title": "SSO Domains",
+      "description": "Domains whose email addresses are routed to SSO at login. Verify ownership via DNS.",
+      "addDomain": "Add domain",
+      "domainPlaceholder": "example.com",
+      "add": "Add",
+      "verify": "Verify",
+      "remove": "Remove",
+      "verified": "Verified",
+      "pending": "Pending verification",
+      "failed": "Verification failed",
+      "noDomains": "No SSO domains configured.",
+      "verifyInstructions": "Add the following TXT record to your DNS:",
+      "recordType": "Type",
+      "recordName": "Name",
+      "recordValue": "Value",
+      "domainAdded": "Domain added. Verify via DNS.",
+      "domainVerified": "Domain has been verified.",
+      "domainRemoved": "Domain removed.",
+      "verifyFailed": "Verification failed. Check your DNS configuration.",
+      "configureIdpFirst": "Configure an Identity Provider before adding SSO domains.",
+      "confirmRemove": "Do you want to remove this SSO domain?"
     }
   },
   "forgotPassword": {
@@ -278,10 +329,28 @@
     "toggleSearchClose": "Close search",
     "docs": "Documentation",
     "support": "Support",
-    "profile": "Profile"
+    "profile": "Profile",
+    "avatarMenu": "User menu",
+    "viewProfile": "Profile",
+    "logout": "Log out"
+  },
+  "notifications": {
+    "label": "Notifications",
+    "title": "Notifications",
+    "incidents": "Incidents",
+    "news": "News",
+    "markAllRead": "Mark all as read",
+    "viewAll": "View all",
+    "empty": "No notifications",
+    "justNow": "Just now",
+    "minutesAgo": "{count} min ago",
+    "hoursAgo": "{count} hr ago",
+    "daysAgo": "{count} d ago"
   },
   "theme": {
     "ariaLabel": "Change theme",
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode",
     "options": {
       "system": "System",
       "light": "Light",
@@ -333,6 +402,21 @@
       "label": "Language",
       "description": "Choose which language you want to use in the portal."
     },
+    "theme": {
+      "label": "Appearance",
+      "description": "Choose how the portal looks. System follows your device settings.",
+      "usingSystem": "Following your system settings.",
+      "usingLight": "Using light mode.",
+      "usingDark": "Using dark mode."
+    },
+    "avatar": {
+      "label": "Profile picture",
+      "description": "Choose how your avatar is displayed across the portal.",
+      "usingSso": "Using SSO profile picture",
+      "usingInitials": "Using initials",
+      "saved": "Avatar preference saved.",
+      "error": "Could not update avatar preference."
+    },
     "form": {
       "nameLabel": "Change name",
       "namePlaceholder": "First name Last name",
@@ -363,7 +447,34 @@
       "passwordSaved": "Password updated.",
       "passwordError": "Could not update the password. Verify your current password and try again."
     },
-    "notProvided": "Not specified"
+    "notProvided": "Not specified",
+    "mfa": {
+      "title": "Two-factor authentication",
+      "description": "Add an extra layer of security to your account with an authenticator app.",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enableButton": "Enable two-factor authentication",
+      "disableButton": "Disable two-factor authentication",
+      "scanQrCode": "Scan the QR code below with your authenticator app (e.g. Google Authenticator, Authy, 1Password).",
+      "qrCodeAlt": "TOTP QR code",
+      "manualEntry": "Or enter this code manually:",
+      "verificationCode": "Verification code",
+      "codePlaceholder": "000000",
+      "verify": "Verify and enable",
+      "verifying": "Verifying...",
+      "cancel": "Cancel",
+      "done": "Done",
+      "backupCodesWarning": "Save these backup codes in a safe place!",
+      "backupCodesHint": "Each code can only be used once. If you lose access to your authenticator app, you can use one of these codes to log in.",
+      "copyBackupCodes": "Copy codes",
+      "backupCodesCopied": "Backup codes copied to clipboard.",
+      "disableConfirmText": "Enter a code from your authenticator app to confirm disabling two-factor authentication.",
+      "disabling": "Disabling...",
+      "confirmDisable": "Disable MFA",
+      "disabledSuccess": "Two-factor authentication has been disabled.",
+      "setupError": "Could not start MFA setup. Try again.",
+      "invalidCode": "Invalid verification code. Try again."
+    }
   },
   "password": {
     "requirements": {
@@ -377,6 +488,9 @@
   "dashboard": {
     "title": "Single pane of glass",
     "subtitle": "Manage DNS, containers, virtual machines and WordPress sites from a single interface.",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
     "allSystemsOperational": "All systems operational",
     "organizations": "Organizations",
     "noModules": "No modules are available for your organization.",
@@ -387,6 +501,10 @@
     "news": "News",
     "noNews": "No news at the moment.",
     "module": "Module",
+    "activeIncidents": "Active incidents",
+    "noActiveIncidents": "All systems operational",
+    "viewIncidents": "View all incidents",
+    "moreIncidents": "more",
     "statusLabels": {
       "ok": "OK",
       "degraded": "Degraded",
@@ -408,7 +526,7 @@
       "description": "Manage which modules are visible and which permissions are available for the organization.",
       "cta": "Manage module access",
       "empty": "No modules available right now.",
-      "pageDescription": "Manage module policy (inherit/default-closed/allowlist/blocked) and which permissions are allowed.",
+      "pageDescription": "Manage module status for your organization.",
       "searchPlaceholder": "Search module",
       "results": "{count} modules",
       "filters": {
@@ -416,23 +534,12 @@
       },
       "loading": "Loading modules...",
       "noModules": "No modules are available for your organization. Contact your tenant admin if something is missing.",
-      "policyTitle": "Policy",
-      "tenantBlocked": "Blocked by tenant",
-      "lockedByTenant": "Locked by tenant policy",
-      "modes": {
-        "inherit": "Inherit",
-        "default-closed": "Default closed",
-        "allowlist": "Allowlist",
-        "blocked": "Blocked"
-      },
-      "loadingPermissions": "Loading permissions...",
-      "noPermissions": "No permissions declared",
       "updateFailed": "Failed to update module policy",
-      "manageAcl": "Manage ACL",
-      "aclTitle": "Plugin ACL",
-      "aclDescription": "Map CRUD operations to access groups for the plugin.",
-      "aclOperationHint": "Choose which groups may perform this operation.",
-      "saveAcl": "Save ACL",
+      "permissions": {
+        "hint": "Manage permissions via:",
+        "members": "Members",
+        "groupPermissions": "Group Permissions"
+      },
       "showAll": "Show all permissions",
       "hideAll": "Hide all permissions",
       "noSearchResults": "No modules matched your search",
@@ -728,7 +835,7 @@
       "clearFilters": "Clear filters",
       "searchPlaceholder": "Search by name or email",
       "clear": "Clear",
-      "showOnlyOverrides": "Show only members with manual module roles",
+      "showOnlyOverrides": "Show only members with manual permissions",
       "table": {
         "name": "Name",
         "email": "Email",
@@ -737,7 +844,7 @@
         "lastUpdated": "Last updated",
         "actions": "Actions",
         "unknownName": "Unknown name",
-        "hasOverrides": "Has manually customized module roles",
+        "hasOverrides": "Has manually customized permissions",
         "count": "{count}",
         "of": "of {total}"
       },
@@ -780,17 +887,17 @@
         "resendError": "Failed to resend invitation."
       },
       "moduleRoles": {
-        "title": "Module roles",
-        "loading": "Loading module roles...",
-        "none": "No modules with module-specific roles found.",
+        "title": "Permissions",
+        "loading": "Loading permissions...",
+        "none": "No modules with module-specific permissions found.",
         "policy": "Policy: {source}",
         "allowedRoles": "Allowed roles: {roles}",
-        "blocked": "Module roles are blocked by {source}.",
+        "blocked": "Permissions are blocked by {source}.",
         "save": "Save changes",
         "saving": "Saving...",
         "saved": "Changes saved",
         "error": "Could not save changes",
-        "button": "Module roles",
+        "button": "Permissions",
         "policyLabel": "Policy",
         "allowedRolesLabel": "Allowed roles",
         "sourceLabel": "Source",
@@ -810,9 +917,9 @@
           "removed": "− Removed"
         },
         "sourceLabels": {
-          "custom": "Manually assigned roles",
+          "custom": "Manually assigned permissions",
           "rbacInherited": "Inherited from RBAC ({role})",
-          "none": "No module roles assigned"
+          "none": "No permissions assigned"
         }
       },
       "summary": {
@@ -902,8 +1009,10 @@
         },
         "requireSsoDisabled": {
           "noIdp": "Configure an IdP before SSO can be required.",
-          "incomplete": "Fill in all required IdP fields to be able to require SSO."
+          "incomplete": "Fill in all required IdP fields to be able to require SSO.",
+          "noDomain": "Add and verify at least one SSO domain before SSO can be required."
         },
+        "idpDisabled": "Verify at least one SSO domain before configuring an Identity Provider.",
         "validation": {
           "incomplete": "Fill in all required IdP fields before saving.",
           "noOrg": "No organization is selected."
@@ -953,6 +1062,10 @@
         "title": "Require SSO",
         "description": "All users must log in via selected IdP."
       },
+      "requireMfa": {
+        "title": "Require MFA",
+        "description": "All users with local accounts must enable two-factor authentication."
+      },
       "allowLocalLogin": {
         "title": "Allow local login for owners",
         "description": "Keep fallback via password for owners."
@@ -961,6 +1074,26 @@
         "idp": "Select IdP type (OpenID or Entra AD)",
         "cloudflare": "Follow the guide to configure Cloudflare Access",
         "require": "Enable \"Require SSO\" when IdP is ready"
+      },
+      "ssoDomains": {
+        "title": "SSO Domains",
+        "description": "Domains whose email addresses are routed to SSO at login. Verify ownership via DNS.",
+        "domainPlaceholder": "example.com",
+        "add": "Add",
+        "verify": "Verify",
+        "remove": "Remove",
+        "verified": "Verified",
+        "pending": "Pending verification",
+        "noDomains": "No SSO domains configured.",
+        "verifyInstructions": "Add the following TXT record to your DNS:",
+        "recordType": "Type",
+        "recordName": "Name",
+        "recordValue": "Value",
+        "domainAdded": "Domain added. Verify via DNS.",
+        "domainVerified": "Domain has been verified.",
+        "domainRemoved": "Domain removed.",
+        "verifyFailed": "Verification failed. Check your DNS configuration.",
+        "confirmRemove": "Do you want to remove this SSO domain?"
       }
     },
     "email": {
@@ -1228,11 +1361,86 @@
         "login": "Manage login branding and custom domains (CNAME)"
       }
     },
+    "customDomain": {
+      "title": "Custom domain",
+      "description": "Link a custom domain to the portal for your organization.",
+      "features": {
+        "own": "Use your own domain instead of the default address",
+        "ssl": "Automatic SSL certificate via Let's Encrypt",
+        "verify": "DNS verification ensures domain ownership"
+      }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Link a custom domain to the portal for your organization.",
+      "backToSettings": "Settings",
+      "noOrgSelected": "Select an organization to manage custom domain.",
+      "currentDomain": {
+        "title": "Current domain",
+        "description": "Your organization's login domain for the portal.",
+        "default": "Default:",
+        "label": "Domain",
+        "noDomain": "No custom domain configured",
+        "noDomainHint": "Add a custom domain below to use it for login."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "save": "Save",
+        "saving": "Saving...",
+        "remove": "Remove",
+        "hint": "Enter the domain without protocol (https://)"
+      },
+      "cname": {
+        "title": "Step 1: Point your domain",
+        "titleVerified": "DNS Configuration",
+        "description": "If you haven't already, create a CNAME record in your DNS that points your custom domain to the address below. This is required for traffic to be routed correctly.",
+        "descriptionVerified": "Your domain is verified and active. Keep this CNAME record in your DNS — it routes traffic from your custom domain to the portal.",
+        "recordType": "Record type",
+        "recordName": "Name/Host",
+        "target": "Target/Value",
+        "example": "Example: {domain} → CNAME → {target}"
+      },
+      "verification": {
+        "title": "Step 2: Verify ownership",
+        "instructions": "Add the following TXT record with your DNS provider to verify domain ownership:",
+        "recordType": "Record type",
+        "recordName": "Record name",
+        "recordValue": "Value",
+        "note": "It can take up to 24 hours for DNS changes to propagate. Click \"Verify\" after adding the record.",
+        "verify": "Verify domain",
+        "checking": "Checking...",
+        "verifiedAt": "Verified: {date}"
+      },
+      "status": {
+        "verified": "Verified",
+        "pending": "Pending verification",
+        "verifying": "Verifying...",
+        "unverified": "Unverified"
+      },
+      "success": {
+        "saved": "Domain settings saved.",
+        "removed": "Domain removed.",
+        "verified": "Domain verified!",
+        "copied": "Copied to clipboard."
+      },
+      "error": {
+        "fetchFailed": "Could not fetch domain information.",
+        "saveFailed": "Could not save domain.",
+        "removeFailed": "Could not remove domain.",
+        "verificationFailed": "DNS verification failed. Check that the TXT record exists and try again.",
+        "copyFailed": "Could not copy to clipboard."
+      },
+      "confirm": {
+        "remove": "Do you want to remove the custom domain? The organization will use the default address for login."
+      }
+    },
     "audit": {
       "title": "Audit Logs",
       "description": "View security events and administrative activities for the organization.",
       "pageDescription": "View security events and administrative activities for this organization.",
       "noActiveOrg": "Select an organization to view audit logs.",
+      "module": "Module",
       "eventType": "Event Type",
       "all": "All",
       "fromDate": "From date",
@@ -1253,6 +1461,23 @@
         "events": "View logins and security events",
         "track": "Track changes in roles and members",
         "overview": "Overview of module activations"
+      },
+      "detailsModal": {
+        "title": "Log Details",
+        "eventType": "Event Type",
+        "requestId": "Request ID",
+        "summary": "Summary",
+        "operation": "Operation",
+        "operationCreate": "Created",
+        "operationUpdate": "Updated",
+        "operationDelete": "Deleted",
+        "changes": "Changes",
+        "field": "Field",
+        "previous": "Previous",
+        "new": "New",
+        "truncated": "Some values have been truncated due to size.",
+        "otherMetadata": "Other Metadata",
+        "metadata": "Metadata"
       }
     },
     "apiTokens": {
@@ -1422,7 +1647,12 @@
       },
       "health": {
         "title": "System health",
-        "lastSync": "Last synced"
+        "lastSync": "Last synced",
+        "database": "Database",
+        "checking": "Checking...",
+        "refresh": "Refresh",
+        "unconfigured": "Not configured",
+        "checkedAt": "Checked at"
       },
       "activity": {
         "title": "Recent activity",
@@ -1452,10 +1682,90 @@
         "mspRolesDesc": "Manage roles for MSP users",
         "roleTemplates": "MSP role templates",
         "roleTemplatesDesc": "Manage MSP role templates for providers",
+        "customDomain": "Custom domain",
+        "customDomainDesc": "Configure login domain",
         "branding": "Branding",
         "brandingDesc": "Customize tenant branding",
         "auditLogs": "Audit logs",
         "auditLogsDesc": "Review tenant activity"
+      }
+    },
+    "auditLogsPage": {
+      "title": "Audit Logs",
+      "subtitle": "View security events and administrative activities in the system.",
+      "tenantSubtitle": "View security events and administrative activities for this tenant and its organizations.",
+      "backToTenant": "Back to tenant",
+      "accessDenied": {
+        "title": "Access Denied",
+        "description": "You do not have permission to view audit logs for this tenant. Only users with admin or support role can read audit logs."
+      },
+      "filters": {
+        "context": "Context",
+        "allContexts": "All contexts",
+        "tenantOnly": "This tenant only",
+        "providersOnly": "Providers only",
+        "organizationsOnly": "Organizations only",
+        "module": "Module",
+        "allModules": "All modules",
+        "eventType": "Event Type",
+        "all": "All",
+        "severity": "Severity",
+        "fromDate": "From date",
+        "toDate": "To date",
+        "filter": "Filter",
+        "clear": "Clear"
+      },
+      "loading": "Loading...",
+      "table": {
+        "timestamp": "Timestamp",
+        "event": "Event",
+        "user": "User",
+        "context": "Context",
+        "severity": "Severity",
+        "ip": "IP",
+        "details": "Details",
+        "view": "View",
+        "na": "N/A",
+        "tenant": "Tenant",
+        "organization": "Organization"
+      },
+      "noLogs": "No audit logs found for the selected filters.",
+      "pagination": {
+        "showing": "Showing {from}-{to} of {total}",
+        "page": "Page {page} of {totalPages}",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "details": {
+        "title": "Details",
+        "close": "Close",
+        "eventType": "Event Type",
+        "requestId": "Request ID",
+        "metadata": "Metadata"
+      }
+    },
+    "infrastructure": {
+      "traefik": {
+        "title": "Traefik Edge Server",
+        "category": "Infrastructure",
+        "sftpHost": "SFTP Host",
+        "domains": "Domains",
+        "tenants": "Tenants",
+        "orgs": "Organizations",
+        "testConnection": "Test connection",
+        "refresh": "Refresh",
+        "connectionSuccess": "Connection successful!",
+        "connectionFailed": "Connection failed.",
+        "status": {
+          "connected": "Connected",
+          "disconnected": "Disconnected",
+          "disabled": "Disabled",
+          "notConfigured": "Not configured",
+          "unknown": "Unknown"
+        },
+        "error": {
+          "fetchFailed": "Failed to fetch Traefik status."
+        }
       }
     },
     "sections": {
@@ -1603,7 +1913,7 @@
       }
     },
     "layerLabel": "Layer:",
-    "moduleRoles": "Module roles",
+    "moduleRoles": "Permissions",
     "openModule": "Open module",
     "routeLabel": "Route:",
     "results": "{count} modules",
@@ -1662,19 +1972,21 @@
       "loading": "Loading modules...",
       "empty": "No modules available yet.",
       "routeLabel": "Route:",
-      "policyTitle": "Module policy",
-      "modes": {
-        "inherit": "Inherit upstream",
-        "default-closed": "Default off (user override only)",
-        "allowlist": "Allow specific permissions",
-        "blocked": "Blocked"
-      },
-      "allowedRolesLabel": "Allowed roles",
-      "loadingPermissions": "Loading permissions...",
-      "noPermissions": "No permissions declared",
       "updateFailed": "Could not update module policy.",
-      "manageStatus": "Manage Status",
-      "cannotManageStatusReason": "The module must be enabled globally to manage status here."
+      "defaultOrgState": "Default for new organizations",
+      "defaultOrgStates": {
+        "active": "Active",
+        "disabled": "Disabled",
+        "hidden": "Hidden",
+        "comingSoon": "Coming Soon"
+      },
+      "defaultOrgComingSoonMessage": "Message (Coming Soon)",
+      "statusHints": {
+        "active": "Module is enabled and visible in the dashboard.",
+        "disabled": "Module is shown grayed out and cannot be opened.",
+        "hidden": "Module is completely hidden from the dashboard.",
+        "comingSoon": "Module is shown grayed out with an optional message."
+      }
     },
     "emailOverride": {
       "active": "Email override active",
@@ -1948,6 +2260,14 @@
         "saveError": "Could not save domain.",
         "verifyError": "Verification failed.",
         "cnameHint": "Point a CNAME to {domain} and verify the domain before it is put into use.",
+        "verificationRequired": "DNS verification required",
+        "verificationInstructions": "Add the following TXT record to your DNS to verify domain ownership.",
+        "recordType": "Record type",
+        "recordName": "Record name",
+        "recordValue": "Value",
+        "verificationNote": "It can take up to 24 hours for DNS changes to propagate. Click \"Verify\" after adding the record.",
+        "copied": "Copied to clipboard!",
+        "copyFailed": "Could not copy to clipboard.",
         "status": {
           "notConfigured": "Not configured",
           "verified": "Verified",
@@ -1964,6 +2284,74 @@
       },
       "errors": {
         "loadFailed": "Could not load branding information."
+      }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Configure custom domain for login page for {name}.",
+      "backToTenant": "Back",
+      "types": {
+        "provider": "Provider",
+        "distributor": "Distributor"
+      },
+      "currentDomain": {
+        "title": "Current domain",
+        "description": "Your login domain for the portal.",
+        "default": "Default:",
+        "label": "Domain",
+        "noDomain": "No custom domain configured",
+        "noDomainHint": "Add a custom domain below to use it for login."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "save": "Save",
+        "saving": "Saving...",
+        "remove": "Remove",
+        "hint": "Enter the domain without protocol (https://)"
+      },
+      "cname": {
+        "title": "Step 1: Point your domain",
+        "titleVerified": "DNS Configuration",
+        "description": "If you haven't already, create a CNAME record in your DNS that points your custom domain to the address below. This is required for traffic to be routed correctly.",
+        "descriptionVerified": "Your domain is verified and active. Keep this CNAME record in your DNS — it routes traffic from your custom domain to the portal.",
+        "recordType": "Record type",
+        "recordName": "Name/Host",
+        "target": "Target/Value",
+        "example": "Example: {domain} → CNAME → {target}"
+      },
+      "verification": {
+        "title": "Step 2: Verify ownership",
+        "instructions": "Add the following TXT record with your DNS provider to verify domain ownership:",
+        "recordType": "Record type",
+        "recordName": "Record name",
+        "recordValue": "Value",
+        "note": "It can take up to 24 hours for DNS changes to propagate. Click \"Verify\" after adding the record.",
+        "verify": "Verify domain",
+        "checking": "Checking...",
+        "verifiedAt": "Verified: {date}"
+      },
+      "status": {
+        "verified": "Verified",
+        "pending": "Pending verification",
+        "verifying": "Verifying...",
+        "unverified": "Unverified"
+      },
+      "success": {
+        "saved": "Domain settings saved.",
+        "removed": "Domain removed.",
+        "verified": "Domain verified!",
+        "copied": "Copied to clipboard."
+      },
+      "error": {
+        "fetchFailed": "Could not fetch domain information.",
+        "saveFailed": "Could not save domain.",
+        "removeFailed": "Could not remove domain.",
+        "verificationFailed": "DNS verification failed. Check that the TXT record exists and try again.",
+        "copyFailed": "Could not copy to clipboard."
+      },
+      "confirm": {
+        "remove": "Do you want to remove the custom domain? The default address will be used for login."
       }
     },
     "detail": {
@@ -1997,6 +2385,24 @@
         },
         "dangerZone": {
           "title": "Danger zone"
+        }
+      },
+      "quickLinks": {
+        "domain": {
+          "title": "Custom domain",
+          "description": "Configure custom login domain"
+        },
+        "branding": {
+          "title": "Branding",
+          "description": "Logos and accent colors"
+        },
+        "members": {
+          "title": "Members",
+          "description": "Manage users and roles"
+        },
+        "modules": {
+          "title": "Modules",
+          "description": "Enable and configure"
         }
       },
       "fields": {
@@ -2259,6 +2665,48 @@
       "checkAgain": "Check Again",
       "switchOrg": "Switch Organization",
       "logout": "Log Out"
+    }
+  },
+  "search": {
+    "noResults": "No results found.",
+    "navigate": "Navigate",
+    "select": "Open",
+    "close": "Close",
+    "hint": "Search...",
+    "categories": {
+      "modules": "Modules",
+      "pages": "Pages"
+    }
+  },
+  "legal": {
+    "termsTitle": "Terms of Service",
+    "privacyTitle": "Privacy Policy",
+    "lastUpdated": "Last updated",
+    "backToLogin": "Back to login",
+    "loginConsent": "By continuing, you agree to our {terms} and {privacy}.",
+    "termsLink": "Terms of Service",
+    "privacyLink": "Privacy Policy"
+  },
+  "apiScopes": {
+    "user:read": "Read user profile information",
+    "user:write": "Update user profile",
+    "org:read": "Read organization details",
+    "org:write": "Update organization settings",
+    "org:members:read": "Read organization members",
+    "org:members:write": "Manage organization members",
+    "modules:read": "Read module configuration",
+    "modules:write": "Update module configuration",
+    "admin:read": "Read administrative data",
+    "admin:write": "Perform administrative actions",
+    "groups": {
+      "user": "User",
+      "organization": "Organization",
+      "modules": "Modules",
+      "admin": "Administration"
+    },
+    "templates": {
+      "readOnly": "Read only",
+      "fullAccess": "Full access"
     }
   }
 }

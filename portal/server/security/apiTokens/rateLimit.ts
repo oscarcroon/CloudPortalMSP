@@ -149,7 +149,7 @@ export function checkApiTokenRateLimit(
 
   if (!isAllowed) {
     const retryAfter = tokenResult.retryAfter || orgResult.retryAfter || 60
-    setHeader(event, 'Retry-After', String(retryAfter))
+    setHeader(event, 'Retry-After', retryAfter)
 
     throw createError({
       statusCode: 429,

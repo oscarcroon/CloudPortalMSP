@@ -34,6 +34,7 @@
           <Icon icon="mdi:refresh" class="h-5 w-5" />
         </button>
         <NuxtLink
+          v-if="state.data?.moduleRights?.canManageApi"
           to="/cloudflare-dns/admin"
           class="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:border-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand/60 dark:border-slate-700 dark:text-slate-100"
         >
@@ -82,6 +83,7 @@
       :module-rights="state.data?.moduleRights ?? { canManageZones: false }"
       :loading="state.pending"
       @refresh="() => fetchZones(true)"
+      @export-zone="handleExportZone"
     />
 
     <div
@@ -120,7 +122,7 @@ import { useI18n } from '#imports'
 
 type ZonesResponse = {
   zones: any[]
-  moduleRights: { canManageZones: boolean; canEditRecords?: boolean; canManageAcls?: boolean; canManageOrgConfig?: boolean }
+  moduleRights: { canManageZones: boolean; canEditRecords?: boolean; canExport?: boolean; canManageApi?: boolean }
   fromCache?: boolean
   stale?: boolean
 }
@@ -144,15 +146,16 @@ const { t } = useI18n()
 
 const loadZones = async (forceRefresh = false): Promise<ZonesResponse> => {
   try {
-    const res = await $fetch<ZonesResponse>('/api/dns/cloudflare/zones', {
+    const res = await ($fetch as any)('/api/dns/cloudflare/zones', {
       query: forceRefresh ? { refresh: 'true' } : undefined
     })
     return res
   } catch (err: any) {
     const message = err?.data?.message ?? err?.message ?? 'Kunde inte hämta zoner.'
+    const rights = err?.data?.data?.moduleRights
     return {
       zones: [],
-      moduleRights: { canManageZones: false },
+      moduleRights: rights ?? { canManageZones: false },
       fromCache: false,
       stale: false,
       // @ts-expect-error keep for UI
@@ -167,7 +170,7 @@ const fetchZones = async (forceRefresh = false) => {
   const res = await loadZones(forceRefresh)
   if ((res as any).error) {
     state.error = (res as any).error
-    state.data = { zones: [], moduleRights: { canManageZones: false } }
+    state.data = { zones: [], moduleRights: res.moduleRights }
   } else {
     state.data = res
   }
@@ -203,6 +206,24 @@ const pagedZones = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return filteredZones.value.slice(start, start + pageSize)
 })
+
+const handleExportZone = async (zoneId: string, zoneName: string) => {
+  try {
+    const content = await ($fetch as any)(`/api/dns/cloudflare/zones/${zoneId}/export`, {
+      responseType: 'text'
+    }) as string
+    const fileName = `${(zoneName || zoneId).replace(/\./g, '_')}.txt`
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    console.error('[cloudflare-dns] export failed', err)
+  }
+}
 
 if (process.client) {
   onMounted(() => {

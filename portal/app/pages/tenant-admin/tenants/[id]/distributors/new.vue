@@ -98,7 +98,7 @@ const router = useRouter()
 const route = useRoute()
 const providerId = route.params.id as string
 
-const { data, pending } = await useFetch<AdminTenantDetail>(`/api/admin/tenants/${providerId}`)
+const { data, pending } = await (useFetch as any)(`/api/admin/tenants/${providerId}`)
 
 const providerName = computed(() => data.value?.tenant.name ?? 'Leverantör')
 
@@ -131,7 +131,7 @@ const handleSubmit = async () => {
       payload.owner.fullName = form.ownerFullName.trim()
     }
 
-    const response = await $fetch(`/api/admin/tenants/${providerId}/distributors`, {
+    const response = await ($fetch as any)(`/api/admin/tenants/${providerId}/distributors`, {
       method: 'POST',
       body: payload
     })

@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
   // Get hits over time (last 30 days)
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]!
 
   // Get redirect IDs for this zone
   const redirectIds = redirects.map(r => r.id)

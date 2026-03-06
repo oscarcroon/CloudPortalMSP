@@ -34,28 +34,37 @@ export const useModules = () => {
       }
 
       try {
-        const response = await $fetch<{ modules: VisibleModule[] }>(`/api/organizations/${orgId}/modules`, {
+        const response = await ($fetch as any)(`/api/organizations/${orgId}/modules/visible`, {
           credentials: 'include',
           headers: import.meta.server ? headers : undefined
-        })
+        }) as { modules: VisibleModule[] }
         const modules = response.modules || []
-        // Mappa API (ModuleStatusDto) till VisibleModule shape
-        return modules.map((m) => {
+        // Mappa API-svar till VisibleModule shape
+        // /modules/visible returnerar redan id och routePath direkt
+        // /modules returnerar key och rootRoute som behöver mappas
+        return modules.map((m: any) => {
+          // Hantera båda API-strukturerna (visible vs modules)
+          const id = m.id || m.key
+          const routePath = m.routePath || m.rootRoute
+          
           // Beräkna om modulen är disabled (avaktiverad eller coming-soon)
           // disabled = true betyder modulen är synlig men utgråad och icke-klickbar
-          // effectiveDisabled propageras nu korrekt från global -> tenant -> org nivå
-          const isDisabled = m.effectiveDisabled === true
+          const isDisabled = m.disabled === true || m.effectiveDisabled === true
+          
           // Use the resolved comingSoonMessage from backend (includes global/tenant/org)
           const comingSoonMsg = m.comingSoonMessage || m.effectivePolicy?.comingSoonMessage || null
           const isComingSoon = isDisabled && comingSoonMsg
           
           return {
             ...m,
-            id: m.key,
-            routePath: m.rootRoute,
-            badge: m.category,
+            id,
+            key: id,
+            routePath,
+            badge: m.badge || m.category,
             icon: m.icon,
             disabled: isDisabled,
+            // effectiveEnabled: alla returnerade moduler från /visible är enabled
+            effectiveEnabled: m.effectiveEnabled ?? true,
             comingSoonMessage: isComingSoon ? comingSoonMsg : null
           }
         })

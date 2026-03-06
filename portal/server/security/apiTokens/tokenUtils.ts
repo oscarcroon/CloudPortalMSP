@@ -183,7 +183,7 @@ export function parseApiToken(token: string): TokenParseResult | null {
   if (scheme !== TOKEN_PREFIX_SCHEME) return null
 
   // Validate prefix (base32, correct length)
-  if (prefix.length !== PREFIX_LENGTH) return null
+  if (!prefix || prefix.length !== PREFIX_LENGTH) return null
   if (!/^[A-Z2-7]+$/.test(prefix)) return null
 
   // Validate secret (base64url, reasonable length)

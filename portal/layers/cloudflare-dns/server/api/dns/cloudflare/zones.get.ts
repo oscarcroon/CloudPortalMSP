@@ -15,7 +15,12 @@ export default defineEventHandler(async (event) => {
 
   const orgId = auth.currentOrgId
   const orgRole = auth.orgRoles?.[orgId]
-  const moduleRights = await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
+  const isSuperAdmin = auth.user.isSuperAdmin === true
+
+  // For super admin, grant all module rights; for others, resolve from policy
+  const moduleRights = isSuperAdmin
+    ? { canView: true, canEditRecords: true, canExport: true, canImport: true, canManageZones: true, canManageApi: true, roles: [] as string[] }
+    : await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
 
   if (!moduleRights.canView) {
     throw createError({ statusCode: 403, message: 'Ingen behörighet att se Cloudflare-zoner.' })
@@ -23,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const forceRefresh =
-    query?.refresh === '1' || query?.refresh === 'true' || query?.refresh === true || query?.refresh === 'yes'
+    query?.refresh === '1' || query?.refresh === 'true' || query?.refresh === 'yes'
 
   // Always try cache first unless explicitly refreshed
   const cached = await getZoneCache(orgId)
@@ -40,22 +45,19 @@ export default defineEventHandler(async (event) => {
         canEdit: false,
         canManage: false,
         aclRestricted: false,
-        access: {
-          canManageAcls: false
-        }
       })),
       moduleRights: {
         canManageZones: moduleRights.canManageZones,
         canEditRecords: moduleRights.canEditRecords,
-        canManageAcls: moduleRights.canManageAcls,
-        canManageOrgConfig: moduleRights.canManageOrgConfig
+        canExport: moduleRights.canExport,
+        canManageApi: moduleRights.canManageApi
       },
       fromCache: true,
       stale: true
     }
   }
 
-  let zones = []
+  let zones: Array<{ id: string; name: string; status: string | null; plan: string | null; recordCount: number | null }> = []
   try {
     const client = await getClientForOrg(orgId)
     const res = await client.listZones()
@@ -73,7 +75,7 @@ export default defineEventHandler(async (event) => {
         } catch {
           // ignore count errors, keep null
         }
-        return { ...zone, recordCount }
+        return { id: zone.id, name: zone.name, status: zone.status ?? null, plan: zone.plan ?? null, recordCount }
       })
     )
 
@@ -101,22 +103,31 @@ export default defineEventHandler(async (event) => {
           canEdit: false,
           canManage: false,
           aclRestricted: false,
-          access: {
-            canManageAcls: false
-          }
         })),
         moduleRights: {
           canManageZones: moduleRights.canManageZones,
           canEditRecords: moduleRights.canEditRecords,
-          canManageAcls: moduleRights.canManageAcls,
-          canManageOrgConfig: moduleRights.canManageOrgConfig
+          canExport: moduleRights.canExport,
+          canManageApi: moduleRights.canManageApi
         },
         fromCache: true,
         stale: true,
         error: error?.message ?? 'Kunde inte hämta zoner från Cloudflare, visar cache.'
       }
     }
-    throw error
+    // No cache — still return moduleRights so the UI can show the admin button
+    throw createError({
+      statusCode: 400,
+      data: {
+        moduleRights: {
+          canManageZones: moduleRights.canManageZones,
+          canEditRecords: moduleRights.canEditRecords,
+          canExport: moduleRights.canExport,
+          canManageApi: moduleRights.canManageApi
+        }
+      },
+      message: error?.message ?? 'Kunde inte hämta zoner från Cloudflare.'
+    })
   }
 
   const result = []
@@ -134,10 +145,7 @@ export default defineEventHandler(async (event) => {
       effectiveRole: access.zoneRole,
       canEdit: access.canEditRecords,
       canManage: access.canManageZones,
-      aclRestricted: access.zoneRole !== null,
-      access: {
-        canManageAcls: access.canManageAcls
-      }
+      aclRestricted: access.zoneRole !== null
     })
   }
 
@@ -146,8 +154,8 @@ export default defineEventHandler(async (event) => {
     moduleRights: {
       canManageZones: moduleRights.canManageZones,
       canEditRecords: moduleRights.canEditRecords,
-      canManageAcls: moduleRights.canManageAcls,
-      canManageOrgConfig: moduleRights.canManageOrgConfig
+      canExport: moduleRights.canExport,
+      canManageApi: moduleRights.canManageApi
     }
   }
 })

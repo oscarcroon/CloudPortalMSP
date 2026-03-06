@@ -368,7 +368,7 @@ const loadInvitation = async () => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    const response = await $fetch<InvitationLookupResponse>(`/api/invite/${token.value}`)
+    const response = await ($fetch as any)(`/api/invite/${token.value}`)
     invitation.value = response.invitation
     tenantInfo.value = response.tenant ?? null
     organisationName.value = resolveInviteOrganizationName({
@@ -415,7 +415,7 @@ const submitRegistration = async () => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/invite/${token.value}/register`, {
+    await ($fetch as any)(`/api/invite/${token.value}/register`, {
       method: 'POST',
       body: {
         password: registrationForm.password,
@@ -454,7 +454,7 @@ const acceptInvitation = async () => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/invite/${token.value}/accept`, {
+    await ($fetch as any)(`/api/invite/${token.value}/accept`, {
       method: 'POST'
     })
     successMessage.value = t('invite.success.memberAdded')

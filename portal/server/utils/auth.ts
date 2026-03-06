@@ -457,9 +457,12 @@ export const buildAuthState = async (
       id: user.id,
       email: user.email,
       fullName: user.fullName,
+      profilePictureUrl: user.profilePictureUrl ?? null,
+      avatarPreference: (user.avatarPreference as 'sso' | 'initials') ?? 'sso',
       status: user.status,
       defaultOrgId: user.defaultOrgId,
       isSuperAdmin: Boolean(user.isSuperAdmin),
+      isMfaEnabled: Boolean(user.isMfaEnabled),
       forcePasswordReset: Boolean(user.forcePasswordReset),
       locale: (user.locale as SupportedLocaleCode) ?? DEFAULT_LOCALE
     },
@@ -607,6 +610,7 @@ export interface CreateUserWithOrgInput {
 export interface CreateUserForOrganizationInput {
   email: string
   fullName?: string
+  profilePictureUrl?: string
   organizationId: string
   role?: RbacRole
 }
@@ -615,44 +619,6 @@ export const createUserWithOrganization = async (
   input: CreateUserWithOrgInput
 ): Promise<{ userId: string; organizationId: string }> => {
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-  if (isSqlite) {
-    return db.transaction((tx) => {
-      const orgId = createId()
-      const userId = createId()
-      const organization: typeof organizations.$inferInsert = {
-        id: orgId,
-        name: input.organizationName,
-        slug: slugify(input.organizationName),
-        status: 'active'
-      }
-      tx.insert(organizations).values(organization).run()
-
-      const user: typeof users.$inferInsert = {
-        id: userId,
-        email: normalizeEmail(input.email),
-        passwordHash: input.passwordHash,
-        fullName: input.fullName,
-        status: 'active',
-        defaultOrgId: orgId
-      }
-      tx.insert(users).values(user).run()
-
-      tx.insert(organizationMemberships)
-        .values({
-          id: createId(),
-          organizationId: orgId,
-          userId,
-          role: 'owner',
-          status: 'active'
-        })
-        .run()
-
-      return { userId, organizationId: orgId }
-    })
-  }
-
   return db.transaction(async (tx) => {
     const orgId = createId()
     const userId = createId()
@@ -697,6 +663,7 @@ export const createUserForOrganization = async (
     id: userId,
     email: normalizedEmail,
     fullName: input.fullName,
+    profilePictureUrl: input.profilePictureUrl,
     status: 'active',
     defaultOrgId: input.organizationId
   })

@@ -55,7 +55,7 @@ import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({
   layout: false,
-  middleware: ['auth']
+  middleware: ['auth'] as any
 })
 
 const { t } = useI18n()

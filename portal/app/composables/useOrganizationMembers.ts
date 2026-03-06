@@ -26,14 +26,17 @@ export const useOrganizationMembers = () => {
     return id
   }
 
-  const fetchMembers = async () => {
+  // Cast api calls to avoid excessively deep type instantiation with Nitro route types
+  const apiFetch = api as any
+
+  const fetchMembers = async (): Promise<OrganizationMembersResponse> => {
     const organizationId = assertOrganizationId()
-    return api<OrganizationMembersResponse>(`/organizations/${organizationId}/members`)
+    return apiFetch(`/organizations/${organizationId}/members`)
   }
 
   const inviteMember = async (payload: InviteMemberPayload) => {
     const organizationId = assertOrganizationId()
-    return api(`/organizations/${organizationId}/members/invite`, {
+    return apiFetch(`/organizations/${organizationId}/members/invite`, {
       method: 'POST',
       body: payload
     })
@@ -41,21 +44,21 @@ export const useOrganizationMembers = () => {
 
   const cancelInvitation = async (invitationId: string) => {
     const organizationId = assertOrganizationId()
-    return api(`/organizations/${organizationId}/invitations/${invitationId}`, {
+    return apiFetch(`/organizations/${organizationId}/invitations/${invitationId}`, {
       method: 'DELETE'
     })
   }
 
   const resendInvitation = async (invitationId: string) => {
     const organizationId = assertOrganizationId()
-    return api(`/organizations/${organizationId}/invitations/${invitationId}/resend`, {
+    return apiFetch(`/organizations/${organizationId}/invitations/${invitationId}/resend`, {
       method: 'POST'
     })
   }
 
   const updateMemberRole = async (memberId: string, role: OrganizationMemberRole) => {
     const organizationId = assertOrganizationId()
-    return api(`/organizations/${organizationId}/members/${memberId}`, {
+    return apiFetch(`/organizations/${organizationId}/members/${memberId}`, {
       method: 'PATCH',
       body: { role }
     })
@@ -63,29 +66,29 @@ export const useOrganizationMembers = () => {
 
   const updateMemberStatus = async (memberId: string, status: OrganizationMemberStatus) => {
     const organizationId = assertOrganizationId()
-    return api(`/organizations/${organizationId}/members/${memberId}`, {
+    return apiFetch(`/organizations/${organizationId}/members/${memberId}`, {
       method: 'PATCH',
       body: { status }
     })
   }
 
-  const fetchMemberPermissionOverrides = async () => {
+  const fetchMemberPermissionOverrides = async (): Promise<{ organizationId: string; userIds: string[] }> => {
     const organizationId = assertOrganizationId()
-    return $fetch<{ organizationId: string; userIds: string[] }>(
+    return ($fetch as any)(
       `/api/organizations/${organizationId}/members/module-permission-overrides`
     )
   }
 
   const removeMember = async (memberId: string) => {
     const organizationId = assertOrganizationId()
-    return api(`/organizations/${organizationId}/members/${memberId}`, {
+    return apiFetch(`/organizations/${organizationId}/members/${memberId}`, {
       method: 'DELETE'
     })
   }
 
-  const fetchMemberModuleRoles = async (memberId: string) => {
+  const fetchMemberModuleRoles = async (memberId: string): Promise<MemberModuleRolesResponse> => {
     const organizationId = assertOrganizationId()
-    return $fetch<MemberModuleRolesResponse>(
+    return ($fetch as any)(
       `/api/organizations/${organizationId}/members/${memberId}/module-roles`
     )
   }
@@ -93,9 +96,9 @@ export const useOrganizationMembers = () => {
   const updateMemberModuleRoles = async (
     memberId: string,
     payload: UpdateMemberModuleRolesPayload
-  ) => {
+  ): Promise<MemberModuleRolesResponse> => {
     const organizationId = assertOrganizationId()
-    return $fetch<MemberModuleRolesResponse>(
+    return ($fetch as any)(
       `/api/organizations/${organizationId}/members/${memberId}/module-roles`,
       {
         method: 'PUT',
@@ -104,9 +107,9 @@ export const useOrganizationMembers = () => {
     )
   }
 
-  const fetchMemberModulePermissions = async (memberId: string, moduleId: string) => {
+  const fetchMemberModulePermissions = async (memberId: string, moduleId: string): Promise<MemberModulePermissionsResponse> => {
     const organizationId = assertOrganizationId()
-    return $fetch<MemberModulePermissionsResponse>(
+    return ($fetch as any)(
       `/api/organizations/${organizationId}/modules/${moduleId}/users/${memberId}`
     )
   }
@@ -115,9 +118,9 @@ export const useOrganizationMembers = () => {
     memberId: string,
     moduleId: string,
     payload: UpdateMemberModulePermissionsPayload
-  ) => {
+  ): Promise<MemberModulePermissionsResponse> => {
     const organizationId = assertOrganizationId()
-    return $fetch<MemberModulePermissionsResponse>(
+    return ($fetch as any)(
       `/api/organizations/${organizationId}/modules/${moduleId}/users/${memberId}`,
       {
         method: 'PUT',
@@ -142,5 +145,3 @@ export const useOrganizationMembers = () => {
     updateMemberModulePermissions
   }
 }
-
-

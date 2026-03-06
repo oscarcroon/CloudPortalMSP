@@ -6,6 +6,14 @@ import { createId } from '@paralleldrive/cuid2'
 import { ensureAuthState } from './session'
 import { getRequestId, logSecurity, logInfo, logWarn } from './logger'
 
+/**
+ * Core audit event types.
+ * These are defined in core and provide TypeScript autocomplete.
+ * 
+ * Layer-specific events (e.g. WINDOWS_DNS_*, CLOUDFLARE_*) are NOT defined here.
+ * Layers register their own event types via the audit registry.
+ * The (string & {}) pattern allows any string value while preserving autocomplete.
+ */
 export type AuditEventType =
   // Authentication & Security
   | 'LOGIN_SUCCESS'
@@ -30,6 +38,7 @@ export type AuditEventType =
   | 'INVITE_EXPIRED'
   | 'USER_REMOVED'
   | 'ROLE_CHANGED'
+  | 'STATUS_CHANGED'
   // Organizations
   | 'ORGANIZATION_CREATED'
   | 'ORGANIZATION_UPDATED'
@@ -59,6 +68,9 @@ export type AuditEventType =
   // Context & Other
   | 'CONTEXT_SWITCH'
   | 'BILLING_UPDATED'
+  // Layer events - allows any string for layer-defined events
+  // This enables layers to define their own events without modifying core
+  | (string & {})
 
 export type AuditSeverity = 'info' | 'warning' | 'error' | 'critical'
 
@@ -127,43 +139,22 @@ export const logAuditEvent = async (
   const sanitizedMeta = sanitizeMetadata(meta)
   
   // Insert into audit_logs table
-  const isSqlite = (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-  
-  if (isSqlite) {
-    db.insert(auditLogs).values({
-      id: createId(),
-      userId: userId || null,
-      eventType,
-      severity,
-      requestId,
-      endpoint: url.pathname,
-      method,
-      orgId: orgId || null,
-      tenantId: tenantId || null,
-      fromContext: fromContext ? JSON.stringify(fromContext) : null,
-      toContext: toContext ? JSON.stringify(toContext) : null,
-      ip: ip || undefined,
-      userAgent: userAgent || undefined,
-      meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
-    }).run()
-  } else {
-    await db.insert(auditLogs).values({
-      id: createId(),
-      userId: userId || null,
-      eventType,
-      severity,
-      requestId,
-      endpoint: url.pathname,
-      method,
-      orgId: orgId || null,
-      tenantId: tenantId || null,
-      fromContext: fromContext ? JSON.stringify(fromContext) : null,
-      toContext: toContext ? JSON.stringify(toContext) : null,
-      ip: ip || undefined,
-      userAgent: userAgent || undefined,
-      meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
-    })
-  }
+  await db.insert(auditLogs).values({
+    id: createId(),
+    userId: userId || null,
+    eventType,
+    severity,
+    requestId,
+    endpoint: url.pathname,
+    method,
+    orgId: orgId || null,
+    tenantId: tenantId || null,
+    fromContext: fromContext ? JSON.stringify(fromContext) : null,
+    toContext: toContext ? JSON.stringify(toContext) : null,
+    ip: ip || undefined,
+    userAgent: userAgent || undefined,
+    meta: sanitizedMeta ? JSON.stringify(sanitizedMeta) : undefined
+  })
   
   // Also log to structured logger for correlation
   const logMessage = `Audit event: ${eventType}`

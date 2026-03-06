@@ -52,7 +52,7 @@ export function parseSoaContent(content: unknown): ParsedSoa {
 
   // We need at least 7 tokens for a valid SOA
   if (tokens.length >= 7) {
-    const responsibleParty = tokens[1]
+    const responsibleParty = tokens[1]!
     // Convert DNS format (hostmaster.example.com.) to email (hostmaster@example.com)
     let responsiblePartyEmail: string | null = null
     if (responsibleParty && responsibleParty.includes('.')) {
@@ -64,14 +64,14 @@ export function parseSoaContent(content: unknown): ParsedSoa {
     }
 
     return {
-      primaryNs: tokens[0],
+      primaryNs: tokens[0]!,
       responsibleParty,
       responsiblePartyEmail,
-      serial: tokens[2],
-      refresh: tokens[3],
-      retry: tokens[4],
-      expire: tokens[5],
-      minimum: tokens[6],
+      serial: tokens[2]!,
+      refresh: tokens[3]!,
+      retry: tokens[4]!,
+      expire: tokens[5]!,
+      minimum: tokens[6]!,
       extra: tokens.slice(7),
       raw,
       isValid: true

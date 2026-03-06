@@ -164,7 +164,7 @@ const nextCursor = ref<string | null>(null)
 const hasMore = ref(false)
 const loadingMore = ref(false)
 
-const { data, pending, error } = await useFetch<NewsListResponse>(
+const { data, pending, error } = await (useFetch as any)(
   '/api/operations/news',
   {
     query: { limit: 10 },
@@ -197,7 +197,7 @@ async function loadMore() {
 
   loadingMore.value = true
   try {
-    const response = await $fetch<NewsListResponse>('/api/operations/news', {
+    const response = await ($fetch as any)('/api/operations/news', {
       query: { limit: 10, cursor: nextCursor.value },
       credentials: 'include'
     })

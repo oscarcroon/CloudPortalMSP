@@ -11,9 +11,6 @@
     "setup": "npm --prefix portal run setup",
     "install:all": "npm install && npm --prefix portal install"
   },
-  "dependencies": {
-    "better-sqlite3": "^12.4.1"
-  },
   "devDependencies": {
     "ts-node": "^10.9.2"
   }

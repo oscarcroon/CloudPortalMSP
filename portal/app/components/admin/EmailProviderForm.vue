@@ -635,7 +635,7 @@ const buildPayload = (): AdminEmailProviderPayload => {
       type: 'graph',
       tenantId: form.graph.tenantId.trim(),
       clientId: form.graph.clientId.trim(),
-      clientSecret: form.graph.clientSecret ? form.graph.clientSecret : undefined,
+      clientSecret: (form.graph.clientSecret ?? '') as string,
       scope: form.graph.scope || undefined,
       endpoint: form.graph.endpoint || undefined,
       senderUserId: form.graph.senderUserId || undefined

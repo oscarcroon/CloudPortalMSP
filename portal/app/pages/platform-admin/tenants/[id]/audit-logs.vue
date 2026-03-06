@@ -5,13 +5,13 @@
         :to="`/platform-admin/tenants/${tenantId}`"
         class="text-xs uppercase tracking-[0.3em] text-slate-400 transition hover:text-brand dark:text-slate-500"
       >
-        ← Tillbaka till tenant
+        ← {{ $t('admin.auditLogsPage.backToTenant') }}
       </NuxtLink>
       <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">Superadmin</p>
-        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">Audit Loggar - {{ tenant?.name ?? (tenantLoading ? 'Laddar...' : 'Okänd tenant') }}</h1>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500">{{ $t('nav.superadmin') }}</p>
+        <h1 class="text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ $t('admin.auditLogsPage.title') }} - {{ tenant?.name ?? (tenantLoading ? $t('admin.auditLogsPage.loading') : 'N/A') }}</h1>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Visa säkerhetshändelser och administrativa aktiviteter för denna tenant och dess organisationer.
+          {{ $t('admin.auditLogsPage.tenantSubtitle') }}
         </p>
       </div>
     </header>
@@ -21,9 +21,9 @@
       <div class="flex items-start gap-4">
         <Icon icon="mdi:lock-alert" class="h-6 w-6 text-red-600 dark:text-red-400" />
         <div>
-          <h2 class="text-lg font-semibold text-red-900 dark:text-red-100">Åtkomst nekad</h2>
+          <h2 class="text-lg font-semibold text-red-900 dark:text-red-100">{{ $t('admin.auditLogsPage.accessDenied.title') }}</h2>
           <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-            Du har inte behörighet att visa audit logs för denna tenant. Endast användare med admin- eller support-roll kan läsa audit logs.
+            {{ $t('admin.auditLogsPage.accessDenied.description') }}
           </p>
         </div>
       </div>
@@ -31,9 +31,9 @@
 
     <!-- Filters -->
     <div v-if="!accessDenied" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6" @submit.prevent="loadLogs">
+      <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7" @submit.prevent="loadLogs()">
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Kontext</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.context') }}</label>
           <select
             v-model="contextScope"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
@@ -45,23 +45,38 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Event Type</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.module') }}</label>
           <select
-            v-model="filters.eventType"
+            v-model="filters.moduleKey"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           >
-            <option value="">Alla</option>
-            <option v-for="type in eventTypes" :key="type" :value="type">{{ type }}</option>
+            <option value="">{{ $t('admin.auditLogsPage.filters.allModules') }}</option>
+            <option v-for="mod in auditModules" :key="mod.moduleKey" :value="mod.moduleKey">
+              {{ mod.moduleName }}
+            </option>
           </select>
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Severity</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.eventType') }}</label>
+          <select
+            v-model="filters.eventType"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+          >
+            <option value="">{{ $t('admin.auditLogsPage.filters.all') }}</option>
+            <option v-for="et in filteredEventTypes" :key="et.type" :value="et.type">
+              {{ et.label }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.severity') }}</label>
           <select
             v-model="filters.severity"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
           >
-            <option value="">Alla</option>
+            <option value="">{{ $t('admin.auditLogsPage.filters.all') }}</option>
             <option value="info">Info</option>
             <option value="warning">Warning</option>
             <option value="error">Error</option>
@@ -70,7 +85,7 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Från datum</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.fromDate') }}</label>
           <input
             v-model="filters.startDate"
             type="date"
@@ -79,7 +94,7 @@
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">Till datum</label>
+          <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ $t('admin.auditLogsPage.filters.toDate') }}</label>
           <input
             v-model="filters.endDate"
             type="date"
@@ -92,21 +107,21 @@
             type="submit"
             class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
           >
-            Filtrera
+            {{ $t('admin.auditLogsPage.filters.filter') }}
           </button>
           <button
             type="button"
             class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
             @click="clearFilters"
           >
-            Rensa
+            {{ $t('admin.auditLogsPage.filters.clear') }}
           </button>
         </div>
       </form>
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading && !accessDenied" class="text-center text-slate-600 dark:text-slate-400">Laddar...</div>
+    <div v-if="loading && !accessDenied" class="text-center text-slate-600 dark:text-slate-400">{{ $t('admin.auditLogsPage.loading') }}</div>
 
     <!-- Logs table -->
     <div v-else-if="!accessDenied" class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
@@ -197,46 +212,19 @@
     </div>
 
     <!-- Details modal -->
-    <div
+    <AuditLogDetailsModal
       v-if="selectedLog"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      @click.self="selectedLog = null"
-    >
-      <div class="max-w-2xl rounded-xl border border-slate-200 bg-white shadow-lg dark:border-white/10 dark:bg-slate-900">
-        <div class="border-b border-slate-200 p-4 dark:border-white/10">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Logg Detaljer</h2>
-            <button
-              class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              @click="selectedLog = null"
-            >
-              <Icon icon="mdi:close" class="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-        <div class="p-4 space-y-4">
-          <div>
-            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Event Type</label>
-            <p class="mt-1 font-mono text-sm text-slate-900 dark:text-white">{{ selectedLog.eventType }}</p>
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Request ID</label>
-            <p class="mt-1 font-mono text-sm text-slate-900 dark:text-white">{{ selectedLog.requestId }}</p>
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Metadata</label>
-            <pre class="mt-1 overflow-auto rounded-lg bg-slate-100 p-3 text-xs text-slate-900 dark:bg-slate-800 dark:text-white">{{ JSON.stringify(selectedLog.meta, null, 2) }}</pre>
-          </div>
-        </div>
-      </div>
-    </div>
+      v-model="showDetailsModal"
+      :log="selectedLog"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from '#imports'
 import { Icon } from '@iconify/vue'
-import type { AuditEventType } from '~~/server/utils/audit'
+
+const { t } = useI18n()
 
 definePageMeta({
   // Tenant admins can access audit logs for their tenant
@@ -292,52 +280,63 @@ const tenantLoading = ref(true)
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
+const showDetailsModal = ref(false)
 const pagination = ref<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
 const accessDenied = ref(false)
 const hasProviders = ref(false)
 const hasOrganizations = ref(false)
 const contextScope = ref<ContextScope>(parseContextScope(route.query.contextScope))
 
-const eventTypes: AuditEventType[] = [
-  'LOGIN_SUCCESS',
-  'LOGIN_FAILED',
-  'LOGOUT',
-  'USER_CREATED',
-  'USER_UPDATED',
-  'USER_DELETED',
-  'USER_INVITED',
-  'INVITE_ACCEPTED',
-  'INVITE_CANCELLED',
-  'INVITE_EXPIRED',
-  'USER_REMOVED',
-  'ROLE_CHANGED',
-  'ORGANIZATION_CREATED',
-  'ORGANIZATION_UPDATED',
-  'ORGANIZATION_DELETED',
-  'TENANT_CREATED',
-  'TENANT_UPDATED',
-  'TENANT_DELETED',
-  'PERMISSION_DENIED',
-  'RATE_LIMIT_EXCEEDED',
-  'MODULE_ENABLED',
-  'MODULE_DISABLED'
-]
+// Audit modules and event types fetched from API
+interface AuditEventOption {
+  type: string
+  label: string
+}
+
+interface AuditModule {
+  moduleKey: string
+  moduleName: string
+  eventTypes: AuditEventOption[]
+}
+
+const auditModules = ref<AuditModule[]>([])
+
+// Filtered event types based on selected module
+const filteredEventTypes = computed(() => {
+  if (!filters.value.moduleKey) {
+    // Return all event types from all modules
+    return auditModules.value.flatMap(m => m.eventTypes)
+  }
+  // Return only event types from selected module
+  const selectedModule = auditModules.value.find(m => m.moduleKey === filters.value.moduleKey)
+  return selectedModule?.eventTypes ?? []
+})
+
+const loadAuditModules = async () => {
+  try {
+    const response = await ($fetch as any)('/api/admin/audit-logs/event-types?locale=sv')
+    auditModules.value = response.modules || []
+  } catch (error) {
+    console.error('Failed to load audit modules', error)
+    auditModules.value = []
+  }
+}
 
 const contextOptions = computed(() => {
   const options: { value: ContextScope; label: string }[] = [
-    { value: 'all', label: 'Alla kontexter' },
-    { value: 'tenant', label: 'Endast denna tenant' }
+    { value: 'all', label: t('admin.auditLogsPage.filters.allContexts') },
+    { value: 'tenant', label: t('admin.auditLogsPage.filters.tenantOnly') }
   ]
 
   if (tenant.value?.type === 'distributor') {
     if (hasProviders.value) {
-      options.push({ value: 'providers', label: 'Endast leverantörer' })
+      options.push({ value: 'providers', label: t('admin.auditLogsPage.filters.providersOnly') })
     }
     if (hasOrganizations.value) {
-      options.push({ value: 'organizations', label: 'Endast organisationer' })
+      options.push({ value: 'organizations', label: t('admin.auditLogsPage.filters.organizationsOnly') })
     }
   } else if (tenant.value?.type === 'provider' && hasOrganizations.value) {
-    options.push({ value: 'organizations', label: 'Endast organisationer' })
+    options.push({ value: 'organizations', label: t('admin.auditLogsPage.filters.organizationsOnly') })
   }
 
   return options
@@ -387,22 +386,24 @@ const getDefaultDates = () => {
 const defaultDates = getDefaultDates()
 
 const filters = ref({
+  moduleKey: '',
   eventType: '',
   severity: '',
   startDate: defaultDates.startDate,
   endDate: defaultDates.endDate
 })
 
+// Clear eventType when module changes
+watch(() => filters.value.moduleKey, () => {
+  filters.value.eventType = ''
+})
+
 const loadTenant = async () => {
   tenantLoading.value = true
   try {
-    const data = await $fetch<{
-      tenant: TenantSummary
-      linkedTenants?: { id: string; type: TenantSummary['type'] }[]
-      organizations?: { id: string }[]
-    }>(`/api/admin/tenants/${tenantId}`)
+    const data = await ($fetch as any)(`/api/admin/tenants/${tenantId}`)
     tenant.value = data.tenant
-    hasProviders.value = (data.linkedTenants ?? []).some(link => link.type === 'provider')
+    hasProviders.value = (data.linkedTenants ?? []).some((link: any) => link.type === 'provider')
     hasOrganizations.value =
       data.tenant.type === 'distributor'
         ? hasProviders.value
@@ -439,13 +440,14 @@ const loadLogs = async (page = 1) => {
     })
     
     params.append('contextScope', contextScope.value)
+    if (filters.value.moduleKey) params.append('moduleKey', filters.value.moduleKey)
     if (filters.value.eventType) params.append('eventType', filters.value.eventType)
     if (filters.value.severity) params.append('severity', filters.value.severity)
     if (filters.value.startDate) params.append('startDate', filters.value.startDate)
     if (filters.value.endDate) params.append('endDate', filters.value.endDate)
     syncRouteContextScope()
     
-    const response = await $fetch<{ logs: AuditLog[]; pagination: any }>(`/api/admin/tenants/${tenantId}/audit-logs?${params}`)
+    const response = await ($fetch as any)(`/api/admin/tenants/${tenantId}/audit-logs?${params}`)
     logs.value = response.logs
     pagination.value = response.pagination
   } catch (error: any) {
@@ -461,6 +463,7 @@ const loadLogs = async (page = 1) => {
 const clearFilters = () => {
   const dates = getDefaultDates()
   filters.value = {
+    moduleKey: '',
     eventType: '',
     severity: '',
     startDate: dates.startDate,
@@ -476,6 +479,7 @@ const changePage = (page: number) => {
 
 const showDetails = (log: AuditLog) => {
   selectedLog.value = log
+  showDetailsModal.value = true
 }
 
 const formatDate = (date: Date | string) => {
@@ -491,7 +495,10 @@ const formatDate = (date: Date | string) => {
 }
 
 onMounted(async () => {
-  await loadTenant()
+  await Promise.all([
+    loadTenant(),
+    loadAuditModules()
+  ])
   loadLogs()
 })
 </script>

@@ -12,7 +12,7 @@ import { getDb } from './db'
 import { getModuleById, getModulesByScope } from '~/lib/modules'
 import type { ModuleId } from '~/constants/modules'
 import { getModulePermissions } from '~/constants/modules'
-import type { ModulePolicy, ModuleStatusDto, PolicyMode } from '~/types/modules'
+import type { DefaultOrgState, ModulePolicy, ModuleStatusDto, PolicyMode } from '~/types/modules'
 import { getAllPluginModules } from '~~/server/lib/plugin-registry/registry'
 import type { ModuleScope } from '~/lib/module-registry'
 
@@ -80,7 +80,9 @@ const toPolicy = (
     permissionOverrides: parsePermissionOverrides(rowAny.permissionOverrides ?? null),
     enabled: enabledValue,
     disabled: disabledValue,
-    comingSoonMessage: rowAny.comingSoonMessage ?? null
+    comingSoonMessage: rowAny.comingSoonMessage ?? null,
+    defaultOrgState: (rowAny.defaultOrgState as DefaultOrgState) ?? undefined,
+    defaultOrgComingSoonMessage: rowAny.defaultOrgComingSoonMessage ?? undefined
   }
 }
 
@@ -331,7 +333,9 @@ const upsertTenantPolicy = async (tenantId: string, moduleId: ModuleId, policy: 
     enabled: policy.enabled ?? (policy.mode !== 'blocked'),
     disabled: policy.disabled ?? false,
     comingSoonMessage: policy.comingSoonMessage ?? null,
-    permissionOverrides: policy.permissionOverrides ? JSON.stringify(policy.permissionOverrides) : null
+    permissionOverrides: policy.permissionOverrides ? JSON.stringify(policy.permissionOverrides) : null,
+    defaultOrgState: policy.defaultOrgState ?? 'disabled',
+    defaultOrgComingSoonMessage: policy.defaultOrgComingSoonMessage ?? null
   }
 
   if (existing) {
@@ -712,5 +716,25 @@ export const isModulePermissionAllowed = async (
   }
 
   return allowedPermissions.has(permission)
+}
+
+export const getTenantModuleDefaults = async (
+  tenantId: string
+): Promise<Map<string, { defaultOrgState: DefaultOrgState; defaultOrgComingSoonMessage: string | null }>> => {
+  const db = getDb()
+  const rows = await db
+    .select()
+    .from(tenantModulePolicies)
+    .where(eq(tenantModulePolicies.tenantId, tenantId))
+
+  const defaults = new Map<string, { defaultOrgState: DefaultOrgState; defaultOrgComingSoonMessage: string | null }>()
+  for (const row of rows) {
+    const state = (row.defaultOrgState as DefaultOrgState) || 'disabled'
+    defaults.set(row.moduleId, {
+      defaultOrgState: state,
+      defaultOrgComingSoonMessage: row.defaultOrgComingSoonMessage ?? null
+    })
+  }
+  return defaults
 }
 

@@ -7,9 +7,12 @@ export interface AuthUser {
   id: string
   email: string
   fullName?: string | null
+  profilePictureUrl?: string | null
+  avatarPreference: 'sso' | 'initials'
   status: string
   defaultOrgId?: string | null
   isSuperAdmin: boolean
+  isMfaEnabled: boolean
   forcePasswordReset: boolean
   locale: SupportedLocaleCode
 }

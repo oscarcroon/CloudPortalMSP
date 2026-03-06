@@ -345,7 +345,6 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
   // Core routes handle context changes reactively or don't depend on organization context
   // Everything else (module/layer pages) will trigger a full page reload
   const coreRoutes = [
-    '/admin/',           // Admin pages handle context via their own logic
     '/tenant-admin',     // Tenant admin pages
     '/settings/',        // Settings pages are reactive
     '/profile',          // Profile is user-specific, not org-specific
@@ -369,20 +368,9 @@ async function navigateAfterContextChange(payload: { tenantId?: string | null; o
   }
 
   if (payload.organizationId) {
-    if (isSuperAdminUser) {
-      const org = auth.organizations.value.find(o => o.id === payload.organizationId)
-      if (org) {
-        // Only redirect if we are on an org-specific admin route so view matches context
-        if (currentPath.includes('/admin/organizations/')) {
-          await router.push(`/admin/organizations/${org.slug}/overview`)
-        }
-        // Otherwise stay on current route; reactive data will follow context
-        return
-      }
-    } else {
-      // For regular users, stay on current route and rely on middleware/auth to handle access
-      return
-    }
+    // Stay on current route and rely on middleware/auth to handle access
+    // Reactive data will follow context change
+    return
   }
 }
 
@@ -397,11 +385,11 @@ function toggle() {
 
 async function loadContextOptions() {
   try {
-    const data = await $fetch<{
+    const data = await ($fetch as any)('/api/auth/context-options', { credentials: 'include' }) as {
       tenants: AuthTenant[]
       organizations: AuthOrganization[]
       tenantOrganizations: Record<string, AuthOrganization[]>
-    }>('/api/auth/context-options', { credentials: 'include' })
+    }
     
     contextTenants.value = data.tenants
     contextOrganizations.value = data.organizations
@@ -589,7 +577,7 @@ function mixColor(baseHex: string, targetHex: string, amount: number) {
   const base = hexToRgbArray(baseHex)
   const target = hexToRgbArray(targetHex)
   const mixed = base.map((channel, index) =>
-    Math.round(channel + (target[index] - channel) * amount)
+    Math.round(channel + ((target[index] ?? channel) - channel) * amount)
   )
   return `rgb(${mixed.join(', ')})`
 }
@@ -635,12 +623,12 @@ function buildTenantOrgMapFromOrganizations(orgs: AuthOrganization[]) {
       if (!map[org.tenantId]) {
         map[org.tenantId] = []
       }
-      map[org.tenantId].push(org)
+      map[org.tenantId]!.push(org)
     }
     // If user doesn't have membership in the tenant, the organization will be shown as standalone
   }
   for (const tenantId of Object.keys(map)) {
-    map[tenantId] = dedupeOrganizations(map[tenantId]).sort((a, b) =>
+    map[tenantId] = dedupeOrganizations(map[tenantId]!).sort((a, b) =>
       a.name.localeCompare(b.name)
     )
   }

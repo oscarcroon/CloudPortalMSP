@@ -365,24 +365,24 @@ interface IncidentDetail {
   title: string
   bodyMarkdown: string | null
   severity: 'critical' | 'outage' | 'notice' | 'maintenance' | 'planned'
-  status: 'active' | 'resolved'
+  status: 'active' | 'resolved' | 'archived'
   startsAt: string | null
   endsAt: string | null
 }
 
-const { data, pending, refresh } = useFetch<{ incident: IncidentDetail }>(
+const { data, pending, refresh } = (useFetch as any)(
   () => tenantId.value ? `/api/admin/tenants/${tenantId.value}/incidents?filter=all` : '',
   {
     immediate: !!tenantId.value,
     watch: [tenantId],
     transform: (response: { incidents: IncidentDetail[] }) => {
-      const found = response.incidents.find(i => i.id === incidentId.value)
-      return { incident: found }
+      const found = response.incidents.find((i: IncidentDetail) => i.id === incidentId.value)
+      return { incident: found as IncidentDetail | undefined }
     }
   }
 )
 
-const incident = computed(() => data.value?.incident)
+const incident = computed(() => (data.value as { incident: IncidentDetail | undefined } | null)?.incident)
 
 const form = ref({
   title: '',
@@ -580,7 +580,7 @@ async function handleSubmit() {
       payload.endsAt = null
     }
 
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}`, {
       method: 'PUT',
       body: payload,
       credentials: 'include'
@@ -599,7 +599,7 @@ async function resolveIncident() {
   statusChanging.value = true
   error.value = null
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/resolve`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/resolve`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -616,7 +616,7 @@ async function reactivateIncident() {
   statusChanging.value = true
   error.value = null
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/reactivate`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/reactivate`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -633,7 +633,7 @@ async function archiveIncident() {
   actionProcessing.value = true
   error.value = null
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/archive`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/archive`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -650,7 +650,7 @@ async function unarchiveIncident() {
   statusChanging.value = true
   error.value = null
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/unarchive`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}/unarchive`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -671,7 +671,7 @@ async function deleteIncident() {
   actionProcessing.value = true
   error.value = null
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/incidents/${incidentId.value}`, {
       method: 'DELETE',
       credentials: 'include'
     })

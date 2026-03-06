@@ -16,6 +16,7 @@ import {
   untrackManagedRecord
 } from '@windows-dns-redirects/server/utils/dnsPlanRedirectRecords'
 import { hostToZoneRecordName } from '@windows-dns-redirects/server/utils/normalizeHost'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -57,7 +58,7 @@ export default defineEventHandler(async (event) => {
   const zoneName = allowedZone.zoneName || ''
   const body = await readBody<{ ids: string[] }>(event)
 
-  if (!body.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
+  if (!body?.ids || !Array.isArray(body.ids) || body.ids.length === 0) {
     throw createError({ statusCode: 400, message: 'ids array is required.' })
   }
 
@@ -175,6 +176,16 @@ export default defineEventHandler(async (event) => {
   await db
     .delete(windowsDnsRedirects)
     .where(inArray(windowsDnsRedirects.id, body.ids))
+
+  // Log audit event for bulk delete (do not log redirect contents)
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECTS_BULK_DELETED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    zoneId,
+    zoneName,
+    deletedCount: body.ids.length,
+    deletedIds: body.ids
+  })
 
   return {
     success: true,

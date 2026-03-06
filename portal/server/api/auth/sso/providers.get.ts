@@ -1,11 +1,13 @@
-﻿import { inArray } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { defineEventHandler, getQuery } from 'h3'
 import { z } from 'zod'
-import { listOrganizationsForEmail } from '../../../utils/auth'
-import type { AuthOrganization } from '~~/server/types/auth'
+import { findUserByEmail } from '../../../utils/auth'
 import { getDb } from '~~/server/utils/db'
-import { organizationAuthSettings } from '~~/server/database/schema'
-import type { OrganizationIdpType } from '~/types/admin'
+import {
+  organizationAuthSettings,
+  organizationSsoDomains,
+  organizations
+} from '~~/server/database/schema'
 import { hasConfiguredIdp, parseIdpConfigString } from '~~/server/utils/idp'
 
 const querySchema = z.object({
@@ -14,51 +16,55 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { email } = querySchema.parse(getQuery(event))
-  const { user, organizations } = await listOrganizationsForEmail(email)
-  const orgIds = organizations.map((org: AuthOrganization) => org.id)
+  const user = await findUserByEmail(email)
   const db = getDb()
-  let authMap: Record<
-    string,
-    { idpType: OrganizationIdpType; idpConfig: Record<string, unknown> | null }
-  > = {}
 
-  if (orgIds.length) {
-    const authRows = await db
-      .select({
-        organizationId: organizationAuthSettings.organizationId,
-        idpType: organizationAuthSettings.idpType,
-        idpConfig: organizationAuthSettings.idpConfig
-      })
-      .from(organizationAuthSettings)
-      .where(inArray(organizationAuthSettings.organizationId, orgIds))
-
-    authMap = authRows.reduce<typeof authMap>((acc, row) => {
-      acc[row.organizationId] = {
-        idpType: row.idpType as OrganizationIdpType,
-        idpConfig: parseIdpConfigString(row.idpConfig)
-      }
-      return acc
-    }, {})
+  // Extract domain from email
+  const emailDomain = email.split('@')[1]?.toLowerCase()
+  if (!emailDomain) {
+    return {
+      userExists: Boolean(user),
+      requiresSso: false,
+      identityProviders: []
+    }
   }
 
-  const identityProviders = organizations
-    .map((org: AuthOrganization) => {
-      const authInfo = authMap[org.id]
-      if (!authInfo) {
-        return null
-      }
-      if (!hasConfiguredIdp(authInfo.idpType, authInfo.idpConfig)) {
-        return null
-      }
+  // Look up verified SSO domains matching the email domain
+  const ssoDomainRows = await db
+    .select({
+      org: organizations,
+      auth: organizationAuthSettings,
+      ssoDomain: organizationSsoDomains
+    })
+    .from(organizationSsoDomains)
+    .innerJoin(organizations, eq(organizations.id, organizationSsoDomains.organizationId))
+    .leftJoin(
+      organizationAuthSettings,
+      eq(organizationAuthSettings.organizationId, organizations.id)
+    )
+    .where(
+      and(
+        eq(organizationSsoDomains.domain, emailDomain),
+        eq(organizationSsoDomains.verificationStatus, 'verified')
+      )
+    )
+
+  const identityProviders = ssoDomainRows
+    .map((row) => {
+      if (!row.auth) return null
+      const idpConfig = parseIdpConfigString(row.auth.idpConfig)
+      if (!hasConfiguredIdp(row.auth.idpType as any, idpConfig)) return null
+
       const provider =
-        authInfo.idpType === 'oidc' && authInfo.idpConfig
-          ? ((authInfo.idpConfig.provider as string) ?? 'oidc')
-          : authInfo.idpType
+        row.auth.idpType === 'oidc' && idpConfig
+          ? ((idpConfig.provider as string) ?? 'oidc')
+          : row.auth.idpType
+
       return {
-        organizationId: org.id,
-        organizationName: org.name,
-        slug: org.slug,
-        requireSso: org.requireSso,
+        organizationId: row.org.id,
+        organizationName: row.org.name,
+        slug: row.org.slug,
+        requireSso: Boolean(row.org.requireSso),
         provider
       }
     })
@@ -66,15 +72,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     userExists: Boolean(user),
-    organizations: organizations.map((org: AuthOrganization) => ({
-      id: org.id,
-      name: org.name,
-      requireSso: org.requireSso,
-      slug: org.slug
-    })),
-    requiresSso: organizations.some((org) => org.requireSso),
+    requiresSso: identityProviders.some((p) => p.requireSso),
     identityProviders
   }
 })
-
-

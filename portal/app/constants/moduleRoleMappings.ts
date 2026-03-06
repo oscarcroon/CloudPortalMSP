@@ -23,6 +23,10 @@ export const rbacModuleRoleDefaults: Record<RbacRole, ModuleRoleDefaults> = {
   viewer: {
     cloudflare: ['dns-reader'],
     vms: ['vms-reader']
+  },
+  support: {
+    cloudflare: ['dns-reader'],
+    vms: ['vms-reader']
   }
 }
 

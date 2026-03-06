@@ -17,7 +17,8 @@ import {
   isDnsIntegrationEnabled,
   trackManagedRecord
 } from '@windows-dns-redirects/server/utils/dnsPlanRedirectRecords'
-import type { WindowsDnsRedirectUpdateInput } from '../../../../types'
+import { logAuditEvent } from '~~/server/utils/audit'
+import type { WindowsDnsRedirectUpdateInput } from '@windows-dns-redirects/types'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -81,7 +82,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<WindowsDnsRedirectUpdateInput>(event)
-  const applyDnsChanges = body?.applyDnsChanges === true
+  if (!body) {
+    throw createError({ statusCode: 400, message: 'Request body is required.' })
+  }
+  const applyDnsChanges = body.applyDnsChanges === true
 
   // Build update object
   const updateData: Record<string, any> = {
@@ -210,7 +214,7 @@ export default defineEventHandler(async (event) => {
         data: {
           code: 'DNS_RECORD_CONFLICT',
           recordName: plan.recordName,
-          before: plan.conflicts.map(c => c.existing).filter(Boolean),
+          before: plan.conflicts.map(c => c.existing).filter((e): e is NonNullable<typeof e> => !!e),
           after: plan.entries
             .filter(e => e.action === 'create')
             .map(e => ({
@@ -284,11 +288,33 @@ export default defineEventHandler(async (event) => {
   }
 
   // Update the redirect
-  const [redirect] = await db
+  await db
     .update(windowsDnsRedirects)
     .set(updateData)
     .where(eq(windowsDnsRedirects.id, redirectId))
-    .returning()
+
+  const [redirect] = await db
+    .select()
+    .from(windowsDnsRedirects)
+    .where(eq(windowsDnsRedirects.id, redirectId))
+    .limit(1)
+
+  if (!redirect) {
+    throw createError({ statusCode: 404, message: 'Redirect not found after update.' })
+  }
+
+  // Log audit event for redirect update (do not log destinationUrl)
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECT_UPDATED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    entityId: redirectId,
+    zoneId,
+    zoneName,
+    host: redirect.host,
+    sourcePath: redirect.sourcePath,
+    redirectType: redirect.redirectType,
+    statusCode: redirect.statusCode
+  })
 
   return {
     redirect: {

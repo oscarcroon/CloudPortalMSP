@@ -9,6 +9,7 @@ import { useAuth } from '~/composables/useAuth'
 type MetaBreadcrumb =
   | false
   | BreadcrumbItem
+  | ((route: RouteLocationNormalizedLoaded) => string)
   | {
       label?: string | ((route: RouteLocationNormalizedLoaded) => string)
       icon?: string
@@ -38,8 +39,7 @@ const resolveMetaBreadcrumb = (
     return {
       label: label ?? '',
       icon: metaValue.icon,
-      to: metaValue.to,
-      hideLink: metaValue.hideLink
+      to: (metaValue as any).hideLink ? undefined : metaValue.to
     }
   }
   return null
@@ -83,7 +83,7 @@ export const useBreadcrumbs = () => {
     let accumulatedPath = ''
 
     for (let i = 0; i < pathSegments.length; i++) {
-      const segment = pathSegments[i]
+      const segment = pathSegments[i]!
       accumulatedPath += `/${segment}`
 
       let crumb: BreadcrumbItem | null = null
@@ -157,7 +157,7 @@ export const useBreadcrumbs = () => {
         }
       }
 
-      if (!crumb.label) continue
+      if (!crumb || !crumb.label) continue
 
       // Avoid duplicate crumbs
       if (crumbs.some((c) => c.to === accumulatedPath)) continue
@@ -174,7 +174,7 @@ export const useBreadcrumbs = () => {
     // Check if last crumb should be overridden by page meta
     const metaCrumb = resolveMetaBreadcrumb(route)
     if (metaCrumb && metaCrumb.label && crumbs.length > 1) {
-      const last = crumbs[crumbs.length - 1]
+      const last = crumbs[crumbs.length - 1]!
       last.label = metaCrumb.label
       // Only override icon if meta explicitly provides one, otherwise keep the context icon
       if (metaCrumb.icon) {
@@ -184,10 +184,9 @@ export const useBreadcrumbs = () => {
 
     // Ensure icons are correct for entity detail pages (after meta override)
     if (crumbs.length > 1) {
-      const last = crumbs[crumbs.length - 1]
-      const lastSegment = pathSegments[pathSegments.length - 1]
+      const last = crumbs[crumbs.length - 1]!
       const prevSegment = pathSegments[pathSegments.length - 2]
-      
+
       // For tenants and organizations, ensure icon matches list page
       if (prevSegment === 'tenants') {
         last.icon = 'mdi:office-building-outline'
@@ -198,7 +197,7 @@ export const useBreadcrumbs = () => {
 
     // Ensure last crumb is not a link
     if (crumbs.length > 1) {
-      const last = crumbs[crumbs.length - 1]
+      const last = crumbs[crumbs.length - 1]!
       delete last.to
     }
 
@@ -284,7 +283,7 @@ function getContextIcon(segment: string | undefined): string | undefined {
     organizations: 'mdi:domain', // Same as /tenant-admin/organizations
     users: 'mdi:account-outline',
     dns: 'mdi:globe',
-    'cloudflare-dns': 'mdi:globe',
+    'cloudflare-dns': 'mdi:cloud-outline',
     distributors: 'mdi:city', // Match context switcher
     providers: 'mdi:store', // Match context switcher
     members: 'mdi:account-outline',

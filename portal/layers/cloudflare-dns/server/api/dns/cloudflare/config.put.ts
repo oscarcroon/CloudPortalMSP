@@ -3,6 +3,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getCloudflareDnsModuleAccessForUser } from '@cloudflare-dns/server/lib/cloudflare-dns/access'
 import { saveOrgConfig, updateValidationStatus } from '@cloudflare-dns/server/lib/cloudflare-dns/org-config'
 import { CloudflareClient } from '@cloudflare-dns/server/lib/cloudflare-dns/client'
+import { logAuditEvent } from '~~/server/utils/audit'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -11,12 +12,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const orgId = auth.currentOrgId
-  const access = await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
-  if (!access.canManageOrgConfig) {
-    throw createError({
-      statusCode: 403,
-      message: 'Saknar behörighet att hantera Cloudflare-konfiguration.'
-    })
+
+  // Super admin bypass (consistent with requireModulePermission)
+  if (!auth.user.isSuperAdmin) {
+    const access = await getCloudflareDnsModuleAccessForUser(orgId, auth.user.id)
+    if (!access.canManageApi) {
+      throw createError({
+        statusCode: 403,
+        message: 'Saknar behörighet att hantera Cloudflare-konfiguration.'
+      })
+    }
   }
 
   const body = await readBody<{ apiToken?: string; accountId?: string | null }>(event)
@@ -55,6 +60,15 @@ export default defineEventHandler(async (event) => {
       message
     })
   }
+
+  // Audit log (do NOT log the actual token)
+  await logAuditEvent(event, 'CLOUDFLARE_DNS_CONFIG_UPDATED', {
+    moduleKey: 'cloudflare-dns',
+    entityType: 'config',
+    accountId: saved.accountId ?? null,
+    tokenMasked: saved.tokenMasked,
+    validated: !!lastValidatedAt
+  })
 
   return {
     ok: true,

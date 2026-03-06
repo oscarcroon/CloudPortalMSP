@@ -7,8 +7,24 @@ import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/window
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
 import { assertNotSoa, assertRecordNotSoa, isSoaType } from '@windows-dns/server/utils/assert-not-soa'
+import { logAuditEvent } from '~~/server/utils/audit'
+import { buildDnsRecordAuditMeta, hasChanges, buildChanges } from '~~/server/utils/audit-diff'
 
 const MAX_COMMENT_LENGTH = 2000
+
+/**
+ * Check if a record name represents the reserved COREID marker subdomain.
+ */
+function isCoreIdMarkerRecord(recordName: string, zoneName?: string): boolean {
+  const name = recordName.toLowerCase().replace(/\.$/, '')
+  if (name === '_coreid') return true
+  if (zoneName) {
+    const expected = `_coreid.${zoneName.toLowerCase()}`
+    if (name === expected) return true
+  }
+  if (name.startsWith('_coreid.')) return true
+  return false
+}
 
 /**
  * Check if updating this record would conflict with a redirect.
@@ -139,18 +155,37 @@ export default defineEventHandler(async (event) => {
 
     const zoneName = allowedZone?.zoneName || ''
 
-    // If type was not provided, look up the record to check if it's SOA
-    // This ensures SOA cannot be updated even if type is omitted from the request
-    let existingRecord: { type?: string; name?: string } | undefined
-    if (body?.type === undefined || body?.name === undefined) {
-      const records = await client.listRecordsForZone(zoneId)
-      assertRecordNotSoa(recordId, records)
-      existingRecord = records.find((r: any) => r.id === recordId)
+    // Always fetch existing record for SOA check and audit diff (before state)
+    const records = await client.listRecordsForZone(zoneId)
+    assertRecordNotSoa(recordId, records)
+    const existingRecord = records.find((r: any) => r.id === recordId) as Record<string, unknown> | undefined
+    
+    // If record not found, throw early
+    if (!existingRecord) {
+      throw createError({
+        statusCode: 404,
+        message: 'DNS-posten hittades inte. Den kan ha tagits bort.'
+      })
+    }
+
+    // Guard: Block modification of reserved _coreid marker record
+    if (existingRecord?.name && isCoreIdMarkerRecord(existingRecord.name as string, zoneName)) {
+      throw createError({
+        statusCode: 403,
+        message: 'Kan inte ändra _coreid-markörposten. Denna post hanteras av systemet.'
+      })
+    }
+    // Also block if trying to rename something TO _coreid
+    if (body?.name !== undefined && isCoreIdMarkerRecord(body.name, zoneName)) {
+      throw createError({
+        statusCode: 403,
+        message: 'Kan inte döpa om en post till _coreid. Detta namn är reserverat för systemet.'
+      })
     }
 
     // Check for redirect conflicts if name is being changed
     if (zoneName && body?.name !== undefined) {
-      const effectiveType = body?.type ?? existingRecord?.type ?? ''
+      const effectiveType = body?.type ?? (existingRecord?.type as string) ?? ''
       const conflictingHost = await checkRedirectConflict(orgId, zoneId, zoneName, body.name, effectiveType)
       if (conflictingHost) {
         throw createError({
@@ -174,6 +209,29 @@ export default defineEventHandler(async (event) => {
     if (body?.comment !== undefined) updates.comment = body.comment
 
     const record = await client.updateRecord(zoneId, recordId, updates)
+
+    // Build changes diff and log audit event only if there are actual changes
+    const { changes } = buildChanges(
+      existingRecord,
+      record as unknown as Record<string, unknown>,
+      { entityType: 'windows_dns_record' }
+    )
+    
+    if (hasChanges(changes)) {
+      const auditMeta = buildDnsRecordAuditMeta({
+        moduleKey: 'windows-dns',
+        entityType: 'windows_dns_record',
+        entityId: recordId,
+        zoneId,
+        zoneName,
+        recordType: record.type,
+        recordName: record.name,
+        operation: 'update',
+        before: existingRecord,
+        after: record as unknown as Record<string, unknown>
+      })
+      await logAuditEvent(event, 'WINDOWS_DNS_RECORD_UPDATED', auditMeta)
+    }
 
     return { record }
   } catch (error: any) {

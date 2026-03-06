@@ -217,7 +217,7 @@ const runAutodiscover = async () => {
   selectedZoneIds.value = []
 
   try {
-    const res = await $fetch<AutodiscoverResponse>('/api/dns/windows/autodiscover/zones')
+    const res = await ($fetch as any)('/api/dns/windows/autodiscover/zones')
     state.data = res
     state.coreId = res.coreId
 
@@ -247,7 +247,7 @@ const activateZones = async (zoneIds: string[]) => {
       }
     })
 
-    const res = await $fetch<ActivateResponse>('/api/dns/windows/autodiscover/activate', {
+    const res = await ($fetch as any)('/api/dns/windows/autodiscover/activate', {
       method: 'POST',
       body: { zoneIds, zoneNames }
     })

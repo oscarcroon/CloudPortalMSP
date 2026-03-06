@@ -133,6 +133,10 @@ export default defineEventHandler(async (event) => {
     .where(eq(mspRoles.id, roleId))
     .limit(1)
 
+  if (!createdRole) {
+    throw createError({ statusCode: 500, message: 'Skapad roll kunde inte hittas.' })
+  }
+
   const permissions = await db
     .select({
       moduleKey: mspRolePermissions.moduleKey,

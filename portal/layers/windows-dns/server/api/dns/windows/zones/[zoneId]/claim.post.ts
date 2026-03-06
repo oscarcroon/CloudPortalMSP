@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
       orgId,
       ['ownership.write'],
       [zoneId], // Only allow this specific zone
-      'portal:claim-zone'
+      false // Use explicit zone selector, not account_set
     )
 
     // Add the zone to the allowed list

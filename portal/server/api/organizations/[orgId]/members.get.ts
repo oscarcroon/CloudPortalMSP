@@ -1,5 +1,5 @@
 import { createError, defineEventHandler, getRouterParam } from 'h3'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { requirePermission } from '~~/server/utils/rbac'
 import { getDb } from '~~/server/utils/db'
 import {
@@ -8,6 +8,7 @@ import {
   organizations,
   users
 } from '~~/server/database/schema'
+import { normalizeEmail } from '~~/server/utils/crypto'
 
 export default defineEventHandler(async (event) => {
   const orgId = getRouterParam(event, 'orgId')
@@ -48,7 +49,7 @@ export default defineEventHandler(async (event) => {
     .innerJoin(users, eq(users.id, organizationMemberships.userId))
     .where(eq(organizationMemberships.organizationId, orgId))
 
-  // Get pending invitations
+  // Get pending invitations only
   const inviteRows = await db
     .select({
       id: organizationInvitations.id,
@@ -63,7 +64,35 @@ export default defineEventHandler(async (event) => {
     })
     .from(organizationInvitations)
     .leftJoin(users, eq(users.id, organizationInvitations.invitedByUserId))
-    .where(eq(organizationInvitations.organizationId, orgId))
+    .where(
+      and(
+        eq(organizationInvitations.organizationId, orgId),
+        eq(organizationInvitations.status, 'pending')
+      )
+    )
+
+  // Auto-accept pending invitations where user is already a member
+  const memberEmails = new Set(memberRows.map((m) => normalizeEmail(m.email)))
+  const invitesToAutoAccept = inviteRows.filter((inv) =>
+    memberEmails.has(normalizeEmail(inv.email))
+  )
+
+  if (invitesToAutoAccept.length > 0) {
+    const inviteIdsToAccept = invitesToAutoAccept.map((inv) => inv.id)
+    await db
+      .update(organizationInvitations)
+      .set({
+        status: 'accepted',
+        acceptedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(inArray(organizationInvitations.id, inviteIdsToAccept))
+  }
+
+  // Filter out auto-accepted invitations from the response
+  const pendingInvites = inviteRows.filter(
+    (inv) => !memberEmails.has(normalizeEmail(inv.email))
+  )
 
   return {
     organization: {
@@ -85,7 +114,7 @@ export default defineEventHandler(async (event) => {
       updatedAt: row.addedAt,
       addedAt: row.addedAt
     })),
-    invitations: inviteRows.map((row) => ({
+    invitations: pendingInvites.map((row) => ({
       id: row.id,
       email: row.email,
       role: row.role,

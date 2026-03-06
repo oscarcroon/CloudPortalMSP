@@ -34,7 +34,7 @@
             <button
               class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
               :disabled="pending"
-              @click="refresh"
+              @click="() => refresh()"
             >
               <Icon icon="mdi:refresh" class="h-4 w-4" :class="{ 'animate-spin': pending }" />
               {{ pending ? 'Uppdaterar...' : 'Uppdatera' }}
@@ -460,7 +460,7 @@ definePageMeta({
 })
 
 const route = useRoute()
-const roles = rbacRoles
+const roles = [...rbacRoles]
 const slug = computed(() => route.params.slug as string)
 
 const showInviteModal = ref(false)
@@ -489,7 +489,7 @@ interface ModuleRoleEntryUI extends MemberModuleRoleEntry {
 
 const moduleRoleEntries = ref<ModuleRoleEntryUI[]>([])
 
-const { data, pending, refresh, error } = await useFetch<AdminOrganizationMembersResponse>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   `/api/admin/organizations/${slug.value}/members`,
   {
     watch: [slug]
@@ -509,9 +509,9 @@ const memberSummary = computed(() => {
   if (!members.value.length && !invites.value.length) {
     return 'Inga medlemmar eller väntande inbjudningar registrerade.'
   }
-  const active = members.value.filter((member) => member.status === 'active').length
-  const invitedMembers = members.value.filter((member) => member.status === 'invited').length
-  const pendingInvites = invites.value.filter((invite) => invite.status === 'pending').length
+  const active = members.value.filter((member: any) => member.status === 'active').length
+  const invitedMembers = members.value.filter((member: any) => member.status === 'invited').length
+  const pendingInvites = invites.value.filter((invite: any) => invite.status === 'pending').length
   return `${active} aktiva · ${invitedMembers} inbjudna · ${pendingInvites} väntande inbjudningar`
 })
 
@@ -520,13 +520,13 @@ const visibleMembers = computed(() => {
 
   // Filter by override status
   if (showOnlyOverrides.value) {
-    filtered = filtered.filter((member) => memberHasOverrides(member))
+    filtered = filtered.filter((member: any) => memberHasOverrides(member))
   }
 
   // Filter by search query
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.trim().toLowerCase()
-    filtered = filtered.filter((member) => {
+    filtered = filtered.filter((member: any) => {
       const displayName = (member.fullName || '').toLowerCase()
       const email = (member.email || '').toLowerCase()
       return displayName.includes(query) || email.includes(query)
@@ -580,7 +580,7 @@ const loadMemberModuleRoleOverrides = async () => {
     return
   }
   try {
-    const response = await $fetch<{ organizationId: string; userIds: string[] }>(
+    const response = await ($fetch as any)(
       `/api/organizations/${organizationMeta.value.id}/members/module-role-overrides`
     )
     const userIds = Array.isArray(response?.userIds) ? response.userIds.filter(Boolean) : []
@@ -592,7 +592,7 @@ const loadMemberModuleRoleOverrides = async () => {
     if (error?.statusCode === 401 || error?.status === 401) {
       try {
         await new Promise((resolve) => setTimeout(resolve, 500))
-        const response = await $fetch<{ organizationId: string; userIds: string[] }>(
+        const response = await ($fetch as any)(
           `/api/organizations/${organizationMeta.value.id}/members/module-role-overrides`
         )
         const userIds = Array.isArray(response?.userIds) ? response.userIds.filter(Boolean) : []
@@ -655,7 +655,7 @@ const submitInvite = async (payload: { email: string; role: RbacRole; directAdd?
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}/members/invite`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}/members/invite`, {
       method: 'POST',
       body: payload as AdminInviteMemberPayload
     })
@@ -681,7 +681,7 @@ const cancelInvite = async (inviteId: string) => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}/invitations/${inviteId}/cancel`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}/invitations/${inviteId}/cancel`, {
       method: 'DELETE'
     })
     successMessage.value = 'Inbjudan avbröts.'
@@ -704,7 +704,7 @@ const handleRoleChange = async (member: AdminOrganizationMember, roleValue: stri
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}/members/${member.membershipId}/update-role`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}/members/${member.membershipId}/update-role`, {
       method: 'POST',
       body: { role: roleValue }
     })
@@ -735,7 +735,7 @@ const setMemberStatus = async (
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/admin/organizations/${slug.value}/members/${member.membershipId}/status`,
       {
         method: 'PATCH',
@@ -779,7 +779,7 @@ const deleteMember = async (member: AdminOrganizationMember) => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}/members/${member.membershipId}/remove`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}/members/${member.membershipId}/remove`, {
       method: 'DELETE'
     })
     await refresh()
@@ -812,13 +812,8 @@ const openModuleRoleDrawer = async (member: AdminOrganizationMember) => {
     if (!organizationMeta.value?.id || !member.userId) {
       throw new Error('Saknar organisation eller användar-ID')
     }
-    const response = await $fetch<{
-      organizationId: string
-      memberId: string
-      userId: string
-      modules: MemberModuleRoleEntry[]
-    }>(`/api/organizations/${organizationMeta.value.id}/members/${member.membershipId}/module-roles`)
-    moduleRoleEntries.value = response.modules.map((entry) => ({
+    const response = await ($fetch as any)(`/api/organizations/${organizationMeta.value.id}/members/${member.membershipId}/module-roles`)
+    moduleRoleEntries.value = response.modules.map((entry: any) => ({
       ...entry,
       pendingRoles: [...entry.effectiveRoles]
     }))
@@ -998,12 +993,7 @@ const saveModuleRoleDrawer = async () => {
   moduleRoleDrawerSaving.value = true
   moduleRoleDrawerError.value = ''
   try {
-    const response = await $fetch<{
-      organizationId: string
-      memberId: string
-      userId: string
-      modules: MemberModuleRoleEntry[]
-    }>(
+    const response = await ($fetch as any)(
       `/api/organizations/${organizationMeta.value.id}/members/${selectedMemberForRoles.value.membershipId}/module-roles`,
       {
         method: 'PUT',
@@ -1012,7 +1002,7 @@ const saveModuleRoleDrawer = async () => {
         }
       }
     )
-    moduleRoleEntries.value = response.modules.map((entry) => ({
+    moduleRoleEntries.value = response.modules.map((entry: any) => ({
       ...entry,
       pendingRoles: [...entry.effectiveRoles]
     }))

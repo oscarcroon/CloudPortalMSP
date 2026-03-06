@@ -1,4 +1,8 @@
 {
+  "apiScopes": {
+    "cloudflare-dns:read": "Read Cloudflare DNS zones and records",
+    "cloudflare-dns:write": "Create, update, and delete Cloudflare DNS records and zones"
+  },
   "cloudflareDns": {
     "title": "Cloudflare DNS",
     "description": "Manage Cloudflare DNS zones, records and access.",
@@ -16,30 +20,6 @@
       "notValidated": "Not validated"
     },
 
-    "acl": {
-      "label": "Access",
-      "title": "Zone ACL",
-      "readOnly": "Read-only",
-      "principal": "Principal",
-      "principalPlaceholder": "user-id or org-role",
-      "type": "Type",
-      "role": "Role",
-      "actions": "Actions",
-      "principalType": {
-        "user": "User",
-        "orgRole": "Org-role"
-      },
-      "roleOptions": {
-        "viewer": "Viewer",
-        "recordsOnly": "Records only",
-        "editor": "Editor",
-        "admin": "Admin"
-      },
-      "addRow": "Add row",
-      "save": "Save ACL",
-      "remove": "Remove"
-    },
-
     "zoneList": {
       "label": "Zones",
       "title": "Cloudflare zones",
@@ -49,6 +29,7 @@
       "statusUnknown": "status unknown",
       "recordCount": "{count} records",
       "view": "View",
+      "export": "Export",
       "onboard": {
         "label": "Onboarding",
         "title": "Create DNS zone",
@@ -73,7 +54,7 @@
       "label": "Cloudflare",
       "title": "DNS zones",
       "subtitle": "Simplified UI for zones and DNS records. Permissions are controlled by module roles and zone ACL.",
-      "searchPlaceholder": "Search zones (domain, plan, status)…",
+      "searchPlaceholder": "Search zones...",
       "showing": "Showing {visible} of {filtered} zones (total {total})",
       "forceRefreshTitle": "Force refresh",
       "adminLink": "Admin",
@@ -86,9 +67,25 @@
     },
 
     "admin": {
+      "accessDenied": "Access denied",
+      "accessDeniedDescription": "You do not have permission to manage the Cloudflare DNS configuration. Contact an administrator if you need access.",
+      "accessDeniedHint": "If you believe this is an error, the module policy may need to be updated. Admins can check the diagnostics endpoint for details.",
+      "backToZones": "Back to zones",
       "label": "Cloudflare DNS",
       "title": "Organization configuration",
       "subtitle": "Store API token per organization and verify the connection. The token is not shown after save.",
+      "guide": {
+        "title": "How to create an API token",
+        "step1": "Sign in at {link}.",
+        "step2": "Go to {manageAccount} > {accountApiTokens}.",
+        "step3": "Click {createToken} > {createCustomToken}.",
+        "step4": "Enter a name, e.g. \"CloudPortal\".",
+        "step5": "Set Permissions: {zoneRead} and {dnsEdit}.",
+        "step6": "Set Zone Resources: {includeAll} (or specific zones).",
+        "step7": "Click {continue} > {create}.",
+        "step8": "Copy the token and paste it below.",
+        "dashboardLink": "Open Cloudflare Dashboard"
+      },
       "token": {
         "label": "API token",
         "title": "Cloudflare credentials",
@@ -99,7 +96,7 @@
         "apiTokenPlaceholder": "Cloudflare API token",
         "lastSaved": "Last saved: {value}",
         "none": "none",
-        "accountId": "Account ID (optional)",
+        "accountId": "Account ID",
         "accountIdPlaceholder": "Account ID",
         "accountIdHelper": "Used when creating zones. Leave empty if the token already has scope."
       },
@@ -123,6 +120,9 @@
       "label": "Cloudflare",
       "loadingZone": "Loading zone...",
       "back": "Back",
+      "export": "Export",
+      "import": "Import",
+      "exportError": "Could not export the zone",
       "loadingStatus": "Fetching status...",
       "unknown": "unknown",
       "statusLine": "Status: {status} · Plan: {plan}",
@@ -147,9 +147,25 @@
       }
     },
 
+    "zoneInfo": {
+      "title": "SOA information",
+      "primaryNs": "Primary name server",
+      "responsibleParty": "Responsible party",
+      "serial": "Serial",
+      "refresh": "Refresh",
+      "retry": "Retry",
+      "expire": "Expire",
+      "minimumTtl": "Minimum TTL",
+      "ttl": "TTL",
+      "details": "Details",
+      "notFound": "No SOA record found"
+    },
+
     "records": {
       "label": "DNS records",
       "title": "Records",
+      "lastChangedAt": "Last changed",
+      "showing": "Showing {shown} of {total} records",
       "searchPlaceholder": "Search records (type, name, content)…",
       "filter": {
         "all": "All"
@@ -193,6 +209,29 @@
         "actions": "Actions"
       },
       "pagination": "Page {page} / {pages} · showing {shown} of {total} records"
+    },
+
+    "import": {
+      "title": "Import DNS records",
+      "description": "Upload a BIND zone file to import records into this zone.",
+      "info": {
+        "title": "About BIND import",
+        "bullet1": "Existing records are not deleted — import only adds new records.",
+        "bullet2": "Duplicate records are skipped by Cloudflare.",
+        "bullet3": "Use Export to back up the current zone before importing."
+      },
+      "chooseFile": "Choose file",
+      "dragDrop": "or drag and drop",
+      "fileHelp": "Accepts .txt, .bind, .zone files (max 1 MB)",
+      "invalidFileType": "Invalid file type. Accepted: .txt, .bind, .zone",
+      "fileTooLarge": "File is too large. Maximum size is 1 MB.",
+      "readError": "Could not read the file.",
+      "change": "Change file",
+      "confirm": "Import records",
+      "importing": "Importing…",
+      "success": "{added} records added ({parsed} parsed from file).",
+      "warnings": "Messages from Cloudflare:",
+      "error": "Import failed"
     }
   }
 }

@@ -1,9 +1,23 @@
 {
+  "apiScopes": {
+    "windows-dns:read": "Läsa DNS-zoner och poster",
+    "windows-dns:write": "Skapa, uppdatera och ta bort DNS-poster och zoner",
+    "windows-dns:redirects:read": "Läsa DNS-omdirigeringskonfigurationer",
+    "windows-dns:redirects:write": "Skapa, uppdatera och ta bort DNS-omdirigeringar"
+  },
   "windowsDns": {
     "title": "DNS",
     "description": "Hantera DNS-zoner, poster och åtkomst.",
     "cta": "Skapa zon",
     "empty": "Inga zoner ännu.",
+
+    "sort": {
+      "label": "Sortera",
+      "nameAsc": "Namn (A→Ö)",
+      "nameDesc": "Namn (Ö→A)",
+      "recordsDesc": "Flest records",
+      "recordsAsc": "Färst records"
+    },
 
     "statusCard": {
       "label": "Status",
@@ -205,7 +219,12 @@
         "tooltip": "Denna DNS-post hanteras automatiskt av Redirect-tjänsten",
         "editWarning": "Denna post hanteras av Redirects. Ändringar kan påverka omdirigeringar.",
         "openRedirects": "Öppna i Redirects"
-      }
+      },
+      "lastChangedAt": "Senast ändrad",
+      "lastChangedBy": "Av",
+      "auditUnknown": "Ingen ändringshistorik",
+      "auditUnknownUser": "Okänd användare",
+      "auditInfo": "Visa ändringshistorik"
     },
 
     "autodiscover": {
@@ -213,7 +232,7 @@
       "title": "Autodiscover Zoner",
       "subtitle": "Hitta zoner som matchar din organisations COREID och aktivera dem.",
       "info": {
-        "title": "Autodiscover söker efter zoner med en TXT-post som innehåller",
+        "title": "Autodiscover söker efter zoner med en TXT-post på _coreid.<zon> som innehåller",
         "coreIdLabel": "Din organisations COREID:",
         "coreIdPlaceholder": "<din-id>"
       },
@@ -227,7 +246,7 @@
       "activated": "Aktiverad",
       "available": "Tillgänglig",
       "noZonesFound": "Inga zoner hittades som matchar ditt COREID",
-      "noZonesHint": "Se till att zonerna har en TXT-post med ditt COREID-värde",
+      "noZonesHint": "Se till att zonerna har en TXT-post på _coreid.<zon> med värdet COREID=<din-id>",
       "backToZones": "Tillbaka till zoner",
       "error": "Autodiscover misslyckades.",
       "activationError": "Aktivering misslyckades."
@@ -244,7 +263,7 @@
       "rescanning": "Söker...",
       "coreIdInfo": "Söker efter zoner med COREID:",
       "noZonesFound": "Inga zoner hittades",
-      "noZonesHint": "Se till att zonerna har en TXT-post med COREID={coreId}",
+      "noZonesHint": "Se till att zonerna har en TXT-post på _coreid.<zon> med värdet COREID={coreId}",
       "status": {
         "allowed": "Aktiv",
         "available": "Tillgänglig",

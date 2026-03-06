@@ -23,6 +23,6 @@ export default defineNuxtPlugin(() => {
 
   const colorMode = useColorMode()
   colorMode.preference = storedPreference as 'light' | 'dark'
-  colorMode.value = storedPreference as 'light' | 'dark'
+  ;(colorMode as any).value = storedPreference as 'light' | 'dark'
 })
 

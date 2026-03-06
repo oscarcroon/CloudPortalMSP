@@ -4,6 +4,7 @@ export const organizationAuthUpdateSchema = z
   .object({
     requireSso: z.boolean().optional(),
     allowLocalLoginForOwners: z.boolean().optional(),
+    requireMfa: z.boolean().optional(),
     idpType: z.enum(['none', 'saml', 'oidc']).optional(),
     idpConfig: z.record(z.any()).nullable().optional()
   })
@@ -11,6 +12,7 @@ export const organizationAuthUpdateSchema = z
     (payload) =>
       payload.requireSso !== undefined ||
       payload.allowLocalLoginForOwners !== undefined ||
+      payload.requireMfa !== undefined ||
       payload.idpType !== undefined ||
       payload.idpConfig !== undefined,
     { message: 'Inga ändringar angavs.' }

@@ -136,7 +136,7 @@ const loadPreview = async () => {
   loading.value = true
   error.value = ''
   try {
-    const response = await $fetch<{ subject: string; html: string; text: string }>(
+    const response = await ($fetch as any)(
       '/api/admin/email-provider/preview',
       {
         method: 'POST',
@@ -149,7 +149,7 @@ const loadPreview = async () => {
           emailLanguage: props.emailLanguage ?? null
         }
       }
-    )
+    ) as { subject: string; html: string; text: string }
     subject.value = response.subject
     html.value = response.html
   } catch (err) {

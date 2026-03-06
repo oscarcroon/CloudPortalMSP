@@ -90,7 +90,7 @@ const getLayerBaseUrl = (instanceId?: string | null): string => {
 export const systemRequest = async <T>(
   instanceId: string | null | undefined,
   path: string,
-  options?: { method?: string; body?: unknown }
+  options?: { method?: string; body?: Record<string, unknown> }
 ): Promise<T> => {
   const baseUrl = getLayerBaseUrl(instanceId)
   const layerToken = getLayerToken(instanceId)
@@ -153,7 +153,7 @@ export const tokenRequest = async <T>(
   instanceId: string | null | undefined,
   token: string,
   path: string,
-  options?: { method?: string; body?: unknown; query?: Record<string, string> }
+  options?: { method?: string; body?: Record<string, unknown>; query?: Record<string, string> }
 ): Promise<T> => {
   const baseUrl = getLayerBaseUrl(instanceId)
   const url = `${baseUrl}${path}`
@@ -203,7 +203,7 @@ export const tokenRequestWithRetry = async <T>(
   instanceId: string | null | undefined,
   getTokenFn: () => Promise<string>,
   path: string,
-  options?: { method?: string; body?: unknown; query?: Record<string, string> }
+  options?: { method?: string; body?: Record<string, unknown>; query?: Record<string, string> }
 ): Promise<T> => {
   const token = await getTokenFn()
   console.log(`[windows-dns] Initial token for ${path}: ${token.slice(0, 20)}...`)

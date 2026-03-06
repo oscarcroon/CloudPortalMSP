@@ -119,9 +119,9 @@
             <label class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Standardroll</label>
             <select
               v-model="form.defaultRole"
-              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+              class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-slate-900 dark:text-white"
             >
-              <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+              <option v-for="role in roles" :key="role" :value="role" class="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">{{ role }}</option>
             </select>
           </div>
           <div>
@@ -357,7 +357,7 @@ const deleteForm = reactive({
   acknowledgeImpact: false
 })
 
-const { data, pending, refresh, error } = await useFetch<AdminOrganizationDetail>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   `/api/admin/organizations/${slug.value}`,
   {
     watch: [slug]
@@ -389,7 +389,7 @@ const form = reactive({
   slug: '',
   billingEmail: '',
   coreId: '',
-  defaultRole: roles[3],
+  defaultRole: 'member' as (typeof roles)[number],
   requireSso: false
 })
 
@@ -439,7 +439,7 @@ watch(
     form.slug = org.slug
     form.billingEmail = org.billingEmail ?? ''
     form.coreId = org.coreId ?? ''
-    form.defaultRole = org.defaultRole
+    form.defaultRole = org.defaultRole as (typeof roles)[number]
     form.requireSso = org.requireSso
   },
   { immediate: true }
@@ -481,7 +481,7 @@ const handleSave = async () => {
   payload.coreId = form.coreId.trim() ? form.coreId.trim().toUpperCase() : null
 
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}`, {
       method: 'PATCH',
       body: payload
     })
@@ -509,7 +509,7 @@ const submitDelete = async () => {
   deleteError.value = ''
   deleteLoading.value = true
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}/delete`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}/delete`, {
       method: 'POST',
       body: {
         confirmSlug: deleteForm.confirmSlug.trim(),
@@ -539,7 +539,7 @@ const toggleOrganizationStatus = async () => {
   statusLoading.value = true
   errorMessage.value = ''
   try {
-    await $fetch(`/api/admin/organizations/${slug.value}/status`, {
+    await ($fetch as any)(`/api/admin/organizations/${slug.value}/status`, {
       method: 'PATCH',
       body: { status: newStatus }
     })
@@ -561,7 +561,7 @@ interface TenantsResponse {
   }>
 }
 
-const { data: providersData } = await useFetch<TenantsResponse>('/api/admin/tenants', {
+const { data: providersData } = await (useFetch as any)('/api/admin/tenants', {
   query: { type: 'provider' }
 })
 
@@ -606,7 +606,7 @@ const handleMoveProvider = async () => {
       newTenantId: moveProviderForm.newTenantId
     }
 
-    await $fetch(`/api/admin/organizations/${organization.value.id}/move-provider`, {
+    await ($fetch as any)(`/api/admin/organizations/${organization.value.id}/move-provider`, {
       method: 'POST',
       body: payload
     })

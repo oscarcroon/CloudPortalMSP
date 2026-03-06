@@ -6,9 +6,10 @@ export interface CloudflareModuleRights {
   roles: CloudflareDnsModuleRole[]
   canView: boolean
   canEditRecords: boolean
+  canExport: boolean
+  canImport: boolean
   canManageZones: boolean
-  canManageAcls: boolean
-  canManageOrgConfig: boolean
+  canManageApi: boolean
 }
 
 export interface CloudflareZoneAccess extends CloudflareModuleRights {
@@ -46,6 +47,7 @@ export interface CloudflareDnsRecord {
   proxied?: boolean | null
   priority?: number | null
   comment?: string | null
+  modified_on?: string | null
 }
 
 export interface CloudflareApiErrorPayload {

@@ -16,7 +16,7 @@ type CloudflareResponse<T> = {
 export class CloudflareClient {
   constructor(private apiToken: string, private accountId?: string | null) {}
 
-  private async request<T>(path: string, options?: { method?: string; body?: unknown; query?: Record<string, any> }) {
+  private async request<T>(path: string, options?: { method?: string; body?: Record<string, unknown>; query?: Record<string, any> }) {
     try {
       const res = await ofetch<CloudflareResponse<T>>(CF_API_BASE + path, {
         method: options?.method ?? 'GET',
@@ -144,10 +144,39 @@ export class CloudflareClient {
             ttl: row.ttl ?? null,
             proxied: row.proxied ?? null,
             priority: row.priority ?? null,
-            comment: row.comment ?? null
+            comment: row.comment ?? null,
+            modified_on: row.modified_on ?? null
           }) satisfies CloudflareDnsRecord
       ) ?? []
     )
+  }
+
+  /**
+   * Get a single DNS record by ID.
+   * Used for fetching "before" state in audit logging.
+   */
+  async getRecord(zoneId: string, recordId: string): Promise<CloudflareDnsRecord | null> {
+    try {
+      const { result } = await this.request<any>(`/zones/${zoneId}/dns_records/${recordId}`)
+      if (!result) return null
+      return {
+        id: result.id,
+        type: result.type,
+        name: result.name,
+        content: result.content,
+        ttl: result.ttl ?? null,
+        proxied: result.proxied ?? null,
+        priority: result.priority ?? null,
+        comment: result.comment ?? null,
+        modified_on: result.modified_on ?? null
+      } satisfies CloudflareDnsRecord
+    } catch (error: any) {
+      // Return null for 404 (record not found)
+      if (error?.statusCode === 404) {
+        return null
+      }
+      throw error
+    }
   }
 
   async createRecord(zoneId: string, record: Partial<CloudflareDnsRecord>) {
@@ -172,7 +201,8 @@ export class CloudflareClient {
       ttl: result.ttl ?? null,
       proxied: result.proxied ?? null,
       priority: result.priority ?? null,
-      comment: result.comment ?? null
+      comment: result.comment ?? null,
+      modified_on: result.modified_on ?? null
     } satisfies CloudflareDnsRecord
   }
 
@@ -199,8 +229,58 @@ export class CloudflareClient {
       ttl: result.ttl ?? null,
       proxied: result.proxied ?? null,
       priority: result.priority ?? null,
-      comment: result.comment ?? null
+      comment: result.comment ?? null,
+      modified_on: result.modified_on ?? null
     } satisfies CloudflareDnsRecord
+  }
+
+  async exportZone(zoneId: string): Promise<string> {
+    try {
+      const res = await ofetch(`${CF_API_BASE}/zones/${zoneId}/dns_records/export`, {
+        headers: {
+          Authorization: `Bearer ${this.apiToken}`
+        },
+        responseType: 'text'
+      })
+      return res as string
+    } catch (error: any) {
+      const statusCode = error?.response?.status ?? error?.statusCode ?? 502
+      const message = error?.message ?? 'Cloudflare export error'
+      throw createError({ statusCode, message: `[cloudflare] ${message}` })
+    }
+  }
+
+  async importZone(zoneId: string, content: string, filename: string): Promise<{ recsAdded: number; totalRecordsParsed: number; messages: string[] }> {
+    const url = `${CF_API_BASE}/zones/${zoneId}/dns_records/import`
+
+    const formData = new FormData()
+    formData.append('file', new Blob([content], { type: 'text/plain' }), filename)
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiToken}`
+      },
+      body: formData
+    })
+
+    const data = await response.json() as CloudflareResponse<{ recs_added: number; total_records_parsed: number }>
+
+    if (!response.ok || !data?.success) {
+      const message = data?.errors?.[0]?.message ?? `Import failed with status ${response.status}`
+      throw createError({ statusCode: response.status, message: `[cloudflare] ${message}` })
+    }
+
+    // Extract human-readable messages (e.g. "DNS name must be within your zone")
+    const messages = Array.isArray(data.messages)
+      ? data.messages.map((m: any) => typeof m === 'string' ? m : m?.message).filter(Boolean)
+      : []
+
+    return {
+      recsAdded: data.result?.recs_added ?? 0,
+      totalRecordsParsed: data.result?.total_records_parsed ?? 0,
+      messages
+    }
   }
 
   async deleteRecord(zoneId: string, recordId: string) {

@@ -3,7 +3,8 @@
     class="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 text-slate-900 transition-colors dark:bg-slate-950 dark:text-slate-50"
     :style="containerStyle"
   >
-    <div class="absolute right-6 top-6">
+    <div class="absolute right-6 top-6 flex items-center gap-2">
+      <LanguageSwitcher />
       <ThemeToggle />
     </div>
     <NuxtLink
@@ -18,6 +19,9 @@
     >
       <slot />
     </main>
+    <p class="mt-6 text-center text-xs text-slate-400/70 dark:text-slate-500/70">
+      &copy; {{ new Date().getFullYear() }} Cloud Portal - <a href="https://www.coreit.se" target="_blank" rel="noopener" class="hover:text-slate-600 dark:hover:text-slate-300 transition">CoreIT</a>. All rights reserved.
+    </p>
   </div>
 </template>
 
@@ -27,6 +31,7 @@ import { useColorMode } from '#imports'
 import logoLight from '~/assets/images/coreit-logo.svg'
 import logoDark from '~/assets/images/coreit-logo-neg.svg'
 import ThemeToggle from '~/components/layout/ThemeToggle.vue'
+import LanguageSwitcher from '~/components/layout/LanguageSwitcher.vue'
 import { useLoginBranding } from '~/composables/useLoginBranding'
 
 const colorMode = useColorMode()
@@ -98,9 +103,10 @@ function hexToRgb(hexColor: string) {
 }
 
 function mixRgb(base: number[], target: number[], amount: number) {
-  return base.map((channel, index) =>
-    Math.round(channel + (target[index] - channel) * amount)
-  )
+  return base.map((channel, index) => {
+    const targetVal = target[index] ?? 0
+    return Math.round(channel + (targetVal - channel) * amount)
+  })
 }
 </script>
 

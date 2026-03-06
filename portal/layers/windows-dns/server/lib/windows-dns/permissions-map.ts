@@ -45,6 +45,7 @@ export const buildModuleRights = (portalPermissions: Set<string>): WindowsDnsMod
   canCreateZones: portalPermissions.has('windows-dns:zones:create'),
   canEditZones: portalPermissions.has('windows-dns:zones:write'),
   canEditRecords: portalPermissions.has('windows-dns:records:write'),
+  canExport: portalPermissions.has('windows-dns:export'),
   canManageOwnership: portalPermissions.has('windows-dns:ownership:write'),
   canAutodiscover: portalPermissions.has('windows-dns:autodiscover:read'),
   canManageOrgConfig: portalPermissions.has('windows-dns:manage_org_config'),

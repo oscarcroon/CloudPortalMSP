@@ -29,9 +29,7 @@ export default defineEventHandler(async (event) => {
   const { newTenantId } = payload
   
   const db = getDb()
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-  
+
   // Hämta organisation
   const organization = await requireOrganizationByIdentifier(db, orgParam)
   
@@ -97,33 +95,18 @@ export default defineEventHandler(async (event) => {
   const oldTenantId = organization.tenantId
   
   try {
-    if (isSqlite) {
-      await db.transaction((tx) => {
-        tx.update(organizations)
-          .set({ tenantId: newTenantId })
-          .where(eq(organizations.id, organization.id))
-          .run()
-        
-        // TODO: framtida side-effects:
-        // - migrera moduler / licenser
-        // - uppdatera billing-koppling
-        // - invalidera sessions/token om claims bygger på provider/tenant
-        // - etc.
-      })
-    } else {
-      await db.transaction(async (tx) => {
-        await tx
-          .update(organizations)
-          .set({ tenantId: newTenantId })
-          .where(eq(organizations.id, organization.id))
-        
-        // TODO: framtida side-effects:
-        // - migrera moduler / licenser
-        // - uppdatera billing-koppling
-        // - invalidera sessions/token om claims bygger på provider/tenant
-        // - etc.
-      })
-    }
+    await db.transaction(async (tx) => {
+      await tx
+        .update(organizations)
+        .set({ tenantId: newTenantId })
+        .where(eq(organizations.id, organization.id))
+
+      // TODO: framtida side-effects:
+      // - migrera moduler / licenser
+      // - uppdatera billing-koppling
+      // - invalidera sessions/token om claims bygger på provider/tenant
+      // - etc.
+    })
   } catch (error: any) {
     throw createError({
       statusCode: 500,

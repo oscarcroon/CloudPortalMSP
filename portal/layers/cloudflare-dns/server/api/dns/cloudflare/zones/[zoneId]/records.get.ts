@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
     records,
     access: {
       canEditRecords: access.canEditRecords,
-      canManageAcls: access.canManageAcls,
+      canExport: access.canExport,
+      canImport: access.canImport,
       zoneRole: access.zoneRole
     }
   }

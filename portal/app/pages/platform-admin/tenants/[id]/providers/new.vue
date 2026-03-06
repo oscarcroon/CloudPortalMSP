@@ -190,7 +190,7 @@ const router = useRouter()
 const route = useRoute()
 const distributorId = route.params.id as string
 
-const { data, pending } = await useFetch<AdminTenantDetail>(`/api/admin/tenants/${distributorId}`)
+const { data, pending } = await (useFetch as any)(`/api/admin/tenants/${distributorId}`)
 
 const distributorName = computed(() => data.value?.tenant.name ?? 'Distributör')
 
@@ -236,7 +236,7 @@ watch(
 
 watch(
   () => form.ownerEmail,
-  async (newEmail, oldEmail) => {
+  async (newEmail: string, oldEmail: string | undefined) => {
     if (newEmail === oldEmail) return
     existingUserInfo.value = null
     ownerEmailStatus.value = 'idle'
@@ -253,7 +253,7 @@ watch(
 
     checkingOwnerEmail.value = true
     try {
-      const result = await $fetch<{ exists: boolean; user?: { email: string; fullName: string | null; status: string } }>(
+      const result = await ($fetch as any)(
         '/api/admin/users/check-email',
         {
           method: 'POST',
@@ -273,7 +273,7 @@ watch(
       checkingOwnerEmail.value = false
     }
   },
-  { debounce: 500 }
+  { debounce: 500 } as any
 )
 
 const handleSubmit = async () => {
@@ -319,13 +319,13 @@ const handleSubmit = async () => {
       }
     }
 
-    const response = await $fetch(`/api/admin/tenants/${distributorId}/providers`, {
+    const response = await ($fetch as any)(`/api/admin/tenants/${distributorId}/providers`, {
       method: 'POST',
       body: payload
     })
 
     await router.push({
-      path: `/admin/tenants/${distributorId}`,
+      path: `/platform-admin/tenants/${distributorId}`,
       query: { created: '1' }
     })
   } catch (error) {

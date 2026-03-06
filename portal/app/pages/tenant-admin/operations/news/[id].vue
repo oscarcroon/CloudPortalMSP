@@ -296,7 +296,7 @@ interface PostDetail {
   status: 'draft' | 'published' | 'archived'
 }
 
-const { data, pending, refresh } = useFetch<{ post: PostDetail }>(
+const { data, pending, refresh } = (useFetch as any)(
   () => tenantId.value && postId.value ? `/api/admin/tenants/${tenantId.value}/news/${postId.value}` : '',
   {
     immediate: !!tenantId.value && !!postId.value,
@@ -311,7 +311,8 @@ const form = ref({
   title: '',
   slug: '',
   summary: '',
-  bodyMarkdown: ''
+  bodyMarkdown: '',
+  heroImageUrl: ''
 })
 
 const heroImageFile = ref<File | null>(null)
@@ -512,7 +513,7 @@ async function handleSubmit() {
       bodyMarkdown: form.value.bodyMarkdown.trim() || null
     }
 
-    await $fetch(`/api/admin/tenants/${tenantId.value}/news/${postId.value}`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/news/${postId.value}`, {
       method: 'PUT',
       body: payload,
       credentials: 'include'
@@ -523,7 +524,7 @@ async function handleSubmit() {
       const formData = new FormData()
       formData.append('heroImage', heroImageFile.value)
 
-      await $fetch(`/api/admin/tenants/${tenantId.value}/news/${postId.value}/hero-image`, {
+      await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/news/${postId.value}/hero-image`, {
         method: 'POST',
         body: formData,
         credentials: 'include'
@@ -541,7 +542,7 @@ async function handleSubmit() {
 async function publishPost() {
   if (!tenantId.value || !postId.value) return
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/news/${postId.value}/publish`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/news/${postId.value}/publish`, {
       method: 'POST',
       credentials: 'include'
     })
@@ -554,7 +555,7 @@ async function publishPost() {
 async function archivePost() {
   if (!tenantId.value || !postId.value) return
   try {
-    await $fetch(`/api/admin/tenants/${tenantId.value}/news/${postId.value}/archive`, {
+    await ($fetch as any)(`/api/admin/tenants/${tenantId.value}/news/${postId.value}/archive`, {
       method: 'POST',
       credentials: 'include'
     })

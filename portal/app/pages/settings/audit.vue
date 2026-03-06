@@ -15,7 +15,20 @@
     <template v-else>
       <!-- Filters -->
       <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-        <form class="grid grid-cols-1 gap-4 md:grid-cols-3" @submit.prevent="loadLogs">
+        <form class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('settings.audit.module') }}</label>
+            <select
+              v-model="filters.moduleKey"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
+            >
+              <option value="">{{ t('settings.audit.all') }}</option>
+              <option v-for="mod in auditModules" :key="mod.moduleKey" :value="mod.moduleKey">
+                {{ mod.moduleName }}
+              </option>
+            </select>
+          </div>
+
           <div>
             <label class="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-300">{{ t('settings.audit.eventType') }}</label>
             <select
@@ -23,7 +36,9 @@
               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand dark:border-white/10 dark:bg-black/20 dark:text-white"
             >
               <option value="">{{ t('settings.audit.all') }}</option>
-              <option v-for="type in relevantEventTypes" :key="type" :value="type">{{ type }}</option>
+              <option v-for="et in filteredEventTypes" :key="et.type" :value="et.type">
+                {{ et.label }}
+              </option>
             </select>
           </div>
 
@@ -46,12 +61,6 @@
           </div>
 
           <div class="flex items-end gap-2">
-            <button
-              type="submit"
-              class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand/90"
-            >
-              {{ t('settings.audit.filter') }}
-            </button>
             <button
               type="button"
               class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand dark:border-white/10 dark:text-slate-200"
@@ -126,35 +135,11 @@
       </div>
 
       <!-- Details modal -->
-      <div
+      <AuditLogDetailsModal
         v-if="selectedLog"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-        @click.self="selectedLog = null"
-      >
-        <div class="max-w-2xl rounded-xl border border-slate-200 bg-white shadow-lg dark:border-white/10 dark:bg-slate-900">
-          <div class="border-b border-slate-200 p-4 dark:border-white/10">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Logg Detaljer</h2>
-              <button
-                class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                @click="selectedLog = null"
-              >
-                <Icon icon="mdi:close" class="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-          <div class="p-4 space-y-4">
-            <div>
-              <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Event Type</label>
-              <p class="mt-1 font-mono text-sm text-slate-900 dark:text-white">{{ selectedLog.eventType }}</p>
-            </div>
-            <div>
-              <label class="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Metadata</label>
-              <pre class="mt-1 overflow-auto rounded-lg bg-slate-100 p-3 text-xs text-slate-900 dark:bg-slate-800 dark:text-white">{{ JSON.stringify(selectedLog.meta, null, 2) }}</pre>
-            </div>
-          </div>
-        </div>
-      </div>
+        v-model="showDetailsModal"
+        :log="selectedLog"
+      />
     </template>
   </section>
 </template>
@@ -163,10 +148,9 @@
 import { useI18n } from '#imports'
 
 const { t } = useI18n()
-import { ref, computed, onMounted } from '#imports'
+import { ref, computed, onMounted, watch } from '#imports'
 import { useAuth } from '~/composables/useAuth'
 import { usePermission } from '~/composables/usePermission'
-import type { AuditEventType } from '~~/server/utils/audit'
 
 const auth = useAuth()
 const permission = usePermission()
@@ -194,21 +178,47 @@ interface AuditLog {
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 const selectedLog = ref<AuditLog | null>(null)
+const showDetailsModal = ref(false)
 const pagination = ref<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
 
-const relevantEventTypes: AuditEventType[] = [
-  'LOGIN_SUCCESS',
-  'LOGIN_FAILED',
-  'ROLE_CHANGED',
-  'USER_INVITED',
-  'USER_REMOVED',
-  'MODULE_ENABLED',
-  'MODULE_DISABLED',
-  'SENSITIVE_DATA_ACCESSED',
-  'ORGANIZATION_UPDATED',
-  'ORG_SETTINGS_UPDATED',
-  'ORG_AUTH_SETTINGS_UPDATED'
-]
+// Event type groups fetched from API (dynamically loaded from audit registry)
+interface EventTypeOption {
+  type: string
+  label: string
+}
+
+interface EventTypeGroup {
+  moduleKey: string
+  moduleName: string
+  eventTypes: EventTypeOption[]
+}
+
+const auditModules = ref<EventTypeGroup[]>([])
+
+const filteredEventTypes = computed(() => {
+  if (!filters.value.moduleKey) {
+    return auditModules.value.flatMap(group => group.eventTypes)
+  }
+  const selectedModule = auditModules.value.find(group => group.moduleKey === filters.value.moduleKey)
+  return selectedModule?.eventTypes ?? []
+})
+
+const loadEventTypes = async () => {
+  if (!hasActiveOrg.value) return
+
+  try {
+    const orgId = auth.state.value.data?.currentOrgId
+    const { locale } = useI18n()
+    const response = await ($fetch as any)(
+      `/api/organizations/${orgId}/audit-logs/event-types?locale=${locale.value}`
+    )
+    auditModules.value = response.groups || []
+  } catch (error) {
+    console.error('Failed to load event types', error)
+    // Fallback to empty groups - user can still see logs without filter
+    auditModules.value = []
+  }
+}
 
 // Set default dates: 1 day back to today
 const getDefaultDates = () => {
@@ -225,10 +235,38 @@ const getDefaultDates = () => {
 const defaultDates = getDefaultDates()
 
 const filters = ref({
+  moduleKey: '',
   eventType: '',
   startDate: defaultDates.startDate,
   endDate: defaultDates.endDate
 })
+
+const isReady = ref(false)
+const suppressNextFilterLoad = ref(false)
+
+const triggerFilterReload = () => {
+  if (!isReady.value) return
+  loadLogs(1)
+}
+
+watch(() => filters.value.moduleKey, () => {
+  if (filters.value.eventType) {
+    suppressNextFilterLoad.value = true
+    filters.value.eventType = ''
+  }
+  triggerFilterReload()
+})
+
+watch(() => filters.value.eventType, () => {
+  if (suppressNextFilterLoad.value) {
+    suppressNextFilterLoad.value = false
+    return
+  }
+  triggerFilterReload()
+})
+
+watch(() => filters.value.startDate, triggerFilterReload)
+watch(() => filters.value.endDate, triggerFilterReload)
 
 const loadLogs = async (page = 1) => {
   if (!hasActiveOrg.value || !canViewAudit.value) return
@@ -241,11 +279,12 @@ const loadLogs = async (page = 1) => {
       pageSize: '50'
     })
     
+    if (filters.value.moduleKey) params.append('moduleKey', filters.value.moduleKey)
     if (filters.value.eventType) params.append('eventType', filters.value.eventType)
     if (filters.value.startDate) params.append('startDate', filters.value.startDate)
     if (filters.value.endDate) params.append('endDate', filters.value.endDate)
     
-    const response = await $fetch<{ logs: AuditLog[]; pagination: any }>(`/api/organizations/${orgId}/audit-logs?${params}`)
+    const response = await ($fetch as any)(`/api/organizations/${orgId}/audit-logs?${params}`)
     logs.value = response.logs
     pagination.value = response.pagination
   } catch (error) {
@@ -258,6 +297,7 @@ const loadLogs = async (page = 1) => {
 const clearFilters = () => {
   const dates = getDefaultDates()
   filters.value = {
+    moduleKey: '',
     eventType: '',
     startDate: dates.startDate,
     endDate: dates.endDate
@@ -271,6 +311,7 @@ const changePage = (page: number) => {
 
 const showDetails = (log: AuditLog) => {
   selectedLog.value = log
+  showDetailsModal.value = true
 }
 
 const formatDate = (date: Date | string) => {
@@ -290,7 +331,12 @@ onMounted(async () => {
     await auth.bootstrap()
   }
   if (hasActiveOrg.value && canViewAudit.value) {
-    loadLogs()
+    // Load event types and logs in parallel
+    await Promise.all([
+      loadEventTypes(),
+      loadLogs()
+    ])
+    isReady.value = true
   }
 })
 </script>

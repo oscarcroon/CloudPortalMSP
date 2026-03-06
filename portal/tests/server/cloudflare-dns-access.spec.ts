@@ -7,8 +7,7 @@ describe('cloudflare-dns access helpers', () => {
     expect(rights.canView).toBe(true)
     expect(rights.canEditRecords).toBe(true)
     expect(rights.canManageZones).toBe(true)
-    expect(rights.canManageAcls).toBe(true)
-    expect(rights.canManageOrgConfig).toBe(true)
+    expect(rights.canManageApi).toBe(true)
   })
 
   it('resolves viewer capabilities', () => {
@@ -16,7 +15,6 @@ describe('cloudflare-dns access helpers', () => {
     expect(rights.canView).toBe(true)
     expect(rights.canEditRecords).toBe(false)
     expect(rights.canManageZones).toBe(false)
-    expect(rights.canManageAcls).toBe(false)
   })
 
   it('picks the strongest zone role', () => {

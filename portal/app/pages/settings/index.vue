@@ -362,6 +362,41 @@
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="flex items-center gap-3">
+              <Icon icon="mdi:web" class="h-6 w-6 text-brand" />
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.customDomain.title') }}</h2>
+            </div>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {{ t('settings.customDomain.description') }}
+            </p>
+          </div>
+          <NuxtLink
+            to="/settings/domain"
+            :aria-disabled="isSettingsLocked"
+            :tabindex="isSettingsLocked ? -1 : 0"
+            :class="[
+              'rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-600 dark:text-slate-200',
+              { 'pointer-events-none opacity-50': isSettingsLocked }
+            ]"
+          >
+            {{ t('settings.open') }}
+          </NuxtLink>
+        </div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-500 dark:text-slate-400">
+          <li>• {{ t('settings.customDomain.features.own') }}</li>
+          <li>• {{ t('settings.customDomain.features.ssl') }}</li>
+          <li>• {{ t('settings.customDomain.features.verify') }}</li>
+        </ul>
+      </div>
+
+      <div
+        :class="[
+          'rounded-2xl border border-slate-100 bg-white p-6 shadow-card dark:border-slate-700 dark:bg-slate-900/70',
+          { 'pointer-events-none opacity-50': isSettingsLocked }
+        ]"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-3">
               <Icon icon="mdi:puzzle-outline" class="h-6 w-6 text-brand" />
               <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">{{ t('settings.modules.title') }}</h2>
             </div>

@@ -121,7 +121,7 @@ async function handleSubmit() {
   error.value = null
 
   try {
-    const response = await $fetch<{ success: boolean; error?: string }>('/api/auth/mfa/verify', {
+    const response = await ($fetch as any)('/api/auth/mfa/verify', {
       method: 'POST',
       body: {
         code: code.value,
@@ -130,7 +130,7 @@ async function handleSubmit() {
         method: 'totp'
       },
       credentials: 'include'
-    })
+    }) as { success: boolean; error?: string }
 
     if (response.success) {
       emit('verified')

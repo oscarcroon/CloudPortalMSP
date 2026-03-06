@@ -1,15 +1,6 @@
 {
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "~": ["./app"],
-      "~/*": ["./app/*"],
-      "~~": ["."],
-      "~~/*": ["./*"],
-      "#imports": ["./.nuxt/imports"],
-      "server/*": ["./server/*"]
-    },
     "skipLibCheck": true
   },
   "exclude": ["scripts/legacy/**"]

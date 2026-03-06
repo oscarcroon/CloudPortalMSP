@@ -1,46 +1,42 @@
 /**
  * Windows DNS Plugin Schema
- * 
+ *
  * This schema is owned by the windows-dns layer and imported into the core schema.
  * All tables are prefixed with 'windows_dns_' to avoid conflicts.
  */
 
 import { createId } from '@paralleldrive/cuid2'
-import { sql } from 'drizzle-orm'
 import {
   index,
-  integer,
-  sqliteTable,
+  mysqlTable,
   text,
-  uniqueIndex
-} from 'drizzle-orm/sqlite-core'
+  timestamp,
+  uniqueIndex,
+  varchar
+} from 'drizzle-orm/mysql-core'
 
 // We need a reference to the organizations table for foreign keys
 // This will be resolved when imported into core schema
-import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import type { AnyMySqlColumn } from 'drizzle-orm/mysql-core'
 
 const timestampColumns = () => ({
-  createdAt: integer('created_at', { mode: 'timestamp_ms' } as const)
-    .notNull()
-    .default(sql`(strftime('%s','now') * 1000)`),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' } as const)
-    .notNull()
-    .default(sql`(strftime('%s','now') * 1000)`)
+  createdAt: timestamp('created_at', { fsp: 3 }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { fsp: 3 }).notNull().defaultNow().onUpdateNow()
 })
 
 /**
  * Factory function to create the Windows DNS schema with proper foreign key references.
  * This allows the layer to define its schema while still referencing the core organizations table.
  */
-export function createWindowsDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
-  const windowsDnsZones = sqliteTable(
+export function createWindowsDnsSchema(organizationsIdColumn: AnyMySqlColumn) {
+  const windowsDnsZones = mysqlTable(
     'windows_dns_zones',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      name: text('name').notNull(),
+      name: varchar('name', { length: 255 }).notNull(),
       description: text('description'),
       ...timestampColumns()
     },
@@ -49,21 +45,21 @@ export function createWindowsDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
     })
   )
 
-  const windowsDnsZoneMemberships = sqliteTable(
+  const windowsDnsZoneMemberships = mysqlTable(
     'windows_dns_zone_memberships',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      zoneId: text('zone_id')
+      zoneId: varchar('zone_id', { length: 128 })
         .notNull()
         .references(() => windowsDnsZones.id, { onDelete: 'cascade' }),
-      principalType: text('principal_type', { enum: ['user', 'org-role'] })
+      principalType: varchar('principal_type', { length: 50 })
         .$type<'user' | 'org-role'>()
         .notNull(),
-      principalId: text('principal_id').notNull(),
-      role: text('role', { enum: ['viewer', 'editor', 'admin'] })
+      principalId: varchar('principal_id', { length: 255 }).notNull(),
+      role: varchar('role', { length: 50 })
         .$type<'viewer' | 'editor' | 'admin'>()
         .notNull(),
       ...timestampColumns()
@@ -82,20 +78,20 @@ export function createWindowsDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
    * Windows DNS org configuration (COREID-first model)
    * Stores the WindowsDNS account binding. CoreID is derived from organizations.core_id.
    */
-  const windowsDnsOrgConfig = sqliteTable(
+  const windowsDnsOrgConfig = mysqlTable(
     'windows_dns_org_config',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .unique()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      windowsDnsAccountId: text('windows_dns_account_id'),
-      instanceId: text('instance_id'),
-      enabledAt: integer('enabled_at', { mode: 'timestamp_ms' }),
-      lastValidatedAt: integer('last_validated_at', { mode: 'timestamp_ms' }),
-      lastSyncAt: integer('last_sync_at', { mode: 'timestamp_ms' }),
-      lastSyncStatus: text('last_sync_status'),
+      windowsDnsAccountId: varchar('windows_dns_account_id', { length: 255 }),
+      instanceId: varchar('instance_id', { length: 255 }),
+      enabledAt: timestamp('enabled_at', { fsp: 3 }),
+      lastValidatedAt: timestamp('last_validated_at', { fsp: 3 }),
+      lastSyncAt: timestamp('last_sync_at', { fsp: 3 }),
+      lastSyncStatus: varchar('last_sync_status', { length: 50 }),
       lastSyncError: text('last_sync_error'),
       ...timestampColumns()
     },
@@ -108,16 +104,16 @@ export function createWindowsDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
    * Windows DNS allowed zones (allowlist per org)
    * External zone IDs from the WindowsDNS layer that this org is allowed to access.
    */
-  const windowsDnsAllowedZones = sqliteTable(
+  const windowsDnsAllowedZones = mysqlTable(
     'windows_dns_allowed_zones',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      zoneId: text('zone_id').notNull(),
-      zoneName: text('zone_name'),
-      source: text('source')
+      zoneId: varchar('zone_id', { length: 255 }).notNull(),
+      zoneName: varchar('zone_name', { length: 255 }),
+      source: varchar('source', { length: 50 })
         .notNull()
         .default('autodiscover')
         .$type<'autodiscover' | 'manual'>(),
@@ -135,17 +131,17 @@ export function createWindowsDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
   /**
    * Windows DNS last discovery result (for validating activate requests)
    */
-  const windowsDnsLastDiscovery = sqliteTable(
+  const windowsDnsLastDiscovery = mysqlTable(
     'windows_dns_last_discovery',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .unique()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      discoveredAt: integer('discovered_at', { mode: 'timestamp_ms' }).notNull(),
+      discoveredAt: timestamp('discovered_at', { fsp: 3 }).notNull(),
       zoneIdsJson: text('zone_ids_json').notNull(),
-      coreIdSnapshot: text('core_id_snapshot'),
+      coreIdSnapshot: varchar('core_id_snapshot', { length: 255 }),
       ...timestampColumns()
     },
     (table) => ({
@@ -157,16 +153,16 @@ export function createWindowsDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
    * Windows DNS blocked zones (blocklist per org)
    * Zones that have been explicitly hidden by admin and should not be auto-activated.
    */
-  const windowsDnsBlockedZones = sqliteTable(
+  const windowsDnsBlockedZones = mysqlTable(
     'windows_dns_blocked_zones',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      zoneId: text('zone_id').notNull(),
-      zoneName: text('zone_name'),
-      source: text('source')
+      zoneId: varchar('zone_id', { length: 255 }).notNull(),
+      zoneName: varchar('zone_name', { length: 255 }),
+      source: varchar('source', { length: 50 })
         .notNull()
         .default('manual')
         .$type<'manual'>(),
@@ -193,4 +189,3 @@ export function createWindowsDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
 
 // Export types for use in the layer
 export type WindowsDnsSchema = ReturnType<typeof createWindowsDnsSchema>
-

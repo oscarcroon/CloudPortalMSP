@@ -122,11 +122,18 @@ async function findLogoByOrgId(organizationId: string): Promise<string | null> {
     // Sök efter filer som matchar organizationId
     // Nya filer har formatet: organization-{orgId}-{variant}-{timestamp}.{ext}
     // Gamla filer kan ha formatet: {orgId}-{timestamp}.{ext}
-    // Prioritera nya filer (organization-*) över gamla
+    // Prioritera nya filer (organization-*) över gamla, and non-SVG over SVG
     const files = fs.readdirSync(logosDir)
-    const newFormatFile = files.find((file) => file.startsWith(`organization-${organizationId}-`))
+    const isSvg = (f: string) => path.extname(f).toLowerCase() === '.svg'
+    const newFormatFiles = files.filter((file) => file.startsWith(`organization-${organizationId}-`))
+    const oldFormatFiles = files.filter((file) => file.startsWith(`${organizationId}-`))
+    // Prefer non-SVG files (Outlook does not support SVG)
     const matchingFile =
-      newFormatFile ?? files.find((file) => file.startsWith(`${organizationId}-`))
+      newFormatFiles.find((f) => !isSvg(f)) ??
+      oldFormatFiles.find((f) => !isSvg(f)) ??
+      newFormatFiles[0] ??
+      oldFormatFiles[0] ??
+      null
 
     if (!matchingFile) {
       console.warn('[mailer] No logo found for organization:', organizationId)
@@ -143,6 +150,12 @@ async function findLogoByOrgId(organizationId: string): Promise<string | null> {
       '.jpeg': 'image/jpeg',
       '.svg': 'image/svg+xml',
       '.webp': 'image/webp'
+    }
+
+    // Outlook/Exchange Online does not support SVG — skip it
+    if (extension === '.svg') {
+      console.warn('[mailer] Skipping SVG logo (unsupported by Outlook):', matchingFile)
+      return null
     }
 
     const mimeType = mimeTypes[extension] || 'image/png'
@@ -272,6 +285,16 @@ async function convertLogoToDataUri(
       '.jpeg': 'image/jpeg',
       '.svg': 'image/svg+xml',
       '.webp': 'image/webp'
+    }
+
+    // Outlook/Exchange Online does not support SVG — skip it
+    if (extension === '.svg') {
+      console.warn('[mailer] Skipping SVG logo (unsupported by Outlook):', filename)
+      // Fall back to org ID search for a non-SVG alternative
+      if (organizationId) {
+        return await findLogoByOrgId(organizationId)
+      }
+      return null
     }
 
     const mimeType = mimeTypes[extension] || 'image/png'
@@ -462,6 +485,108 @@ export const sendInvitationEmail = async (input: {
   )
   console.info(`[mail] Invitation email for ${input.to} stored at ${storedAt}`)
   return { acceptUrl, storedAt }
+}
+
+export const sendOrganizationCreatedEmail = async (input: {
+  organizationId: string
+  organizationName: string
+  createdBy: string
+  to: string
+  organizationLogo?: string | null
+}) => {
+  const loginUrl = `${portalBaseUrl}/login`
+  const senderContext = await getEffectiveEmailSenderContext(input.organizationId)
+  const locale = normalizeEmailLocale(senderContext.emailLanguage)
+  const provider = senderContext.profile
+  const disclaimerMarkdown = await fetchOrganizationDisclaimer(input.organizationId)
+  const branding = await resolveEmailBranding({
+    organizationId: input.organizationId,
+    overrideLogoUrl: input.organizationLogo ?? null,
+    disclaimerMarkdown,
+    supportContact: senderContext.supportContact,
+    isDarkMode: senderContext.emailDarkMode
+  })
+
+  const copy: Record<EmailLocale, {
+    subject: string
+    pretitle: string
+    intro: string
+    body: string[]
+    buttonLabel: string
+    outro: string[]
+  }> = {
+    sv: {
+      subject: `Din organisation "${input.organizationName}" har skapats`,
+      pretitle: 'Välkommen!',
+      intro: 'Hej!',
+      body: [
+        `${input.createdBy} har skapat organisationen **${input.organizationName}** åt dig.`,
+        'Du är nu ägare av organisationen och kan börja använda portalen direkt.'
+      ],
+      buttonLabel: 'Logga in',
+      outro: ['Välkommen!']
+    },
+    en: {
+      subject: `Your organization "${input.organizationName}" has been created`,
+      pretitle: 'Welcome!',
+      intro: 'Hi!',
+      body: [
+        `${input.createdBy} has created the organization **${input.organizationName}** for you.`,
+        'You are now the owner of the organization and can start using the portal right away.'
+      ],
+      buttonLabel: 'Log in',
+      outro: ['Welcome!']
+    }
+  }
+
+  const copyForLocale = copy[locale]
+  const content = renderBrandedTemplate(
+    {
+      locale,
+      subject: copyForLocale.subject,
+      pretitle: copyForLocale.pretitle,
+      title: input.organizationName,
+      intro: copyForLocale.intro,
+      body: copyForLocale.body,
+      action: {
+        label: copyForLocale.buttonLabel,
+        url: loginUrl
+      },
+      outro: copyForLocale.outro
+    },
+    branding
+  )
+  const finalContent = {
+    ...content,
+    subject: formatSubject(content.subject, senderContext.subjectPrefix)
+  }
+
+  if (provider) {
+    const delivery = await sendTemplatedEmail({
+      profile: provider,
+      to: [{ email: input.to }],
+      content: finalContent,
+      dryRunOutboxDir: outboxDir
+    })
+    return { loginUrl, delivery }
+  }
+
+  const storedAt = await writeOutboxPreview(
+    {
+      to: [{ email: input.to }],
+      subject: finalContent.subject,
+      html: finalContent.html,
+      text: finalContent.text,
+      meta: {
+        reason: 'missing-provider',
+        organizationId: input.organizationId,
+        type: 'organization-created'
+      }
+    },
+    outboxDir
+  )
+  console.info(`[mail] Organization created email for ${input.to} stored at ${storedAt}`)
+  return { loginUrl, storedAt }
 }
 
 const buildDelegationAcceptUrl = (token: string) =>
@@ -795,7 +920,7 @@ export const sendDistributorInvitationEmail = async (input: {
       intro: copyForLocale.intro,
       body: bodyLines,
       action: { label: copyForLocale.action, url: acceptUrl },
-      outro: copyForLocale.outro
+      outro: [...copyForLocale.outro] as string[]
     },
     branding
   )
@@ -895,9 +1020,9 @@ export const sendDistributorConfirmationEmail = async (input: {
       pretitle: copyForLocale.pretitle,
       title: input.tenantName,
       intro: copyForLocale.intro,
-      body: copyForLocale.body,
+      body: [...copyForLocale.body] as string[],
       action: { label: copyForLocale.action, url: portalUrl },
-      outro: copyForLocale.outro
+      outro: [...copyForLocale.outro] as string[]
     },
     branding
   )

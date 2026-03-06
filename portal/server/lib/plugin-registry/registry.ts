@@ -21,10 +21,14 @@ export function manifestToModuleMeta(manifest: PluginModuleManifest): ModuleMeta
   // Determine root route from module key (e.g., 'cloudflare-dns' -> '/cloudflare-dns')
   const rootRoute = `/${module.key.replace(/_/g, '-')}`
 
+  // Convert kebab-case to camelCase for i18n key: 'windows-dns' -> 'windowsDns.description'
+  const descriptionKey = module.key.replace(/-([a-z])/g, (_: string, letter: string) => letter.toUpperCase()) + '.description'
+
   return {
     key: module.key,
     name: module.name,
     description: module.description ?? '',
+    descriptionKey,
     category: module.category ?? 'infrastructure',
     layerKey: module.key,
     rootRoute,

@@ -52,7 +52,7 @@ export const useAuth = () => {
   const fetchMe = async () => {
     state.value.loading = true
     try {
-      const data = await $fetch<AuthPayload>('/api/auth/me', { credentials: 'include' })
+      const data = await ($fetch as any)('/api/auth/me', { credentials: 'include' }) as AuthPayload
       applyAuthPayload(data)
       return data
     } catch {
@@ -71,10 +71,10 @@ export const useAuth = () => {
     await fetchMe()
   }
 
-  const login = async (payload: { email: string; password: string }) => {
+  const login = async (payload: { email: string; password: string; mfaCode?: string }) => {
     state.value.loading = true
     try {
-      await $fetch<AuthPayload>('/api/auth/login', {
+      await ($fetch as any)('/api/auth/login', {
         method: 'POST',
         body: payload,
         credentials: 'include'
@@ -89,7 +89,7 @@ export const useAuth = () => {
   }
 
   const logout = async () => {
-    await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    await ($fetch as any)('/api/auth/logout', { method: 'POST', credentials: 'include' })
     state.value.data = null
     state.value.initialized = true
   }
@@ -97,11 +97,11 @@ export const useAuth = () => {
   const switchOrganization = async (organizationId: string | null) => {
     state.value.loading = true
     try {
-      const data = await $fetch<AuthPayload>('/api/auth/switch-org', {
+      const data = await ($fetch as any)('/api/auth/switch-org', {
         method: 'POST',
         body: { organizationId },
         credentials: 'include'
-      })
+      }) as AuthPayload
       applyAuthPayload(data)
       return data
     } catch (error) {
@@ -115,11 +115,11 @@ export const useAuth = () => {
   const switchTenant = async (tenantId: string | null) => {
     state.value.loading = true
     try {
-      const data = await $fetch<AuthPayload>('/api/auth/switch-tenant', {
+      const data = await ($fetch as any)('/api/auth/switch-tenant', {
         method: 'POST',
         body: { tenantId },
         credentials: 'include'
-      })
+      }) as AuthPayload
       applyAuthPayload(data)
       return data
     } catch (error) {
@@ -133,11 +133,11 @@ export const useAuth = () => {
   const switchContext = async (payload: { organizationId?: string | null; tenantId?: string | null }) => {
     state.value.loading = true
     try {
-      const data = await $fetch<AuthPayload>('/api/auth/context-switch', {
+      const data = await ($fetch as any)('/api/auth/context-switch', {
         method: 'POST',
         body: payload,
         credentials: 'include'
-      })
+      }) as AuthPayload
       applyAuthPayload(data)
       return data
     } catch (error) {
@@ -151,7 +151,7 @@ export const useAuth = () => {
   const setPrimaryOrganization = async (orgId: string) => {
     state.value.loading = true
     try {
-      await $fetch('/api/auth/set-primary-org', {
+      await ($fetch as any)('/api/auth/set-primary-org', {
         method: 'POST',
         body: { orgId },
         credentials: 'include'

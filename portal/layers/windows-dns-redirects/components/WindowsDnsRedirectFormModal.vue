@@ -3,7 +3,7 @@
  * WindowsDnsRedirect Form Modal
  * Create or edit redirect rules with host support and presets
  */
-import type { WindowsDnsRedirect } from '../../types'
+import type { WindowsDnsRedirect } from '../types'
 import type { WindowsDnsRedirectErrorType } from '../composables/useWindowsDnsRedirectError'
 
 const props = defineProps<{
@@ -322,10 +322,11 @@ async function handleSubmit() {
         ...buildRequestBody(),
         host: '@',
       }
-      const apexResponse = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
+      const redirectsUrl = `/api/dns/windows/zones/${props.zoneId}/redirects`
+      const apexResponse = await ($fetch as Function)(redirectsUrl, {
         method: 'POST',
         body: apexBody,
-      })
+      }) as { redirect: WindowsDnsRedirect }
       results.push(apexResponse.redirect)
 
       // Create www redirect
@@ -333,32 +334,34 @@ async function handleSubmit() {
         ...buildRequestBody(),
         host: 'www',
       }
-      const wwwResponse = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
+      const wwwResponse = await ($fetch as Function)(redirectsUrl, {
         method: 'POST',
         body: wwwBody,
-      })
+      }) as { redirect: WindowsDnsRedirect }
       results.push(wwwResponse.redirect)
 
       // Emit first redirect (apex) as the "saved" one
-      emit('saved', results[0])
+      emit('saved', results[0]!)
       emit('close')
       return
     }
 
     // Normal single redirect
-    let response
+    let response: { redirect: WindowsDnsRedirect }
     if (isEditing.value && props.redirect) {
       // Update existing redirect
-      response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects/${props.redirect.id}`, {
+      const patchUrl = `/api/dns/windows/zones/${props.zoneId}/redirects/${props.redirect.id}`
+      response = await ($fetch as Function)(patchUrl, {
         method: 'PATCH',
         body: buildRequestBody(),
-      })
+      }) as { redirect: WindowsDnsRedirect }
     } else {
       // Create new redirect
-      response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
+      const postUrl = `/api/dns/windows/zones/${props.zoneId}/redirects`
+      response = await ($fetch as Function)(postUrl, {
         method: 'POST',
         body: buildRequestBody(),
-      })
+      }) as { redirect: WindowsDnsRedirect }
     }
 
     emit('saved', response.redirect)
@@ -391,17 +394,19 @@ async function confirmApplyDnsChangesAndSubmit() {
 
   isSubmitting.value = true
   try {
-    let response
+    let response: { redirect: WindowsDnsRedirect }
     if (isEditing.value && props.redirect) {
-      response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects/${props.redirect.id}`, {
+      const patchUrl = `/api/dns/windows/zones/${props.zoneId}/redirects/${props.redirect.id}`
+      response = await ($fetch as Function)(patchUrl, {
         method: 'PATCH',
         body: buildRequestBody(true),
-      })
+      }) as { redirect: WindowsDnsRedirect }
     } else {
-      response = await $fetch(`/api/dns/windows/zones/${props.zoneId}/redirects`, {
+      const postUrl = `/api/dns/windows/zones/${props.zoneId}/redirects`
+      response = await ($fetch as Function)(postUrl, {
         method: 'POST',
         body: buildRequestBody(true),
-      })
+      }) as { redirect: WindowsDnsRedirect }
     }
     emit('saved', response.redirect)
     emit('close')

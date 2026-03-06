@@ -48,7 +48,7 @@
           </button>
           <!-- Export selected -->
           <button
-            v-if="selectedZones.length > 0"
+            v-if="selectedZones.length > 0 && moduleRights?.canExport"
             type="button"
             class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
             :disabled="bulkExporting"
@@ -86,9 +86,9 @@
         </h2>
       </div>
       <div class="flex flex-col gap-2 md:flex-row md:items-center">
-        <!-- Enter selection mode button -->
+        <!-- Enter selection mode button (only if user can export) -->
         <button
-          v-if="zones.length > 1"
+          v-if="zones.length > 1 && moduleRights?.canExport"
           type="button"
           class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-300"
           @click="enterSelectionMode"
@@ -312,7 +312,7 @@
           <div class="flex items-center gap-2">
             <!-- Export button (visible on hover) -->
             <button
-              v-if="isValidUuid(zone.id)"
+              v-if="isValidUuid(zone.id) && moduleRights?.canExport"
               type="button"
               class="inline-flex items-center justify-center rounded-lg border border-transparent p-1.5 text-slate-400 opacity-0 transition group-hover:opacity-100 hover:border-slate-200 hover:bg-slate-50 hover:text-brand dark:hover:border-slate-700 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="exportingZoneId === zone.id"
@@ -499,7 +499,7 @@ type Server = {
 
 const props = defineProps<{
   zones: Zone[]
-  moduleRights?: { canManageZones: boolean }
+  moduleRights?: { canManageZones: boolean; canExport?: boolean }
   loading?: boolean
 }>()
 
@@ -629,10 +629,10 @@ const exportZone = async (zone: Zone) => {
   
   exportingZoneId.value = zone.id
   try {
-    const content = await $fetch<string>(`/api/dns/windows/zones/${zone.id}/export`, {
+    const content = await ($fetch as any)(`/api/dns/windows/zones/${zone.id}/export`, {
       responseType: 'text'
-    })
-    
+    }) as string
+
     // Create and trigger download
     const blob = new Blob([content], { type: 'text/plain' })
     const downloadUrl = URL.createObjectURL(blob)
@@ -683,9 +683,9 @@ const bulkExportZones = async () => {
         }
         
         try {
-          const content = await $fetch<string>(`/api/dns/windows/zones/${zone.id}/export`, {
+          const content = await ($fetch as any)(`/api/dns/windows/zones/${zone.id}/export`, {
             responseType: 'text'
-          })
+          }) as string
           zoneFiles.push({
             name: `${zone.zoneName.replace(/\./g, '_')}.txt`,
             content
@@ -730,10 +730,10 @@ const bulkExportZones = async () => {
         }
         
         try {
-          const content = await $fetch<string>(`/api/dns/windows/zones/${zone.id}/export`, {
+          const content = await ($fetch as any)(`/api/dns/windows/zones/${zone.id}/export`, {
             responseType: 'text'
-          })
-          
+          }) as string
+
           // Create and trigger download
           const blob = new Blob([content], { type: 'text/plain' })
           const downloadUrl = URL.createObjectURL(blob)
@@ -789,7 +789,7 @@ const getMissingNameservers = (zoneName: string): string[] => {
 const fetchNsStatus = async () => {
   loadingNsStatus.value = true
   try {
-    const res = await $fetch<NsStatusResponse>('/api/dns/windows/zones/ns-status')
+    const res = await ($fetch as any)('/api/dns/windows/zones/ns-status') as NsStatusResponse
     nsStatus.value = res.statusByZoneName ?? {}
     nsServiceUnavailable.value = res.serviceUnavailable ?? false
   } catch (err) {
@@ -813,7 +813,7 @@ const fetchRecordCounts = async () => {
     const counts = await Promise.all(
       validZones.map(async (zone) => {
         try {
-          const res = await $fetch<{ records: any[] }>(`/api/dns/windows/zones/${zone.id}/records`)
+          const res = await ($fetch as any)(`/api/dns/windows/zones/${zone.id}/records`) as { records: any[] }
           return { zoneId: zone.id, count: res.records?.length ?? 0 }
         } catch (err) {
           console.error(`[windows-dns] Failed to fetch record count for zone ${zone.id}:`, err)
@@ -874,11 +874,11 @@ const openCreateModal = async () => {
   // Load available servers in background and auto-select first one
   loadingServers.value = true
   try {
-    const res = await $fetch<{ servers: Server[] }>('/api/dns/windows/servers')
+    const res = await ($fetch as any)('/api/dns/windows/servers') as { servers: Server[] }
     servers.value = res.servers || []
     // Automatically select first available server (hidden from UI)
     if (servers.value.length > 0) {
-      newZone.serverId = servers.value[0].id
+      newZone.serverId = servers.value[0]!.id
     } else {
       const { $i18n } = useNuxtApp()
       createError.value = $i18n.t('windowsDns.zoneList.onboard.noServersError')
@@ -911,14 +911,14 @@ const createZone = async () => {
   createError.value = null
   
   try {
-    const res = await $fetch<{ zone: { id: string } }>('/api/dns/windows/zones', {
+    const res = await ($fetch as any)('/api/dns/windows/zones', {
       method: 'POST',
       body: {
         zoneName: newZone.zoneName,
         zoneType: 'Primary', // Always Primary
         serverId: newZone.serverId
       }
-    })
+    }) as { zone: { id: string } }
     
     // Debug: Log the response structure
     console.log('[windows-dns] Frontend received response:', res)

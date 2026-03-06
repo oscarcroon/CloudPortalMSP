@@ -22,6 +22,8 @@ import {
 } from '~~/server/utils/auth'
 import { normalizeEmail } from '~~/server/utils/crypto'
 import { createSession } from '~~/server/utils/session'
+import { users } from '~~/server/database/schema'
+import { eq } from 'drizzle-orm'
 import type { RbacRole } from '~/constants/rbac'
 
 const extractEmail = (profile: Record<string, unknown>) => {
@@ -45,6 +47,12 @@ const extractFullName = (profile: Record<string, unknown>) => {
   if (typeof profile.given_name === 'string' || typeof profile.family_name === 'string') {
     return [profile.given_name, profile.family_name].filter(Boolean).join(' ').trim()
   }
+  return undefined
+}
+
+const extractProfilePicture = (profile: Record<string, unknown>): string | undefined => {
+  if (typeof profile.picture === 'string' && profile.picture.length > 0) return profile.picture
+  if (typeof profile.photo === 'string' && profile.photo.length > 0) return profile.photo
   return undefined
 }
 
@@ -114,11 +122,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const fullName = extractFullName(profile)
+  const profilePictureUrl = extractProfilePicture(profile)
   let user = await findUserByEmail(email)
   if (!user) {
     const result = await createUserForOrganization({
       email,
       fullName,
+      profilePictureUrl,
       organizationId: organization.id,
       role: organization.defaultRole as RbacRole
     })
@@ -133,6 +143,17 @@ export default defineEventHandler(async (event) => {
     organization.id,
     organization.defaultRole as RbacRole
   )
+
+  // Update profile from IDP on every SSO login
+  const profileUpdates: Record<string, unknown> = {}
+  if (fullName && fullName !== user.fullName) profileUpdates.fullName = fullName
+  if (profilePictureUrl && profilePictureUrl !== user.profilePictureUrl) {
+    profileUpdates.profilePictureUrl = profilePictureUrl
+    profileUpdates.avatarPreference = 'sso'
+  }
+  if (Object.keys(profileUpdates).length > 0) {
+    await db.update(users).set(profileUpdates).where(eq(users.id, user.id))
+  }
 
   await createSession(event, user.id, organization.id)
   const target = storedState.redirect ?? '/'

@@ -67,6 +67,10 @@ export default defineEventHandler(async (event) => {
     status: organizationInvitations.status, invitedAt: organizationInvitations.createdAt, expiresAt: organizationInvitations.expiresAt
   }).from(organizationInvitations).where(eq(organizationInvitations.id, invitationId))
 
+  if (!updated) {
+    throw createError({ statusCode: 404, message: 'Invitation not found after update' })
+  }
+
   return {
     invite: {
       id: updated.id, email: updated.email, role: updated.role, status: updated.status,

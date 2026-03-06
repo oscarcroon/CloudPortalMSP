@@ -132,6 +132,10 @@ export default defineEventHandler(async (event) => {
     .where(eq(mspRoles.id, newRoleId))
     .limit(1)
 
+  if (!clonedRole) {
+    throw createError({ statusCode: 500, message: 'Klonad roll kunde inte hittas.' })
+  }
+
   return {
     role: {
       id: clonedRole.id,

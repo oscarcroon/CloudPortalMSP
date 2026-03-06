@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   const db = getDb()
 
   // Find the token
-  const token = db
+  const [token] = await db
     .select()
     .from(orgApiTokens)
     .where(
@@ -37,7 +37,6 @@ export default defineEventHandler(async (event) => {
         eq(orgApiTokens.organizationId, orgId)
       )
     )
-    .get()
 
   if (!token) {
     throw createError({
@@ -56,13 +55,12 @@ export default defineEventHandler(async (event) => {
   // Revoke the token
   const now = new Date()
 
-  db.update(orgApiTokens)
+  await db.update(orgApiTokens)
     .set({
       revokedAt: now,
       updatedAt: now,
     })
     .where(eq(orgApiTokens.id, tokenId))
-    .run()
 
   // Audit log
   await logAuditEvent(event, 'API_TOKEN_REVOKED', {

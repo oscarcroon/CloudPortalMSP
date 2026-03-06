@@ -76,18 +76,25 @@ export default defineEventHandler(async (event) => {
       return null
     }
 
+    // Build module response with all needed fields
+    const buildModuleResponse = () => ({
+      id: module.id,
+      name: module.name,
+      description: module.description,
+      descriptionKey: module.descriptionKey,
+      category: module.category,
+      routePath: module.routePath,
+      icon: module.icon,
+      badge: module.badge || undefined,
+      disabled: status?.effectiveDisabled ?? false,
+      effectiveEnabled: status?.effectiveEnabled ?? true,
+      effectiveDisabled: status?.effectiveDisabled ?? false,
+      comingSoonMessage: status?.comingSoonMessage ?? null
+    })
+
     // Superadmins see all enabled modules
     if (auth.user.isSuperAdmin) {
-      return {
-        id: module.id,
-        name: module.name,
-        description: module.description,
-        category: module.category,
-        routePath: module.routePath,
-        icon: module.icon,
-        badge: module.badge || undefined,
-        disabled: status?.effectiveDisabled ?? false
-      }
+      return buildModuleResponse()
     }
 
     // Check if user has at least read permission for this module
@@ -97,16 +104,7 @@ export default defineEventHandler(async (event) => {
       return null // No read permission = module is not visible
     }
 
-    return {
-      id: module.id,
-      name: module.name,
-      description: module.description,
-      category: module.category,
-      routePath: module.routePath,
-      icon: module.icon,
-      badge: module.badge || undefined,
-      disabled: status?.effectiveDisabled ?? false
-    }
+    return buildModuleResponse()
   })
 
   const visibleModules = await Promise.all(visibleModulesPromises)

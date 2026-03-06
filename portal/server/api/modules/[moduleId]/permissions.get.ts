@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     },
     permissions,
     roles: moduleDef.roles ?? [],
-    roleDefaults: manifest?.roleDefaults ?? []
+    roleDefaults: manifest?.rbacDefaults ?? {}
   }
 })
 

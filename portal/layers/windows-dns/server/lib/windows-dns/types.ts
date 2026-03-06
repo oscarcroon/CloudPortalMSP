@@ -12,6 +12,7 @@ export interface WindowsDnsModuleRights {
   canCreateZones: boolean
   canEditZones: boolean
   canEditRecords: boolean
+  canExport: boolean
   canManageOwnership: boolean
   canAutodiscover: boolean
   canManageOrgConfig: boolean
@@ -136,6 +137,8 @@ export interface WindowsDnsZoneSummary {
   coreIdMarkerPresent?: boolean
   /** The actual COREID marker value found on the zone */
   coreIdMarkerValue?: string | null
+  /** Number of DNS records in this zone (populated on list) */
+  recordCount?: number
 }
 
 export interface WindowsDnsRecord {

@@ -1,9 +1,23 @@
 {
+  "apiScopes": {
+    "windows-dns:read": "Read DNS zones and records",
+    "windows-dns:write": "Create, update, and delete DNS records and zones",
+    "windows-dns:redirects:read": "Read DNS redirect configurations",
+    "windows-dns:redirects:write": "Create, update, and delete DNS redirects"
+  },
   "windowsDns": {
     "title": "DNS",
     "description": "Manage DNS zones, records and access.",
     "cta": "Create zone",
     "empty": "No zones yet.",
+
+    "sort": {
+      "label": "Sort",
+      "nameAsc": "Name (A→Z)",
+      "nameDesc": "Name (Z→A)",
+      "recordsDesc": "Most records",
+      "recordsAsc": "Fewest records"
+    },
 
     "statusCard": {
       "label": "Status",
@@ -205,7 +219,12 @@
         "tooltip": "This DNS record is automatically managed by the Redirect service",
         "editWarning": "This record is managed by Redirects. Changes may affect redirects.",
         "openRedirects": "Open in Redirects"
-      }
+      },
+      "lastChangedAt": "Last changed",
+      "lastChangedBy": "By",
+      "auditUnknown": "No change history",
+      "auditUnknownUser": "Unknown user",
+      "auditInfo": "Show change history"
     },
 
     "autodiscover": {
@@ -213,7 +232,7 @@
       "title": "Autodiscover Zones",
       "subtitle": "Find zones that match your organization's COREID and activate them.",
       "info": {
-        "title": "Autodiscover searches for zones with a TXT record containing",
+        "title": "Autodiscover searches for zones with a TXT record at _coreid.<zone> containing",
         "coreIdLabel": "Your organization's COREID:",
         "coreIdPlaceholder": "<your-id>"
       },
@@ -227,7 +246,7 @@
       "activated": "Activated",
       "available": "Available",
       "noZonesFound": "No zones found matching your COREID",
-      "noZonesHint": "Make sure zones have a TXT record with your COREID value",
+      "noZonesHint": "Make sure zones have a TXT record at _coreid.<zone> with the value COREID=<your-id>",
       "backToZones": "Back to zones",
       "error": "Autodiscover failed.",
       "activationError": "Activation failed."
@@ -244,7 +263,7 @@
       "rescanning": "Scanning...",
       "coreIdInfo": "Searching for zones with COREID:",
       "noZonesFound": "No zones found",
-      "noZonesHint": "Make sure zones have a TXT record with COREID={coreId}",
+      "noZonesHint": "Make sure zones have a TXT record at _coreid.<zone> with the value COREID={coreId}",
       "status": {
         "allowed": "Active",
         "available": "Available",

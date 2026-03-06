@@ -125,7 +125,7 @@ export default defineEventHandler(async (event) => {
 
   if (input.type === 'invitation') {
     const content = buildInvitationEmail({
-      organizationName: 'Exempelorganisation',
+      organisationName: 'Exempelorganisation',
       invitedBy: 'Exempel Användare',
       role: 'Medlem',
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleString(localeCode),

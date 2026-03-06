@@ -70,21 +70,10 @@ export default defineEventHandler(async (event) => {
     return { tenant }
   }
 
-  const isSqlite =
-    (process.env.DB_DIALECT ?? process.env.DRIZZLE_DIALECT ?? 'sqlite').toLowerCase() === 'sqlite'
-
-  if (isSqlite) {
-    await db
-      .update(tenants)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(tenants.id, tenantId))
-      .run()
-  } else {
-    await db
-      .update(tenants)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(tenants.id, tenantId))
-  }
+  await db
+    .update(tenants)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(tenants.id, tenantId))
 
   const [updatedTenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId))
 

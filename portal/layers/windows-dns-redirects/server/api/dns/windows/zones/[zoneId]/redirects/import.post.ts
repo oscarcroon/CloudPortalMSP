@@ -9,7 +9,8 @@ import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirects, windowsDnsAllowedZones, windowsDnsRedirectImportLogs } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
 import { normalizeRedirectHost } from '@windows-dns-redirects/server/utils/normalizeHost'
-import type { WindowsDnsRedirectImportRow, WindowsDnsRedirectImportError } from '../../../../types'
+import { logAuditEvent } from '~~/server/utils/audit'
+import type { WindowsDnsRedirectImportRow, WindowsDnsRedirectImportError } from '@windows-dns-redirects/types'
 
 interface ImportBody {
   rows: WindowsDnsRedirectImportRow[]
@@ -57,7 +58,7 @@ export default defineEventHandler(async (event) => {
   const zoneName = allowedZone.zoneName || ''
   const body = await readBody<ImportBody>(event)
 
-  if (!body.rows || !Array.isArray(body.rows) || body.rows.length === 0) {
+  if (!body?.rows || !Array.isArray(body.rows) || body.rows.length === 0) {
     throw createError({ statusCode: 400, message: 'rows array is required.' })
   }
 
@@ -91,7 +92,7 @@ export default defineEventHandler(async (event) => {
   const validStatusCodes = [301, 302, 307, 308]
 
   for (let i = 0; i < body.rows.length; i++) {
-    const row = body.rows[i]
+    const row = body.rows[i]!
     const rowNum = i + 1
 
     // Normalize host (defaults to zoneName if empty/undefined)
@@ -201,6 +202,18 @@ export default defineEventHandler(async (event) => {
     failedRows: errors.length,
     errorDetails: errors.length > 0 ? JSON.stringify(errors) : null,
     importedBy: auth.user.id
+  })
+
+  // Log audit event for import (do not log redirect contents)
+  await logAuditEvent(event, 'WINDOWS_DNS_REDIRECTS_IMPORTED', {
+    moduleKey: 'windows-dns-redirects',
+    entityType: 'windows_dns_redirect',
+    zoneId,
+    zoneName,
+    filename: body.filename || 'import.csv',
+    totalRows: body.rows.length,
+    successfulRows: toInsert.length,
+    failedRows: errors.length
   })
 
   return {

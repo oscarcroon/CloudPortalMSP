@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
       if (!permissionsMap[perm.roleId]) {
         permissionsMap[perm.roleId] = []
       }
-      permissionsMap[perm.roleId].push({
+      permissionsMap[perm.roleId]!.push({
         moduleKey: perm.moduleKey,
         permissionKey: perm.permissionKey
       })

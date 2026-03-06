@@ -64,7 +64,7 @@ const manifestToModuleMeta = (manifest: (typeof manifests)[number]): ModuleMeta 
   const scopes: ModuleScope[] = ['tenant', 'org', 'user']
 
   const requiredPermissions: RbacPermission[] =
-    permissions?.map((permission) => permission.key as RbacPermission) ?? []
+    permissions?.map((permission: { key: string }) => permission.key as RbacPermission) ?? []
 
   // Special case: windows-dns uses /dns as route instead of /windows-dns
   const rootRoute = module.key === 'windows-dns' ? '/dns' : `/${module.key.replace(/_/g, '-')}`

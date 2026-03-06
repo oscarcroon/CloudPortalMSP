@@ -41,10 +41,10 @@ export const getOrgConfig = async (orgId: string): Promise<WindowsDnsOrgConfig |
       .where(eq(organizations.id, orgId))
       .limit(1)
 
-    if (orgResult.length && orgResult[0].coreId) {
+    if (orgResult.length && orgResult[0]!.coreId) {
       // Org exists with coreId but no config yet - return minimal config
       return {
-        coreId: orgResult[0].coreId,
+        coreId: orgResult[0]!.coreId,
         instanceId: null,
         windowsDnsAccountId: null,
         enabledAt: null,
@@ -57,7 +57,7 @@ export const getOrgConfig = async (orgId: string): Promise<WindowsDnsOrgConfig |
     return null
   }
 
-  const row = result[0]
+  const row = result[0]!
   return {
     instanceId: row.config.instanceId,
     windowsDnsAccountId: row.config.windowsDnsAccountId,
@@ -82,7 +82,7 @@ export const getOrgCoreId = async (orgId: string): Promise<string | null> => {
     .where(eq(organizations.id, orgId))
     .limit(1)
 
-  return result.length ? result[0].coreId : null
+  return result.length ? result[0]!.coreId : null
 }
 
 /**
@@ -396,7 +396,7 @@ export const getLastDiscovery = async (orgId: string): Promise<WindowsDnsLastDis
 
   if (!result.length) return null
 
-  const row = result[0]
+  const row = result[0]!
   return {
     organizationId: row.organizationId,
     discoveredAt: row.discoveredAt,

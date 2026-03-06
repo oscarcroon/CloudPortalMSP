@@ -424,7 +424,7 @@ async function handleLogoSelection(event: Event) {
   try {
     const formData = new FormData()
     formData.append('logo', file)
-    const result = await $fetch<{ logoUrl: string }>(`/api/organizations/${activeOrgId}/logo`, {
+    const result = await ($fetch as any)(`/api/organizations/${activeOrgId}/logo`, {
       method: 'POST',
       body: formData,
       credentials: 'include'
@@ -462,7 +462,7 @@ async function removeLogo() {
   uploadSuccessMessage.value = null
 
   try {
-    await $fetch(`/api/organizations/${activeOrgId}/logo`, {
+    await ($fetch as any)(`/api/organizations/${activeOrgId}/logo`, {
       method: 'DELETE',
       credentials: 'include'
     })
@@ -500,9 +500,9 @@ async function refreshBranding() {
   brandingLoading.value = true
   brandingError.value = null
   try {
-    brandingDetails.value = await $fetch<BrandingState>(`/api/organizations/${activeOrgId}/branding`, {
+    brandingDetails.value = await ($fetch as any)(`/api/organizations/${activeOrgId}/branding`, {
       credentials: 'include'
-    })
+    }) as BrandingState
     const theme = brandingDetails.value?.organizationTheme
     accentForm.customColor = theme?.accentColor ?? ''
   } catch (error: any) {
@@ -533,7 +533,7 @@ async function saveCustomAccent() {
   accentStatus.value = null
   try {
     const currentNavColor = brandingDetails.value?.organizationTheme?.navigationBackgroundColor
-    await $fetch(`/api/organizations/${activeOrgId}/branding`, {
+    await ($fetch as any)(`/api/organizations/${activeOrgId}/branding`, {
       method: 'PUT',
       credentials: 'include',
       body: { 
@@ -564,7 +564,7 @@ async function resetAccent() {
   accentStatus.value = null
   try {
     const currentNavColor = brandingDetails.value?.organizationTheme?.navigationBackgroundColor
-    await $fetch(`/api/organizations/${activeOrgId}/branding`, {
+    await ($fetch as any)(`/api/organizations/${activeOrgId}/branding`, {
       method: 'PUT',
       credentials: 'include',
       body: { 
@@ -612,7 +612,7 @@ async function saveNavigationColor() {
   try {
     const currentAccentColor = brandingDetails.value?.organizationTheme?.accentColor
     const currentPaletteKey = brandingDetails.value?.organizationTheme?.paletteKey
-    await $fetch(`/api/organizations/${activeOrgId}/branding`, {
+    await ($fetch as any)(`/api/organizations/${activeOrgId}/branding`, {
       method: 'PUT',
       credentials: 'include',
       body: { 

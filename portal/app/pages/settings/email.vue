@@ -114,7 +114,7 @@ const loadProvider = async () => {
   pending.value = true
   errorMessage.value = ''
   try {
-    const response = await $fetch<{ provider: AdminEmailProviderSummary | null }>(
+    const response = await ($fetch as any)(
       '/api/settings/email-provider'
     )
     provider.value = response.provider
@@ -144,7 +144,7 @@ const handleSave = async (payload: AdminEmailProviderPayload) => {
   errorMessage.value = ''
   saving.value = true
   try {
-    await $fetch('/api/settings/email-provider', {
+    await ($fetch as any)('/api/settings/email-provider', {
       method: 'PUT',
       body: payload
     })
@@ -162,7 +162,7 @@ const handleTest = async (payload: AdminEmailProviderTestPayload) => {
   testMessage.value = ''
   testing.value = true
   try {
-    await $fetch('/api/settings/email-provider/test', {
+    await ($fetch as any)('/api/settings/email-provider/test', {
       method: 'POST',
       body: payload
     })

@@ -35,11 +35,11 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const response = await $fetch<{ result: { servers: any[] } }>(`${baseUrl}/system/servers`, {
+    const response = await ($fetch as any)(`${baseUrl}/system/servers`, {
       headers: {
         'Authorization': `Bearer ${layerToken}`
       }
-    })
+    }) as { result: { servers: any[] } }
 
     // API returns { result: { servers: [...] } }
     const servers = (response.result?.servers || []).map((s: any) => ({

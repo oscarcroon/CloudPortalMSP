@@ -833,7 +833,7 @@ const loadAllModulePermissions = async (member: OrganizationMember) => {
     }
 
     // Hämta modulstatus (policy) för org
-    const modulesStatus = await $fetch<{ modules: any[] }>(`/api/organizations/${orgId}/modules`)
+    const modulesStatus = await ($fetch as any)(`/api/organizations/${orgId}/modules`)
 
     // Hämta permissions per modul för användaren (separata anrop)
     const entries: ModulePermissionEntry[] = []
@@ -972,7 +972,7 @@ const savePermissions = async (moduleId: string) => {
       }))
     } else {
       // API doesn't return full permissions, update local state based on response
-      const respOverrides = resp.permissionOverrides as { grants?: string[], denies?: string[] } | undefined
+      const respOverrides = (resp as any).permissionOverrides as { grants?: string[], denies?: string[] } | undefined
       const savedGrants = new Set(respOverrides?.grants ?? grants)
       const savedDenies = new Set(respOverrides?.denies ?? denies)
       entry.permissions = entry.permissions.map((p) => ({
@@ -1100,7 +1100,7 @@ const loadMembers = async () => {
   errorMessage.value = ''
   overridesLoaded.value = false
   try {
-    const response = await membersApi.fetchMembers()
+    const response = await membersApi.fetchMembers() as any
     members.value = response.members
     organisationName.value = response.organization.name
     organisationRequireSso.value = Boolean(response.organization.requireSso)
@@ -1112,13 +1112,10 @@ const loadMembers = async () => {
     
     // Fetch delegations to show non-member delegated users and pending invitations
     try {
-      const delegationsResp = await $fetch<{ 
-        delegations: Array<{ subjectId: string; subjectName: string | null; subjectEmail: string | null; revokedAt: number | null; expiresAt: number | null }>
-        invitations?: DelegationInvite[]
-      }>(
+      const delegationsResp = await ($fetch as any)(
         `/api/organizations/${currentOrgId.value}/delegations`
       )
-      const memberUserIds = new Set(response.members.map(m => m.userId).filter(Boolean))
+      const memberUserIds = new Set(response.members.map((m: any) => m.userId).filter(Boolean))
       const now = Date.now()
       
       // Group by subjectId and count active delegations
@@ -1407,7 +1404,7 @@ const cancelDelegationInvitation = async (invite: DelegationInvite) => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/delegations/invitations/${invite.id}`,
       { method: 'DELETE' }
     )
@@ -1429,7 +1426,7 @@ const resendDelegationInvitation = async (invite: DelegationInvite) => {
   errorMessage.value = ''
   successMessage.value = ''
   try {
-    await $fetch(
+    await ($fetch as any)(
       `/api/organizations/${currentOrgId.value}/delegations/invitations/${invite.id}/resend`,
       { method: 'POST' }
     )

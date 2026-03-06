@@ -8,7 +8,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirects, windowsDnsAllowedZones } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
-import type { WindowsDnsRedirectFilters, WindowsDnsRedirectSortField, WindowsDnsRedirectSortDirection } from '../../../../types'
+import type { WindowsDnsRedirectFilters, WindowsDnsRedirectSortField, WindowsDnsRedirectSortDirection } from '@windows-dns-redirects/types'
 
 export default defineEventHandler(async (event) => {
   const auth = await ensureAuthState(event)
@@ -96,13 +96,14 @@ export default defineEventHandler(async (event) => {
   const total = countResult?.count || 0
 
   // Determine sort column
-  const sortColumn = {
+  const sortColumnMap = {
     createdAt: windowsDnsRedirects.createdAt,
     updatedAt: windowsDnsRedirects.updatedAt,
     hitCount: windowsDnsRedirects.hitCount,
     lastHitAt: windowsDnsRedirects.lastHitAt,
     sourcePath: windowsDnsRedirects.sourcePath
-  }[sortField] || windowsDnsRedirects.createdAt
+  } as const
+  const sortColumn = sortColumnMap[sortField as keyof typeof sortColumnMap] ?? windowsDnsRedirects.createdAt
 
   const orderFn = sortDirection === 'asc' ? asc : desc
 

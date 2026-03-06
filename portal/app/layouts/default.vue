@@ -46,7 +46,7 @@
     </main>
 
     <footer class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-      © {{ new Date().getFullYear() }} Cloud Portal. All rights reserved.
+      &copy; {{ new Date().getFullYear() }} Cloud Portal - <a href="https://www.coreit.se" target="_blank" rel="noopener" class="hover:text-slate-600 dark:hover:text-slate-300 transition">CoreIT</a>. All rights reserved.
     </footer>
   </div>
 </template>
@@ -148,7 +148,7 @@ async function handleMuteIncident(incident: { id: string }) {
       await feedInstance.muteIncidentForUser(incident.id)
     } else {
       // Fallback if feed not loaded yet - use new user mute endpoint
-      await $fetch(`/api/operations/incidents/${incident.id}/mute`, {
+      await ($fetch as any)(`/api/operations/incidents/${incident.id}/mute`, {
         method: 'POST',
         credentials: 'include'
       })

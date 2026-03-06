@@ -1,10 +1,11 @@
 import { defineEventHandler, getQuery } from 'h3'
-import { eq, and, gte, lte, desc, sql } from 'drizzle-orm'
+import { eq, and, gte, lte, desc, sql, inArray } from 'drizzle-orm'
 import { auditLogs, users, organizations, tenants } from '../../database/schema'
 import { getDb } from '../../utils/db'
 import { requireSuperAdmin } from '../../utils/rbac'
 import { validatePagination } from '../../utils/validation'
 import type { AuditEventType } from '../../utils/audit'
+import { getEventTypesForModule } from '../../audit/registry'
 
 export default defineEventHandler(async (event) => {
   await requireSuperAdmin(event)
@@ -16,6 +17,7 @@ export default defineEventHandler(async (event) => {
   const userId = query.userId as string | undefined
   const orgId = query.orgId as string | undefined
   const tenantId = query.tenantId as string | undefined
+  const moduleKey = query.moduleKey as string | undefined
   const eventType = query.eventType as AuditEventType | undefined
   const severityRaw = query.severity as string | undefined
   const allowedSeverities = new Set(['error', 'critical', 'warning', 'info'] as const)
@@ -49,6 +51,12 @@ export default defineEventHandler(async (event) => {
   
   if (eventType) {
     conditions.push(eq(auditLogs.eventType, eventType))
+  } else if (moduleKey) {
+    // If no specific eventType but moduleKey is set, filter by all event types in that module
+    const moduleEventTypes = getEventTypesForModule(moduleKey)
+    if (moduleEventTypes.length > 0) {
+      conditions.push(inArray(auditLogs.eventType, moduleEventTypes))
+    }
   }
   
   if (severity) {

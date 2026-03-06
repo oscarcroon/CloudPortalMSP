@@ -14,9 +14,10 @@ const ZONE_ROLE_ORDER: CloudflareZoneRole[] = ['viewer', 'records-only', 'editor
 const PERMISSION_TO_CAPABILITY: Record<string, keyof CloudflareModuleRights> = {
   'cloudflare-dns:view': 'canView',
   'cloudflare-dns:edit_records': 'canEditRecords',
+  'cloudflare-dns:export': 'canExport',
+  'cloudflare-dns:import': 'canImport',
   'cloudflare-dns:admin_zones': 'canManageZones',
-  'cloudflare-dns:manage_org_config': 'canManageOrgConfig',
-  'cloudflare-dns:manage_acls': 'canManageAcls'
+  'cloudflare-dns:manage_api': 'canManageApi'
 }
 
 const zoneRoleCapabilities: Record<CloudflareZoneRole, Omit<CloudflareZoneAccess, 'roles'>> = {
@@ -24,33 +25,37 @@ const zoneRoleCapabilities: Record<CloudflareZoneRole, Omit<CloudflareZoneAccess
     zoneRole: 'viewer',
     canView: true,
     canEditRecords: false,
+    canExport: false,
+    canImport: false,
     canManageZones: false,
-    canManageAcls: false,
-    canManageOrgConfig: false
+    canManageApi: false
   },
   'records-only': {
     zoneRole: 'records-only',
     canView: true,
     canEditRecords: true,
+    canExport: false,
+    canImport: true,
     canManageZones: false,
-    canManageAcls: false,
-    canManageOrgConfig: false
+    canManageApi: false
   },
   editor: {
     zoneRole: 'editor',
     canView: true,
     canEditRecords: true,
+    canExport: true,
+    canImport: true,
     canManageZones: false,
-    canManageAcls: false,
-    canManageOrgConfig: false
+    canManageApi: false
   },
   admin: {
     zoneRole: 'admin',
     canView: true,
     canEditRecords: true,
+    canExport: true,
+    canImport: true,
     canManageZones: true,
-    canManageAcls: true,
-    canManageOrgConfig: false
+    canManageApi: false
   }
 }
 
@@ -86,9 +91,10 @@ const buildRightsFromPermissions = (perms: Set<string>): CloudflareModuleRights 
   roles: [],
   canView: perms.has('cloudflare-dns:view'),
   canEditRecords: perms.has('cloudflare-dns:edit_records'),
+  canExport: perms.has('cloudflare-dns:export'),
+  canImport: perms.has('cloudflare-dns:import'),
   canManageZones: perms.has('cloudflare-dns:admin_zones'),
-  canManageAcls: perms.has('cloudflare-dns:manage_acls'),
-  canManageOrgConfig: perms.has('cloudflare-dns:manage_org_config')
+  canManageApi: perms.has('cloudflare-dns:manage_api')
 })
 
 export const getCloudflareDnsModuleAccessForUser = async (orgId: string, userId: string) => {
@@ -136,5 +142,3 @@ export const getCloudflareDnsZoneAccessForUser = async (
 
   return clampZoneCapabilities(moduleRights, zoneRole)
 }
-
-

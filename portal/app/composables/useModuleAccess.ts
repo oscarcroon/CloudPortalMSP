@@ -1,13 +1,13 @@
 import { computed } from '#imports'
-import type { ModuleStatusDto } from '~/types/modules'
 import type { RbacPermission } from '~/constants/rbac'
+import type { VisibleModule } from './useModules'
 import { usePermission } from './usePermission'
 import { useAvailableModules } from './useAvailableModules'
 
 interface ModuleAccessResult {
   canView: boolean
   hasRequiredPermission: boolean
-  module?: ModuleStatusDto
+  module?: VisibleModule
 }
 
 /**

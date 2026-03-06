@@ -32,9 +32,6 @@ const basePath = computed(() => {
   if (route.path.startsWith('/tenant-admin')) {
     return '/tenant-admin'
   }
-  if (route.path.startsWith('/admin')) {
-    return '/admin'
-  }
   return '/platform-admin'
 })
 
@@ -50,7 +47,7 @@ const hasTenantManageAccess = computed(() => {
   // Check tenant roles for admin/owner with manage permissions
   const tenantRoles = auth.tenantRoles.value
   for (const role of Object.values(tenantRoles)) {
-    if (role === 'owner' || role === 'admin') {
+    if ((role as string) === 'owner' || role === 'admin') {
       return true
     }
   }
@@ -80,7 +77,7 @@ const visibleTabs = computed(() => {
     })
   }
   
-  // On admin paths (superadmin), show all tabs
+  // On platform-admin paths (superadmin), show all tabs
   return allTabs
 })
 

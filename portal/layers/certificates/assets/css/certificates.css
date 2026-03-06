@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .mod-certificates-panel {
+    @apply border border-slate-200 bg-white/90 text-slate-900 shadow-card rounded-2xl p-6 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50;
+  }
+
+  .mod-certificates-badge {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200;
+  }
+
+  .mod-certificates-status-active {
+    @apply text-emerald-600 dark:text-emerald-400;
+  }
+
+  .mod-certificates-status-expiring {
+    @apply text-amber-600 dark:text-amber-400;
+  }
+
+  .mod-certificates-status-expired {
+    @apply text-red-600 dark:text-red-400;
+  }
+
+  .mod-certificates-status-pending {
+    @apply text-blue-600 dark:text-blue-400;
+  }
+}

@@ -1,7 +1,6 @@
-import { computed, useAsyncData, useRequestHeaders } from '#imports'
-import { useAuth } from './useAuth'
+import { computed } from '#imports'
 import { usePermission } from './usePermission'
-import type { ModuleStatusDto } from '~/types/modules'
+import type { VisibleModule } from './useModules'
 
 export const useAvailableModules = () => {
   const modulesStore = useModules()
@@ -10,20 +9,20 @@ export const useAvailableModules = () => {
   const allModules = computed(() => modulesStore.modules.value ?? [])
 
   const availableModules = computed(() =>
-    allModules.value.filter((module: ModuleStatusDto) => {
+    allModules.value.filter((module: VisibleModule) => {
       if (!module.effectiveEnabled || module.effectiveDisabled) return false
       if (!module.requiredPermissions?.length) return true
-      return module.requiredPermissions.some((permission) =>
+      return module.requiredPermissions.some((permission: string) =>
         hasPermission(permission as any)
       )
     })
   )
 
   const isModuleAvailable = (moduleKey: string) =>
-    availableModules.value.some((module: ModuleStatusDto) => module.key === moduleKey)
+    availableModules.value.some((module: VisibleModule) => module.key === moduleKey)
 
   const getModuleLink = (moduleKey: string) =>
-    availableModules.value.find((module: ModuleStatusDto) => module.key === moduleKey)?.rootRoute ??
+    availableModules.value.find((module: VisibleModule) => module.key === moduleKey)?.rootRoute ??
     null
 
   return {

@@ -11,6 +11,7 @@ import { ensureAuthState } from '~~/server/utils/session'
 import { getDb } from '~~/server/utils/db'
 import { windowsDnsRedirectOrgConfig, windowsDnsRedirects, windowsDnsAllowedZones } from '~~/server/database/schema'
 import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/windows-dns/access'
+import { logAuditEvent } from '~~/server/utils/audit'
 import * as yaml from 'yaml'
 import {
   getSftpConfigFromEnv,
@@ -54,14 +55,18 @@ export default defineEventHandler(async (event) => {
     .limit(1)
 
   if (!config) {
-    ;[config] = await db
+    await db
       .insert(windowsDnsRedirectOrgConfig)
       .values({
         organizationId: orgId,
         traefikConfigPath: null,
         lastConfigSync: null
       })
-      .returning()
+    ;[config] = await db
+      .select()
+      .from(windowsDnsRedirectOrgConfig)
+      .where(eq(windowsDnsRedirectOrgConfig.organizationId, orgId))
+      .limit(1)
   }
 
   // Get all active redirects for this organization
@@ -122,12 +127,24 @@ export default defineEventHandler(async (event) => {
       })
       .where(eq(windowsDnsRedirectOrgConfig.id, config!.id))
 
+    const activeRedirectCount = redirects.filter(r => r.isActive).length
+
+    // Log audit event for Traefik sync
+    await logAuditEvent(event, 'WINDOWS_DNS_REDIRECTS_TRAEFIK_SYNC', {
+      moduleKey: 'windows-dns-redirects',
+      entityType: 'windows_dns_redirect',
+      remotePath,
+      host: sftpConfig.host,
+      redirectCount: activeRedirectCount,
+      syncedAt: new Date().toISOString()
+    })
+
     return {
       success: true,
       remotePath,
       host: sftpConfig.host,
       bytesWritten: result.bytesWritten,
-      redirectCount: redirects.filter(r => r.isActive).length,
+      redirectCount: activeRedirectCount,
       syncedAt: new Date().toISOString(),
       message: 'Traefik configuration synced via SFTP successfully.'
     }

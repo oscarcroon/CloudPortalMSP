@@ -1,54 +1,51 @@
 /**
  * Cloudflare DNS Plugin Schema
- * 
+ *
  * This schema is owned by the cloudflare-dns layer and imported into the core schema.
  * All tables are prefixed with 'cloudflare_dns_' to avoid conflicts.
  */
 
 import { createId } from '@paralleldrive/cuid2'
-import { sql } from 'drizzle-orm'
 import {
   index,
-  integer,
-  sqliteTable,
+  int,
+  mysqlTable,
   text,
-  uniqueIndex
-} from 'drizzle-orm/sqlite-core'
-import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+  timestamp,
+  uniqueIndex,
+  varchar
+} from 'drizzle-orm/mysql-core'
+import type { AnyMySqlColumn } from 'drizzle-orm/mysql-core'
 
 const timestampColumns = () => ({
-  createdAt: integer('created_at', { mode: 'timestamp_ms' } as const)
-    .notNull()
-    .default(sql`(strftime('%s','now') * 1000)`),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' } as const)
-    .notNull()
-    .default(sql`(strftime('%s','now') * 1000)`)
+  createdAt: timestamp('created_at', { fsp: 3 }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { fsp: 3 }).notNull().defaultNow().onUpdateNow()
 })
 
 /**
  * Factory function to create the Cloudflare DNS schema with proper foreign key references.
  * This allows the layer to define its schema while still referencing the core organizations table.
  */
-export function createCloudflareDnsSchema(organizationsIdColumn: AnySQLiteColumn) {
+export function createCloudflareDnsSchema(organizationsIdColumn: AnyMySqlColumn) {
   /**
    * Cloudflare DNS organization configuration
    * Stores encrypted API tokens and sync status per organization.
    */
-  const cloudflareDnsOrgConfig = sqliteTable(
+  const cloudflareDnsOrgConfig = mysqlTable(
     'cloudflare_dns_org_config',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      encryptedApiToken: text('encrypted_api_token', { length: 4096 }).notNull(),
+      encryptedApiToken: text('encrypted_api_token').notNull(),
       encryptionIv: text('encryption_iv').notNull(),
       encryptionAuthTag: text('encryption_auth_tag').notNull(),
-      accountId: text('account_id'),
-      lastSyncAt: integer('last_sync_at', { mode: 'timestamp_ms' }),
-      lastSyncStatus: text('last_sync_status'),
+      accountId: varchar('account_id', { length: 255 }),
+      lastSyncAt: timestamp('last_sync_at', { fsp: 3 }),
+      lastSyncStatus: varchar('last_sync_status', { length: 50 }),
       lastSyncError: text('last_sync_error'),
-      lastValidatedAt: integer('last_validated_at', { mode: 'timestamp_ms' }),
+      lastValidatedAt: timestamp('last_validated_at', { fsp: 3 }),
       ...timestampColumns()
     },
     (table) => ({
@@ -60,19 +57,19 @@ export function createCloudflareDnsSchema(organizationsIdColumn: AnySQLiteColumn
    * Cloudflare DNS zones cache
    * Caches zone information for faster lookups.
    */
-  const cloudflareDnsZonesCache = sqliteTable(
+  const cloudflareDnsZonesCache = mysqlTable(
     'cloudflare_dns_zones_cache',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      zoneId: text('zone_id').notNull(),
-      name: text('name').notNull(),
-      status: text('status'),
+      zoneId: varchar('zone_id', { length: 255 }).notNull(),
+      name: varchar('name', { length: 255 }).notNull(),
+      status: varchar('status', { length: 50 }),
       plan: text('plan'),
-      recordCount: integer('record_count'),
-      lastSyncedAt: integer('last_synced_at', { mode: 'timestamp_ms' }),
+      recordCount: int('record_count'),
+      lastSyncedAt: timestamp('last_synced_at', { fsp: 3 }),
       ...timestampColumns()
     },
     (table) => ({
@@ -88,21 +85,19 @@ export function createCloudflareDnsSchema(organizationsIdColumn: AnySQLiteColumn
    * Cloudflare DNS zone access control lists
    * Controls who can access which zones within an organization.
    */
-  const cloudflareDnsZoneAcls = sqliteTable(
+  const cloudflareDnsZoneAcls = mysqlTable(
     'cloudflare_dns_zone_acls',
     {
-      id: text('id').primaryKey().$defaultFn(createId),
-      organizationId: text('organization_id')
+      id: varchar('id', { length: 128 }).primaryKey().$defaultFn(createId),
+      organizationId: varchar('organization_id', { length: 128 })
         .notNull()
         .references(() => organizationsIdColumn, { onDelete: 'cascade' }),
-      zoneId: text('zone_id').notNull(),
-      principalType: text('principal_type', { enum: ['user', 'org-role'] })
+      zoneId: varchar('zone_id', { length: 255 }).notNull(),
+      principalType: varchar('principal_type', { length: 50 })
         .$type<'user' | 'org-role'>()
         .notNull(),
-      principalId: text('principal_id').notNull(),
-      role: text('role', {
-        enum: ['viewer', 'editor', 'admin', 'records-only']
-      })
+      principalId: varchar('principal_id', { length: 255 }).notNull(),
+      role: varchar('role', { length: 50 })
         .$type<'viewer' | 'editor' | 'admin' | 'records-only'>()
         .notNull(),
       ...timestampColumns()
@@ -126,4 +121,3 @@ export function createCloudflareDnsSchema(organizationsIdColumn: AnySQLiteColumn
 
 // Export types for use in the layer
 export type CloudflareDnsSchema = ReturnType<typeof createCloudflareDnsSchema>
-

@@ -1,9 +1,7 @@
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { manifests } from '../../../layers/plugin-manifests'
 import { modules, modulePermissions } from '~~/server/database/schema'
 import { getDb } from '~~/server/utils/db'
-
-const uniqueManifests = Array.from(new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values())
 
 export interface SyncResult {
   modulesUpdated: number
@@ -15,18 +13,20 @@ export interface SyncResult {
 export async function syncPluginRegistry(): Promise<SyncResult> {
   const db = getDb()
 
+  const uniqueManifests = Array.from(new Map(manifests.map((manifest) => [manifest.module.key, manifest])).values())
+
   // Check if enabled column exists by trying to query it
   let hasEnabledColumn = false
   let hasLifecycleColumns = false
   try {
-    await db.execute('SELECT enabled FROM modules LIMIT 1')
+    await db.execute(sql`SELECT enabled FROM modules LIMIT 1`)
     hasEnabledColumn = true
   } catch {
     hasEnabledColumn = false
   }
 
   try {
-    await db.execute('SELECT is_active, status, removed_at FROM module_permissions LIMIT 1')
+    await db.execute(sql`SELECT is_active, status, removed_at FROM module_permissions LIMIT 1`)
     hasLifecycleColumns = true
   } catch {
     hasLifecycleColumns = false
@@ -76,8 +76,7 @@ export async function syncPluginRegistry(): Promise<SyncResult> {
     await db
       .insert(modules)
       .values(baseValues)
-      .onConflictDoUpdate({
-        target: modules.key,
+      .onDuplicateKeyUpdate({
         set: updateValues
       })
 
@@ -206,5 +205,3 @@ export async function syncPluginRegistry(): Promise<SyncResult> {
     permissionsReactivated
   }
 }
-
-

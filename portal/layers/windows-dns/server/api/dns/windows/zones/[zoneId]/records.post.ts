@@ -7,8 +7,24 @@ import { getWindowsDnsModuleAccessForUser } from '@windows-dns/server/lib/window
 import { getClientForOrg } from '@windows-dns/server/lib/windows-dns/client'
 import { normalizeTxtContent } from '@windows-dns/lib/normalize-txt'
 import { assertNotSoa } from '@windows-dns/server/utils/assert-not-soa'
+import { logAuditEvent } from '~~/server/utils/audit'
+import { buildDnsRecordAuditMeta } from '~~/server/utils/audit-diff'
 
 const MAX_COMMENT_LENGTH = 2000
+
+/**
+ * Check if a record name represents the reserved COREID marker subdomain.
+ */
+function isCoreIdMarkerRecord(recordName: string, zoneName?: string): boolean {
+  const name = recordName.toLowerCase().replace(/\.$/, '')
+  if (name === '_coreid') return true
+  if (zoneName) {
+    const expected = `_coreid.${zoneName.toLowerCase()}`
+    if (name === expected) return true
+  }
+  if (name.startsWith('_coreid.')) return true
+  return false
+}
 
 /**
  * Check if creating this record would conflict with a redirect.
@@ -102,6 +118,14 @@ export default defineEventHandler(async (event) => {
   // Block SOA record creation - SOA is managed via Zone settings
   assertNotSoa(body.type)
 
+  // Guard: Block creation of reserved _coreid marker record
+  if (isCoreIdMarkerRecord(body.name)) {
+    throw createError({
+      statusCode: 403,
+      message: 'Kan inte skapa eller ändra _coreid-markörposten. Denna post hanteras av systemet.'
+    })
+  }
+
   // Normalize TXT content: strip surrounding double quotes (Windows DNS rejects them)
   let normalizedContent = body.content
   if (String(body.type).toUpperCase() === 'TXT') {
@@ -177,6 +201,21 @@ export default defineEventHandler(async (event) => {
 
     console.log(`[windows-dns] Creating record with payload:`, JSON.stringify(recordPayload))
     const record = await client.createRecord(zoneId, recordPayload)
+
+    // Log audit event for record creation with changes
+    const auditMeta = buildDnsRecordAuditMeta({
+      moduleKey: 'windows-dns',
+      entityType: 'windows_dns_record',
+      entityId: record.id,
+      zoneId,
+      zoneName,
+      recordType: record.type,
+      recordName: record.name,
+      operation: 'create',
+      before: null,
+      after: record as unknown as Record<string, unknown>
+    })
+    await logAuditEvent(event, 'WINDOWS_DNS_RECORD_CREATED', auditMeta)
 
     return { record }
   } catch (error: any) {

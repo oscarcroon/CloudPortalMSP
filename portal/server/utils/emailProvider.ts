@@ -261,8 +261,7 @@ const upsertProvider = async (
       encryptionIv: encrypted.iv,
       encryptionAuthTag: encrypted.authTag
     })
-    .onConflictDoUpdate({
-      target: emailProviderProfiles.targetKey,
+    .onDuplicateKeyUpdate({
       set: {
         targetType,
         organizationId: organizationId,
@@ -280,7 +279,7 @@ const upsertProvider = async (
         encryptionIv: encrypted.iv,
         encryptionAuthTag: encrypted.authTag,
         configVersion: sql`${emailProviderProfiles.configVersion} + 1`,
-        updatedAt: sql`(strftime('%s','now') * 1000)`
+        updatedAt: new Date()
       }
     })
 }

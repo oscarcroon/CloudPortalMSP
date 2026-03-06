@@ -43,24 +43,29 @@ export default defineEventHandler(async (event) => {
 
   if (!config) {
     // Create config
-    ;[config] = await db
+    await db
       .insert(windowsDnsRedirectOrgConfig)
       .values({
         organizationId: orgId,
         traefikConfigPath: null,
         lastConfigSync: null
       })
-      .returning()
   } else {
     // Update timestamp
-    ;[config] = await db
+    await db
       .update(windowsDnsRedirectOrgConfig)
       .set({
         updatedAt: new Date()
       })
       .where(eq(windowsDnsRedirectOrgConfig.id, config.id))
-      .returning()
   }
+
+  // Re-fetch config after insert/update
+  ;[config] = await db
+    .select()
+    .from(windowsDnsRedirectOrgConfig)
+    .where(eq(windowsDnsRedirectOrgConfig.organizationId, orgId))
+    .limit(1)
 
   // Get SFTP configuration from environment (read-only, for display purposes)
   const sftpConfig = getSftpConfigFromEnv()

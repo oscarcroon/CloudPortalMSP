@@ -134,7 +134,7 @@ const canCreateSupplier = computed(() => {
     const includeChildren = auth.state.value.data?.tenantIncludeChildren?.[tenantId] ?? false
     if (role === 'admin' && includeChildren) {
       // Verify this tenant is a distributor (not a provider)
-      const tenant = allTenants.value.find(t => t.id === tenantId)
+      const tenant = allTenants.value.find((t: AdminTenantSummary) => t.id === tenantId)
       if (tenant && tenant.type === 'distributor') {
         return true
       }
@@ -162,7 +162,7 @@ interface TenantsResponse {
 }
 
 // Fetch all data without search filter (we'll filter on client side)
-const { data, pending, refresh, error } = await useFetch<TenantsResponse>(
+const { data, pending, refresh, error } = await (useFetch as any)(
   '/api/admin/tenants',
   {
     query: () => ({ limit: 200 }) // Get more results for client-side filtering
@@ -177,7 +177,7 @@ onMounted(() => {
 
 watch(() => route.path, (newPath, oldPath) => {
   // Only refresh if navigating back to this page from another page (not on first mount)
-  if (newPath === '/admin/tenants' && oldPath && oldPath !== newPath && !isFirstMount.value) {
+  if (newPath === '/platform-admin/tenants' && oldPath && oldPath !== newPath && !isFirstMount.value) {
     refresh()
   }
 })
@@ -222,8 +222,8 @@ const filteredTenants = computed(() => {
     return allTenants.value
   }
   const query = searchInput.value.trim()
-  const matchingTenants = allTenants.value.filter(tenant => matchesSearch(tenant, query))
-  
+  const matchingTenants = allTenants.value.filter((tenant: AdminTenantSummary) => matchesSearch(tenant, query))
+
   // Also include providers that have matching organizations
   const providersWithMatchingOrgs = new Set<string>()
   for (const org of filteredOrganizations.value) {
@@ -231,16 +231,16 @@ const filteredTenants = computed(() => {
       providersWithMatchingOrgs.add(org.tenantId)
     }
   }
-  
+
   // Add providers that have matching organizations but aren't already in the list
   for (const tenant of allTenants.value) {
     if (tenant.type === 'provider' && providersWithMatchingOrgs.has(tenant.id)) {
-      if (!matchingTenants.some(t => t.id === tenant.id)) {
+      if (!matchingTenants.some((t: AdminTenantSummary) => t.id === tenant.id)) {
         matchingTenants.push(tenant)
       }
     }
   }
-  
+
   return matchingTenants
 })
 
@@ -249,7 +249,7 @@ const filteredOrganizations = computed(() => {
   if (!searchInput.value.trim()) {
     return allOrganizations.value
   }
-  return allOrganizations.value.filter(org => matchesSearch(org, searchInput.value))
+  return allOrganizations.value.filter((org: { name: string; slug: string }) => matchesSearch(org, searchInput.value))
 })
 
 // Build hierarchical tree structure
@@ -293,7 +293,7 @@ const tenantTree = computed(() => {
     let linked = false
     if (tenant.type === 'provider') {
       // Provider: find ALL distributors it's linked to (many-to-many)
-      const links = distributorProviderLinks.value.filter(link => link.providerId === tenant.id)
+      const links = distributorProviderLinks.value.filter((link: { distributorId: string; providerId: string }) => link.providerId === tenant.id)
       for (const link of links) {
         if (nodeMap.has(link.distributorId)) {
           const distributor = nodeMap.get(link.distributorId)!
@@ -385,7 +385,7 @@ const getTypeClass = (type: string) => {
 
 const getParentName = (parentId: string | null | undefined) => {
   if (!parentId) return ''
-  const parent = tenants.value.find((t) => t.id === parentId)
+  const parent = allTenants.value.find((t: AdminTenantSummary) => t.id === parentId)
   return parent?.name ?? parentId
 }
 

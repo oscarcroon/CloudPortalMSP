@@ -52,7 +52,7 @@ function extractBearerToken(event: H3Event): string | null {
   const match = authHeader.match(/^Bearer\s+(.+)$/i)
   if (!match) return null
 
-  return match[1]
+  return match[1] ?? null
 }
 
 /**
@@ -105,7 +105,7 @@ export async function tryOrgApiToken(event: H3Event): Promise<OrgApiTokenContext
         isNull(orgApiTokens.revokedAt)
       )
     )
-    .get()
+    .then(rows => rows[0])
 
   if (!tokenRecord) {
     await logSecurityEvent(event, 'PERMISSION_DENIED', {
@@ -156,7 +156,7 @@ export async function tryOrgApiToken(event: H3Event): Promise<OrgApiTokenContext
   db.update(orgApiTokens)
     .set({ lastUsedAt: now })
     .where(eq(orgApiTokens.id, tokenRecord.id))
-    .run()
+    .then(() => {})
 
   // Parse scopes and constraints
   let scopes: string[] = []

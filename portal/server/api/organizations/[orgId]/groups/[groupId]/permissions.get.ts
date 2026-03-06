@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
     if (!permissionMap[perm.moduleKey]) {
       permissionMap[perm.moduleKey] = {}
     }
-    permissionMap[perm.moduleKey][perm.permissionKey] = perm.effect
+    permissionMap[perm.moduleKey]![perm.permissionKey] = perm.effect
   }
 
   // Map registry modules with their permissions and current group effects

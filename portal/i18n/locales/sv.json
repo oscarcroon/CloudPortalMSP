@@ -31,12 +31,27 @@
       "planned": "Planerad"
     }
   },
+  "operationsPage": {
+    "title": "Driftstatus",
+    "subtitle": "Aktiva driftstörningar och senaste nyheter",
+    "incidentsTitle": "Aktiva driftstörningar",
+    "noActiveIncidents": "Inga aktiva driftstörningar",
+    "hiddenIncidents": "Dolda driftstörningar",
+    "noHiddenIncidents": "Inga dolda driftstörningar",
+    "newsTitle": "Senaste nyheterna",
+    "noNews": "Inga nyheter just nu",
+    "viewAllNews": "Visa alla nyheter",
+    "hideForMe": "Göm för mig",
+    "showForMe": "Visa igen",
+    "loading": "Laddar..."
+  },
   "incident": {
     "title": "Driftmeddelande",
     "backToDashboard": "Tillbaka till startsidan",
     "notFound": "Driftmeddelandet kunde inte hittas eller så har du inte behörighet att se det.",
     "distributor": "Distributör",
     "provider": "Leverantör",
+    "organization": "Organisation",
     "previous": "Föregående",
     "next": "Nästa",
     "status": {
@@ -77,7 +92,9 @@
     "refresh": "Uppdatera",
     "redirecting": "Omdirigerar...",
     "all": "Alla",
-    "edit": "Redigera"
+    "edit": "Redigera",
+    "details": "Detaljer",
+    "hideDetails": "Dölj detaljer"
   },
   "auth": {
     "logout": "Logga ut",
@@ -90,7 +107,16 @@
     "changeEmail": "Byt e-postadress",
     "forgotPassword": "Glömt lösenord?",
     "continue": "Fortsätt",
-    "restrictSso": "Minst en organisation kräver SSO. Använd knapparna nedan för att initiera SSO-flödet eller välj en org som tillåter lösenord.",
+    "mfaPrompt": "Ange den 6-siffriga koden från din autentiseringsapp.",
+    "mfaCode": "Verifieringskod",
+    "mfaCodePlaceholder": "000000",
+    "mfaTroubleLink": "Har du problem att logga in?",
+    "mfaHelpBackupCodes": "Om du inte kan komma åt din autentiseringsapp kan du använda en av reservkoderna du fick när du aktiverade tvåfaktorsautentisering.",
+    "mfaHelpContact": "Om du har tappat bort dina reservkoder, kontakta din leverantör eller organisationsadministratör för hjälp.",
+    "verifyMfa": "Verifiera",
+    "restrictSso": "Din organisation kräver SSO-inloggning. Använd knappen nedan för att logga in.",
+    "ssoLoginWith": "Logga in med {provider}",
+    "ssoOrLabel": "eller",
     "ssoOrganizations": "SSO-aktiverade organisationer",
     "cloudflareNote": "Skyddat bakom Cloudflare Zero Trust? Lägg till ditt Access-token i headern",
     "cloudflareCode": "CF_Authorization",
@@ -104,7 +130,9 @@
       "verifyFailed": "Kunde inte verifiera e-postadressen. Kontrollera att den är korrekt formaterad och försök igen.",
       "invalidCredentials": "Fel e-post eller lösenord. Försök igen.",
       "ssoRequired": "Organisationen kräver SSO. Använd SSO-inloggning.",
-      "loginFailed": "Kunde inte logga in just nu."
+      "loginFailed": "Kunde inte logga in just nu.",
+      "invalidMfaCode": "Ogiltig verifieringskod. Försök igen.",
+      "turnstileFailed": "Verifieringen misslyckades. Försök igen."
     },
     "groups": {
       "title": "Grupper",
@@ -129,6 +157,29 @@
       "entra": "Microsoft Entra ID",
       "openid": "OpenID Connect",
       "saml": "SAML"
+    },
+    "ssoDomains": {
+      "title": "SSO-domäner",
+      "description": "Domäner vars e-postadresser dirigeras till SSO vid inloggning. Verifiera ägandeskap via DNS.",
+      "addDomain": "Lägg till domän",
+      "domainPlaceholder": "example.com",
+      "add": "Lägg till",
+      "verify": "Verifiera",
+      "remove": "Ta bort",
+      "verified": "Verifierad",
+      "pending": "Väntar på verifiering",
+      "failed": "Verifiering misslyckades",
+      "noDomains": "Inga SSO-domäner konfigurerade.",
+      "verifyInstructions": "Lägg till följande TXT-post i din DNS:",
+      "recordType": "Typ",
+      "recordName": "Namn",
+      "recordValue": "Värde",
+      "domainAdded": "Domänen lades till. Verifiera via DNS.",
+      "domainVerified": "Domänen har verifierats.",
+      "domainRemoved": "Domänen togs bort.",
+      "verifyFailed": "Verifieringen misslyckades. Kontrollera DNS-konfigurationen.",
+      "configureIdpFirst": "Konfigurera en Identity Provider innan SSO-domäner kan läggas till.",
+      "confirmRemove": "Vill du ta bort denna SSO-domän?"
     }
   },
   "forgotPassword": {
@@ -273,10 +324,28 @@
     "toggleSearchClose": "Stäng sök",
     "docs": "Dokumentation",
     "support": "Support",
-    "profile": "Profil"
+    "profile": "Profil",
+    "avatarMenu": "Användarmeny",
+    "viewProfile": "Profil",
+    "logout": "Logga ut"
+  },
+  "notifications": {
+    "label": "Notifikationer",
+    "title": "Notifikationer",
+    "incidents": "Driftmeddelanden",
+    "news": "Nyheter",
+    "markAllRead": "Markera alla som lästa",
+    "viewAll": "Visa alla",
+    "empty": "Inga notifikationer",
+    "justNow": "Just nu",
+    "minutesAgo": "{count} min sedan",
+    "hoursAgo": "{count} tim sedan",
+    "daysAgo": "{count} d sedan"
   },
   "theme": {
     "ariaLabel": "Ändra tema",
+    "switchToLight": "Byt till ljust läge",
+    "switchToDark": "Byt till mörkt läge",
     "options": {
       "system": "System",
       "light": "Ljust",
@@ -328,6 +397,21 @@
       "label": "Språk",
       "description": "Välj vilket språk du vill använda i portalen."
     },
+    "theme": {
+      "label": "Utseende",
+      "description": "Välj hur portalen ser ut. System följer enhetens inställningar.",
+      "usingSystem": "Följer systemets inställningar.",
+      "usingLight": "Använder ljust läge.",
+      "usingDark": "Använder mörkt läge."
+    },
+    "avatar": {
+      "label": "Profilbild",
+      "description": "Välj hur din avatar visas i portalen.",
+      "usingSso": "Visar SSO-profilbild",
+      "usingInitials": "Visar initialer",
+      "saved": "Avatarpreferensen sparades.",
+      "error": "Kunde inte uppdatera avatarpreferensen."
+    },
     "form": {
       "nameLabel": "Ändra namn",
       "namePlaceholder": "Förnamn Efternamn",
@@ -358,7 +442,34 @@
       "passwordSaved": "Lösenordet uppdaterades.",
       "passwordError": "Kunde inte uppdatera lösenordet. Kontrollera ditt nuvarande lösenord och försök igen."
     },
-    "notProvided": "Ej angivet"
+    "notProvided": "Ej angivet",
+    "mfa": {
+      "title": "Tvåfaktorsautentisering",
+      "description": "Lägg till ett extra säkerhetslager på ditt konto med en autentiseringsapp.",
+      "enabled": "Aktiverad",
+      "disabled": "Inaktiverad",
+      "enableButton": "Aktivera tvåfaktorsautentisering",
+      "disableButton": "Inaktivera tvåfaktorsautentisering",
+      "scanQrCode": "Skanna QR-koden nedan med din autentiseringsapp (t.ex. Google Authenticator, Authy, 1Password).",
+      "qrCodeAlt": "TOTP QR-kod",
+      "manualEntry": "Eller ange denna kod manuellt:",
+      "verificationCode": "Verifieringskod",
+      "codePlaceholder": "000000",
+      "verify": "Verifiera och aktivera",
+      "verifying": "Verifierar...",
+      "cancel": "Avbryt",
+      "done": "Klar",
+      "backupCodesWarning": "Spara dessa reservkoder på ett säkert ställe!",
+      "backupCodesHint": "Varje kod kan bara användas en gång. Om du förlorar åtkomst till din autentiseringsapp kan du använda en av dessa koder för att logga in.",
+      "copyBackupCodes": "Kopiera koder",
+      "backupCodesCopied": "Reservkoder kopierade till urklipp.",
+      "disableConfirmText": "Ange en kod från din autentiseringsapp för att bekräfta inaktivering av tvåfaktorsautentisering.",
+      "disabling": "Inaktiverar...",
+      "confirmDisable": "Inaktivera MFA",
+      "disabledSuccess": "Tvåfaktorsautentisering har inaktiverats.",
+      "setupError": "Kunde inte starta MFA-konfiguration. Försök igen.",
+      "invalidCode": "Ogiltig verifieringskod. Försök igen."
+    }
   },
   "password": {
     "requirements": {
@@ -372,6 +483,9 @@
   "dashboard": {
     "title": "Single pane of glass",
     "subtitle": "Hantera DNS, containrar, virtuella maskiner och WordPress-webbplatser från ett enda gränssnitt.",
+    "greetingMorning": "God morgon",
+    "greetingAfternoon": "God eftermiddag",
+    "greetingEvening": "God kväll",
     "allSystemsOperational": "All systems operational",
     "organizations": "Organisationer",
     "noModules": "Inga moduler är tillgängliga för din organisation.",
@@ -382,6 +496,10 @@
     "news": "Nyheter",
     "noNews": "Inga nyheter just nu.",
     "module": "Modul",
+    "activeIncidents": "Aktiva incidenter",
+    "noActiveIncidents": "Alla system fungerar normalt",
+    "viewIncidents": "Visa alla incidenter",
+    "moreIncidents": "till",
     "statusLabels": {
       "ok": "OK",
       "degraded": "Degraded",
@@ -403,7 +521,7 @@
       "description": "Hantera vilka moduler som är synliga och vilka rättigheter som är tillgängliga för organisationen.",
       "cta": "Hantera modulåtkomst",
       "empty": "Inga moduler tillgängliga just nu.",
-      "pageDescription": "Hantera modulpolicy (inherit/default-closed/allowlist/blocked) och vilka permissions som får användas.",
+      "pageDescription": "Hantera modulstatus för din organisation.",
       "searchPlaceholder": "Sök modul",
       "results": "{count} moduler",
       "filters": {
@@ -411,23 +529,12 @@
       },
       "loading": "Laddar moduler...",
       "noModules": "Inga moduler är tillgängliga för organisationen. Kontakta tenant-admin om något saknas.",
-      "policyTitle": "Policy",
-      "tenantBlocked": "Blockerad av tenant",
-      "lockedByTenant": "Låst av tenant-policy",
-      "modes": {
-        "inherit": "Ärv",
-        "default-closed": "Default stängd",
-        "allowlist": "Allowlist",
-        "blocked": "Blockerad"
-      },
-      "loadingPermissions": "Laddar permissions...",
-      "noPermissions": "Inga permissions deklarerade",
       "updateFailed": "Kunde inte uppdatera modulpolicy",
-      "manageAcl": "Hantera ACL",
-      "aclTitle": "Plugin-ACL",
-      "aclDescription": "Koppla CRUD-operationer till åtkomstgrupper för pluginet.",
-      "aclOperationHint": "Välj grupper som får utföra operationen.",
-      "saveAcl": "Spara ACL",
+      "permissions": {
+        "hint": "Hantera behörigheter via:",
+        "members": "Medlemmar",
+        "groupPermissions": "Gruppbehörigheter"
+      },
       "showAll": "Visa alla rättigheter",
       "hideAll": "Dölj alla rättigheter",
       "noSearchResults": "Inga moduler matchade sökningen",
@@ -723,7 +830,7 @@
       "clearFilters": "Rensa filter",
       "searchPlaceholder": "Sök efter namn eller e-post",
       "clear": "Rensa",
-      "showOnlyOverrides": "Visa bara medlemmar med manuella modulroller",
+      "showOnlyOverrides": "Visa bara medlemmar med manuella behörigheter",
       "table": {
         "name": "Namn",
         "email": "E-post",
@@ -732,7 +839,7 @@
         "lastUpdated": "Senast uppdaterad",
         "actions": "Åtgärder",
         "unknownName": "Okänt namn",
-        "hasOverrides": "Har manuellt anpassade modulroller",
+        "hasOverrides": "Har manuellt anpassade behörigheter",
         "count": "{count} st",
         "of": "av {total}"
       },
@@ -775,17 +882,17 @@
         "resendError": "Kunde inte skicka om inbjudan."
       },
       "moduleRoles": {
-        "title": "Modulroller",
-        "loading": "Laddar modulroller...",
-        "none": "Inga moduler med modulspecifika roller hittades.",
+        "title": "Behörigheter",
+        "loading": "Laddar behörigheter...",
+        "none": "Inga moduler med modulspecifika behörigheter hittades.",
         "policy": "Policy: {source}",
         "allowedRoles": "Tillåtna roller: {roles}",
-        "blocked": "Modulroller blockeras av {source}.",
+        "blocked": "Behörigheter blockeras av {source}.",
         "save": "Spara ändringar",
         "saving": "Sparar...",
         "saved": "Ändringar sparade",
         "error": "Kunde inte spara ändringar",
-        "button": "Modulroller",
+        "button": "Behörigheter",
         "policyLabel": "Policy",
         "allowedRolesLabel": "Tillåtna roller",
         "sourceLabel": "Källa",
@@ -805,9 +912,9 @@
           "removed": "− Borttagen"
         },
         "sourceLabels": {
-          "custom": "Manuellt tilldelade roller",
+          "custom": "Manuellt tilldelade behörigheter",
           "rbacInherited": "Ärvda från RBAC ({role})",
-          "none": "Inga modulroller tilldelade"
+          "none": "Inga behörigheter tilldelade"
         }
       },
       "summary": {
@@ -897,8 +1004,10 @@
         },
         "requireSsoDisabled": {
           "noIdp": "Konfigurera en IdP innan SSO kan krävas.",
-          "incomplete": "Fyll i alla obligatoriska IdP-fält för att kunna kräva SSO."
+          "incomplete": "Fyll i alla obligatoriska IdP-fält för att kunna kräva SSO.",
+          "noDomain": "Lägg till och verifiera minst en SSO-domän innan SSO kan krävas."
         },
+        "idpDisabled": "Verifiera minst en SSO-domän innan Identity Provider kan konfigureras.",
         "validation": {
           "incomplete": "Fyll i alla obligatoriska IdP-fält innan du sparar.",
           "noOrg": "Ingen organisation är vald."
@@ -952,10 +1061,34 @@
         "title": "Tillåt lokalt login för ägare",
         "description": "Behåll fallback via lösenord för ägare."
       },
+      "requireMfa": {
+        "title": "Kräv MFA",
+        "description": "Alla användare med lokala konton måste aktivera tvåfaktorsautentisering."
+      },
       "features": {
         "idp": "Välj IdP-typ (OpenID eller Entra AD)",
         "cloudflare": "Följ guiden för att konfigurera Cloudflare Access",
         "require": "Aktivera \"Kräv SSO\" när IdP är klar"
+      },
+      "ssoDomains": {
+        "title": "SSO-domäner",
+        "description": "Domäner vars e-postadresser dirigeras till SSO vid inloggning. Verifiera ägandeskap via DNS.",
+        "domainPlaceholder": "example.com",
+        "add": "Lägg till",
+        "verify": "Verifiera",
+        "remove": "Ta bort",
+        "verified": "Verifierad",
+        "pending": "Väntar på verifiering",
+        "noDomains": "Inga SSO-domäner konfigurerade.",
+        "verifyInstructions": "Lägg till följande TXT-post i din DNS:",
+        "recordType": "Typ",
+        "recordName": "Namn",
+        "recordValue": "Värde",
+        "domainAdded": "Domänen lades till. Verifiera via DNS.",
+        "domainVerified": "Domänen har verifierats.",
+        "domainRemoved": "Domänen togs bort.",
+        "verifyFailed": "Verifieringen misslyckades. Kontrollera DNS-konfigurationen.",
+        "confirmRemove": "Vill du ta bort denna SSO-domän?"
       }
     },
     "email": {
@@ -1223,11 +1356,86 @@
         "login": "Hantera login-branding och custom domains (CNAME)"
       }
     },
+    "customDomain": {
+      "title": "Custom domain",
+      "description": "Koppla en egen domän till portalen för din organisation.",
+      "features": {
+        "own": "Använd din egen domän istället för standardadressen",
+        "ssl": "Automatiskt SSL-certifikat via Let's Encrypt",
+        "verify": "DNS-verifiering säkerställer domänägandeskap"
+      }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Koppla en egen domän till portalen för din organisation.",
+      "backToSettings": "Inställningar",
+      "noOrgSelected": "Välj en organisation för att hantera custom domain.",
+      "currentDomain": {
+        "title": "Nuvarande domän",
+        "description": "Din organisations inloggningsdomän för portalen.",
+        "default": "Standard:",
+        "label": "Domän",
+        "noDomain": "Ingen custom domain konfigurerad",
+        "noDomainHint": "Lägg till en egen domän nedan för att använda den för inloggning."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "remove": "Ta bort",
+        "hint": "Ange domänen utan protokoll (https://)"
+      },
+      "cname": {
+        "title": "Steg 1: Peka din domän",
+        "titleVerified": "DNS-konfiguration",
+        "description": "Om du inte redan har gjort det, skapa en CNAME-post i din DNS som pekar din custom domain till adressen nedan. Detta är nödvändigt för att trafiken ska dirigeras rätt.",
+        "descriptionVerified": "Din domän är verifierad och aktiv. Behåll denna CNAME-post i din DNS — den dirigerar trafik från din custom domain till portalen.",
+        "recordType": "Posttyp",
+        "recordName": "Namn/Host",
+        "target": "Mål/Värde",
+        "example": "Exempel: {domain} → CNAME → {target}"
+      },
+      "verification": {
+        "title": "Steg 2: Verifiera ägandeskap",
+        "instructions": "Lägg till följande TXT-post hos din DNS-leverantör för att verifiera domänägandeskap:",
+        "recordType": "Posttyp",
+        "recordName": "Postnamn",
+        "recordValue": "Värde",
+        "note": "Det kan ta upp till 24 timmar för DNS-ändringar att spridas. Klicka på \"Verifiera\" när du lagt till posten.",
+        "verify": "Verifiera domän",
+        "checking": "Kontrollerar...",
+        "verifiedAt": "Verifierad: {date}"
+      },
+      "status": {
+        "verified": "Verifierad",
+        "pending": "Väntar på verifiering",
+        "verifying": "Verifierar...",
+        "unverified": "Overifierad"
+      },
+      "success": {
+        "saved": "Domäninställningarna sparades.",
+        "removed": "Domänen togs bort.",
+        "verified": "Domänen verifierades!",
+        "copied": "Kopierat till urklipp."
+      },
+      "error": {
+        "fetchFailed": "Kunde inte hämta domäninformation.",
+        "saveFailed": "Kunde inte spara domänen.",
+        "removeFailed": "Kunde inte ta bort domänen.",
+        "verificationFailed": "DNS-verifieringen misslyckades. Kontrollera att TXT-posten finns och försök igen.",
+        "copyFailed": "Kunde inte kopiera till urklipp."
+      },
+      "confirm": {
+        "remove": "Vill du ta bort custom domain? Organisationen kommer använda standardadressen för inloggning."
+      }
+    },
     "audit": {
       "title": "Audit Loggar",
       "description": "Visa säkerhetshändelser och administrativa aktiviteter för organisationen.",
       "pageDescription": "Visa säkerhetshändelser och administrativa aktiviteter för denna organisation.",
       "noActiveOrg": "Välj en organisation för att visa audit loggar.",
+      "module": "Modul",
       "eventType": "Event Type",
       "all": "Alla",
       "fromDate": "Från datum",
@@ -1248,6 +1456,23 @@
         "events": "Visa inloggningar och säkerhetshändelser",
         "track": "Spåra ändringar i roller och medlemmar",
         "overview": "Översikt över modulaktiveringar"
+      },
+      "detailsModal": {
+        "title": "Logg-detaljer",
+        "eventType": "Event Type",
+        "requestId": "Request ID",
+        "summary": "Sammanfattning",
+        "operation": "Operation",
+        "operationCreate": "Skapad",
+        "operationUpdate": "Uppdaterad",
+        "operationDelete": "Borttagen",
+        "changes": "Ändringar",
+        "field": "Fält",
+        "previous": "Tidigare",
+        "new": "Nytt",
+        "truncated": "Vissa värden har trunkerats på grund av storlek.",
+        "otherMetadata": "Övrig metadata",
+        "metadata": "Metadata"
       }
     },
     "apiTokens": {
@@ -1417,7 +1642,12 @@
       },
       "health": {
         "title": "Systemhälsa",
-        "lastSync": "Senast synkad"
+        "lastSync": "Senast synkad",
+        "database": "Databas",
+        "checking": "Kontrollerar...",
+        "refresh": "Uppdatera",
+        "unconfigured": "Ej konfigurerad",
+        "checkedAt": "Kontrollerad"
       },
       "activity": {
         "title": "Senaste aktivitet",
@@ -1447,10 +1677,90 @@
         "mspRolesDesc": "Hantera roller för MSP-användare",
         "roleTemplates": "MSP-rollmallar",
         "roleTemplatesDesc": "Hantera MSP-rollmallar för leverantörer",
+        "customDomain": "Custom domain",
+        "customDomainDesc": "Konfigurera login-domän",
         "branding": "Branding",
         "brandingDesc": "Anpassa tenant-branding",
         "auditLogs": "Audit loggar",
         "auditLogsDesc": "Granska tenant-aktivitet"
+      }
+    },
+    "auditLogsPage": {
+      "title": "Audit Loggar",
+      "subtitle": "Visa säkerhetshändelser och administrativa aktiviteter i systemet.",
+      "tenantSubtitle": "Visa säkerhetshändelser och administrativa aktiviteter för denna tenant och dess organisationer.",
+      "backToTenant": "Tillbaka till tenant",
+      "accessDenied": {
+        "title": "Åtkomst nekad",
+        "description": "Du har inte behörighet att visa audit logs för denna tenant. Endast användare med admin- eller support-roll kan läsa audit logs."
+      },
+      "filters": {
+        "context": "Kontext",
+        "allContexts": "Alla kontexter",
+        "tenantOnly": "Endast denna tenant",
+        "providersOnly": "Endast leverantörer",
+        "organizationsOnly": "Endast organisationer",
+        "module": "Modul",
+        "allModules": "Alla moduler",
+        "eventType": "Event Type",
+        "all": "Alla",
+        "severity": "Severity",
+        "fromDate": "Från datum",
+        "toDate": "Till datum",
+        "filter": "Filtrera",
+        "clear": "Rensa"
+      },
+      "loading": "Laddar...",
+      "table": {
+        "timestamp": "Tidpunkt",
+        "event": "Event",
+        "user": "Användare",
+        "context": "Kontext",
+        "severity": "Severity",
+        "ip": "IP",
+        "details": "Detaljer",
+        "view": "Visa",
+        "na": "N/A",
+        "tenant": "Tenant",
+        "organization": "Organisation"
+      },
+      "noLogs": "Inga audit-loggar hittades för de valda filtren.",
+      "pagination": {
+        "showing": "Visar {from}-{to} av {total}",
+        "page": "Sida {page} av {totalPages}",
+        "previous": "Föregående",
+        "next": "Nästa"
+      },
+      "details": {
+        "title": "Detaljer",
+        "close": "Stäng",
+        "eventType": "Event Type",
+        "requestId": "Request ID",
+        "metadata": "Metadata"
+      }
+    },
+    "infrastructure": {
+      "traefik": {
+        "title": "Traefik Edge Server",
+        "category": "Infrastruktur",
+        "sftpHost": "SFTP Host",
+        "domains": "Domäner",
+        "tenants": "Tenants",
+        "orgs": "Organisationer",
+        "testConnection": "Testa anslutning",
+        "refresh": "Uppdatera",
+        "connectionSuccess": "Anslutningen lyckades!",
+        "connectionFailed": "Anslutningen misslyckades.",
+        "status": {
+          "connected": "Ansluten",
+          "disconnected": "Ej ansluten",
+          "disabled": "Inaktiverad",
+          "notConfigured": "Ej konfigurerad",
+          "unknown": "Okänd"
+        },
+        "error": {
+          "fetchFailed": "Kunde inte hämta Traefik-status."
+        }
       }
     },
     "sections": {
@@ -1599,7 +1909,7 @@
       }
     },
     "layerLabel": "Lager:",
-    "moduleRoles": "Modulroller",
+    "moduleRoles": "Behörigheter",
     "openModule": "Öppna modul",
     "routeLabel": "Route:",
     "results": "{count} moduler",
@@ -1662,19 +1972,21 @@
       "loading": "Laddar moduler...",
       "empty": "Inga moduler tillgängliga ännu.",
       "routeLabel": "Route:",
-      "policyTitle": "Modulpolicy",
-      "modes": {
-        "inherit": "Ärver uppströms",
-        "default-closed": "Default av (endast användaröverskrivningar)",
-        "allowlist": "Tillåt specifika rättigheter",
-        "blocked": "Blockerad"
-      },
-      "allowedRolesLabel": "Tillåtna roller",
-      "loadingPermissions": "Laddar permissions...",
-      "noPermissions": "Inga permissions deklarerade",
       "updateFailed": "Kunde inte uppdatera modulpolicy.",
-      "manageStatus": "Hantera status",
-      "cannotManageStatusReason": "Modulen måste vara aktiverad globalt för att kunna hantera status här."
+      "defaultOrgState": "Standard för nya organisationer",
+      "defaultOrgStates": {
+        "active": "Aktiv",
+        "disabled": "Inaktiverad",
+        "hidden": "Avaktiverad",
+        "comingSoon": "Kommer snart"
+      },
+      "defaultOrgComingSoonMessage": "Meddelande (Kommer snart)",
+      "statusHints": {
+        "active": "Modulen är aktiverad och synlig i dashboarden.",
+        "disabled": "Modulen visas som utgråad och går inte att öppna.",
+        "hidden": "Modulen är helt dold från dashboarden.",
+        "comingSoon": "Modulen visas utgråad med ett valfritt meddelande."
+      }
     },
     "emailOverride": {
       "active": "E-post override aktiv",
@@ -2089,6 +2401,14 @@
         "saveError": "Kunde inte spara domänen.",
         "verifyError": "Verifieringen misslyckades.",
         "cnameHint": "Peka ett CNAME till {domain} och verifiera domänen innan den tas i bruk.",
+        "verificationRequired": "DNS-verifiering krävs",
+        "verificationInstructions": "Lägg till följande TXT-post i din DNS för att verifiera ägandeskap av domänen.",
+        "recordType": "Posttyp",
+        "recordName": "Postnamn",
+        "recordValue": "Värde",
+        "verificationNote": "Det kan ta upp till 24 timmar för DNS-ändringar att spridas. Klicka på \"Verifiera\" när du lagt till posten.",
+        "copied": "Kopierat till urklipp!",
+        "copyFailed": "Kunde inte kopiera till urklipp.",
         "status": {
           "notConfigured": "Ej konfigurerad",
           "verified": "Verifierad",
@@ -2105,6 +2425,74 @@
       },
       "errors": {
         "loadFailed": "Kunde inte hämta brandinginformation."
+      }
+    },
+    "domain": {
+      "title": "Custom Domain",
+      "description": "Konfigurera egen domän för login-sidan för {name}.",
+      "backToTenant": "Tillbaka",
+      "types": {
+        "provider": "Leverantör",
+        "distributor": "Distributör"
+      },
+      "currentDomain": {
+        "title": "Nuvarande domän",
+        "description": "Din login-domän för portalen.",
+        "default": "Standard:",
+        "label": "Domän",
+        "noDomain": "Ingen custom domain konfigurerad",
+        "noDomainHint": "Lägg till en egen domän nedan för att använda den för inloggning."
+      },
+      "form": {
+        "domainLabel": "Custom domain",
+        "domainPlaceholder": "portal.example.com",
+        "save": "Spara",
+        "saving": "Sparar...",
+        "remove": "Ta bort",
+        "hint": "Ange domänen utan protokoll (https://)"
+      },
+      "cname": {
+        "title": "Steg 1: Peka din domän",
+        "titleVerified": "DNS-konfiguration",
+        "description": "Om du inte redan har gjort det, skapa en CNAME-post i din DNS som pekar din custom domain till adressen nedan. Detta är nödvändigt för att trafiken ska dirigeras rätt.",
+        "descriptionVerified": "Din domän är verifierad och aktiv. Behåll denna CNAME-post i din DNS — den dirigerar trafik från din custom domain till portalen.",
+        "recordType": "Posttyp",
+        "recordName": "Namn/Host",
+        "target": "Mål/Värde",
+        "example": "Exempel: {domain} → CNAME → {target}"
+      },
+      "verification": {
+        "title": "Steg 2: Verifiera ägandeskap",
+        "instructions": "Lägg till följande TXT-post hos din DNS-leverantör för att verifiera domänägandeskap:",
+        "recordType": "Posttyp",
+        "recordName": "Postnamn",
+        "recordValue": "Värde",
+        "note": "Det kan ta upp till 24 timmar för DNS-ändringar att spridas. Klicka på \"Verifiera\" när du lagt till posten.",
+        "verify": "Verifiera domän",
+        "checking": "Kontrollerar...",
+        "verifiedAt": "Verifierad: {date}"
+      },
+      "status": {
+        "verified": "Verifierad",
+        "pending": "Väntar på verifiering",
+        "verifying": "Verifierar...",
+        "unverified": "Overifierad"
+      },
+      "success": {
+        "saved": "Domäninställningarna sparades.",
+        "removed": "Domänen togs bort.",
+        "verified": "Domänen verifierades!",
+        "copied": "Kopierat till urklipp."
+      },
+      "error": {
+        "fetchFailed": "Kunde inte hämta domäninformation.",
+        "saveFailed": "Kunde inte spara domänen.",
+        "removeFailed": "Kunde inte ta bort domänen.",
+        "verificationFailed": "DNS-verifieringen misslyckades. Kontrollera att TXT-posten finns och försök igen.",
+        "copyFailed": "Kunde inte kopiera till urklipp."
+      },
+      "confirm": {
+        "remove": "Vill du ta bort custom domain? Standardadressen kommer användas för inloggning."
       }
     },
     "detail": {
@@ -2138,6 +2526,24 @@
         },
         "dangerZone": {
           "title": "Danger zone"
+        }
+      },
+      "quickLinks": {
+        "domain": {
+          "title": "Custom domain",
+          "description": "Konfigurera egen login-domän"
+        },
+        "branding": {
+          "title": "Branding",
+          "description": "Logotyper och accentfärger"
+        },
+        "members": {
+          "title": "Medlemmar",
+          "description": "Hantera användare och roller"
+        },
+        "modules": {
+          "title": "Moduler",
+          "description": "Aktivera och konfigurera"
         }
       },
       "fields": {
@@ -2402,6 +2808,48 @@
       "checkAgain": "Kontrollera igen",
       "switchOrg": "Byt organisation",
       "logout": "Logga ut"
+    }
+  },
+  "search": {
+    "noResults": "Inga resultat hittades.",
+    "navigate": "Navigera",
+    "select": "Öppna",
+    "close": "Stäng",
+    "hint": "Sök...",
+    "categories": {
+      "modules": "Moduler",
+      "pages": "Sidor"
+    }
+  },
+  "legal": {
+    "termsTitle": "Användarvillkor",
+    "privacyTitle": "Integritetspolicy",
+    "lastUpdated": "Senast uppdaterad",
+    "backToLogin": "Tillbaka till inloggning",
+    "loginConsent": "Genom att fortsätta godkänner du våra {terms} och {privacy}.",
+    "termsLink": "Användarvillkor",
+    "privacyLink": "Integritetspolicy"
+  },
+  "apiScopes": {
+    "user:read": "Läsa användarinformation",
+    "user:write": "Uppdatera användarprofil",
+    "org:read": "Läsa organisationsinformation",
+    "org:write": "Uppdatera organisationsinställningar",
+    "org:members:read": "Läsa organisationsmedlemmar",
+    "org:members:write": "Hantera organisationsmedlemmar",
+    "modules:read": "Läsa modulkonfiguration",
+    "modules:write": "Uppdatera modulkonfiguration",
+    "admin:read": "Läsa administrationsdata",
+    "admin:write": "Utföra administrativa åtgärder",
+    "groups": {
+      "user": "Användare",
+      "organization": "Organisation",
+      "modules": "Moduler",
+      "admin": "Administration"
+    },
+    "templates": {
+      "readOnly": "Skrivskyddad",
+      "fullAccess": "Full åtkomst"
     }
   }
 }
