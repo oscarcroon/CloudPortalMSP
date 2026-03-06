@@ -40,7 +40,8 @@ certificatesResolvers:
   letsencrypt:
     acme:
       # Email for Let's Encrypt notifications
-      email: "${TRAEFIK_ACME_EMAIL:-admin@example.com}"
+      # OBS: Traefik stödjer INTE env-variabel-expansion i YAML — hårdkoda din e-post här
+      email: "ssl-admin@example.com"
       # Certificate storage location
       storage: "/etc/traefik/acme.json"
       # HTTP-01 challenge
@@ -95,9 +96,9 @@ accessLog:
 #     addRoutersLabels: true
 #     addServicesLabels: true
 
-# Health check
+# Health check (använd web/port 80 — websecure kräver giltigt TLS-cert)
 ping:
-  entryPoint: websecure
+  entryPoint: web
 
 # Global settings
 global:

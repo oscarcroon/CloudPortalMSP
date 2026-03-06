@@ -243,14 +243,10 @@ sudo nano /etc/traefik/.env
 Fyll i värdena:
 
 ```env
-# E-post för Let's Encrypt certifikat-notifieringar
-TRAEFIK_ACME_EMAIL=ssl-admin@dittforetag.se
-
 # Huvuddomän för portalen
 TRAEFIK_DEFAULT_DOMAIN=portal.example.com
 
 # Dashboard-autentisering (generera med: htpasswd -nb admin dittlösenord)
-# Obs: Dubbla $$-tecken i docker-compose
 TRAEFIK_DASHBOARD_AUTH=admin:$apr1$xyz$hash
 ```
 
@@ -258,14 +254,13 @@ TRAEFIK_DASHBOARD_AUTH=admin:$apr1$xyz$hash
 
 ### 5.5 Redigera Let's Encrypt e-post i traefik.yml
 
-Dubbelkolla att e-postadressen stämmer:
+Traefik stödjer **inte** miljövariabel-expansion i sin YAML-config. E-postadressen måste hårdkodas:
 
 ```bash
 sudo nano /etc/traefik/traefik.yml
 
-# Kontrollera raden:
-# email: "${TRAEFIK_ACME_EMAIL:-admin@example.com}"
-# Värdet hämtas från .env-filen (TRAEFIK_ACME_EMAIL)
+# Ändra raden under certificatesResolvers → letsencrypt → acme:
+# email: "ssl-admin@example.com"  →  email: "din-email@dittforetag.se"
 ```
 
 ---
