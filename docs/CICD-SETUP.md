@@ -100,10 +100,12 @@ Innan du börjar, säkerställ att du har:
 
 - [ ] Två Ubuntu 24.04 LTS-servrar (dev och prod) med SSH-åtkomst
 - [ ] MariaDB Galera Cluster uppsatt och tillgängligt
-- [ ] Traefik uppsatt i DMZ
+- [ ] Traefik uppsatt i DMZ (se [`docs/TRAEFIK-INSTALL.md`](TRAEFIK-INSTALL.md) för installationsguide)
 - [ ] DNS-poster konfigurerade (t.ex. `dev.portal.example.com` och `portal.example.com`)
 - [ ] GitHub-repository med admin-rättigheter
 - [ ] Lokal dator med SSH-klient för att generera nycklar
+
+> **Se även:** [`infra/bootstrap_webhost.sh`](../infra/bootstrap_webhost.sh) — automatiserat script som utför serverförberedelse (Del 1) inklusive säkerhetshärdning. Kan användas istället för manuella steg.
 
 ### Serverinformation
 
@@ -119,6 +121,25 @@ Innan du börjar, säkerställ att du har:
 ---
 
 ## Del 1: Förbered applikationsservrarna
+
+> **Tips: Automatiserat alternativ**
+>
+> Stegen i Del 1 (1.1–1.10) kan köras automatiskt med bootstrap-scriptet:
+>
+> ```bash
+> # Kopiera scriptet till servern
+> scp infra/bootstrap_webhost.sh admin@<SERVER-IP>:/tmp/
+>
+> # Redigera konfigurationssektionen (APP_USER, TRAEFIK_IP, etc.)
+> nano /tmp/bootstrap_webhost.sh
+>
+> # Kör scriptet
+> sudo bash /tmp/bootstrap_webhost.sh
+> ```
+>
+> Scriptet gör allt som beskrivs nedan **plus** säkerhetshärdning (SSH-härdning, fail2ban, kernel sysctl, unattended-upgrades, persistent journald och MariaDB-klient). Se [`infra/bootstrap_webhost.sh`](../infra/bootstrap_webhost.sh) för detaljer.
+>
+> Om du föredrar att förstå varje steg eller behöver anpassa enskilda delar, följ de manuella stegen nedan.
 
 Utför följande steg på **både DEV-SERVER och PROD-SERVER** om inget annat anges.
 
@@ -203,10 +224,11 @@ id cloudportal
 sudo mkdir -p /opt/cloudportal
 
 # Skapa underkatalogerna
-sudo mkdir -p /opt/cloudportal/current
+# OBS: Skapa INTE /opt/cloudportal/current — den skapas som symlink av deploy.sh
 sudo mkdir -p /opt/cloudportal/releases
 sudo mkdir -p /opt/cloudportal/shared
 sudo mkdir -p /opt/cloudportal/shared/logs
+sudo mkdir -p /opt/cloudportal/shared/uploads
 
 # Sätt rättigheter
 sudo chown -R cloudportal:cloudportal /opt/cloudportal
@@ -214,7 +236,6 @@ sudo chown -R cloudportal:cloudportal /opt/cloudportal
 # Verifiera strukturen
 ls -la /opt/cloudportal/
 # Förväntat:
-# drwxr-xr-x cloudportal cloudportal current
 # drwxr-xr-x cloudportal cloudportal releases
 # drwxr-xr-x cloudportal cloudportal shared
 ```
@@ -222,10 +243,10 @@ ls -la /opt/cloudportal/
 **[PROD-SERVER]**
 ```bash
 sudo mkdir -p /opt/cloudportal
-sudo mkdir -p /opt/cloudportal/current
 sudo mkdir -p /opt/cloudportal/releases
 sudo mkdir -p /opt/cloudportal/shared
 sudo mkdir -p /opt/cloudportal/shared/logs
+sudo mkdir -p /opt/cloudportal/shared/uploads
 sudo chown -R cloudportal:cloudportal /opt/cloudportal
 ls -la /opt/cloudportal/
 ```

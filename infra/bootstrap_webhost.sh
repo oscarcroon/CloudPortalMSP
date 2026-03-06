@@ -462,18 +462,168 @@ step_copy_env_template() {
         log_warn ".env-filen finns redan: ${env_file}"
         log_warn "Hoppar över kopiering. Kontrollera manuellt mot infra/env.prod.example."
     else
-        # Skapa minimal .env som påminnelse
         cat > "$env_file" << 'ENVTEMPLATE'
-# CloudPortal MSP - Miljövariabler
-# Kopiera innehållet från infra/env.prod.example och fyll i dina värden.
-# Se: docs/CICD-SETUP.md för detaljer.
+# =============================================================================
+# CloudPortal MSP - Produktionsmiljö (.env)
+# =============================================================================
+# Genererad av bootstrap_webhost.sh — fyll i alla tomma värden nedan.
+# För dev-server: ändra NODE_ENV till "development" och anpassa URL:er/databas.
+# Filen ägs av cloudportal-användaren med rättigheter 600.
+#
+# Generera secrets:
+#   openssl rand -base64 32   (för JWT_SECRET, CRYPTO_KEY:s)
+#   openssl rand -base64 24   (för DB_PASSWORD)
+#   openssl rand -base64 16   (för AUTH_SERVICE_TOKEN)
+#
+# VIKTIGT: Använd ALLTID unika värden för dev och prod!
+# Se även: infra/env.prod.example för senaste version av denna mall.
+# =============================================================================
+
+# =============================================================================
+# Application Core
+# =============================================================================
 NODE_ENV=production
+NUXT_PUBLIC_APP_URL=https://portal.example.com
+PORTAL_BASE_URL=https://portal.example.com
+PASSWORD_RESET_BASE_URL=https://portal.example.com
+INVITE_ACCEPT_BASE_URL=https://portal.example.com
+
+# Lita på reverse proxy (Traefik) headers (X-Forwarded-For, etc.)
+TRUST_PROXY=1
+
+# Förhindra host header poisoning - MÅSTE matcha din publika URL
+PUBLIC_BASE_URL=https://portal.example.com
+
+# =============================================================================
+# Database (MariaDB Galera Cluster)
+# =============================================================================
+DB_HOST=galera-vip.internal
+DB_PORT=3306
+DB_USER=cloudportal_prod
+DB_PASSWORD=                       # openssl rand -base64 24
+DB_NAME=cloudportal_prod
+
+# =============================================================================
+# Authentication
+# =============================================================================
+# JWT signing secret - MINST 32 tecken, appen vägrar starta utan i prod
+AUTH_JWT_SECRET=                    # openssl rand -base64 32
+
+# Service token för interna API-anrop (introspection, etc.)
+AUTH_SERVICE_TOKEN=                 # openssl rand -base64 16
+
+# Session-livstid (standard: 12h)
+AUTH_SESSION_TTL=12h
+
+# Tillåt inte självregistrering i produktion
+AUTH_ALLOW_SELF_REGISTRATION=false
+
+# Cloudflare Zero Trust JWT-validering (lämna tomt om ej använt)
+CLOUDFLARE_ZT_JWT_SECRET=
+
+# =============================================================================
+# Encryption Keys
+# =============================================================================
+# Varje nyckel krypterar känslig data i databasen. Base64-kodad, 32 bytes.
+# Generera: openssl rand -base64 32
+
+# Kryptering av Cloudflare API-tokens lagrade per organisation
+CLOUDFLARE_CRYPTO_KEY=             # openssl rand -base64 32
+
+# Kryptering av e-postleverantörskonfiguration
+EMAIL_CRYPTO_KEY=                  # openssl rand -base64 32
+
+# Kryptering av certifikat-agent EAB-hemligheter (opt-in layer)
+# CERTIFICATES_CRYPTO_KEY=         # openssl rand -base64 32
+
+# =============================================================================
+# External Integrations - Cloudflare
+# =============================================================================
+# Global Cloudflare API-token (används för DNS-zoner, etc.)
+CLOUDFLARE_TOKEN=
+
+# =============================================================================
+# Cloudflare Turnstile (CAPTCHA)
+# =============================================================================
+# Lämna tomma för att inaktivera CAPTCHA-verifiering
+NUXT_PUBLIC_TURNSTILE_SITE_KEY=
+NUXT_TURNSTILE_SECRET_KEY=
+
+# =============================================================================
+# File Uploads
+# =============================================================================
+# Persistent upload-katalog - MÅSTE peka på shared/ för att överleva deploys
+UPLOADS_DIR=/opt/cloudportal/shared/uploads
+
+# =============================================================================
+# Login Branding
+# =============================================================================
+# Domänsuffix för per-organisation login-branding
+LOGIN_BRANDING_SLUG_SUFFIXES=.portal.example.com
+LOGIN_BRANDING_ALLOW_UNVERIFIED=false
+
+# =============================================================================
+# Superadmin Seed (endast vid initial setup)
+# =============================================================================
+SEED_SUPERADMIN_EMAIL=admin@example.com
+SEED_SUPERADMIN_PASSWORD=           # Byt till ett starkt lösenord
+SEED_SUPERADMIN_NAME=Cloud Portal Admin
+
+# =============================================================================
+# Traefik Custom Domains
+# =============================================================================
+# Aktivera synkronisering av custom domain-konfigurationer till Traefik
+TRAEFIK_DOMAINS_ENABLED=true
+
+# Portal backend-URL som Traefik ser (intern IP:port)
+TRAEFIK_PORTAL_BACKEND_URL=http://10.0.1.20:3000
+
+# Standarddomän (inte custom domain)
+TRAEFIK_DEFAULT_DOMAIN=portal.example.com
+
+# Let's Encrypt-e-post för certifikatnotiser
+TRAEFIK_ACME_EMAIL=ssl-admin@example.com
+
+# SFTP-konfiguration för Traefik config-synk
+TRAEFIK_SFTP_HOST=192.168.2.130
+TRAEFIK_SFTP_PORT=22
+TRAEFIK_SFTP_USERNAME=traefik-sync
+TRAEFIK_SFTP_KEY_PATH=/opt/cloudportal/shared/.ssh/traefik_sync_key
+TRAEFIK_SFTP_REMOTE_DIR=/etc/traefik/dynamic
+
+# Domänverifieringsschemaläggare (standard: aktiverad)
+DOMAIN_VERIFICATION_SCHEDULER_ENABLED=true
+
+# =============================================================================
+# Windows DNS Layer (kommentera bort om ej använt)
+# =============================================================================
+# WINDOWS_DNS_API_URL=http://dns-api.internal:8080
+# WINDOWS_DNS_LAYER_TOKEN=
+
+# =============================================================================
+# Windows DNS Redirects (kommentera bort om ej använt)
+# =============================================================================
+# Public IPv4 för Traefik (A-poster)
+# WINDOWS_DNS_REDIRECTS_PUBLIC_IPV4=203.0.113.10
+# WINDOWS_DNS_REDIRECTS_PUBLIC_IPV4S=203.0.113.10,203.0.113.11
+
+# Public IPv6 för Traefik (AAAA-poster, valfritt)
+# WINDOWS_DNS_REDIRECTS_PUBLIC_IPV6=2001:db8::1
+
+# CNAME-mål för subdomain-redirects
+# WINDOWS_DNS_REDIRECTS_CNAME_TARGET=traefik.example.com
+
+# TTL i sekunder (standard: 3600)
+# WINDOWS_DNS_REDIRECTS_PUBLIC_TTL=3600
+
+# Kommentarstext för managed DNS-poster
+# WINDOWS_DNS_REDIRECTS_MANAGED_COMMENT_TEXT=[redirects] managed
 ENVTEMPLATE
 
         chown "${APP_USER}:${APP_USER}" "$env_file"
         chmod 600 "$env_file"
-        log_info "Skapade minimal .env i ${env_file}"
-        log_warn "VIKTIGT: Kopiera infra/env.prod.example till servern och fyll i alla värden!"
+        log_info "Skapade komplett .env-mall i ${env_file}"
+        log_warn "VIKTIGT: Fyll i alla tomma värden i ${env_file} innan du startar portalen!"
     fi
 }
 
@@ -501,13 +651,13 @@ print_summary() {
     echo "  - Journald:     Persistent, max ${JOURNAL_MAX_SIZE}"
     echo ""
     echo "Nästa steg:"
-    echo "  1. Kopiera infra/env.prod.example -> ${APP_DIR}/shared/.env"
-    echo "  2. Fyll i alla miljövariabler (se kommentarer i filen)"
-    echo "  3. Konfigurera SSH-nyckel för deploy-användare:"
+    echo "  1. Fyll i alla tomma värden i ${APP_DIR}/shared/.env"
+    echo "     (komplett mall skapades automatiskt, nano ${APP_DIR}/shared/.env)"
+    echo "  2. Konfigurera SSH-nyckel för deploy-användare:"
     echo "     Se docs/CICD-SETUP.md, Del 2"
-    echo "  4. Kör en deploy (CI/CD eller manuellt med infra/deploy.sh)"
-    echo "  5. Initialisera databas: npx drizzle-kit push"
-    echo "  6. Seeda superadmin: node scripts/seed-superadmin.js"
+    echo "  3. Kör en deploy (CI/CD eller manuellt med infra/deploy.sh)"
+    echo "  4. Initialisera databas: npx drizzle-kit push"
+    echo "  5. Seeda superadmin: node scripts/seed-superadmin.js"
     echo ""
     echo -e "${YELLOW}VIKTIGT: Verifiera att du har SSH-nyckel konfigurerad"
     echo -e "innan du stänger denna session!${NC}"
